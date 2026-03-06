@@ -3,131 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Raccoon Times: Битва с Клоуном</title>
+  <title>The Raccoon Times: Битва Титанов</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-    .status { margin: 20px; font-weight: bold; font-size: 1.3rem; min-height: 1.6em; color: #0088cc; }
+    :root {
+      --tg-blue: #0088cc;
+      --tg-red: #f44336;
+      --tg-yellow: #ffc107;
+      --tg-green: #4caf50;
+    }
+    body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
     
-    .arena { display: flex; justify-content: space-around; align-items: center; margin-top: 40px; }
+    .status-box { 
+      background: white; border-radius: 15px; padding: 10px; margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); min-height: 80px; display: flex; 
+      align-items: center; justify-content: center; font-weight: bold; color: var(--tg-blue);
+    }
+
+    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; }
     
-    .chip { width: 100px; height: 100px; border-radius: 50%; border: 5px solid #ccc; 
-            display: flex; align-items: center; justify-content: center; font-size: 45px; 
+    .chip { width: 90px; height: 90px; border-radius: 50%; border: 4px solid #ccc; 
+            display: flex; align-items: center; justify-content: center; font-size: 40px; 
             background: white; position: relative; transition: all 0.3s ease; }
     
-    .chip.active { border-color: #0088cc; transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4); }
+    .chip.active { border-color: var(--tg-blue); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.3); }
     
-    /* Анимации ударов */
-    @keyframes jump-left { 0% { transform: scale(1.1); } 50% { transform: translateX(50px) scale(1.2); } 100% { transform: scale(1.1); } }
-    @keyframes jump-right { 0% { transform: scale(1.1); } 50% { transform: translateX(-50px) scale(1.2); } 100% { transform: scale(1.1); } }
-    .animate-p1 { animation: jump-left 0.3s; }
-    .animate-bot { animation: jump-right 0.3s; }
+    /* Анимации */
+    @keyframes crit-shake { 0% {transform: rotate(0);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0);} }
+    .crit { animation: crit-shake 0.2s infinite; border-color: var(--tg-yellow) !important; }
+    .heal-effect { border-color: var(--tg-green) !important; box-shadow: 0 0 20px var(--tg-green) !important; }
+    
+    .animate-attack { transform: translateX(50px) scale(1.2) !important; }
+    .animate-bot-attack { transform: translateX(-50px) scale(1.2) !important; }
 
-    .hp-bar { width: 100px; height: 12px; background: #ddd; border-radius: 6px; margin-top: 15px; overflow: hidden; border: 1px solid #bbb; }
-    .hp-fill { height: 100%; background: #4caf50; width: 100%; transition: width 0.4s ease; }
+    /* Полоски */
+    .bars { width: 100px; margin-top: 10px; }
+    .bar-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; }
+    .bar { height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; border: 1px solid #bbb; margin-bottom: 5px; }
+    .fill { height: 100%; transition: width 0.4s ease; }
+    .hp { background: var(--tg-green); }
+    .energy { background: var(--tg-yellow); }
+
+    /* Кнопки приемов */
+    .controls { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; 
+      background: white; padding: 15px; border-radius: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+    }
+    .btn { 
+      padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
+      color: white; font-size: 0.9rem; transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { background: #ccc !important; opacity: 0.6; }
     
-    .controls { margin-top: 50px; }
-    .btn-attack { padding: 18px 40px; font-size: 1.1rem; border: none; border-radius: 15px; 
-                  background: #0088cc; color: white; cursor: pointer; font-weight: bold;
-                  box-shadow: 0 4px 0 #006699; transition: all 0.1s; }
-    .btn-attack:active { transform: translateY(4px); box-shadow: none; }
-    .btn-attack:disabled { background: #bbb; box-shadow: none; cursor: not-allowed; }
+    .btn-std { background: var(--tg-blue); grid-column: span 2; font-size: 1.1rem; padding: 15px; }
+    .btn-sp1 { background: #ff9800; }
+    .btn-sp2 { background: #9c27b0; }
+    .btn-sp3 { background: #e91e63; }
+
+    .log { font-size: 0.8rem; margin-top: 10px; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
-  <div class="status" id="msg">Ваш ход! Покажите этому Клоуну мощь енотов!</div>
+  <div class="status-box" id="msg">Твой ход, Енот! <br>Выбирай прием.</div>
 
   <div class="arena">
     <div id="p1-area">
       <div id="p1-chip" class="chip active">🦝</div>
-      <div class="hp-bar"><div id="p1-hp" class="hp-fill"></div></div>
-      <p><b>Вы (Енот)</b></p>
+      <div class="bars">
+        <span class="bar-label">HP</span>
+        <div class="bar"><div id="p1-hp" class="fill hp" style="width: 100%;"></div></div>
+        <span class="bar-label">Энергия</span>
+        <div class="bar"><div id="p1-nrg" class="fill energy" style="width: 0%;"></div></div>
+      </div>
+      <p><b>Енот</b></p>
     </div>
-
-    <div style="font-size: 1.5rem; opacity: 0.5;">VS</div>
 
     <div id="bot-area">
       <div id="bot-chip" class="chip">🤡</div>
-      <div class="hp-bar"><div id="bot-hp" class="hp-fill"></div></div>
-      <p><b>Клоун-бот</b></p>
+      <div class="bars">
+        <span class="bar-label">HP</span>
+        <div class="bar"><div id="bot-hp" class="fill hp" style="width: 100%;"></div></div>
+        <span class="bar-label">Энергия</span>
+        <div class="bar"><div id="bot-nrg" class="fill energy" style="width: 0%;"></div></div>
+      </div>
+      <p><b>Клоун</b></p>
     </div>
   </div>
 
-  <div class="controls">
-    <button id="attack-btn" class="btn-attack" onclick="playerAttack()">БИТЬ КЛОУНА!</button>
+  <div class="controls" id="controls">
+    <button class="btn btn-std" onclick="action('attack')">Обычный удар (+20 Энергии)</button>
+    <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
+    <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
+    <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
   </div>
+  
+  <div class="log" id="log">Битва началась...</div>
 
   <script>
-    let playerHP = 100;
-    let botHP = 100;
-    let gameActive = true;
+    let pHP = 100, pNRG = 0;
+    let bHP = 100, bNRG = 0;
+    let active = true;
 
-    const msg = document.getElementById('msg');
-    const btn = document.getElementById('attack-btn');
-
-    // Ход Енота (игрока)
-    function playerAttack() {
-      if (!gameActive) return;
-
-      btn.disabled = true;
-      const damage = Math.floor(Math.random() * 25) + 5; 
+    function action(type) {
+      if (!active) return;
+      toggleBtns(true);
       
-      const p1 = document.getElementById('p1-chip');
-      p1.classList.add('animate-p1');
-      setTimeout(() => p1.classList.remove('animate-p1'), 300);
+      let dmg = 0, heal = 0, cost = 0, text = "";
+      let isCrit = Math.random() < 0.2;
 
-      botHP -= damage;
-      updateHP();
-
-      if (botHP <= 0) {
-        endGame("Победа! Клоун повержен, фишка выбита! 🎉🦝");
-        return;
+      if (type === 'attack') {
+        dmg = 10; pNRG = Math.min(100, pNRG + 20);
+        text = "Енот наносит четкий удар!";
+      } else if (type === 'trash') {
+        dmg = 25; cost = 40;
+        text = "Енот закидал Клоуна мусором!";
+      } else if (type === 'snack') {
+        heal = 30; cost = 30;
+        text = "Енот съел сухарик и подлечился!";
+      } else if (type === 'rage') {
+        dmg = 50; cost = 80; isCrit = true;
+        text = "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
       }
 
-      msg.innerText = `Вы нанесли ${damage} урона! Клоун замахивается...`;
-      document.getElementById('p1-chip').classList.remove('active');
-      document.getElementById('bot-chip').classList.add('active');
+      if (isCrit && dmg > 0) { dmg = Math.floor(dmg * 1.5); text = "💥 КРИТ: " + text; }
+      
+      pNRG -= cost;
+      executeAction('p1-chip', dmg, heal, isCrit, text);
 
-      setTimeout(botAttack, 1500);
+      if (bHP <= 0) return endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆");
+      if (active) setTimeout(botTurn, 1500);
     }
 
-    // Ход Клоуна (бота)
-    function botAttack() {
-      if (!gameActive) return;
+    function botTurn() {
+      if (!active) return;
+      let dmg = 0, heal = 0, isCrit = Math.random() < 0.15;
+      let text = "";
 
-      const damage = Math.floor(Math.random() * 20) + 10; 
-      
-      const bc = document.getElementById('bot-chip');
-      bc.classList.add('animate-bot');
-      setTimeout(() => bc.classList.remove('animate-bot'), 300);
-
-      playerHP -= damage;
-      updateHP();
-
-      if (playerHP <= 0) {
-        endGame("Клоун выбил вашу фишку... Еноту нужно больше тренировок! 🤡");
-        return;
+      if (bNRG >= 70) {
+        dmg = 40; bNRG -= 70; text = "🤡 Клоун взрывает огромную петарду!";
+      } else if (bHP < 40 && bNRG >= 30) {
+        heal = 25; bNRG -= 30; text = "🤡 Клоун достал аптечку из шляпы!";
+      } else {
+        dmg = 12; bNRG = Math.min(100, bNRG + 25); text = "🤡 Клоун бьет резиновым молотком!";
       }
 
-      msg.innerText = `Клоун ударил на ${damage}! Твой черед, Енот!`;
-      document.getElementById('bot-chip').classList.remove('active');
-      document.getElementById('p1-chip').classList.add('active');
-      btn.disabled = false;
-    }
-
-    function updateHP() {
-      document.getElementById('p1-hp').style.width = Math.max(0, playerHP) + "%";
-      document.getElementById('bot-hp').style.width = Math.max(0, botHP) + "%";
+      if (isCrit && dmg > 0) { dmg = Math.floor(dmg * 1.5); text = "🎈 КРИТ: " + text; }
       
-      if (playerHP < 30) document.getElementById('p1-hp').style.background = "#f44336";
-      if (botHP < 30) document.getElementById('bot-hp').style.background = "#f44336";
+      executeAction('bot-chip', dmg, heal, isCrit, text);
+
+      if (pHP <= 0) return endGame("Клоун оказался хитрее... Енот повержен 🤡");
+      toggleBtns(false);
     }
 
-    function endGame(text) {
-      gameActive = false;
-      msg.innerText = text;
-      btn.innerText = "Игра окончена";
-      btn.disabled = true;
+    function executeAction(attackerId, dmg, heal, crit, txt) {
+      const chip = document.getElementById(attackerId);
+      const log = document.getElementById('log');
+      
+      // Логика урона
+      if (dmg > 0) {
+        chip.classList.add(attackerId === 'p1-chip' ? 'animate-attack' : 'animate-bot-attack');
+        if (crit) chip.classList.add('crit');
+        if (attackerId === 'p1-chip') bHP -= dmg; else pHP -= dmg;
+      }
+      
+      // ИСПРАВЛЕННАЯ ЛОГИКА ЛЕЧЕНИЯ: Лечим того, КТО атакует
+      if (heal > 0) {
+        chip.classList.add('heal-effect');
+        if (attackerId === 'p1-chip') {
+            pHP = Math.min(100, pHP + heal);
+        } else {
+            bHP = Math.min(100, bHP + heal);
+        }
+      }
+
+      setTimeout(() => {
+        chip.classList.remove('animate-attack', 'animate-bot-attack', 'crit', 'heal-effect');
+        updateUI();
+        document.getElementById('msg').innerHTML = txt;
+        log.innerText = `Действие: ${txt} (${dmg > 0 ? -dmg + ' HP' : '+' + heal + ' HP'})`;
+      }, 400);
+    }
+
+    function updateUI() {
+      document.getElementById('p1-hp').style.width = Math.max(0, pHP) + "%";
+      document.getElementById('bot-hp').style.width = Math.max(0, bHP) + "%";
+      document.getElementById('p1-nrg').style.width = pNRG + "%";
+      document.getElementById('bot-nrg').style.width = bNRG + "%";
+
+      document.getElementById('sp1').disabled = (pNRG < 40);
+      document.getElementById('sp2').disabled = (pNRG < 30);
+      document.getElementById('sp3').disabled = (pNRG < 80);
+    }
+
+    function toggleBtns(val) {
+      const btns = document.querySelectorAll('.btn');
+      btns.forEach(b => b.disabled = val);
+      if (!val) updateUI();
+    }
+
+    function endGame(txt) {
+      active = false;
+      updateUI();
+      document.getElementById('msg').innerHTML = txt;
+      document.getElementById('controls').style.opacity = "0.5";
+      toggleBtns(true);
     }
   </script>
 </body>
