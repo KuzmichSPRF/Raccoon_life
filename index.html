@@ -26,9 +26,10 @@
       gap: 20px;
     }
 
+    /* Сетка 2x2 для четырех кнопок */
     .main-menu-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin-top: 20px;
     }
@@ -38,15 +39,18 @@
       border-radius: 16px;
       padding: 20px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 15px;
+      justify-content: center;
+      gap: 10px;
       cursor: pointer;
       border: 1px solid rgba(0,0,0,0.05);
+      text-align: center;
     }
 
-    .menu-card:active { transform: scale(0.98); opacity: 0.8; }
-    .menu-card-icon { font-size: 2rem; }
-    .menu-card-title { font-size: 1.2rem; font-weight: 700; }
+    .menu-card:active { transform: scale(0.95); opacity: 0.8; }
+    .menu-card-icon { font-size: 2.2rem; }
+    .menu-card-title { font-size: 1rem; font-weight: 700; }
 
     /* -------- СПИСКИ -------- */
     .section-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
@@ -62,12 +66,13 @@
       color: inherit;
     }
 
+    .list-item:active { opacity: 0.7; }
     .list-item-info { flex: 1; }
     .list-item-title { font-weight: 600; font-size: 1rem; }
     .list-item-desc { font-size: 0.85rem; opacity: 0.6; margin-top: 2px; }
 
     /* -------- РИДЕР -------- */
-    #reader-screen { padding: 0; height: 100vh; }
+    #reader-screen { padding: 0; height: 100vh; flex-direction: column; }
     #reader-topbar {
       display: flex;
       align-items: center;
@@ -75,22 +80,24 @@
       background: var(--tg-theme-bg-color, #fff);
       border-bottom: 1px solid rgba(0,0,0,0.1);
     }
-    #back-btn { background: none; border: none; font-size: 1.2rem; color: var(--tg-theme-link-color); padding-right: 15px; }
-    #reader-iframe { border: none; width: 100%; flex: 1; }
+    #back-btn { background: none; border: none; font-size: 1.2rem; color: var(--tg-theme-link-color); padding-right: 15px; cursor: pointer; }
+    #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
 
     .btn-primary {
       background: var(--tg-theme-button-color, #0088cc);
       color: var(--tg-theme-button-text-color, #fff);
       border: none; border-radius: 12px; padding: 16px;
-      font-weight: 700; cursor: pointer;
+      font-weight: 700; cursor: pointer; width: 100%;
+      max-width: 280px;
     }
+    .btn-primary:active { opacity: 0.8; }
   </style>
 </head>
 <body>
 
 <div id="app">
   <div id="cover-screen" class="screen active">
-    <div style="font-size: 4rem">🦝</div>
+    <div style="font-size: 5rem">🦝</div>
     <h1>Raccoon Life</h1>
     <p>Твой гид по миру енотов, квестов и новостей.</p>
     <button class="btn-primary" onclick="navigateTo('main-menu')">Открыть меню</button>
@@ -106,6 +113,10 @@
       <div class="menu-card" onclick="renderCategory('quests')">
         <span class="menu-card-icon">⚔️</span>
         <span class="menu-card-title">Квесты</span>
+      </div>
+      <div class="menu-card" onclick="renderCategory('games')">
+        <span class="menu-card-icon">🎮</span>
+        <span class="menu-card-title">Игры</span>
       </div>
       <div class="menu-card" onclick="renderCategory('partners')">
         <span class="menu-card-icon">🤝</span>
@@ -149,10 +160,10 @@
         { title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
       ]
     },
-   games: {
-      title: "⚔️ Игры",
+    games: {
+      title: "🎮 Игры",
       items: [
-        { title: "🤡 Битва фишек", desc: "Мини-игра", url: "game.html", type: "iframe" }
+        { title: "Битва фишек", desc: "Против енота-бота", url: "game.html", type: "iframe" }
       ]
     },
     partners: {
@@ -164,10 +175,12 @@
     }
   };
 
-  // Новая логика кнопки "Назад"
+  // Единая функция возврата назад
   function handleBack() {
     const currentScreen = document.querySelector('.screen.active').id;
     if (currentScreen === 'reader-screen') {
+      // Очищаем iframe при выходе, чтобы музыка или скрипты игры не продолжали работать
+      document.getElementById('reader-iframe').src = "";
       navigateTo('list-screen');
     } else if (currentScreen === 'list-screen') {
       navigateTo('main-menu');
@@ -178,22 +191,24 @@
 
   function navigateTo(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    const target = document.getElementById(screenId);
+    if (target) target.classList.add('active');
     
-    // Сначала удаляем старый обработчик, чтобы они не наслаивались друг на друга
+    // Сброс обработчика для системной кнопки назад в Telegram
     tg.BackButton.offClick(handleBack);
 
     if (screenId === 'cover-screen') {
       tg.BackButton.hide();
     } else {
       tg.BackButton.show();
-      // Устанавливаем обработчик заново для текущего экрана
       tg.BackButton.onClick(handleBack);
     }
   }
 
   function renderCategory(catKey) {
     const cat = DATA[catKey];
+    if (!cat) return;
+    
     document.getElementById('category-title').innerText = cat.title;
     const listContainer = document.getElementById('category-list');
     listContainer.innerHTML = '';
