@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Question Times 2</title>
+    <style>
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --bg-black: #050505;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-black);
+            color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- ЕДИНЫЕ СТИЛИ ШАБЛОНА --- */
+        .unified-image {
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+            border-radius: 0;
+            display: block;
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            background-color: #0a0a0a;
+            margin-bottom: 30px;
+        }
+
+        .unified-dialogue {
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid var(--neon-pink);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.1);
+            color: var(--neon-cyan);
+            border-radius: 0;
+            text-align: center;
+            padding: 30px;
+            font-size: 1.3rem;
+            min-height: 60px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        #scene-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Элементы управления внутри диалога */
+        button {
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            letter-spacing: 5px;
+            transition: 0.3s;
+            margin: 10px;
+            border-radius: 0;
+        }
+        
+        button:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        input {
+            background: transparent;
+            border: 1px solid var(--neon-pink);
+            color: var(--neon-cyan);
+            padding: 10px;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            outline: none;
+            border-radius: 0;
+            box-shadow: inset 0 0 10px rgba(255,0,255,0.1);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Спецэффекты и экраны */
+        #splash-screen, #end-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #splash-screen {
+            justify-content: flex-start;
+            padding-top: 150px;
+        }
+
+        .glitch-title {
+            font-size: 4rem;
+            text-transform: uppercase;
+            text-shadow: 2px 2px var(--neon-pink);
+            animation: glitch 0.4s infinite;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        
+        #end-screen .glitch-title {
+            font-size: 3rem;
+            margin-bottom: 0;
+            padding: 20px;
+        }
+
+        .big-number {
+            font-size: 15rem;
+            color: white;
+            text-shadow: 0 0 30px var(--neon-pink);
+            display: block;
+            margin: 0.2rem auto 0 auto;
+            transform: translateX(-120vw);
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+
+        @keyframes slideInSharp {
+            from { transform: translateX(-120vw); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        .big-number.visible {
+            animation: slideInSharp 0.18s cubic-bezier(0.2, 0, 0, 1) forwards, glitch 0.3s 0.18s infinite;
+            opacity: 1;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            50% { transform: translate(-3px, 2px); }
+            100% { transform: translate(0); }
+        }
+
+        .cursor {
+            border-left: 10px solid var(--neon-cyan);
+            margin-left: 5px;
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .hidden { display: none !important; }
+        
+        .click-indicator {
+            font-size: 0.9rem;
+            color: var(--neon-pink);
+            margin-top: 15px;
+            animation: blink 1.5s infinite;
+            cursor: pointer;
+        }
+
+        /* --- МОБИЛЬНАЯ АДАПТАЦИЯ --- */
+        @media (max-width: 600px) {
+            body {
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+
+            #scene-container {
+                padding: 10px;
+            }
+
+            .unified-image {
+                max-height: 220px;
+                margin-bottom: 15px;
+            }
+
+            .unified-dialogue {
+                padding: 15px;
+                font-size: 1.1rem;
+                min-height: auto;
+            }
+
+            button {
+                width: 100%;
+                margin: 10px 0;
+                box-sizing: border-box;
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+
+            input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            #splash-screen {
+                padding-top: 60px;
+            }
+
+            .glitch-title {
+                font-size: 2.2rem;
+                margin-bottom: 30px;
+            }
+            
+            #end-screen .glitch-title {
+                font-size: 1.8rem;
+            }
+
+            .big-number {
+                font-size: 8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="intro-music">
+        <source src="https://github.com/KuzmichSPRF/QT2/raw/refs/heads/main/intro.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="bg-music" loop>
+        <source src="https://github.com/KuzmichSPRF/QT2/raw/refs/heads/main/music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="init-screen">
+        <button id="init-btn">ПОДКЛЮЧИТЬСЯ</button>
+    </div>
+
+    <div id="scene-container" class="hidden">
+        <img id="scene-image" class="unified-image" src="" alt="Сцена">
+        <div id="scene-dialog" class="unified-dialogue">
+            <div id="text-wrapper">
+                <span id="scene-text"></span><span id="scene-cursor" class="cursor"></span>
+            </div>
+            <div id="scene-controls" style="margin-top: 20px;">
+                </div>
+        </div>
+    </div>
+
+    <div id="splash-screen" class="hidden">
+        <div class="glitch-title">The Question Times</div>
+        <div id="big-number" class="big-number">2</div>
+        <button id="start-btn" style="margin-top: 30px;">Начать</button>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <div class="glitch-title">ПРОДОЛЖЕНИЕ СЛЕДУЕТ...</div>
+    </div>
+
+    <script>
+        const audioIntro = document.getElementById("intro-music");
+        const audioBg = document.getElementById("bg-music");
+        
+        const uiContainer = document.getElementById("scene-container");
+        const uiImage = document.getElementById("scene-image");
+        const uiText = document.getElementById("scene-text");
+        const uiCursor = document.getElementById("scene-cursor");
+        const uiControls = document.getElementById("scene-controls");
+
+        let typingTimeout;
+        let isTyping = false;
+        let currentSceneData = null;
+
+        // --- БАЗА ДАННЫХ СЦЕН (ЛОГИКА ИГРЫ) ---
+        const SCENES = {
+            'start': {
+                type: 'transition',
+                image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
+                text: 'А, это ты? Что, снова пришел? Ладно, расскажу тебе что было дальше...',
+                choices: [
+                    { label: 'Ты кто?', target: 'who_are_you' },
+                    { label: 'Я пошел!', action: () => document.body.innerHTML = '' }
+                ]
+            },
+            'who_are_you': {
+                type: 'question',
+                image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
+                text: 'Я кто? Это Я кто? Это Ты мне скажи кто Я!',
+                expected: '919',
+                correctTarget: 'correct_answer',
+                errorMsg: 'нет'
+            },
+            'correct_answer': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
+                text: 'НУ КОНЕЧНО!',
+                autoTargetDelay: 1000,
+                action: () => triggerSplashScreen()
+            },
+            
+            'slide_1': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-01_02-20-22.jpg',
+                text: 'Это было совсем недавно, я вел одно простое, как мне тогда казалось, расследование...',
+                clickTarget: 'slide_2'
+            },
+            'slide_2': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-03_15-26-29.jpg',
+                text: 'Я уже почти нашел отгадки, но дальше случилось то, что я не мог предвидеть...',
+                clickTarget: 'slide_3'
+            },
+            'slide_3': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-03_16-36-17.jpg',
+                text: 'Я не смог с ними бороться, но я смог возглавить их...',
+                clickTarget: 'slide_4'
+            },
+            'slide_4': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-04_15-08-55.jpg',
+                text: 'Они не могли существовать без предводителя, и всё что мне было нужно - это получить документы...',
+                clickTarget: 'seq_1'
+            },
+
+            'seq_1': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/rac_off.png',
+                text: 'Это должно было быть не сложно',
+                clickTarget: 'seq_2'
+            },
+            'seq_2': {
+                type: 'transition',
+                image: 'https://storage.googleapis.com/qt2-image/dver_off.png',
+                text: '',
+                choices: [
+                    { label: 'зайти в здание', target: 'seq_3' }
+                ]
+            },
+            'seq_3': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/v_off.png',
+                text: '- Мне нужно получить удостоверение лидера ено..',
+                autoTargetDelay: 150, 
+                autoTarget: 'seq_4'
+            },
+            'seq_4': {
+                type: 'transition',
+                image: 'https://storage.googleapis.com/qt2-image/v_off.png',
+                text: '- Вам на 69 этаж, кабинет 369',
+                skipTyping: true, 
+                choices: [
+                    { label: 'перейти в лифт', target: 'elevator_scene' }
+                ]
+            },
+            'elevator_scene': {
+                type: 'triple_input',
+                image: 'https://storage.googleapis.com/qt2-image/file_00000000c750720887ecbfafb19c9641.png',
+                text: 'Какой этаж она сказала? Почему тут нужно ввести три цифры?',
+                correctTarget: 'elevator_success'
+            },
+            // Замененный последний слайд
+            'elevator_success': {
+                type: 'dialog',
+                image: 'https://storage.googleapis.com/qt2-image/lift.png',
+                text: 'Отлично, 69-ый этаж, поехали!',
+                clickTarget: 'end_game'
+            },
+            // Сцена для вызова финального экрана
+            'end_game': {
+                type: 'dialog',
+                action: () => {
+                    document.getElementById("scene-container").classList.add("hidden");
+                    document.getElementById("end-screen").classList.remove("hidden");
+                }
+            }
+        };
+
+        // --- ДВИЖОК ШАБЛОНОВ ---
+        function loadScene(sceneId) {
+            const scene = SCENES[sceneId];
+            if (!scene) return;
+            currentSceneData = scene;
+
+            uiControls.innerHTML = "";
+            uiText.textContent = "";
+            uiImage.src = scene.image;
+            clearTimeout(typingTimeout);
+
+            if (scene.text && scene.text.length > 0) {
+                document.getElementById('text-wrapper').classList.remove('hidden');
+                
+                if (scene.skipTyping) {
+                    uiText.textContent = scene.text;
+                    setupControls(scene);
+                } else {
+                    startTyping(scene.text, () => setupControls(scene));
+                }
+            } else {
+                document.getElementById('text-wrapper').classList.add('hidden');
+                setupControls(scene);
+            }
+        }
+
+        function startTyping(text, callback) {
+            isTyping = true;
+            uiCursor.classList.remove("hidden");
+            
+            audioIntro.currentTime = 0;
+            audioIntro.play().catch(e => console.log("Audio play error:", e));
+            
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    uiText.textContent += text.charAt(i);
+                    i++;
+                    typingTimeout = setTimeout(typeNext, 50);
+                } else {
+                    isTyping = false;
+                    audioIntro.pause();
+                    uiCursor.classList.add("hidden");
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function setupControls(scene) {
+            if (scene.type === 'transition') {
+                scene.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.textContent = choice.label;
+                    btn.onclick = () => {
+                        if (choice.target) loadScene(choice.target);
+                        if (choice.action) choice.action();
+                    };
+                    uiControls.appendChild(btn);
+                });
+            }
+            else if (scene.type === 'question') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Код...';
+                
+                const btn = document.createElement('button');
+                btn.textContent = 'ВВОД';
+                
+                btn.onclick = () => {
+                    if (input.value === scene.expected) {
+                        loadScene(scene.correctTarget);
+                    } else {
+                        alert(scene.errorMsg || 'Неверно');
+                        input.value = '';
+                    }
+                };
+                
+                uiControls.appendChild(input);
+                uiControls.appendChild(btn);
+            }
+            else if (scene.type === 'triple_input') {
+                const col = document.createElement('div');
+                col.style.display = 'flex';
+                col.style.flexDirection = 'column';
+                col.style.alignItems = 'center';
+                col.style.gap = '10px';
+                col.style.marginTop = '15px';
+                
+                const inputs = [];
+                for(let i = 0; i < 3; i++) {
+                    const inp = document.createElement('input');
+                    inp.type = 'number';
+                    inp.min = 1;
+                    inp.max = 21;
+                    inp.style.width = '60px';
+                    inp.style.margin = '0';
+                    inputs.push(inp);
+                    col.appendChild(inp);
+                }
+                
+                const btn = document.createElement('button');
+                btn.textContent = 'ВВОД';
+                btn.style.marginTop = '20px';
+                
+                btn.onclick = () => {
+                    const v1 = parseInt(inputs[0].value) || 0;
+                    const v2 = parseInt(inputs[1].value) || 0;
+                    const v3 = parseInt(inputs[2].value) || 0;
+                    
+                    if (v1 < 1 || v1 > 21 || v2 < 1 || v2 > 21 || v3 < 1 || v3 > 21) {
+                        alert('Введите числа от 1 до 21!');
+                        return;
+                    }
+
+                    const sum = (v1 * 10) + v2 + v3;
+                    
+                    if (sum === 69) {
+                        loadScene(scene.correctTarget);
+                    } else {
+                        alert(sum + ' - неверно!');
+                        inputs.forEach(i => i.value = ''); 
+                    }
+                };
+                
+                uiControls.appendChild(col);
+                uiControls.appendChild(btn);
+            }
+            else if (scene.type === 'dialog') {
+                if (scene.action) {
+                    scene.action();
+                } else if (scene.autoTarget) {
+                    setTimeout(() => loadScene(scene.autoTarget), scene.autoTargetDelay || 1000);
+                } else if (scene.clickTarget) {
+                    const hint = document.createElement('div');
+                    hint.className = 'click-indicator';
+                    hint.textContent = '▼ нажмите, чтобы продолжить ▼';
+                    uiControls.appendChild(hint);
+                    
+                    const dialogBox = document.getElementById('scene-dialog');
+                    const clickHandler = () => {
+                        dialogBox.removeEventListener('click', clickHandler);
+                        loadScene(scene.clickTarget);
+                    };
+                    dialogBox.addEventListener('click', clickHandler);
+                }
+            }
+        }
+
+        function triggerSplashScreen() {
+            setTimeout(() => {
+                uiContainer.classList.add("hidden");
+                document.getElementById("splash-screen").classList.remove("hidden");
+
+                try {
+                    audioBg.volume = 0.5;
+                    audioBg.currentTime = 0;
+                    audioBg.play();
+                } catch (e) {}
+            }, 1000);
+        }
+
+        document.getElementById("start-btn").addEventListener("click", function() {
+            this.style.display = 'none'; 
+            setTimeout(() => {
+                document.getElementById("big-number").classList.add("visible");
+                
+                setTimeout(() => {
+                    document.getElementById("splash-screen").classList.add("hidden");
+                    uiContainer.classList.remove("hidden");
+                    loadScene('slide_1'); 
+                }, 5000);
+            }, 50);
+        });
+
+        document.getElementById("init-btn").addEventListener("click", function() {
+            this.disabled = true; 
+            document.getElementById("init-screen").classList.add("hidden");
+            uiContainer.classList.remove("hidden");
+            loadScene('start');
+        });
+    </script>
+</body>
+</html>
