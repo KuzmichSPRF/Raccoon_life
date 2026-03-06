@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Битва с Енотом-ботом</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+    .status { margin: 20px; font-weight: bold; font-size: 1.3rem; min-height: 1.6em; color: #0088cc; }
+    
+    .arena { display: flex; justify-content: space-around; align-items: center; margin-top: 40px; }
+    
+    .chip { width: 100px; height: 100px; border-radius: 50%; border: 5px solid #ccc; 
+            display: flex; align-items: center; justify-content: center; font-size: 45px; 
+            background: white; position: relative; transition: all 0.3s ease; }
+    
+    .chip.active { border-color: #0088cc; transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4); }
+    
+    /* Анимации ударов */
+    @keyframes jump-left { 0% { transform: scale(1.1); } 50% { transform: translateX(50px) scale(1.2); } 100% { transform: scale(1.1); } }
+    @keyframes jump-right { 0% { transform: scale(1.1); } 50% { transform: translateX(-50px) scale(1.2); } 100% { transform: scale(1.1); } }
+    .animate-p1 { animation: jump-left 0.3s; }
+    .animate-bot { animation: jump-right 0.3s; }
+
+    .hp-bar { width: 100px; height: 12px; background: #ddd; border-radius: 6px; margin-top: 15px; overflow: hidden; border: 1px solid #bbb; }
+    .hp-fill { height: 100%; background: #4caf50; width: 100%; transition: width 0.4s ease; }
+    
+    .controls { margin-top: 50px; }
+    .btn-attack { padding: 18px 40px; font-size: 1.1rem; border: none; border-radius: 15px; 
+                  background: #0088cc; color: white; cursor: pointer; font-weight: bold;
+                  box-shadow: 0 4px 0 #006699; transition: all 0.1s; }
+    .btn-attack:active { transform: translateY(4px); box-shadow: none; }
+    .btn-attack:disabled { background: #bbb; box-shadow: none; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="status" id="msg">Ваш ход! Попробуйте выбить фишку бота.</div>
+
+  <div class="arena">
+    <div id="p1-area">
+      <div id="p1-chip" class="chip active">🤠</div>
+      <div class="hp-bar"><div id="p1-hp" class="hp-fill"></div></div>
+      <p><b>Вы</b></p>
+    </div>
+
+    <div style="font-size: 1.5rem; opacity: 0.5;">VS</div>
+
+    <div id="bot-area">
+      <div id="bot-chip" class="chip">🦝</div>
+      <div class="hp-bar"><div id="bot-hp" class="hp-fill"></div></div>
+      <p><b>Енот-бот</b></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="attack-btn" class="btn-attack" onclick="playerAttack()">БИТЬ!</button>
+  </div>
+
+  <script>
+    let playerHP = 100;
+    let botHP = 100;
+    let gameActive = true;
+
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('attack-btn');
+
+    // Ваш ход
+    function playerAttack() {
+      if (!gameActive) return;
+
+      btn.disabled = true;
+      const damage = Math.floor(Math.random() * 25) + 5; // Урон 5-30
+      
+      // Анимация
+      const p1 = document.getElementById('p1-chip');
+      p1.classList.add('animate-p1');
+      setTimeout(() => p1.classList.remove('animate-p1'), 300);
+
+      botHP -= damage;
+      updateHP();
+
+      if (botHP <= 0) {
+        endGame("Победа! Енот повержен! 🎉");
+        return;
+      }
+
+      msg.innerText = `Вы нанесли ${damage} урона! Енот думает...`;
+      document.getElementById('p1-chip').classList.remove('active');
+      document.getElementById('bot-chip').classList.add('active');
+
+      // Через 1.5 секунды ходит бот
+      setTimeout(botAttack, 1500);
+    }
+
+    // Ход бота
+    function botAttack() {
+      if (!gameActive) return;
+
+      const damage = Math.floor(Math.random() * 20) + 10; // Бот бьет чуть стабильнее
+      
+      const bc = document.getElementById('bot-chip');
+      bc.classList.add('animate-bot');
+      setTimeout(() => bc.classList.remove('animate-bot'), 300);
+
+      playerHP -= damage;
+      updateHP();
+
+      if (playerHP <= 0) {
+        endGame("Енот выбил вашу фишку! Вы проиграли. 🦝");
+        return;
+      }
+
+      msg.innerText = `Енот ударил на ${damage}! Ваш ход.`;
+      document.getElementById('bot-chip').classList.remove('active');
+      document.getElementById('p1-chip').classList.add('active');
+      btn.disabled = false;
+    }
+
+    function updateHP() {
+      document.getElementById('p1-hp').style.width = Math.max(0, playerHP) + "%";
+      document.getElementById('bot-hp').style.width = Math.max(0, botHP) + "%";
+      
+      // Меняем цвет полоски, если мало здоровья
+      if (playerHP < 30) document.getElementById('p1-hp').style.background = "#f44336";
+      if (botHP < 30) document.getElementById('bot-hp').style.background = "#f44336";
+    }
+
+    function endGame(text) {
+      gameActive = false;
+      msg.innerText = text;
+      btn.innerText = "Игра окончена";
+      btn.disabled = true;
+    }
+  </script>
+</body>
+</html>
