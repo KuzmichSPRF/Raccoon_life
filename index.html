@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>The Question Times 2</title>
+  <title>Raccoon Life</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,10 +20,12 @@
     .screen { display: none; padding: 16px; flex-direction: column; gap: 12px; }
     .active { display: flex; }
 
+    /* Исправленное центрирование обложки */
     #cover-screen {
       text-align: center;
+      align-items: center;
       justify-content: center;
-      height: 90vh;
+      height: 100vh; /* На всю высоту */
       gap: 20px;
     }
 
@@ -67,10 +69,7 @@
     }
 
     .list-item:active { opacity: 0.7; }
-    .list-item-info { 
-      flex: 1; 
-      overflow: hidden; 
-    }
+    .list-item-info { flex: 1; overflow: hidden; }
     .list-item-title { 
       font-weight: 600; 
       font-size: 1rem; 
@@ -94,6 +93,149 @@
     #back-btn { background: none; border: none; font-size: 1.2rem; color: var(--tg-theme-link-color); padding-right: 15px; cursor: pointer; }
     #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
 
+    /* Центрированная кнопка */
     .btn-primary {
       background: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text
+      color: var(--tg-theme-button-text-color, #fff);
+      border: none; 
+      border-radius: 12px; 
+      padding: 16px;
+      font-weight: 700; 
+      cursor: pointer; 
+      width: 80%;
+      max-width: 280px;
+      margin: 0 auto; /* Дополнительная гарантия центра */
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="cover-screen" class="screen active">
+    <div style="font-size: 5rem">🦝</div>
+    <h1>Raccoon Life</h1>
+    <p>Твой гид по миру енотов, квестов и новостей.</p>
+    <button class="btn-primary" onclick="navigateTo('main-menu')">Открыть меню</button>
+  </div>
+
+  <div id="main-menu" class="screen">
+    <h2 class="section-title">Куда отправимся?</h2>
+    <div class="main-menu-grid">
+      <div class="menu-card" onclick="renderCategory('newspapers')">
+        <span class="menu-card-icon">📰</span>
+        <span class="menu-card-title">Газеты</span>
+      </div>
+      <div class="menu-card" onclick="renderCategory('quests')">
+        <span class="menu-card-icon">⚔️</span>
+        <span class="menu-card-title">Квесты</span>
+      </div>
+      <div class="menu-card" onclick="renderCategory('games')">
+        <span class="menu-card-icon">🎮</span>
+        <span class="menu-card-title">Игры</span>
+      </div>
+      <div class="menu-card" onclick="renderCategory('partners')">
+        <span class="menu-card-icon">🤝</span>
+        <span class="menu-card-title">Партнеры</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="list-screen" class="screen">
+    <h2 id="category-title" class="section-title">Раздел</h2>
+    <div id="category-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+  </div>
+
+  <div id="reader-screen" class="screen">
+    <div id="reader-topbar">
+      <button id="back-btn" onclick="handleBack()">✕</button>
+      <b id="reader-header-title">Просмотр</b>
+    </div>
+    <iframe id="reader-iframe" src="" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
+  </div>
+</div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const DATA = {
+    newspapers: {
+      title: "📰 Газеты",
+      items: [
+        { title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
+        { title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" }
+      ]
+    },
+    quests: {
+      title: "⚔️ Квесты",
+      items: [
+        { title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
+      ]
+    },
+    games: {
+      title: "🎮 Игры",
+      items: [
+        { title: "Битва фишек", desc: "Клоун против Енота", url: "game.html", type: "iframe" }
+      ]
+    },
+    partners: {
+      title: "🤝 Партнеры",
+      items: [
+        { title: "CapsGame", desc: "Игра про фишки в Telegram", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
+      ]
+    }
+  };
+
+  function handleBack() {
+    const currentScreen = document.querySelector('.screen.active').id;
+    if (currentScreen === 'reader-screen') {
+      document.getElementById('reader-iframe').src = "";
+      navigateTo('list-screen');
+    } else if (currentScreen === 'list-screen') {
+      navigateTo('main-menu');
+    } else if (currentScreen === 'main-menu') {
+      navigateTo('cover-screen');
+    }
+  }
+
+  function navigateTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    window.scrollTo(0,0);
+    
+    tg.BackButton.offClick(handleBack);
+    if (screenId === 'cover-screen') tg.BackButton.hide();
+    else {
+      tg.BackButton.show();
+      tg.BackButton.onClick(handleBack);
+    }
+  }
+
+  function renderCategory(catKey) {
+    const cat = DATA[catKey];
+    document.getElementById('category-title').innerText = cat.title;
+    const listContainer = document.getElementById('category-list');
+    listContainer.innerHTML = '';
+
+    cat.items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `<div class="list-item-info"><div class="list-item-title">${item.title}</div><div class="list-item-desc">${item.desc}</div></div><div style="opacity: 0.3">›</div>`;
+      div.onclick = () => handleItemClick(item);
+      listContainer.appendChild(div);
+    });
+    navigateTo('list-screen');
+  }
+
+  function handleItemClick(item) {
+    if (item.type === 'iframe') {
+      document.getElementById('reader-header-title').innerText = item.title;
+      document.getElementById('reader-iframe').src = item.url;
+      navigateTo('reader-screen');
+    } else if (item.type === 'link') tg.openLink(item.url);
+    else tg.openTelegramLink(item.url);
+  }
+</script>
+</body>
+</html>
