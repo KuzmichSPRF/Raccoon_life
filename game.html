@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Битва с Енотом-ботом</title>
+  <title>The Raccoon Times: Битва с Клоуном</title>
   <style>
     body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
     .status { margin: 20px; font-weight: bold; font-size: 1.3rem; min-height: 1.6em; color: #0088cc; }
@@ -35,13 +35,13 @@
 </head>
 <body>
 
-  <div class="status" id="msg">Ваш ход! Попробуйте выбить фишку бота.</div>
+  <div class="status" id="msg">Ваш ход! Покажите этому Клоуну мощь енотов!</div>
 
   <div class="arena">
     <div id="p1-area">
       <div id="p1-chip" class="chip active">🦝</div>
       <div class="hp-bar"><div id="p1-hp" class="hp-fill"></div></div>
-      <p><b>Вы</b></p>
+      <p><b>Вы (Енот)</b></p>
     </div>
 
     <div style="font-size: 1.5rem; opacity: 0.5;">VS</div>
@@ -54,7 +54,7 @@
   </div>
 
   <div class="controls">
-    <button id="attack-btn" class="btn-attack" onclick="playerAttack()">БИТЬ!</button>
+    <button id="attack-btn" class="btn-attack" onclick="playerAttack()">БИТЬ КЛОУНА!</button>
   </div>
 
   <script>
@@ -65,14 +65,13 @@
     const msg = document.getElementById('msg');
     const btn = document.getElementById('attack-btn');
 
-    // Ваш ход
+    // Ход Енота (игрока)
     function playerAttack() {
       if (!gameActive) return;
 
       btn.disabled = true;
-      const damage = Math.floor(Math.random() * 25) + 5; // Урон 5-30
+      const damage = Math.floor(Math.random() * 25) + 5; 
       
-      // Анимация
       const p1 = document.getElementById('p1-chip');
       p1.classList.add('animate-p1');
       setTimeout(() => p1.classList.remove('animate-p1'), 300);
@@ -81,23 +80,22 @@
       updateHP();
 
       if (botHP <= 0) {
-        endGame("Победа! Енот повержен! 🎉");
+        endGame("Победа! Клоун повержен, фишка выбита! 🎉🦝");
         return;
       }
 
-      msg.innerText = `Вы нанесли ${damage} урона! Енот думает...`;
+      msg.innerText = `Вы нанесли ${damage} урона! Клоун замахивается...`;
       document.getElementById('p1-chip').classList.remove('active');
       document.getElementById('bot-chip').classList.add('active');
 
-      // Через 1.5 секунды ходит бот
       setTimeout(botAttack, 1500);
     }
 
-    // Ход бота
+    // Ход Клоуна (бота)
     function botAttack() {
       if (!gameActive) return;
 
-      const damage = Math.floor(Math.random() * 20) + 10; // Бот бьет чуть стабильнее
+      const damage = Math.floor(Math.random() * 20) + 10; 
       
       const bc = document.getElementById('bot-chip');
       bc.classList.add('animate-bot');
@@ -107,11 +105,11 @@
       updateHP();
 
       if (playerHP <= 0) {
-        endGame("Енот выбил вашу фишку! Вы проиграли. 🦝");
+        endGame("Клоун выбил вашу фишку... Еноту нужно больше тренировок! 🤡");
         return;
       }
 
-      msg.innerText = `Енот ударил на ${damage}! Ваш ход.`;
+      msg.innerText = `Клоун ударил на ${damage}! Твой черед, Енот!`;
       document.getElementById('bot-chip').classList.remove('active');
       document.getElementById('p1-chip').classList.add('active');
       btn.disabled = false;
@@ -121,7 +119,6 @@
       document.getElementById('p1-hp').style.width = Math.max(0, playerHP) + "%";
       document.getElementById('bot-hp').style.width = Math.max(0, botHP) + "%";
       
-      // Меняем цвет полоски, если мало здоровья
       if (playerHP < 30) document.getElementById('p1-hp').style.background = "#f44336";
       if (botHP < 30) document.getElementById('bot-hp').style.background = "#f44336";
     }
@@ -134,6 +131,4 @@
     }
   </script>
 </body>
-
 </html>
-
