@@ -121,7 +121,7 @@
 
   <div id="reader-screen" class="screen">
     <div id="reader-topbar">
-      <button id="back-btn" onclick="navigateTo('list-screen')">✕</button>
+      <button id="back-btn" onclick="handleBack()">✕</button>
       <b id="reader-header-title">Просмотр</b>
     </div>
     <iframe id="reader-iframe" src=""></iframe>
@@ -133,91 +133,10 @@
   tg.ready();
   tg.expand();
 
-  // ДАННЫЕ
   const DATA = {
     newspapers: {
       title: "📰 Газеты",
       items: [
         { title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
         { title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
-        { title: "Выпуск #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
-        { title: "Выпуск #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
-        // Добавляйте новые газеты сюда
-      ]
-    },
-    quests: {
-      title: "⚔️ Квесты",
-      items: [
-        { title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" },
-       
-      ]
-    },
-    partners: {
-      title: "🤝 Партнеры",
-      items: [
-        { title: "CapsGame", desc: "Игра про фишки в Telegram", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" },
-        { title: "The Raccoon Times", desc: "Наше сообщество", url: "https://t.me/+8R3XIYzBLeBmOWUy", type: "external" },
-      ]
-    }
-  };
-
-  let currentCategory = '';
-
-  function navigateTo(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-    
-    // Управление кнопкой "Назад" в самом Telegram
-    if (screenId === 'cover-screen') {
-      tg.BackButton.hide();
-    } else {
-      tg.BackButton.show();
-      tg.BackButton.onClick(() => {
-        if (screenId === 'reader-screen') navigateTo('list-screen');
-        else if (screenId === 'list-screen') navigateTo('main-menu');
-        else navigateTo('cover-screen');
-      });
-    }
-  }
-
-  function renderCategory(catKey) {
-    currentCategory = catKey;
-    const cat = DATA[catKey];
-    document.getElementById('category-title').innerText = cat.title;
-    const listContainer = document.getElementById('category-list');
-    listContainer.innerHTML = '';
-
-    cat.items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'list-item';
-      div.innerHTML = `
-        <div class="list-item-info">
-          <div class="list-item-title">${item.title}</div>
-          <div class="list-item-desc">${item.desc}</div>
-        </div>
-        <div style="opacity: 0.3">›</div>
-      `;
-      div.onclick = () => handleItemClick(item);
-      listContainer.appendChild(div);
-    });
-
-    navigateTo('list-screen');
-  }
-
-  function handleItemClick(item) {
-    if (item.type === 'iframe') {
-      // Открываем внутри приложения (для квестов)
-      document.getElementById('reader-header-title').innerText = item.title;
-      document.getElementById('reader-iframe').src = item.url;
-      navigateTo('reader-screen');
-    } else if (item.type === 'link') {
-      // Для Telegra.ph лучше открывать во встроенном браузере Telegram
-      tg.openLink(item.url);
-    } else {
-      // Для рефералок открываем внешнюю ссылку
-      tg.openTelegramLink(item.url);
-    }
-  }
-</script>
-</body>
-</html>
+        { title: "Выпуск #15", desc: "The
