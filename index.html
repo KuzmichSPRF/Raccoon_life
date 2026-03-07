@@ -234,7 +234,7 @@
         <span class="menu-card-title">Газеты</span>
       </div>
       <div class="menu-card" onclick="renderCategory('quests')">
-        <span class="menu-card-icon">⚔️</span>
+        <span class="menu-card-icon">❓</span>
         <span class="menu-card-title">Квесты</span>
       </div>
       <div class="menu-card" onclick="renderCategory('games')">
@@ -285,7 +285,20 @@
       ]
     },
     quests: {
-      title: "⚔️ Квесты",
+      title: "❓ Квесты",
+      items: [
+        { title: "The Questoon Times Remake", desc: "Классика", type: "folder", target: "qt_remake" },
+        { title: "The Questoon Times 2", desc: "Продолжение", type: "folder", target: "qt_2" }
+      ]
+    },
+    qt_remake: {
+      title: "QT Remake",
+      items: [
+        { title: "SOON...", desc: "В разработке", type: "alert", msg: "Скоро..." }
+      ]
+    },
+    qt_2: {
+      title: "QT 2",
       items: [
         { title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
       ]
@@ -349,7 +362,11 @@
   }
 
   function handleItemClick(item) {
-    if (item.type === 'iframe') {
+    if (item.type === 'folder') {
+      renderCategory(item.target);
+    } else if (item.type === 'alert') {
+      tg.showAlert ? tg.showAlert(item.msg) : alert(item.msg);
+    } else if (item.type === 'iframe') {
       document.getElementById('reader-header-title').innerText = item.title;
       document.getElementById('reader-iframe').src = item.url;
       navigateTo('reader-screen');
