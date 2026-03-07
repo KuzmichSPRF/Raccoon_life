@@ -193,6 +193,27 @@
       transform: scale(0.95);
       box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
     }
+
+    /* -------- РЕЙТИНГ -------- */
+    .leaderboard-item {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .rank-badge {
+      font-size: 1.2rem; font-weight: 800; color: var(--primary);
+      width: 30px; text-align: center;
+    }
+    .player-details { flex: 1; }
+    .player-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .player-stats { font-size: 0.75rem; color: var(--text-sec); display: flex; gap: 8px; flex-wrap: wrap; }
+    .player-score { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+    .stat-tag { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -224,12 +245,21 @@
         <span class="menu-card-icon">🤝</span>
         <span class="menu-card-title">Партнеры</span>
       </div>
+      <div class="menu-card" onclick="showLeaderboard()">
+        <span class="menu-card-icon">🏆</span>
+        <span class="menu-card-title">Рейтинг</span>
+      </div>
     </div>
   </div>
 
   <div id="list-screen" class="screen">
     <h2 id="category-title" class="section-title">Раздел</h2>
     <div id="category-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+  </div>
+
+  <div id="rating-screen" class="screen">
+    <h2 class="section-title">Топ Игроков</h2>
+    <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
   <div id="reader-screen" class="screen">
@@ -280,6 +310,8 @@
     if (currentScreen === 'reader-screen') {
       document.getElementById('reader-iframe').src = "";
       navigateTo('list-screen');
+    } else if (currentScreen === 'rating-screen') {
+      navigateTo('main-menu');
     } else if (currentScreen === 'list-screen') {
       navigateTo('main-menu');
     } else if (currentScreen === 'main-menu') {
@@ -323,6 +355,45 @@
       navigateTo('reader-screen');
     } else if (item.type === 'link') tg.openLink(item.url);
     else tg.openTelegramLink(item.url);
+  }
+
+  function showLeaderboard() {
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '';
+
+    // Имитация данных игроков
+    // Формула: (Победы * 15) + (Игры * 5) + (Вход * 10) + (Донат * 1)
+    const players = [
+      { name: "Vladeos", games: 150, wins: 120, donat: 5000, login: 45 },
+      { name: "RaccoonKing", games: 300, wins: 100, donat: 0, login: 12 },
+      { name: "Donater777", games: 10, wins: 2, donat: 50000, login: 1 },
+      { name: "PlayerOne", games: 50, wins: 25, donat: 100, login: 5 },
+      { name: "Guest_99", games: 5, wins: 0, donat: 0, login: 1 }
+    ];
+
+    // Расчет очков
+    players.forEach(p => {
+      p.score = (p.wins * 15) + (p.games * 5) + (p.login * 10) + (p.donat * 1);
+    });
+
+    // Сортировка
+    players.sort((a, b) => b.score - a.score);
+
+    players.forEach((p, i) => {
+      const div = document.createElement('div');
+      div.className = 'leaderboard-item';
+      div.innerHTML = `
+        <div class="rank-badge">#${i + 1}</div>
+        <div class="player-details">
+          <div class="player-name">${p.name}</div>
+          <div class="player-stats"><span class="stat-tag">🎮 ${p.games}</span> <span class="stat-tag">🏆 ${p.wins}</span> <span class="stat-tag">📅 ${p.login}</span> <span class="stat-tag">💎 ${p.donat}</span></div>
+        </div>
+        <div class="player-score">${p.score}</div>
+      `;
+      list.appendChild(div);
+    });
+
+    navigateTo('rating-screen');
   }
 </script>
 </body>
