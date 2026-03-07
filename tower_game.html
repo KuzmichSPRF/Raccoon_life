@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Башня 3.0: Путь Енота</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+      --game-green: #00ff88;
+      --game-yellow: #ffcc00;
+      --boss-color: #9b59b6;
+    }
+    body { 
+      font-family: 'Montserrat', sans-serif; 
+      text-align: center; 
+      background-color: var(--bg-color); 
+      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
+      margin: 0; 
+      padding: 15px; 
+      color: var(--text-main); 
+      min-height: 100vh;
+    }
+    
+    .header-info {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 15px; padding: 0 10px;
+    }
+    .level-badge {
+      background: var(--accent); padding: 5px 15px; border-radius: 20px;
+      font-weight: 800; font-size: 1.2rem; box-shadow: 0 0 15px rgba(255,0,85,0.4);
+    }
+
+    .status-box { 
+      background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3); min-height: 60px; display: flex; 
+      align-items: center; justify-content: center; font-weight: bold; color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.05); font-size: 1rem;
+    }
+
+    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 10px; }
+    
+    .chip { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #333; 
+            display: flex; align-items: center; justify-content: center; font-size: 35px; 
+            background: #121214; position: relative; transition: all 0.3s ease; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+    
+    .chip.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4); }
+    .chip.boss { border-color: var(--boss-color); box-shadow: 0 0 25px rgba(155, 89, 182, 0.6); animation: pulse 2s infinite; }
+
+    @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
+    .animate-attack { transform: translateX(50px) scale(1.2) !important; }
+    .animate-enemy-attack { transform: translateX(-50px) scale(1.2) !important; }
+    .crit { border-color: var(--game-yellow) !important; box-shadow: 0 0 15px var(--game-yellow) !important; }
+    .heal-effect { border-color: var(--game-green) !important; box-shadow: 0 0 20px var(--game-green) !important; }
+
+    .bars { width: 100px; margin-top: 10px; }
+    .bar-label { font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; color: var(--text-sec); }
+    .bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .fill { height: 100%; transition: width 0.4s ease; }
+    .hp { background: var(--game-green); }
+    .energy { background: var(--game-yellow); }
+
+    .controls { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; 
+      background: var(--card-bg); padding: 15px; border-radius: 20px; 
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .btn { 
+      padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+      color: white; font-size: 0.8rem; font-family: 'Montserrat', sans-serif; text-transform: uppercase;
+    }
+    .btn:disabled { background: #333 !important; color: #666; opacity: 0.7; }
+    .btn-std { background: var(--primary); grid-column: span 2; font-size: 0.9rem; }
+    .btn-sp1 { background: #e67e22; }
+    .btn-sp2 { background: #9b59b6; }
+    .btn-sp3 { background: var(--accent); }
+    .btn-next { background: var(--game-green); grid-column: span 2; font-size: 1.1rem; padding: 15px; display: none; color: #000; }
+
+    .log { font-size: 0.75rem; margin-top: 15px; color: var(--text-sec); font-style: italic; min-height: 1.2em;}
+  </style>
+</head>
+<body>
+
+  <div class="header-info">
+    <div class="level-badge" id="lvl-display">LVL 1</div>
+    <div style="font-size: 0.9rem; color: var(--text-sec);">Башня 3.0</div>
+  </div>
+
+  <div class="status-box" id="msg">Новый противник!</div>
+
+  <div class="arena">
+    <div id="player-area">
+      <div id="p-chip" class="chip active">🦝</div>
+      <div class="bars">
+        <span class="bar-label">HP <span id="p-hp-text">100</span></span>
+        <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
+        <span class="bar-label">Энергия</span>
+        <div class="bar"><div id="p-nrg" class="fill energy" style="width: 0%;"></div></div>
+      </div>
+    </div>
+
+    <div id="enemy-area">
+      <div id="e-chip" class="chip">❓</div>
+      <div class="bars">
+        <span class="bar-label">HP <span id="e-hp-text">100</span></span>
+        <div class="bar"><div id="e-hp" class="fill hp" style="width: 100%;"></div></div>
+      </div>
+      <p id="e-name" style="font-size: 0.8rem; font-weight: 700; margin-top: 5px;">Враг</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-std" id="btn-atk" onclick="playerTurn('attack')">Удар (+20 Эн)</button>
+    <button class="btn btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>Мусор (40)</button>
+    <button class="btn btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>Снэк (30)</button>
+    <button class="btn btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>УЛЬТА (80)</button>
+    <button class="btn btn-next" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
+  </div>
+  
+  <div class="log" id="log">...</div>
+
+  <script>
+    const ENEMIES = [
+      { name: "Кэпс Новичок", icon: "⚪", hp: 80, dmg: 8 },
+      { name: "Ржавая Бита", icon: "🟤", hp: 90, dmg: 9 },
+      { name: "Смайлик", icon: "🙂", hp: 100, dmg: 10 },
+      { name: "Инь-Янь", icon: "☯️", hp: 110, dmg: 11 },
+      { name: "Череп", icon: "💀", hp: 120, dmg: 12 },
+      { name: "Шар №8", icon: "🎱", hp: 130, dmg: 13 },
+      { name: "Ядовитый", icon: "🤢", hp: 115, dmg: 14 },
+      { name: "Пришелец", icon: "👽", hp: 125, dmg: 12 },
+      { name: "Ниндзя", icon: "🥷", hp: 100, dmg: 16 },
+      { name: "Робот", icon: "🤖", hp: 140, dmg: 10 },
+      { name: "Вампир", icon: "🧛", hp: 110, dmg: 15 },
+      { name: "Зомби", icon: "🧟", hp: 150, dmg: 8 },
+      { name: "Дракон", icon: "🐉", hp: 160, dmg: 14 },
+      { name: "Волшебник", icon: "🧙", hp: 90, dmg: 18 },
+      { name: "Алмазный", icon: "💎", hp: 180, dmg: 10 }
+    ];
+
+    const BOSS = { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 25 };
+
+    let level = 1;
+    let pStats = { hp: 100, maxHp: 100, nrg: 0 };
+    let eStats = { hp: 100, maxHp: 100, dmg: 10 };
+    let turn = true; // true = player
+
+    function initGame() {
+      level = 1;
+      pStats = { hp: 100, maxHp: 100, nrg: 0 };
+      startLevel();
+    }
+
+    function startLevel() {
+      document.getElementById('lvl-display').innerText = "LVL " + level;
+      document.getElementById('btn-next').style.display = 'none';
+      toggleButtons(false);
+      
+      // Генерация врага
+      let enemyTemplate;
+      let isBoss = (level % 10 === 0);
+      
+      if (isBoss) {
+        enemyTemplate = BOSS;
+        document.getElementById('e-chip').classList.add('boss');
+      } else {
+        enemyTemplate = ENEMIES[Math.floor(Math.random() * ENEMIES.length)];
+        document.getElementById('e-chip').classList.remove('boss');
+      }
+
+      // Скалирование (усложнение)
+      // Начинаем с низких статов (чтобы умирали с 2 ударов), растем на 10% за уровень
+      const scale = 0.15 + (level * 0.1);
+      eStats.maxHp = Math.floor(enemyTemplate.hp * scale);
+      eStats.hp = eStats.maxHp;
+      eStats.dmg = Math.max(1, Math.floor(enemyTemplate.dmg * scale));
+
+      // UI врага
+      document.getElementById('e-name').innerText = enemyTemplate.name;
+      document.getElementById('e-chip').innerText = enemyTemplate.icon;
+      document.getElementById('msg').innerText = isBoss ? "БОСС: КОТОПЕТУХ!" : "Враг: " + enemyTemplate.name;
+      
+      turn = true;
+      updateUI();
+    }
+
+    function playerTurn(action) {
+      if (!turn) return;
+      let dmg = 0, heal = 0, cost = 0, txt = "";
+      let crit = Math.random() < 0.2;
+
+      if (action === 'attack') { dmg = 15; pStats.nrg = Math.min(100, pStats.nrg + 20); txt = "Удар лапой!"; }
+      else if (action === 'trash') { dmg = 30; cost = 40; txt = "Мусорный залп!"; }
+      else if (action === 'snack') { heal = 40; cost = 30; txt = "Вкусный снэк!"; }
+      else if (action === 'rage') { dmg = 80; cost = 80; crit = true; txt = "ЯРОСТЬ ЕНОТА!"; }
+
+      if (crit && dmg > 0) { dmg = Math.floor(dmg * 1.5); txt += " (КРИТ!)"; }
+      
+      pStats.nrg -= cost;
+      animateAction('p-chip', dmg, heal, crit);
+      
+      if (dmg > 0) eStats.hp -= dmg;
+      if (heal > 0) pStats.hp = Math.min(pStats.maxHp, pStats.hp + heal);
+
+      document.getElementById('log').innerText = `Вы: ${txt}`;
+      updateUI();
+
+      if (eStats.hp <= 0) winLevel();
+      else {
+        turn = false;
+        toggleButtons(true); // disable
+        setTimeout(enemyTurn, 1000);
+      }
+    }
+
+    function enemyTurn() {
+      let dmg = Math.floor(eStats.dmg * (0.8 + Math.random() * 0.4)); // Разброс урона
+      let crit = Math.random() < 0.1;
+      if (crit) dmg = Math.floor(dmg * 1.5);
+
+      animateAction('e-chip', dmg, 0, crit);
+      pStats.hp -= dmg;
+      
+      document.getElementById('log').innerText = `Враг атакует на ${dmg} урона!`;
+      updateUI();
+
+      if (pStats.hp <= 0) {
+        document.getElementById('msg').innerText = "ВЫ ПРОИГРАЛИ!";
+        document.getElementById('msg').style.color = "red";
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        turn = true;
+        toggleButtons(false);
+      }
+    }
+
+    function winLevel() {
+      document.getElementById('msg').innerText = "ПОБЕДА! (+30 HP)";
+      document.getElementById('msg').style.color = "var(--game-green)";
+      pStats.hp = Math.min(pStats.maxHp, pStats.hp + 30); // Хил за победу
+      updateUI();
+      document.getElementById('btn-next').style.display = 'block';
+      toggleButtons(true); // disable combat buttons
+    }
+
+    function nextLevel() {
+      level++;
+      document.getElementById('msg').style.color = "var(--text-main)";
+      startLevel();
+    }
+
+    function animateAction(id, dmg, heal, crit) {
+      const el = document.getElementById(id);
+      if (dmg > 0) {
+        el.classList.add(id === 'p-chip' ? 'animate-attack' : 'animate-enemy-attack');
+        if (crit) el.classList.add('crit');
+      }
+      if (heal > 0) el.classList.add('heal-effect');
+      setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 400);
+    }
+
+    function updateUI() {
+      document.getElementById('p-hp').style.width = Math.max(0, (pStats.hp / pStats.maxHp) * 100) + "%";
+      document.getElementById('p-hp-text').innerText = Math.max(0, pStats.hp);
+      document.getElementById('p-nrg').style.width = pStats.nrg + "%";
+      
+      document.getElementById('e-hp').style.width = Math.max(0, (eStats.hp / eStats.maxHp) * 100) + "%";
+      document.getElementById('e-hp-text').innerText = Math.max(0, eStats.hp);
+
+      document.getElementById('btn-sp1').disabled = (pStats.nrg < 40);
+      document.getElementById('btn-sp2').disabled = (pStats.nrg < 30);
+      document.getElementById('btn-sp3').disabled = (pStats.nrg < 80);
+    }
+
+    function toggleButtons(disabled) {
+      ['btn-atk', 'btn-sp1', 'btn-sp2', 'btn-sp3'].forEach(id => {
+        document.getElementById(id).disabled = disabled;
+      });
+      if (!disabled) updateUI(); // Re-check energy
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
