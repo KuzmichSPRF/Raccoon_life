@@ -4,63 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Raccoon Times: Битва Титанов</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --tg-blue: #0088cc;
-      --tg-red: #f44336;
-      --tg-yellow: #ffc107;
-      --tg-green: #4caf50;
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+      
+      --game-green: #00ff88;
+      --game-yellow: #ffcc00;
     }
-    body { font-family: sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
+    body { 
+      font-family: 'Montserrat', sans-serif; 
+      text-align: center; 
+      background-color: var(--bg-color); 
+      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
+      margin: 0; 
+      padding: 15px; 
+      color: var(--text-main); 
+    }
     
     .status-box { 
-      background: white; border-radius: 15px; padding: 10px; margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1); min-height: 80px; display: flex; 
-      align-items: center; justify-content: center; font-weight: bold; color: var(--tg-blue);
+      background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3); min-height: 80px; display: flex; 
+      align-items: center; justify-content: center; font-weight: bold; color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 1.1rem;
     }
 
     .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; }
     
-    .chip { width: 90px; height: 90px; border-radius: 50%; border: 4px solid #ccc; 
+    .chip { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #333; 
             display: flex; align-items: center; justify-content: center; font-size: 40px; 
-            background: white; position: relative; transition: all 0.3s ease; }
+            background: #121214; position: relative; transition: all 0.3s ease; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
     
-    .chip.active { border-color: var(--tg-blue); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.3); }
+    .chip.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4), inset 0 0 10px rgba(0,0,0,0.5); }
     
     /* Анимации */
     @keyframes crit-shake { 0% {transform: rotate(0);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0);} }
-    .crit { animation: crit-shake 0.2s infinite; border-color: var(--tg-yellow) !important; }
-    .heal-effect { border-color: var(--tg-green) !important; box-shadow: 0 0 20px var(--tg-green) !important; }
+    .crit { animation: crit-shake 0.2s infinite; border-color: var(--game-yellow) !important; box-shadow: 0 0 15px var(--game-yellow) !important; }
+    .heal-effect { border-color: var(--game-green) !important; box-shadow: 0 0 20px var(--game-green) !important; }
     
     .animate-attack { transform: translateX(50px) scale(1.2) !important; }
     .animate-bot-attack { transform: translateX(-50px) scale(1.2) !important; }
 
     /* Полоски */
-    .bars { width: 100px; margin-top: 10px; }
-    .bar-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; }
-    .bar { height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; border: 1px solid #bbb; margin-bottom: 5px; }
+    .bars { width: 100px; margin-top: 15px; }
+    .bar-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 3px; display: block; color: var(--text-sec); }
+    .bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; border: none; margin-bottom: 8px; }
     .fill { height: 100%; transition: width 0.4s ease; }
-    .hp { background: var(--tg-green); }
-    .energy { background: var(--tg-yellow); }
+    .hp { background: var(--game-green); box-shadow: 0 0 5px var(--game-green); }
+    .energy { background: var(--game-yellow); box-shadow: 0 0 5px var(--game-yellow); }
 
     /* Кнопки приемов */
     .controls { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; 
-      background: white; padding: 15px; border-radius: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; 
+      background: var(--card-bg); padding: 20px; border-radius: 20px; 
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.05);
     }
     .btn { 
-      padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
-      color: white; font-size: 0.9rem; transition: transform 0.1s;
+      padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+      color: white; font-size: 0.85rem; transition: transform 0.1s;
+      font-family: 'Montserrat', sans-serif;
+      text-transform: uppercase;
     }
     .btn:active { transform: scale(0.95); }
-    .btn:disabled { background: #ccc !important; opacity: 0.6; }
+    .btn:disabled { background: #333 !important; color: #666; opacity: 1; cursor: not-allowed; }
     
-    .btn-std { background: var(--tg-blue); grid-column: span 2; font-size: 1.1rem; padding: 15px; }
-    .btn-sp1 { background: #ff9800; }
-    .btn-sp2 { background: #9c27b0; }
-    .btn-sp3 { background: #e91e63; }
+    .btn-std { background: var(--primary); grid-column: span 2; font-size: 1rem; padding: 16px; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
+    .btn-sp1 { background: #e67e22; }
+    .btn-sp2 { background: #9b59b6; }
+    .btn-sp3 { background: var(--accent); box-shadow: 0 0 15px rgba(255,0,85,0.3); }
 
-    .log { font-size: 0.8rem; margin-top: 10px; color: #666; font-style: italic; }
+    .log { font-size: 0.8rem; margin-top: 15px; color: var(--text-sec); font-style: italic; }
   </style>
 </head>
 <body>

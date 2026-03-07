@@ -5,15 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Raccoon Life</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
     }
 
     /* -------- ГЛАВНОЕ МЕНЮ -------- */
@@ -27,84 +39,159 @@
       justify-content: center;
       height: 100vh; /* На всю высоту */
       gap: 20px;
+      background: transparent;
+      color: var(--text-main);
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: var(--text-sec);
+      max-width: 300px;
     }
 
     .main-menu-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 15px;
       margin-top: 20px;
+      padding: 0 10px;
+    }
+    
+    @media (min-width: 400px) {
+      .main-menu-grid { grid-template-columns: 1fr 1fr; }
     }
 
     .menu-card {
-      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-      border-radius: 16px;
+      background: linear-gradient(145deg, #23232a, #1c1c21);
+      border-radius: 20px;
       padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       cursor: pointer;
-      border: 1px solid rgba(0,0,0,0.05);
       text-align: center;
+      box-shadow: 5px 5px 10px #0b0b0c, -5px -5px 10px #25252c;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid rgba(255,255,255,0.05);
+      aspect-ratio: 1;
     }
 
-    .menu-card:active { transform: scale(0.95); opacity: 0.8; }
-    .menu-card-icon { font-size: 2.2rem; }
-    .menu-card-title { font-size: 1rem; font-weight: 700; }
-
-    /* -------- СПИСКИ -------- */
-    .section-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+    .menu-card:active { transform: scale(0.95); box-shadow: inset 5px 5px 10px #0b0b0c, inset -5px -5px 10px #25252c; }
     
-    .list-item {
-      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-      border-radius: 12px;
-      padding: 14px;
+    .menu-card-icon { 
+      font-size: 2.5rem; 
+      background: #121214;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 15px rgba(0, 136, 204, 0.2);
+    }
+    
+    .menu-card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* -------- СПИСКИ -------- */
+    .section-title { 
+      font-size: 1.8rem; 
+      font-weight: 800;
+      margin-bottom: 20px; 
+      color: var(--text-main);
+      padding-left: 5px;
+      border: none;
+      text-align: left;
+      text-shadow: none;
+      text-transform: uppercase;
+    }
+    
+    .list-item {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
       text-decoration: none;
-      color: inherit;
+      color: var(--text-main);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.2s;
     }
 
-    .list-item:active { opacity: 0.7; }
+    .list-item:active { transform: scale(0.98); }
     .list-item-info { flex: 1; overflow: hidden; }
     .list-item-title { 
-      font-weight: 600; 
-      font-size: 1rem; 
+      font-size: 1.1rem; 
+      font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-bottom: 5px;
     }
-    .list-item-desc { font-size: 0.85rem; opacity: 0.6; margin-top: 2px; }
+    .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
 
     /* -------- РИДЕР -------- */
-    #reader-screen { padding: 0; height: 100vh; flex-direction: column; }
+    #reader-screen { padding: 0; height: 100vh; flex-direction: column; background: var(--bg-color); }
     #reader-topbar {
       display: flex;
       align-items: center;
       padding: 10px 16px;
-      background: var(--tg-theme-bg-color, #fff);
-      border-bottom: 1px solid rgba(0,0,0,0.1);
+      background: var(--card-bg);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
       position: relative;
       z-index: 100;
     }
-    #back-btn { background: none; border: none; font-size: 1.2rem; color: var(--tg-theme-link-color); padding-right: 15px; cursor: pointer; }
+    #back-btn { 
+      background: transparent; 
+      border: none; 
+      font-size: 1.5rem; 
+      color: var(--text-main); 
+      padding: 5px 10px; 
+      cursor: pointer; 
+      margin-right: 10px;
+      box-shadow: none;
+    }
+    #back-btn:active { opacity: 0.6; transform: none; }
+    
+    #reader-header-title { font-size: 1.1rem; font-weight: 700; }
+    
     #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
 
     /* Центрированная кнопка */
     .btn-primary {
-      background: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #fff);
+      background: var(--primary);
+      color: white;
       border: none; 
-      border-radius: 12px; 
+      border-radius: 50px; 
       padding: 16px;
-      font-weight: 700; 
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
       cursor: pointer; 
       width: 80%;
       max-width: 280px;
       margin: 0 auto; /* Дополнительная гарантия центра */
+      box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
+      transition: transform 0.2s;
+    }
+    .btn-primary:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
     }
   </style>
 </head>
@@ -112,7 +199,7 @@
 
 <div id="app">
   <div id="cover-screen" class="screen active">
-    <div style="font-size: 5rem">🦝</div>
+    <div style="font-size: 5rem; filter: drop-shadow(0 0 20px rgba(0,136,204,0.5));">🦝</div>
     <h1>Raccoon Life</h1>
     <p>Твой гид по миру енотов, квестов и новостей.</p>
     <button class="btn-primary" onclick="navigateTo('main-menu')">Открыть меню</button>
@@ -221,7 +308,7 @@
     cat.items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'list-item';
-      div.innerHTML = `<div class="list-item-info"><div class="list-item-title">${item.title}</div><div class="list-item-desc">${item.desc}</div></div><div style="opacity: 0.3">›</div>`;
+      div.innerHTML = `<div class="list-item-info"><div class="list-item-title">${item.title}</div><div class="list-item-desc">${item.desc}</div></div><div style="color: #ccc">›</div>`;
       div.onclick = () => handleItemClick(item);
       listContainer.appendChild(div);
     });
