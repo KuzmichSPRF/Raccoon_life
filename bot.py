@@ -2,7 +2,7 @@ import os
 import logging
 import sqlite3
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp, ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from dotenv import load_dotenv
 
@@ -65,6 +65,44 @@ def update_db_stats(user_id, data):
     except Exception as e:
         logger.error(f"Ошибка БД: {e}")
 
+def get_leaderboard_text():
+    """Fetches and formats the leaderboard text based on tower_max_level."""
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT u.first_name, u.username, s.tower_max_level
+                FROM user_stats s
+                JOIN users u ON s.user_id = u.user_id
+                WHERE s.tower_max_level > 0
+                ORDER BY s.tower_max_level DESC
+                LIMIT 10
+            ''')
+            leaders = cursor.fetchall()
+
+            if not leaders:
+                return "Пока нету данных для рейтинга. Начните играть!"
+
+            message = "🏆 <b>Топ игроков по башне:</b>\n\n"
+            for i, leader in enumerate(leaders):
+                display_name = leader['first_name'] or leader['username'] or "Аноним"
+                # Basic HTML escaping
+                display_name = display_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                message += f"{i+1}. {display_name} - {leader['tower_max_level']} этаж\n"
+            
+            return message
+
+    except Exception as e:
+        logger.error(f"Error fetching leaderboard: {e}")
+        return "Не удалось загрузить рейтинг. Попробуйте позже."
+
+async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sends the leaderboard to the chat."""
+    leaderboard_text = get_leaderboard_text()
+    await update.message.reply_text(leaderboard_text, parse_mode=ParseMode.HTML)
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Принимает данные от tg.sendData()"""
     user_id = update.effective_user.id
@@ -72,7 +110,9 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     
     try:
         data = json.loads(raw_data)
-        if data.get('type') == 'sync_stats':
+        data_type = data.get('type')
+
+        if data_type == 'sync_stats':
             update_db_stats(user_id, data)
             await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
     except Exception as e:
@@ -80,6 +120,18 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Код сохранения пользователя (оставляем ваш)
+    user = update.effective_user
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT OR IGNORE INTO users (user_id, username, first_name, last_name) VALUES (?, ?, ?, ?)",
+                           (user.id, user.username, user.first_name, user.last_name))
+            cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user.id,))
+            conn.commit()
+            logger.info(f"User {user.id} ({user.username}) started the bot.")
+    except Exception as e:
+        logger.error(f"Error saving user {user.id} to DB: {e}")
+
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
@@ -95,6 +147,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("leaderboard", leaderboard_command))
     # ВАЖНО: Хендлер для приема данных из Mini App
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     
