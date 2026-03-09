@@ -229,6 +229,10 @@
       document.getElementById('msg').innerHTML = txt;
       document.getElementById('controls').style.opacity = "0.5";
       toggleBtns(true);
+      
+      // Отправляем результат родителю (победа если у бота <= 0 HP)
+      const isWin = (bHP <= 0);
+      window.parent.postMessage({ type: 'game_complete', win: isWin }, '*');
     }
   </script>
 </body>

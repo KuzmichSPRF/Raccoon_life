@@ -252,6 +252,8 @@
 
     function nextLevel() {
       level++;
+      // Отправляем прогресс родителю
+      window.parent.postMessage({ type: 'tower_update', level: level }, '*');
       document.getElementById('msg').style.color = "var(--text-main)";
       startLevel();
     }

@@ -448,11 +448,11 @@
     list.innerHTML = '';
 
     // Имитация данных игроков
-    // Формула: (Победы * 15) + (Игры * 5) + (Вход * 10) + (Донат * 1)
+    // Формула для примера
     const players = [
-      { name: "Vladeos", games: 150, wins: 120, donat: 5000, login: 45 },
-      { name: "RaccoonKing", games: 300, wins: 100, donat: 0, login: 12 },
-      { name: "Donater777", games: 10, wins: 2, donat: 50000, login: 1 },
+      { name: "Vladeos", games: 150, wins: 120, donat: 5000, login: 45, score: 0 },
+      { name: "RaccoonKing", games: 300, wins: 100, donat: 0, login: 12, score: 0 },
+      { name: "Donater777", games: 10, wins: 2, donat: 50000, login: 1, score: 0 },
       { name: "PlayerOne", games: 50, wins: 25, donat: 100, login: 5 },
       { name: "Guest_99", games: 5, wins: 0, donat: 0, login: 1 }
     ];
@@ -461,6 +461,23 @@
     players.forEach(p => {
       p.score = (p.wins * 15) + (p.games * 5) + (p.login * 10) + (p.donat * 1);
     });
+
+    // Кнопка синхронизации
+    const syncBtn = document.createElement('button');
+    syncBtn.className = 'btn-primary';
+    syncBtn.innerText = '🔄 Сохранить прогресс в БД';
+    syncBtn.style.marginBottom = '20px';
+    syncBtn.onclick = () => {
+        const data = {
+            type: 'sync_stats',
+            games: parseInt(localStorage.getItem('games_played') || '0'),
+            wins: parseInt(localStorage.getItem('wins_count') || '0'),
+            tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
+            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
+        };
+        tg.sendData(JSON.stringify(data));
+    };
+    list.appendChild(syncBtn);
 
     // Сортировка
     players.sort((a, b) => b.score - a.score);
@@ -482,11 +499,33 @@
     navigateTo('rating-screen');
   }
 
-  // Обработка сообщений от iframe (например, завершение квеста)
+  // Обработка сообщений от iframe (квесты, игры, башня)
   window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'quest_complete') {
-      markAsCompleted(event.data.id);
-      handleBack(); // Закрываем iframe и возвращаемся к списку
+    if (!event.data) return;
+    
+    // Завершение квеста
+    if (event.data.type === 'quest_complete') {
+        markAsCompleted(event.data.id);
+        handleBack();
+    }
+    
+    // Статистика игр (победа/поражение)
+    if (event.data.type === 'game_complete') {
+        let games = parseInt(localStorage.getItem('games_played') || '0');
+        localStorage.setItem('games_played', games + 1);
+        
+        if (event.data.win) {
+            let wins = parseInt(localStorage.getItem('wins_count') || '0');
+            localStorage.setItem('wins_count', wins + 1);
+        }
+    }
+    
+    // Прогресс башни
+    if (event.data.type === 'tower_update') {
+        let currentMax = parseInt(localStorage.getItem('tower_max_level') || '0');
+        if (event.data.level > currentMax) {
+            localStorage.setItem('tower_max_level', event.data.level);
+        }
     }
   });
 </script>
