@@ -252,8 +252,8 @@
 
     function nextLevel() {
       level++;
-      // Отправляем прогресс родителю
-      window.parent.postMessage({ type: 'tower_update', level: level }, '*');
+      // Отправляем прогресс родителю: текущий уровень и факт прохождения предыдущего
+      window.parent.postMessage({ type: 'tower_update', level: level, passed_level: true }, '*');
       document.getElementById('msg').style.color = "var(--text-main)";
       startLevel();
     }

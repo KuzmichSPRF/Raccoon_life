@@ -177,7 +177,7 @@
     function playGame() {
       gradeSelection.classList.add('hidden');
       // Сообщаем родительскому окну, что игра была сыграна (и проиграна)
-      window.parent.postMessage({ type: 'game_complete', win: false }, '*');
+      window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
 
       msg.innerText = "БИТВА!";
       

@@ -36,13 +36,16 @@ def init_db():
                     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            # Таблица общей статистики
+            # Таблица общей статистики с разделением по играм
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS user_stats (
                     user_id INTEGER PRIMARY KEY,
-                    games_played INTEGER DEFAULT 0,
-                    wins INTEGER DEFAULT 0,
-                    tower_max_level INTEGER DEFAULT 0
+                    clown_games INTEGER DEFAULT 0,
+                    clown_wins INTEGER DEFAULT 0,
+                    vladeos_games INTEGER DEFAULT 0,
+                    vladeos_wins INTEGER DEFAULT 0,
+                    tower_max_level INTEGER DEFAULT 0,
+                    tower_total_levels INTEGER DEFAULT 0
                 )
             ''')
             # Таблица прохождения квестов (журнал)
@@ -75,29 +78,44 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         data = json.loads(update.effective_message.web_app_data.data)
         if data.get('type') == 'sync_stats':
-            games = data.get('games', 0)
-            wins = data.get('wins', 0)
-            tower = data.get('tower', 0)
+            # Игры против Клоуна
+            clown_games = data.get('clown_games', 0)
+            clown_wins = data.get('clown_wins', 0)
+            # Игры против Владоса
+            vladeos_games = data.get('vladeos_games', 0)
+            vladeos_wins = data.get('vladeos_wins', 0)
+            # Башня
+            tower_max = data.get('tower_max_level', 0)
+            tower_total = data.get('tower_total_levels', 0)
+            # Квесты
             quests = data.get('quests', [])
 
             with sqlite3.connect(DB_NAME) as conn:
                 c = conn.cursor()
-                # Обновляем статистику
-                c.execute('''INSERT OR REPLACE INTO user_stats (user_id, games_played, wins, tower_max_level)
-                             VALUES (?, ?, ?, ?)''', (user.id, games, wins, tower))
-                
+                # Обновляем статистику с разделением по играм
+                c.execute('''INSERT OR REPLACE INTO user_stats 
+                             (user_id, clown_games, clown_wins, vladeos_games, vladeos_wins, tower_max_level, tower_total_levels)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+                          (user.id, clown_games, clown_wins, vladeos_games, vladeos_wins, tower_max, tower_total))
+
                 # Записываем новые квесты
                 existing = {row[0] for row in c.execute("SELECT quest_name FROM quest_completions WHERE user_id = ?", (user.id,))}
                 for q in quests:
                     if q not in existing:
                         c.execute("INSERT INTO quest_completions (user_id, quest_name) VALUES (?, ?)", (user.id, q))
-                
+
                 conn.commit()
-            
+
             if data.get('source') == 'quest':
                 await update.message.reply_text("🎉 Поздравляем с прохождением этапа!")
             else:
-                await update.message.reply_text(f"💾 Данные сохранены!\n🎮 Игр: {games}\n🏆 Побед: {wins}\n🏰 Башня: {tower} этаж")
+                await update.message.reply_text(
+                    f"💾 Данные сохранены!\n"
+                    f"🎮 Игр против Клоуна: {clown_games} (Побед: {clown_wins})\n"
+                    f"⚔️ Игр против Владоса: {vladeos_games} (Побед: {vladeos_wins})\n"
+                    f"🏰 Башня: макс. {tower_max} ур. (Всего пройдено: {tower_total})\n"
+                    f"✅ Квестов пройдено: {len(quests)}"
+                )
     except Exception as e:
         logger.error(f"Ошибка WebApp: {e}")
 

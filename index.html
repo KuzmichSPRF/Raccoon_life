@@ -451,9 +451,12 @@
     try {
       const data = {
           type: 'sync_stats',
-          games: parseInt(localStorage.getItem('games_played') || '0'),
-          wins: parseInt(localStorage.getItem('wins_count') || '0'),
-          tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
+          clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
+          clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
+          vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
+          vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
+          tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
+          tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
           quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
       };
       // Отправляем данные боту
@@ -502,45 +505,75 @@
   // Обработка сообщений от iframe (квесты, игры, башня)
   window.addEventListener('message', function(event) {
     if (!event.data) return;
-    
+
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
         markAsCompleted(event.data.id);
-        
-        try {
-            const data = {
-                type: 'sync_stats',
-                source: 'quest',
-                games: parseInt(localStorage.getItem('games_played') || '0'),
-                wins: parseInt(localStorage.getItem('wins_count') || '0'),
-                tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
-                quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
-            };
-            tg.sendData(JSON.stringify(data));
-        } catch (e) {
-            handleBack();
-        }
+        sendStatsToBot('quest');
     }
-    
-    // Статистика игр (победа/поражение)
-    if (event.data.type === 'game_complete') {
-        let games = parseInt(localStorage.getItem('games_played') || '0');
-        localStorage.setItem('games_played', games + 1);
-        
+
+    // Статистика игр против Клоуна
+    if (event.data.type === 'game_complete' && event.data.game === 'clown') {
+        let games = parseInt(localStorage.getItem('clown_games') || '0');
+        localStorage.setItem('clown_games', games + 1);
+
         if (event.data.win) {
-            let wins = parseInt(localStorage.getItem('wins_count') || '0');
-            localStorage.setItem('wins_count', wins + 1);
+            let wins = parseInt(localStorage.getItem('clown_wins') || '0');
+            localStorage.setItem('clown_wins', wins + 1);
         }
+        // Автоматическая отправка после игры
+        sendStatsToBot();
     }
-    
-    // Прогресс башни
+
+    // Статистика игр против Владоса
+    if (event.data.type === 'game_complete' && event.data.game === 'vladeos') {
+        let games = parseInt(localStorage.getItem('vladeos_games') || '0');
+        localStorage.setItem('vladeos_games', games + 1);
+
+        if (event.data.win) {
+            let wins = parseInt(localStorage.getItem('vladeos_wins') || '0');
+            localStorage.setItem('vladeos_wins', wins + 1);
+        }
+        // Автоматическая отправка после игры
+        sendStatsToBot();
+    }
+
+    // Прогресс башни (максимальный уровень + сумма уровней)
     if (event.data.type === 'tower_update') {
         let currentMax = parseInt(localStorage.getItem('tower_max_level') || '0');
+        let currentTotal = parseInt(localStorage.getItem('tower_total_levels') || '0');
+
         if (event.data.level > currentMax) {
             localStorage.setItem('tower_max_level', event.data.level);
         }
+        // Добавляем пройденный уровень к сумме
+        if (event.data.passed_level) {
+            localStorage.setItem('tower_total_levels', currentTotal + 1);
+            // Автоматическая отправка после прохождения уровня
+            sendStatsToBot();
+        }
     }
   });
+
+  // Функция отправки статистики в бот
+  function sendStatsToBot(source = null) {
+    try {
+        const data = {
+            type: 'sync_stats',
+            source: source,
+            clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
+            clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
+            vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
+            vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
+            tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
+            tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
+            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
+        };
+        tg.sendData(JSON.stringify(data));
+    } catch (e) {
+        console.error("Failed to send stats:", e);
+    }
+  }
 </script>
 </body>
 </html>
