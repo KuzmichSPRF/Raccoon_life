@@ -94,7 +94,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 
                 conn.commit()
             
-            await update.message.reply_text(f"💾 Данные сохранены!\n🎮 Игр: {games}\n🏆 Побед: {wins}\n🏰 Башня: {tower} этаж")
+            if data.get('source') == 'quest':
+                await update.message.reply_text("🎉 Поздравляем с прохождением этапа!")
+            else:
+                await update.message.reply_text(f"💾 Данные сохранены!\n🎮 Игр: {games}\n🏆 Побед: {wins}\n🏰 Башня: {tower} этаж")
     except Exception as e:
         logger.error(f"Ошибка WebApp: {e}")
 

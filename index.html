@@ -447,6 +447,23 @@
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
 
+    // Автоматическая отправка данных при просмотре рейтинга
+    try {
+      const data = {
+          type: 'sync_stats',
+          games: parseInt(localStorage.getItem('games_played') || '0'),
+          wins: parseInt(localStorage.getItem('wins_count') || '0'),
+          tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
+          quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
+      };
+      // Отправляем данные боту
+      tg.sendData(JSON.stringify(data));
+      // Показываем временное сообщение
+      list.innerHTML = `<div style="text-align: center; color: var(--text-sec); padding: 20px 0;">🔄 Ваш прогресс отправлен на сервер...</div>`;
+    } catch (e) {
+      console.error("Failed to sync data", e);
+    }
+
     // Имитация данных игроков
     // Формула для примера
     const players = [
@@ -465,7 +482,7 @@
     // Сортировка
     players.sort((a, b) => b.score - a.score);
 
-    players.forEach((p, i) => {
+    players.forEach((p, i) => { // Этот блок теперь добавляет мок-данные ПОСЛЕ сообщения о синхронизации
       const div = document.createElement('div');
       div.className = 'leaderboard-item';
       div.innerHTML = `
@@ -489,7 +506,20 @@
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
         markAsCompleted(event.data.id);
-        handleBack();
+        
+        try {
+            const data = {
+                type: 'sync_stats',
+                source: 'quest',
+                games: parseInt(localStorage.getItem('games_played') || '0'),
+                wins: parseInt(localStorage.getItem('wins_count') || '0'),
+                tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
+                quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
+            };
+            tg.sendData(JSON.stringify(data));
+        } catch (e) {
+            handleBack();
+        }
     }
     
     // Статистика игр (победа/поражение)
