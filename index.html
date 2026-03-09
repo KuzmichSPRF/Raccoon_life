@@ -14,6 +14,7 @@
       --card-bg: #1e1e24;
       --text-main: #ffffff;
       --text-sec: #a1a1aa;
+      --game-green: #00ff88;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -135,6 +136,11 @@
       border: 1px solid rgba(255,255,255,0.05);
       transition: transform 0.2s;
     }
+    
+    .list-item.completed {
+      border: 1px solid var(--game-green);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+    }
 
     .list-item:active { transform: scale(0.98); }
     .list-item-info { flex: 1; overflow: hidden; }
@@ -145,6 +151,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       margin-bottom: 5px;
+    }
+    
+    .list-item.completed .list-item-title::after {
+      content: ' ✅';
+      color: var(--game-green);
     }
     .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
 
@@ -287,23 +298,23 @@
     newspapers: {
       title: "📰 Газеты",
       items: [
-        { title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
-        { title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
-        { title: "Выпуск #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
-        { title: "Выпуск #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
-        { title: "Выпуск #13", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-SEPTEMBER-04092025-13-RU-09-06", type: "link" },
-        { title: "Выпуск #12", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-AUGUST-2469-2025--RU-08-17", type: "link" },
-        { title: "Выпуск #11", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JULY-2025-1155-RU-07-26", type: "link" },
-        { title: "Выпуск #10", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-55-87-JULY-2025-10-RU-07-06", type: "link" },
-        { title: "Выпуск #9", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-2025-9-579611-RU-06-08", type: "link" },
-        { title: "Выпуск #8", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-45872025-8-RU-05-18", type: "link" },
-        { title: "Выпуск #7", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-99867-May-2025-7-RU-04-30", type: "link" },
-        { title: "Выпуск #6", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-2346-TIMES-April-2025-6-RU-04-18", type: "link" },
-        { title: "Выпуск #5", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-5-03-25", type: "link" },
-        { title: "Выпуск #4", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-4-03-04", type: "link" },
-        { title: "Выпуск #3", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2025-2-02-08", type: "link" },
-        { title: "Выпуск #2", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-2025-2-01-23", type: "link" },
-        { title: "Выпуск #1", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-01-08", type: "link" }
+        { id: "news_17", title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
+        { id: "news_16", title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
+        { id: "news_15", title: "Выпуск #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
+        { id: "news_14", title: "Выпуск #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
+        { id: "news_13", title: "Выпуск #13", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-SEPTEMBER-04092025-13-RU-09-06", type: "link" },
+        { id: "news_12", title: "Выпуск #12", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-AUGUST-2469-2025--RU-08-17", type: "link" },
+        { id: "news_11", title: "Выпуск #11", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JULY-2025-1155-RU-07-26", type: "link" },
+        { id: "news_10", title: "Выпуск #10", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-55-87-JULY-2025-10-RU-07-06", type: "link" },
+        { id: "news_9", title: "Выпуск #9", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-2025-9-579611-RU-06-08", type: "link" },
+        { id: "news_8", title: "Выпуск #8", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-45872025-8-RU-05-18", type: "link" },
+        { id: "news_7", title: "Выпуск #7", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-99867-May-2025-7-RU-04-30", type: "link" },
+        { id: "news_6", title: "Выпуск #6", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-2346-TIMES-April-2025-6-RU-04-18", type: "link" },
+        { id: "news_5", title: "Выпуск #5", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-5-03-25", type: "link" },
+        { id: "news_4", title: "Выпуск #4", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-4-03-04", type: "link" },
+        { id: "news_3", title: "Выпуск #3", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2025-2-02-08", type: "link" },
+        { id: "news_2", title: "Выпуск #2", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-2025-2-01-23", type: "link" },
+        { id: "news_1", title: "Выпуск #1", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-01-08", type: "link" }
       ]
     },
     quests: {
@@ -322,7 +333,7 @@
     qt_2: {
       title: "QT 2",
       items: [
-        { title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
+        { id: "qt2_1", title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
       ]
     },
     games: {
@@ -368,15 +379,28 @@
     }
   }
 
+  let currentCategory = null;
+
   function renderCategory(catKey) {
+    currentCategory = catKey;
     const cat = DATA[catKey];
     document.getElementById('category-title').innerText = cat.title;
     const listContainer = document.getElementById('category-list');
     listContainer.innerHTML = '';
 
+    let completedItems = [];
+    try {
+      completedItems = JSON.parse(localStorage.getItem('completed_items') || '[]');
+    } catch (e) {
+      console.error(e);
+    }
+
     cat.items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'list-item';
+      if (item.id && completedItems.includes(item.id)) {
+        div.classList.add('completed');
+      }
       div.innerHTML = `<div class="list-item-info"><div class="list-item-title">${item.title}</div><div class="list-item-desc">${item.desc}</div></div><div style="color: #ccc">›</div>`;
       div.onclick = () => handleItemClick(item);
       listContainer.appendChild(div);
@@ -384,7 +408,29 @@
     navigateTo('list-screen');
   }
 
+  function markAsCompleted(id) {
+    if (!id) return;
+    try {
+      let completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
+      if (!completed.includes(id)) {
+        completed.push(id);
+        localStorage.setItem('completed_items', JSON.stringify(completed));
+        // Обновляем список, если он открыт
+        if (currentCategory) {
+          renderCategory(currentCategory);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   function handleItemClick(item) {
+    // Если это ссылка или внешний ресурс, отмечаем как прочитанное сразу
+    if ((item.type === 'link' || item.type === 'external') && item.id) {
+      markAsCompleted(item.id);
+    }
+
     if (item.type === 'folder') {
       renderCategory(item.target);
     } else if (item.type === 'alert') {
@@ -435,6 +481,14 @@
 
     navigateTo('rating-screen');
   }
+
+  // Обработка сообщений от iframe (например, завершение квеста)
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'quest_complete') {
+      markAsCompleted(event.data.id);
+      handleBack(); // Закрываем iframe и возвращаемся к списку
+    }
+  });
 </script>
 </body>
 </html>
