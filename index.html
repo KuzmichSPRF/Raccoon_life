@@ -462,23 +462,6 @@
       p.score = (p.wins * 15) + (p.games * 5) + (p.login * 10) + (p.donat * 1);
     });
 
-    // Кнопка синхронизации
-    const syncBtn = document.createElement('button');
-    syncBtn.className = 'btn-primary';
-    syncBtn.innerText = '🔄 Сохранить прогресс в БД';
-    syncBtn.style.marginBottom = '20px';
-    syncBtn.onclick = () => {
-        const data = {
-            type: 'sync_stats',
-            games: parseInt(localStorage.getItem('games_played') || '0'),
-            wins: parseInt(localStorage.getItem('wins_count') || '0'),
-            tower: parseInt(localStorage.getItem('tower_max_level') || '0'),
-            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
-        };
-        tg.sendData(JSON.stringify(data));
-    };
-    list.appendChild(syncBtn);
-
     // Сортировка
     players.sort((a, b) => b.score - a.score);
 

@@ -18,7 +18,8 @@ WEBAPP_URL = os.getenv("WEBAPP_URL")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DB_NAME = "users.db"
+# Используем абсолютный путь, чтобы база данных создавалась в папке с ботом
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
 
 def init_db():
     """Инициализация базы данных и создание таблицы пользователей."""
@@ -134,6 +135,4 @@ def main() -> None:
     app.run_polling()
 
 if __name__ == "__main__":
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     main()
