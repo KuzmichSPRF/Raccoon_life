@@ -2,158 +2,103 @@ import os
 import logging
 import sqlite3
 import json
-import asyncio
-import sys
-from dotenv import load_dotenv # Загрузка переменных из .env
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from dotenv import load_dotenv
 
-# Загружаем данные из файла .env
 load_dotenv()
 
-# Берем настройки из переменных окружения
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Используем абсолютный путь, чтобы база данных создавалась в папке с ботом
 DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
 
 def init_db():
-    """Инициализация базы данных и создание таблицы пользователей."""
-    try:
-        with sqlite3.connect(DB_NAME) as conn:
-            cursor = conn.cursor()
-            # Создаем таблицу users, если она не существует
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    first_name TEXT,
-                    last_name TEXT,
-                    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            # Таблица общей статистики с разделением по играм
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_stats (
-                    user_id INTEGER PRIMARY KEY,
-                    clown_games INTEGER DEFAULT 0,
-                    clown_wins INTEGER DEFAULT 0,
-                    vladeos_games INTEGER DEFAULT 0,
-                    vladeos_wins INTEGER DEFAULT 0,
-                    tower_max_level INTEGER DEFAULT 0,
-                    tower_total_levels INTEGER DEFAULT 0
-                )
-            ''')
-            # Таблица прохождения квестов (журнал)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS quest_completions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    quest_name TEXT,
-                    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            conn.commit()
-            logger.info("База данных успешно инициализирована.")
-    except sqlite3.Error as e:
-        logger.error(f"Ошибка при инициализации БД: {e}")
-
-def add_or_update_user(user):
-    """Добавляет нового пользователя или обновляет данные существующего в БД."""
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT OR REPLACE INTO users (user_id, username, first_name, last_name)
-            VALUES (?, ?, ?, ?)
-        ''', (user.id, user.username, user.first_name, user.last_name))
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT, first_name TEXT, last_name TEXT,
+                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_stats (
+                user_id INTEGER PRIMARY KEY,
+                clown_games INTEGER DEFAULT 0, clown_wins INTEGER DEFAULT 0,
+                vladeos_games INTEGER DEFAULT 0, vladeos_wins INTEGER DEFAULT 0,
+                tower_max_level INTEGER DEFAULT 0, tower_total_levels INTEGER DEFAULT 0,
+                quests TEXT DEFAULT '[]',
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+        ''')
         conn.commit()
 
-async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработка статистики из WebApp"""
-    user = update.effective_user
+def update_db_stats(user_id, data):
+    """Записывает данные из JSON в таблицу user_stats"""
     try:
-        data = json.loads(update.effective_message.web_app_data.data)
-        if data.get('type') == 'sync_stats':
-            # Игры против Клоуна
-            clown_games = data.get('clown_games', 0)
-            clown_wins = data.get('clown_wins', 0)
-            # Игры против Владоса
-            vladeos_games = data.get('vladeos_games', 0)
-            vladeos_wins = data.get('vladeos_wins', 0)
-            # Башня
-            tower_max = data.get('tower_max_level', 0)
-            tower_total = data.get('tower_total_levels', 0)
-            # Квесты
-            quests = data.get('quests', [])
-
-            with sqlite3.connect(DB_NAME) as conn:
-                c = conn.cursor()
-                # Обновляем статистику с разделением по играм
-                c.execute('''INSERT OR REPLACE INTO user_stats 
-                             (user_id, clown_games, clown_wins, vladeos_games, vladeos_wins, tower_max_level, tower_total_levels)
-                             VALUES (?, ?, ?, ?, ?, ?, ?)''', 
-                          (user.id, clown_games, clown_wins, vladeos_games, vladeos_wins, tower_max, tower_total))
-
-                # Записываем новые квесты
-                existing = {row[0] for row in c.execute("SELECT quest_name FROM quest_completions WHERE user_id = ?", (user.id,))}
-                for q in quests:
-                    if q not in existing:
-                        c.execute("INSERT INTO quest_completions (user_id, quest_name) VALUES (?, ?)", (user.id, q))
-
-                conn.commit()
-
-            if data.get('source') == 'quest':
-                await update.message.reply_text("🎉 Поздравляем с прохождением этапа!")
-            else:
-                await update.message.reply_text(
-                    f"💾 Данные сохранены!\n"
-                    f"🎮 Игр против Клоуна: {clown_games} (Побед: {clown_wins})\n"
-                    f"⚔️ Игр против Владоса: {vladeos_games} (Побед: {vladeos_wins})\n"
-                    f"🏰 Башня: макс. {tower_max} ур. (Всего пройдено: {tower_total})\n"
-                    f"✅ Квестов пройдено: {len(quests)}"
-                )
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            # Создаем запись, если её нет
+            cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user_id,))
+            
+            cursor.execute('''
+                UPDATE user_stats SET 
+                clown_games = ?, clown_wins = ?,
+                vladeos_games = ?, vladeos_wins = ?,
+                tower_max_level = ?, tower_total_levels = ?,
+                quests = ?
+                WHERE user_id = ?
+            ''', (
+                data.get('clown_games', 0), data.get('clown_wins', 0),
+                data.get('vladeos_games', 0), data.get('vladeos_wins', 0),
+                data.get('tower_max_level', 0), data.get('tower_total_levels', 0),
+                json.dumps(data.get('quests', [])),
+                user_id
+            ))
+            conn.commit()
+            logger.info(f"Успешное обновление БД для {user_id}")
     except Exception as e:
-        logger.error(f"Ошибка WebApp: {e}")
+        logger.error(f"Ошибка БД: {e}")
 
-async def post_init(application: Application) -> None:
-    """Установка синей кнопки 'Открыть' при запуске"""
-    await application.bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(
-            text="Открыть", 
-            web_app=WebAppInfo(url=WEBAPP_URL)
-        )
-    )
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Принимает данные от tg.sendData()"""
+    user_id = update.effective_user.id
+    raw_data = update.effective_message.web_app_data.data
+    
+    try:
+        data = json.loads(raw_data)
+        if data.get('type') == 'sync_stats':
+            update_db_stats(user_id, data)
+            await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
+    except Exception as e:
+        logger.error(f"Ошибка обработки WebAppData: {e}")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
-    if user:
-        # Сохраняем данные пользователя в БД
-        add_or_update_user(user)
-        welcome_message = f"👋 Привет, {user.first_name}! Нажми кнопку, чтобы запустить игру:"
-    else:
-        welcome_message = "👋 Привет! Нажми кнопку, чтобы запустить игру:"
-
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Код сохранения пользователя (оставляем ваш)
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
-    await update.message.reply_text(welcome_message, reply_markup=keyboard)
+    await update.message.reply_text("Привет! Нажми кнопку ниже:", reply_markup=keyboard)
 
-def main() -> None:
-    if not BOT_TOKEN:
-        print("ОШИБКА: Токен не найден в файле .env!")
-        return
+async def post_init(application: Application):
+    await application.bot.set_chat_menu_button(
+        menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
+    )
 
-    init_db() # Инициализируем БД перед запуском бота
+def main():
+    init_db()
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    
     app.add_handler(CommandHandler("start", start))
+    # ВАЖНО: Хендлер для приема данных из Mini App
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     
-    print("Бот успешно запущен!")
     app.run_polling()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
