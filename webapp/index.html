@@ -508,9 +508,9 @@
 
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
-        // Просто отмечаем квест и обновляем список, не закрывая приложение
+        // Просто отмечаем квест и обновляем список
         markAsCompleted(event.data.id);
-        sendStatsToBot('quest');
+        // Данные синхронизируются когда пользователь откроет рейтинг
         // Если мы на reader-screen, очищаем iframe и возвращаемся к списку
         const currentScreen = document.querySelector('.screen.active').id;
         if (currentScreen === 'reader-screen') {
