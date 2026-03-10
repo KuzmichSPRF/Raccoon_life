@@ -508,10 +508,15 @@
 
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
-        // Имитируем нажатие кнопки "назад", чтобы вернуться к списку квестов.
-        handleBack();
+        // Просто отмечаем квест и обновляем список, не закрывая приложение
         markAsCompleted(event.data.id);
         sendStatsToBot('quest');
+        // Если мы на reader-screen, очищаем iframe и возвращаемся к списку
+        const currentScreen = document.querySelector('.screen.active').id;
+        if (currentScreen === 'reader-screen') {
+            document.getElementById('reader-iframe').src = "";
+            navigateTo('list-screen');
+        }
     }
 
     // Статистика игр против Клоуна
@@ -523,8 +528,8 @@
             let wins = parseInt(localStorage.getItem('clown_wins') || '0');
             localStorage.setItem('clown_wins', wins + 1);
         }
-        // Автоматическая отправка после игры
-        sendStatsToBot();
+        // Отправка только через REST API (не закрывает приложение)
+        sendToAPIOnly();
     }
 
     // Статистика игр против Владоса
@@ -536,8 +541,8 @@
             let wins = parseInt(localStorage.getItem('vladeos_wins') || '0');
             localStorage.setItem('vladeos_wins', wins + 1);
         }
-        // Автоматическая отправка после игры
-        sendStatsToBot();
+        // Отправка только через REST API (не закрывает приложение)
+        sendToAPIOnly();
     }
 
     // Прогресс башни (максимальный уровень + сумма уровней)
@@ -551,8 +556,8 @@
         // Добавляем пройденный уровень к сумме
         if (event.data.passed_level) {
             localStorage.setItem('tower_total_levels', currentTotal + 1);
-            // Автоматическая отправка после прохождения уровня
-            sendStatsToBot();
+            // Отправка только через REST API (не закрывает приложение)
+            sendToAPIOnly();
         }
     }
   });
@@ -574,6 +579,27 @@
         tg.sendData(JSON.stringify(data));
     } catch (e) {
         console.error("Failed to send stats:", e);
+    }
+  }
+
+  // Отправка только на REST API (не закрывает приложение)
+  function sendToAPIOnly() {
+    try {
+        const data = {
+            type: 'sync_stats',
+            source: 'game_event',
+            clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
+            clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
+            vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
+            vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
+            tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
+            tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
+            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
+        };
+        sendToAPI(data);
+        console.log('Данные отправлены на сервер');
+    } catch (e) {
+        console.error("Failed to send to API:", e);
     }
   }
 </script>
