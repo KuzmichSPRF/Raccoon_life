@@ -11,6 +11,8 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
+# ID администратора, который может делать рассылки (ваш user_id в Telegram)
+ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -124,6 +126,96 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     leaderboard_text = get_leaderboard_text()
     await update.message.reply_text(leaderboard_text, parse_mode=ParseMode.HTML)
 
+async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Рассылка сообщений всем игрокам. Использование: /broadcast <текст>"""
+    user_id = update.effective_user.id
+    
+    # Проверка прав администратора
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для рассылки сообщений.")
+        return
+    
+    # Получаем текст сообщения (после команды)
+    if not context.args:
+        await update.message.reply_text(
+            "❌ Использование: /broadcast <текст сообщения>\n\n"
+            "Пример: /broadcast 🎉 Новый квест доступен!"
+        )
+        return
+    
+    message_text = " ".join(context.args)
+    
+    # Получаем всех пользователей из БД
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT user_id FROM users")
+            users = cursor.fetchall()
+        
+        if not users:
+            await update.message.reply_text("❌ В базе данных нет пользователей.")
+            return
+        
+        # Отправляем сообщение всем пользователям
+        success_count = 0
+        fail_count = 0
+        
+        status_message = await update.message.reply_text(f"🔄 Начинаю рассылку для {len(users)} пользователей...")
+        
+        for (target_user_id,) in users:
+            try:
+                await context.bot.send_message(
+                    chat_id=target_user_id,
+                    text=message_text,
+                    parse_mode=ParseMode.HTML
+                )
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Не удалось отправить пользователю {target_user_id}: {e}")
+                fail_count += 1
+            
+            # Небольшая задержка чтобы избежать лимитов
+            import asyncio
+            await asyncio.sleep(0.05)
+        
+        await status_message.edit_text(
+            f"✅ Рассылка завершена!\n\n"
+            f"📩 Отправлено: {success_count}\n"
+            f"❌ Ошибок: {fail_count}\n"
+            f"📊 Всего: {len(users)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка при рассылке: {e}")
+        await update.message.reply_text(f"❌ Ошибка при рассылке: {e}")
+
+async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать количество зарегистрированных пользователей"""
+    user_id = update.effective_user.id
+    
+    # Проверка прав администратора
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды.")
+        return
+    
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM users")
+            total = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM user_stats WHERE tower_max_level > 0")
+            active = cursor.fetchone()[0]
+        
+        await update.message.reply_text(
+            f"📊 Статистика пользователей:\n\n"
+            f"👥 Всего: {total}\n"
+            f"🎮 Активных (играли в башню): {active}"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при получении статистики: {e}")
+        await update.message.reply_text(f"❌ Ошибка: {e}")
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Принимает данные от tg.sendData()"""
     user_id = update.effective_user.id
@@ -168,12 +260,14 @@ async def post_init(application: Application):
 def main():
     init_db()
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
-    
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("leaderboard", leaderboard_command))
+    app.add_handler(CommandHandler("broadcast", broadcast_command))
+    app.add_handler(CommandHandler("users", users_command))
     # ВАЖНО: Хендлер для приема данных из Mini App
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
-    
+
     app.run_polling()
 
 if __name__ == '__main__':
