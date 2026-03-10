@@ -1,0 +1,33 @@
+name: Deploy Bot and WebApp
+
+on:
+  push:
+    branches:
+      - main  # Скрипт сработает, когда вы пушите в ветку main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/botuser/my_bot
+            git pull origin main
+            
+            # 1. Обновляем бэкенд (бота)
+            source venv/bin/activate
+            pip install -r requirements.txt
+            
+            # 2. Если есть папка webapp — Nginx уже настроен на неё
+            # Здесь можно добавить команды сборки, если у вас React/Vue
+            
+            # 3. Перезапускаем службу бота
+            sudo systemctl restart my_bot
