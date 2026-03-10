@@ -36,6 +36,24 @@ def init_db():
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
+        
+        # Миграция: Проверяем и добавляем недостающие колонки, чтобы избежать вылетов на старой БД
+        cursor.execute("PRAGMA table_info(user_stats)")
+        columns = {info[1] for info in cursor.fetchall()}
+        required_columns = {
+            'clown_games': 'INTEGER DEFAULT 0', 'clown_wins': 'INTEGER DEFAULT 0',
+            'vladeos_games': 'INTEGER DEFAULT 0', 'vladeos_wins': 'INTEGER DEFAULT 0',
+            'tower_max_level': 'INTEGER DEFAULT 0', 'tower_total_levels': 'INTEGER DEFAULT 0',
+            'quests': "TEXT DEFAULT '[]'"
+        }
+        for col, dtype in required_columns.items():
+            if col not in columns:
+                try:
+                    cursor.execute(f"ALTER TABLE user_stats ADD COLUMN {col} {dtype}")
+                    logger.info(f"Миграция: добавлена колонка {col}")
+                except Exception as e:
+                    logger.error(f"Ошибка добавления колонки {col}: {e}")
+                    
         conn.commit()
 
 def update_db_stats(user_id, data):
@@ -57,13 +75,15 @@ def update_db_stats(user_id, data):
                 data.get('clown_games', 0), data.get('clown_wins', 0),
                 data.get('vladeos_games', 0), data.get('vladeos_wins', 0),
                 data.get('tower_max_level', 0), data.get('tower_total_levels', 0),
-                json.dumps(data.get('quests', [])),
+                json.dumps(data.get('quests') or []),
                 user_id
             ))
             conn.commit()
             logger.info(f"Успешное обновление БД для {user_id}")
+            return True
     except Exception as e:
         logger.error(f"Ошибка БД: {e}")
+        return False
 
 def get_leaderboard_text():
     """Fetches and formats the leaderboard text based on tower_max_level."""
@@ -113,8 +133,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         data_type = data.get('type')
 
         if data_type == 'sync_stats':
-            update_db_stats(user_id, data)
-            await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
+            if update_db_stats(user_id, data):
+                await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
+            else:
+                await update.message.reply_text("⚠️ Не удалось сохранить прогресс. Попробуйте позже.")
     except Exception as e:
         logger.error(f"Ошибка обработки WebAppData: {e}")
 
