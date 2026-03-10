@@ -508,6 +508,8 @@
 
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
+        // Имитируем нажатие кнопки "назад", чтобы вернуться к списку квестов.
+        handleBack();
         markAsCompleted(event.data.id);
         sendStatsToBot('quest');
     }
