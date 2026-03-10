@@ -3,7 +3,7 @@ name: Deploy Bot
 on:
   push:
     branches:
-      - main  # или master, проверьте имя своей ветки
+      - main  # Скрипт сработает только при пуше в ветку main
 
 jobs:
   deploy:
@@ -19,27 +19,29 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. Переходим в папку проекта
-            cd /home/${{ secrets.SERVER_USER }}/my_bot
+            # Переходим в папку проекта (используем переменную из секрета для пути)
+            cd /home/${{ secrets.SERVER_USER }}/my_bot || exit
             
-            # 2. Обновляем код
-            git fetch --all
+            # 1. Обновляем код из GitHub (сбрасываем локальные изменения, если они были)
+            git fetch origin main
             git reset --hard origin/main
             
-            # 3. Работа с виртуальным окружением
+            # 2. Настройка виртуального окружения
             if [ ! -d "venv" ]; then
                 python3 -m venv venv
             fi
             source venv/bin/activate
             
-            # 4. Установка библиотек
+            # 3. Обновление библиотек
+            pip install --upgrade pip
             if [ -f "requirements.txt" ]; then
-                pip install --upgrade pip
                 pip install -r requirements.txt
             fi
             
-            # 5. Перезапуск через SUDO с передачей пароля
+            # 4. Перезапуск бота с передачей пароля в sudo
+            # Флаг -S заставляет sudo читать пароль из стандартного ввода (echo)
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart my_bot
             
-            # 6. Проверка статуса
+            # 5. Вывод финального статуса для отчета в Actions
+            echo "--- Бот перезапущен. Статус службы: ---"
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl status my_bot --no-pager
