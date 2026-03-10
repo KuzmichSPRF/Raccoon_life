@@ -1,9 +1,9 @@
-name: Deploy Bot and WebApp
+name: Deploy Full Project
 
 on:
   push:
     branches:
-      - main  # Скрипт сработает, когда вы пушите в ветку main
+      - main  # Скрипт сработает при пуше в основную ветку
 
 jobs:
   deploy:
@@ -12,22 +12,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # 1. Переходим в папку проекта
             cd /home/botuser/my_bot
+
+            # 2. Забираем ВСЕ изменения из GitHub (все папки: bot, webapp и т.д.)
             git pull origin main
+
+            # 3. Обновляем виртуальное окружение Python
+            # Проверяем, существует ли venv, если нет — создаем
+            if [ ! -d "venv" ]; then
+                python3 -m venv venv
+            fi
             
-            # 1. Обновляем бэкенд (бота)
             source venv/bin/activate
-            pip install -r requirements.txt
             
-            # 2. Если есть папка webapp — Nginx уже настроен на неё
-            # Здесь можно добавить команды сборки, если у вас React/Vue
-            
-            # 3. Перезапускаем службу бота
+            # Устанавливаем библиотеки (убедитесь, что requirements.txt в корне)
+            if [ -f "requirements.txt" ]; then
+                pip install --upgrade pip
+                pip install -r requirements.txt
+            fi
+
+            # 4. Перезапускаем бота через системную службу
+            # (Мы дали botuser права на эту команду через visudo ранее)
             sudo systemctl restart my_bot
+
+            # 5. Проверяем статус (необязательно, но полезно для логов GitHub)
+            sudo systemctl status my_bot --no-pager
