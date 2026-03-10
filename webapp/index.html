@@ -294,6 +294,11 @@
   tg.ready();
   tg.expand();
 
+  // === НАСТРОЙКИ BACKEND ===
+  const API_URL = 'http://localhost:8000/api'; // Замените на ваш сервер при деплое
+  let SYNC_INTERVAL = 30000; // 30 секунд
+  let syncTimer = null;
+
   const DATA = {
     newspapers: {
       title: "📰 Газеты",
@@ -557,7 +562,7 @@
     }
   });
 
-  // Функция отправки статистики в бот
+  // Функция отправки статистики в бот и на backend
   function sendStatsToBot(source = null) {
     try {
         const data = {
@@ -571,11 +576,60 @@
             tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
             quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
         };
+        
+        // Отправляем боту (для обратной совместимости)
         tg.sendData(JSON.stringify(data));
+        
+        // Отправляем на REST API
+        sendToAPI(data);
     } catch (e) {
         console.error("Failed to send stats:", e);
     }
   }
+
+  // Отправка данных на REST API
+  async function sendToAPI(data) {
+    try {
+        const userId = tg.initDataUnsafe?.user?.id;
+        if (!userId) {
+            console.warn("Нет user_id, отмена отправки на API");
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/sync?user_id=${userId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            console.log('✅ Данные синхронизированы с сервером');
+        } else {
+            console.error('❌ Ошибка синхронизации:', response.status);
+        }
+    } catch (e) {
+        console.error("Failed to send to API:", e);
+    }
+  }
+
+  // Автоматическая периодическая синхронизация
+  function startAutoSync() {
+    if (syncTimer) clearInterval(syncTimer);
+    
+    syncTimer = setInterval(() => {
+        sendStatsToBot('auto_sync');
+    }, SYNC_INTERVAL);
+    
+    console.log(`🔄 Автосинхронизация запущена (каждые ${SYNC_INTERVAL/1000} сек)`);
+  }
+
+  // Остановка синхронизации при закрытии
+  window.addEventListener('beforeunload', () => {
+    if (syncTimer) clearInterval(syncTimer);
+  });
+
+  // Запуск автосинхронизации при старте
+  setTimeout(startAutoSync, 5000); // Через 5 сек после старта
 </script>
 </body>
 </html>

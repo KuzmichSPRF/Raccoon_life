@@ -2,6 +2,7 @@ import os
 import logging
 import sqlite3
 import json
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -11,6 +12,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
+BACKEND_URL = os.getenv("BACKEND_URL", "")  # Опционально: URL backend для синхронизации
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,9 +66,9 @@ def update_db_stats(user_id, data):
             cursor = conn.cursor()
             # Создаем запись, если её нет
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user_id,))
-            
+
             cursor.execute('''
-                UPDATE user_stats SET 
+                UPDATE user_stats SET
                 clown_games = ?, clown_wins = ?,
                 vladeos_games = ?, vladeos_wins = ?,
                 tower_max_level = ?, tower_total_levels = ?,
@@ -81,10 +83,30 @@ def update_db_stats(user_id, data):
             ))
             conn.commit()
             logger.info(f"Успешное обновление БД для {user_id}")
+            
+            # Синхронизация с backend (если настроен)
+            if BACKEND_URL:
+                sync_with_backend(user_id, data)
+            
             return True
     except Exception as e:
         logger.error(f"Ошибка БД: {e}")
         return False
+
+def sync_with_backend(user_id, data):
+    """Отправка данных на центральный backend"""
+    try:
+        response = requests.post(
+            f"{BACKEND_URL}/api/sync?user_id={user_id}",
+            json=data,
+            timeout=5
+        )
+        if response.ok:
+            logger.info(f"✅ Синхронизация с backend для user_id={user_id}")
+        else:
+            logger.warning(f"⚠️ Backend вернул {response.status_code}")
+    except Exception as e:
+        logger.debug(f"Backend недоступен, данные сохранены локально: {e}")
 
 def get_leaderboard_text():
     """Fetches and formats the leaderboard text based on tower_max_level."""
