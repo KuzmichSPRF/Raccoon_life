@@ -134,6 +134,16 @@ def init_db():
         # Инициализируем босса если таблица пустая
         cursor.execute("INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp) VALUES (1, 1000000000, 1000000000)")
 
+        # Миграция для boss_global (на случай если таблица старая и без нужных колонок)
+        cursor.execute("PRAGMA table_info(boss_global)")
+        boss_cols = {info[1] for info in cursor.fetchall()}
+        if 'kill_count' not in boss_cols:
+            try:
+                cursor.execute("ALTER TABLE boss_global ADD COLUMN kill_count INTEGER DEFAULT 0")
+                logger.info("Миграция: добавлена колонка kill_count в boss_global")
+            except Exception as e:
+                logger.error(f"Ошибка миграции boss_global: {e}")
+
         # Миграция: Проверяем и добавляем недостающие колонки, чтобы избежать вылетов на старой БД
         cursor.execute("PRAGMA table_info(user_stats)")
         columns = {info[1] for info in cursor.fetchall()}
@@ -150,6 +160,7 @@ def init_db():
                     logger.info(f"Миграция: добавлена колонка {col}")
                 except Exception as e:
                     logger.error(f"Ошибка добавления колонки {col}: {e}")
+        conn.commit()
 
 def update_db_stats(user_id, data):
     """Записывает данные из JSON в таблицу user_stats"""
@@ -173,6 +184,7 @@ def update_db_stats(user_id, data):
                 json.dumps(data.get('quests') or []),
                 user_id
             ))
+            conn.commit()
         logger.info(f"Успешное обновление БД для {user_id}")
         return True
     except (sqlite3.Error, Exception) as e:
@@ -215,6 +227,7 @@ def update_boss_damage(user_id, damage):
                 ''')
                 logger.info(f"БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
             
+            conn.commit()
         logger.info(f"Урон по боссу: user {user_id}, damage {damage}")
         return True
     except (sqlite3.Error, Exception) as e:
@@ -444,6 +457,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, first_name=excluded.first_name, last_name=excluded.last_name
             """, (user.id, user.username, user.first_name, user.last_name))
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user.id,))
+            conn.commit()
         logger.info(f"User {user.id} ({user.username}) started the bot.")
     except (sqlite3.Error, Exception) as e:
         logger.error(f"Error saving user {user.id} to DB: {e}")
