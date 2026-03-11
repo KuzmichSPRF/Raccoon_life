@@ -65,42 +65,45 @@ def api_sync():
     try:
         data = request.json
         data_type = data.get('type')
-        logger.info(f"API sync received: {data_type}, data: {data}")
+        logger.info(f"📥 API sync received: type={data_type}, data={data}")
 
         if data_type == 'sync_stats':
             user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
+            logger.info(f"👤 sync_stats: user_id={user_id}")
             if user_id:
                 if update_db_stats(user_id, data):
+                    logger.info(f"✅ sync_stats успешно для user_id={user_id}")
                     return jsonify({'status': 'ok'})
                 else:
+                    logger.error("❌ Database update failed")
                     return jsonify({'status': 'error', 'message': 'Database update failed'}), 500
             else:
-                logger.warning("sync_stats received without user_id")
+                logger.warning("⚠️ sync_stats received without user_id")
 
         if data_type == 'boss_damage':
             # Получаем user_id из тела запроса или заголовка
             user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
-            
+
             # Принудительно превращаем damage в число
             try:
                 damage = int(data.get('damage', 0))
             except (ValueError, TypeError):
                 damage = 0
 
-            logger.info(f"Boss damage: user_id={user_id}, damage={damage}")
+            logger.info(f"💥 Boss damage: user_id={user_id}, damage={damage}")
             if damage > 0 and user_id:
                 if update_boss_damage(int(user_id), damage):
                     # Возвращаем актуальное состояние босса ТОЛЬКО если обновление прошло успешно
                     boss_info = get_boss_hp()
                     return jsonify({'status': 'ok', 'boss': boss_info})
                 else:
-                    logger.error("Update boss damage returned False")
+                    logger.error("❌ Update boss damage returned False")
             elif damage > 0:
-                logger.warning(f"Boss damage without user_id: {damage}")
+                logger.warning(f"⚠️ Boss damage without user_id: {damage}")
 
         return jsonify({'status': 'ok'})
     except Exception as e:
-        logger.error(f"API sync error: {e}")
+        logger.error(f"❌ API sync error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 def run_flask():
@@ -178,13 +181,14 @@ def init_db():
 def update_db_stats(user_id, data):
     """Записывает данные из JSON в таблицу user_stats"""
     try:
+        logger.info(f"📝 update_db_stats вызвана для user_id={user_id}, данные: {data}")
         with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             # Создаем запись, если её нет
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user_id,))
-            
+
             cursor.execute('''
-                UPDATE user_stats SET 
+                UPDATE user_stats SET
                 clown_games = ?, clown_wins = ?,
                 vladeos_games = ?, vladeos_wins = ?,
                 tower_max_level = ?, tower_total_levels = ?,
@@ -198,10 +202,16 @@ def update_db_stats(user_id, data):
                 user_id
             ))
             conn.commit()
-        logger.info(f"Успешное обновление БД для {user_id}")
+            
+            # Проверяем что записалось
+            cursor.execute("SELECT * FROM user_stats WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            logger.info(f"✅ После обновления в БД: {row}")
+            
+        logger.info(f"✅ Успешное обновление БД для {user_id}")
         return True
     except (sqlite3.Error, Exception) as e:
-        logger.error(f"Ошибка БД при обновлении статистики для {user_id}: {e}")
+        logger.error(f"❌ Ошибка БД при обновлении статистики для {user_id}: {e}")
         return False
 
 def update_boss_damage(user_id, damage):

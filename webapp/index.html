@@ -557,7 +557,8 @@
         // Добавляем пройденный уровень к сумме
         if (event.data.passed_level) {
             localStorage.setItem('tower_total_levels', currentTotal + 1);
-            // Отправка только через REST API (не закрывает приложение)
+            console.log('🏰 Башня: пройден уровень', event.data.level, 'Всего уровней:', currentTotal + 1);
+            // Отправка данных после каждого пройденного уровня
             sendToAPIOnly();
         }
     }
@@ -607,7 +608,7 @@
 
   // Отправка данных на REST API (не закрывает приложение)
   function sendToAPI(data) {
-    console.log('sendToAPI called with:', data);
+    console.log('📡 sendToAPI called with:', data);
     // Отправляем данные через fetch на сервер
     fetch('/api/sync', {
       method: 'POST',
@@ -616,9 +617,15 @@
       },
       body: JSON.stringify(data)
     })
-    .then(() => console.log('API sync success'))
+    .then(response => {
+      console.log('✅ API response status:', response.status);
+      return response.json();
+    })
+    .then(result => {
+      console.log('✅ API sync success:', result);
+    })
     .catch(err => {
-      console.error('Failed to send to API:', err);
+      console.error('❌ Failed to send to API:', err);
     });
   }
 
@@ -637,8 +644,8 @@
             tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
             quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
         };
+        console.log('📊 Отправка статистики:', data);
         sendToAPI(data);
-        console.log('Данные отправлены на сервер');
     } catch (e) {
         console.error("Failed to send to API:", e);
     }
