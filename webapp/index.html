@@ -15,211 +15,72 @@
       --text-main: #ffffff;
       --text-sec: #a1a1aa;
       --game-green: #00ff88;
-      --boss-gold: #ffd700;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: 'Montserrat', sans-serif;
       background-color: var(--bg-color);
       color: var(--text-main);
       min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
       background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
     }
-
     .screen { display: none; padding: 5vh 16px 20px; flex-direction: column; gap: 12px; }
     .active { display: flex; }
-
-    @media (max-width: 600px) {
-      .screen { padding-top: 5vh; }
-    }
-
     #cover-screen {
-      text-align: center;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      gap: 20px;
-      background: transparent;
-      color: var(--text-main);
+      text-align: center; align-items: center; justify-content: center;
+      height: 100vh; gap: 20px;
     }
-
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    p {
-      font-size: 1.1rem;
-      line-height: 1.6;
-      color: var(--text-sec);
-      max-width: 300px;
-    }
-
+    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; }
+    p { font-size: 1.1rem; line-height: 1.6; color: var(--text-sec); max-width: 300px; }
     .main-menu-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-top: 0;
-      padding: 0 10px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px;
     }
-
-    @media (min-width: 400px) {
-      .main-menu-grid { grid-template-columns: 1fr 1fr; }
-    }
-
     .menu-card {
       background: linear-gradient(145deg, #23232a, #1c1c21);
-      border-radius: 20px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      cursor: pointer;
-      text-align: center;
+      border-radius: 20px; padding: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; cursor: pointer; text-align: center;
       box-shadow: 5px 5px 10px #0b0b0c, -5px -5px 10px #25252c;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid rgba(255,255,255,0.05);
-      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,0.05); aspect-ratio: 1;
     }
-
-    .menu-card:active { transform: scale(0.95); box-shadow: inset 5px 5px 10px #0b0b0c, inset -5px -5px 10px #25252c; }
-
+    .menu-card:active { transform: scale(0.95); }
     .menu-card-icon {
-      font-size: 2.5rem;
-      background: #121214;
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 2.5rem; background: #121214;
+      width: 70px; height: 70px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--primary);
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.2);
     }
-
-    .menu-card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
-
-    .section-title {
-      font-size: 1.8rem;
-      font-weight: 800;
-      margin-bottom: 20px;
-      color: var(--text-main);
-      padding-left: 5px;
-      text-align: left;
-      text-transform: uppercase;
-    }
-
+    .menu-card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; }
+    .section-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; }
     .list-item {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      text-decoration: none;
-      color: var(--text-main);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      margin-bottom: 12px;
+      background: var(--card-bg); border-radius: 12px; padding: 16px;
+      display: flex; align-items: center; gap: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 12px;
       border: 1px solid rgba(255,255,255,0.05);
-      transition: transform 0.2s;
     }
-
-    .list-item.completed {
-      border: 1px solid var(--game-green);
-      box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-    }
-
-    .list-item:active { transform: scale(0.98); }
-    .list-item-info { flex: 1; overflow: hidden; }
-    .list-item-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 5px;
-    }
-
-    .list-item.completed .list-item-title::after {
-      content: ' ✅';
-      color: var(--game-green);
-    }
+    .list-item.completed { border: 1px solid var(--game-green); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+    .list-item-title { font-size: 1.1rem; font-weight: 700; }
     .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
-
-    #reader-screen { padding: 0; height: 100vh; flex-direction: column; background: var(--bg-color); }
+    .list-item.completed .list-item-title::after { content: ' ✅'; }
+    #reader-screen { padding: 0; height: 100vh; flex-direction: column; }
     #reader-topbar {
-      display: flex;
-      align-items: center;
-      padding: 10px 16px;
-      background: var(--card-bg);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      position: relative;
-      z-index: 100;
+      display: flex; align-items: center; padding: 10px 16px;
+      background: var(--card-bg); border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     #back-btn {
-      background: transparent;
-      border: none;
-      font-size: 1.5rem;
-      color: var(--text-main);
-      padding: 5px 10px;
-      cursor: pointer;
-      margin-right: 10px;
-      box-shadow: none;
+      background: transparent; border: none; font-size: 1.5rem;
+      color: var(--text-main); padding: 5px 10px; cursor: pointer;
     }
-    #back-btn:active { opacity: 0.6; transform: none; }
-    #reader-header-title { font-size: 1.1rem; font-weight: 700; }
     #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
-
     .btn-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 16px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      cursor: pointer;
-      width: 80%;
-      max-width: 280px;
-      margin: 0 auto;
+      background: var(--primary); color: white; border: none;
+      border-radius: 50px; padding: 16px; font-family: 'Montserrat', sans-serif;
+      font-size: 1.1rem; font-weight: 800; text-transform: uppercase;
+      cursor: pointer; width: 80%; max-width: 280px; margin: 0 auto;
       box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
-      transition: transform 0.2s;
     }
-    .btn-primary:active {
-      transform: scale(0.95);
-      box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
-    }
-
-    .leaderboard-item {
-      background: var(--card-bg);
-      border-radius: 15px;
-      padding: 15px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .rank-badge {
-      font-size: 1.2rem; font-weight: 800; color: var(--primary);
-      width: 30px; text-align: center;
-    }
-    .player-details { flex: 1; }
-    .player-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-    .player-stats { font-size: 0.75rem; color: var(--text-sec); display: flex; gap: 8px; flex-wrap: wrap; }
-    .player-score { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
-    .stat-tag { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; }
+    .btn-primary:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
@@ -256,7 +117,7 @@
       </div>
       <div class="menu-card" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0')">
         <span class="menu-card-icon">💎</span>
-        <span class="menu-card-title">Поддержать проект</span>
+        <span class="menu-card-title">Поддержать</span>
       </div>
     </div>
   </div>
@@ -285,13 +146,11 @@
   tg.ready();
   tg.expand();
 
-  // Получаем user_id из Telegram initData
+  // ==================== USER ID ====================
   function getUserId() {
-    // Пробуем получить из initDataUnsafe (безопасные данные)
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+    if (tg.initDataUnsafe?.user?.id) {
       return tg.initDataUnsafe.user.id;
     }
-    // Если нет (тест в браузере), пробуем из строки initData
     if (tg.initData) {
       const urlParams = new URLSearchParams(tg.initData);
       const userStr = urlParams.get('user');
@@ -300,14 +159,14 @@
           const user = JSON.parse(decodeURIComponent(userStr));
           return user.id;
         } catch (e) {
-          console.error('Failed to parse user from initData:', e);
+          console.error('Failed to parse user:', e);
         }
       }
     }
     return null;
   }
 
-  // Хранилище статистики в памяти
+  // ==================== STATS ====================
   let stats = {
     clown_games: 0,
     clown_wins: 0,
@@ -318,7 +177,6 @@
     quests: []
   };
 
-  // Загружаем статистику из localStorage при старте
   function loadStats() {
     stats.clown_games = parseInt(localStorage.getItem('clown_games') || '0');
     stats.clown_wins = parseInt(localStorage.getItem('clown_wins') || '0');
@@ -326,16 +184,11 @@
     stats.vladeos_wins = parseInt(localStorage.getItem('vladeos_wins') || '0');
     stats.tower_max_level = parseInt(localStorage.getItem('tower_max_level') || '0');
     stats.tower_total_levels = parseInt(localStorage.getItem('tower_total_levels') || '0');
-    try {
-      stats.quests = JSON.parse(localStorage.getItem('completed_items') || '[]');
-    } catch (e) {
-      stats.quests = [];
-    }
-    console.log('📊 Статистика загружена:', stats);
+    try { stats.quests = JSON.parse(localStorage.getItem('completed_items') || '[]'); } catch (e) { stats.quests = []; }
+    console.log('📊 Stats loaded:', stats);
   }
 
-  // Сохраняем статистику в localStorage и отправляем на сервер
-  function saveStats(sendImmediately = true) {
+  function saveStatsLocal() {
     localStorage.setItem('clown_games', stats.clown_games.toString());
     localStorage.setItem('clown_wins', stats.clown_wins.toString());
     localStorage.setItem('vladeos_games', stats.vladeos_games.toString());
@@ -343,21 +196,45 @@
     localStorage.setItem('tower_max_level', stats.tower_max_level.toString());
     localStorage.setItem('tower_total_levels', stats.tower_total_levels.toString());
     localStorage.setItem('completed_items', JSON.stringify(stats.quests));
-    
-    console.log('💾 Статистика сохранена в localStorage:', stats);
-    
-    if (sendImmediately) {
-      sendStatsToServer();
-    }
   }
 
-  // Отправка статистики на сервер
-  function sendStatsToServer() {
+  // ==================== API ====================
+  function sendToAPI(data) {
     const userId = getUserId();
     if (!userId) {
-      console.log('⚠️ Нет user_id, отмена отправки статистики');
+      console.log('⚠️ No user_id, skipping API call');
       return;
     }
+
+    // Добавляем userId если нет в data
+    if (!data.userId && !data.user_id) {
+      data.userId = userId;
+    }
+
+    console.log('📡 Sending to API:', data);
+
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+      console.log('✅ API response:', result);
+      if (result.status === 'ok') {
+        console.log('✅ Data saved to database!');
+      } else {
+        console.error('❌ API error:', result.message);
+      }
+    })
+    .catch(err => {
+      console.error('❌ Network error:', err);
+    });
+  }
+
+  function syncStats() {
+    const userId = getUserId();
+    if (!userId) return;
 
     const data = {
       type: 'sync_stats',
@@ -371,38 +248,13 @@
       quests: stats.quests
     };
 
-    console.log('📡 Отправка статистики на сервер:', data);
-
-    fetch('/api/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => {
-      console.log('📥 Ответ сервера:', response.status);
-      return response.json();
-    })
-    .then(result => {
-      if (result.status === 'ok') {
-        console.log('✅ Статистика успешно записана в базу!');
-      } else {
-        console.error('❌ Ошибка записи:', result.message);
-      }
-    })
-    .catch(err => {
-      console.error('❌ Ошибка сети:', err);
-    });
+    console.log('📊 Syncing stats:', data);
+    sendToAPI(data);
   }
 
-  // Отправка урона боссу
   function sendBossDamage(damage) {
     const userId = getUserId();
-    if (!userId) {
-      console.log('⚠️ Нет user_id, отмена отправки урона боссу');
-      return;
-    }
+    if (!userId) return;
 
     const data = {
       type: 'boss_damage',
@@ -410,97 +262,21 @@
       damage: damage
     };
 
-    console.log('⚔️ Отправка урона боссу:', data);
-
-    fetch('/api/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-      if (result.status === 'ok') {
-        console.log('✅ Урон боссу записан!');
-      } else {
-        console.error('❌ Ошибка записи урона:', result.message);
-      }
-    })
-    .catch(err => {
-      console.error('❌ Ошибка сети:', err);
-    });
+    console.log('⚔️ Sending boss damage:', data);
+    sendToAPI(data);
   }
 
-  const DATA = {
-    newspapers: {
-      title: "📰 Газеты",
-      items: [
-        { id: "news_17", title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
-        { id: "news_16", title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
-        { id: "news_15", title: "Выпуск #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
-        { id: "news_14", title: "Выпуск #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
-        { id: "news_13", title: "Выпуск #13", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-SEPTEMBER-04092025-13-RU-09-06", type: "link" },
-        { id: "news_12", title: "Выпуск #12", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-AUGUST-2469-2025--RU-08-17", type: "link" },
-        { id: "news_11", title: "Выпуск #11", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JULY-2025-1155-RU-07-26", type: "link" },
-        { id: "news_10", title: "Выпуск #10", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-55-87-JULY-2025-10-RU-07-06", type: "link" },
-        { id: "news_9", title: "Выпуск #9", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-2025-9-579611-RU-06-08", type: "link" },
-        { id: "news_8", title: "Выпуск #8", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-45872025-8-RU-05-18", type: "link" },
-        { id: "news_7", title: "Выпуск #7", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-99867-May-2025-7-RU-04-30", type: "link" },
-        { id: "news_6", title: "Выпуск #6", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-2346-TIMES-April-2025-6-RU-04-18", type: "link" },
-        { id: "news_5", title: "Выпуск #5", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-5-03-25", type: "link" },
-        { id: "news_4", title: "Выпуск #4", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-4-03-04", type: "link" },
-        { id: "news_3", title: "Выпуск #3", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2025-2-02-08", type: "link" },
-        { id: "news_2", title: "Выпуск #2", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-2025-2-01-23", type: "link" },
-        { id: "news_1", title: "Выпуск #1", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-01-08", type: "link" }
-      ]
-    },
-    quests: {
-      title: "❓ Квесты",
-      items: [
-        { title: "The Questoon Times Remake", desc: "Классика", type: "folder", target: "qt_remake" },
-        { title: "The Questoon Times 2", desc: "Продолжение", type: "folder", target: "qt_2" }
-      ]
-    },
-    qt_remake: {
-      title: "QT Remake",
-      items: [
-        { title: "SOON...", desc: "В разработке", type: "alert", msg: "Скоро..." }
-      ]
-    },
-    qt_2: {
-      title: "QT 2",
-      items: [
-        { id: "qt2_1", title: "Глава 1: Встреча в баре", desc: "Начало приключения", url: "qt2_1.1.html", type: "iframe" }
-      ]
-    },
-    games: {
-      title: "🎮 Игры",
-      items: [
-        { title: "Битва фишек", desc: "Клоун против Енота", url: "game.html", type: "iframe" },
-        { title: "PVP: Vladeos", desc: "Попробуй обыграть @Vladeos", url: "vladeos_pvp.html", type: "iframe" },
-        { title: "Башня 3.0", desc: "Бесконечные уровни", url: "tower_game.html", type: "iframe" },
-        { title: "🔺 Босс Енотов", desc: "1 млрд HP - глаз организации!", url: "boss_game.html", type: "iframe" }
-      ]
-    },
-    partners: {
-      title: "🤝 Партнеры",
-      items: [
-        { title: "CapsGame", desc: "Игра про фишки в Telegram", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
-      ]
-    }
-  };
-
+  // ==================== NAVIGATION ====================
   function handleBack() {
-    const currentScreen = document.querySelector('.screen.active').id;
-    if (currentScreen === 'reader-screen') {
-      document.getElementById('reader-iframe').src = "";
+    const current = document.querySelector('.screen.active').id;
+    if (current === 'reader-screen') {
+      document.getElementById('reader-iframe').src = '';
       navigateTo('list-screen');
-    } else if (currentScreen === 'rating-screen') {
+    } else if (current === 'rating-screen') {
       navigateTo('main-menu');
-    } else if (currentScreen === 'list-screen') {
+    } else if (current === 'list-screen') {
       navigateTo('main-menu');
-    } else if (currentScreen === 'main-menu') {
+    } else if (current === 'main-menu') {
       navigateTo('cover-screen');
     }
   }
@@ -508,11 +284,11 @@
   function navigateTo(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
-    window.scrollTo(0,0);
-
+    window.scrollTo(0, 0);
     tg.BackButton.offClick(handleBack);
-    if (screenId === 'cover-screen') tg.BackButton.hide();
-    else {
+    if (screenId === 'cover-screen') {
+      tg.BackButton.hide();
+    } else {
       tg.BackButton.show();
       tg.BackButton.onClick(handleBack);
     }
@@ -524,38 +300,36 @@
     currentCategory = catKey;
     const cat = DATA[catKey];
     document.getElementById('category-title').innerText = cat.title;
-    const listContainer = document.getElementById('category-list');
-    listContainer.innerHTML = '';
+    const list = document.getElementById('category-list');
+    list.innerHTML = '';
 
-    let completedItems = [];
-    try {
-      completedItems = JSON.parse(localStorage.getItem('completed_items') || '[]');
-    } catch (e) {
-      console.error(e);
-    }
+    const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
 
     cat.items.forEach(item => {
       const div = document.createElement('div');
-      div.className = 'list-item';
-      if (item.id && completedItems.includes(item.id)) {
-        div.classList.add('completed');
-      }
-      div.innerHTML = `<div class="list-item-info"><div class="list-item-title">${item.title}</div><div class="list-item-desc">${item.desc}</div></div><div style="color: #ccc">›</div>`;
+      div.className = 'list-item' + (item.id && completed.includes(item.id) ? ' completed' : '');
+      div.innerHTML = `
+        <div class="list-item-info">
+          <div class="list-item-title">${item.title}</div>
+          <div class="list-item-desc">${item.desc}</div>
+        </div>
+        <div style="color: #ccc">›</div>
+      `;
       div.onclick = () => handleItemClick(item);
-      listContainer.appendChild(div);
+      list.appendChild(div);
     });
     navigateTo('list-screen');
   }
 
   function markAsCompleted(id) {
     if (!id) return;
-    if (!stats.quests.includes(id)) {
-      stats.quests.push(id);
-      saveStats(true); // Сразу отправляем на сервер
-      console.log('✅ Квест завершен:', id);
-    }
-    if (currentCategory) {
-      renderCategory(currentCategory);
+    let completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
+    if (!completed.includes(id)) {
+      completed.push(id);
+      localStorage.setItem('completed_items', JSON.stringify(completed));
+      stats.quests = completed;
+      syncStats(); // Sync on quest complete
+      if (currentCategory) renderCategory(currentCategory);
     }
   }
 
@@ -563,56 +337,44 @@
     if ((item.type === 'link' || item.type === 'external') && item.id) {
       markAsCompleted(item.id);
     }
-
     if (item.type === 'folder') {
       renderCategory(item.target);
     } else if (item.type === 'alert') {
-      tg.showAlert ? tg.showAlert(item.msg) : alert(item.msg);
+      tg.showAlert(item.msg);
     } else if (item.type === 'iframe') {
       document.getElementById('reader-header-title').innerText = item.title;
       document.getElementById('reader-iframe').src = item.url;
       navigateTo('reader-screen');
-    } else if (item.type === 'link') tg.openLink(item.url);
-    else tg.openTelegramLink(item.url);
+    } else if (item.type === 'link') {
+      tg.openLink(item.url);
+    } else {
+      tg.openTelegramLink(item.url);
+    }
   }
 
   function showLeaderboard() {
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
 
-    // Сначала отправляем актуальную статистику
-    sendStatsToServer();
+    // Sync stats when opening leaderboard
+    syncStats();
 
-    // Показывем топ игроков
+    // Mock leaderboard data
     const players = [
-      { name: "Vladeos", games: 150, wins: 120, donat: 5000, login: 45, score: 0 },
-      { name: "RaccoonKing", games: 300, wins: 100, donat: 0, login: 12, score: 0 },
-      { name: "Donater777", games: 10, wins: 2, donat: 50000, login: 1, score: 0 },
-      { name: "PlayerOne", games: 50, wins: 25, donat: 100, login: 5 },
-      { name: "Guest_99", games: 5, wins: 0, donat: 0, login: 1 }
+      { name: "Vladeos", games: 150, wins: 120, score: 2850 },
+      { name: "RaccoonKing", games: 300, wins: 100, score: 2500 }
     ];
-
-    players.forEach(p => {
-      p.score = (p.wins * 15) + (p.games * 5) + (p.login * 10) + (p.donat * 1);
-    });
-
-    players.sort((a, b) => b.score - a.score);
 
     players.forEach((p, i) => {
       const div = document.createElement('div');
-      div.className = 'leaderboard-item';
+      div.className = 'list-item';
       div.innerHTML = `
-        <div class="rank-badge">#${i + 1}</div>
-        <div class="player-details">
-          <div class="player-name">${p.name}</div>
-          <div class="player-stats">
-            <span class="stat-tag">🎮 ${p.games}</span>
-            <span class="stat-tag">🏆 ${p.wins}</span>
-            <span class="stat-tag">📅 ${p.login}</span>
-            <span class="stat-tag">💎 ${p.donat}</span>
-          </div>
+        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary); width: 40px;">#${i+1}</div>
+        <div style="flex: 1;">
+          <div style="font-weight: 700;">${p.name}</div>
+          <div style="font-size: 0.8rem; color: var(--text-sec);">🎮 ${p.games} | 🏆 ${p.wins}</div>
         </div>
-        <div class="player-score">${p.score}</div>
+        <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent);">${p.score}</div>
       `;
       list.appendChild(div);
     });
@@ -620,72 +382,110 @@
     navigateTo('rating-screen');
   }
 
-  // Обработка сообщений от iframe
+  // ==================== DATA ====================
+  const DATA = {
+    newspapers: {
+      title: "📰 Газеты",
+      items: [
+        { id: "news_17", title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
+        { id: "news_16", title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" }
+      ]
+    },
+    quests: {
+      title: "❓ Квесты",
+      items: [
+        { title: "The Questoon Times 2", desc: "Продолжение", type: "folder", target: "qt_2" }
+      ]
+    },
+    qt_2: {
+      title: "QT 2",
+      items: [
+        { id: "qt2_1", title: "Глава 1: Встреча в баре", desc: "Начало", url: "qt2_1.1.html", type: "iframe" }
+      ]
+    },
+    games: {
+      title: "🎮 Игры",
+      items: [
+        { title: "Битва фишек", desc: "Клоун vs Енот", url: "game.html", type: "iframe" },
+        { title: "PVP: Vladeos", desc: "Попробуй обыграть", url: "vladeos_pvp.html", type: "iframe" },
+        { title: "Башня 3.0", desc: "Бесконечные уровни", url: "tower_game.html", type: "iframe" },
+        { title: "🔺 Босс Енотов", desc: "1 млрд HP", url: "boss_game.html", type: "iframe" }
+      ]
+    },
+    partners: {
+      title: "🤝 Партнеры",
+      items: [
+        { title: "CapsGame", desc: "Игра про фишки", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
+      ]
+    }
+  };
+
+  // ==================== MESSAGE HANDLER ====================
   window.addEventListener('message', function(event) {
     if (!event.data) return;
 
-    console.log('📨 Сообщение от iframe:', event.data);
+    const data = event.data;
+    console.log('📨 Message from iframe:', data);
 
-    // Завершение квеста
-    if (event.data.type === 'quest_complete') {
-      markAsCompleted(event.data.id);
-      const currentScreen = document.querySelector('.screen.active').id;
-      if (currentScreen === 'reader-screen') {
-        document.getElementById('reader-iframe').src = "";
+    // Quest complete
+    if (data.type === 'quest_complete' && data.id) {
+      markAsCompleted(data.id);
+      const current = document.querySelector('.screen.active').id;
+      if (current === 'reader-screen') {
+        document.getElementById('reader-iframe').src = '';
         navigateTo('list-screen');
       }
     }
 
-    // Игра против Клоуна
-    if (event.data.type === 'game_complete' && event.data.game === 'clown') {
+    // Clown game
+    if (data.type === 'game_complete' && data.game === 'clown') {
       stats.clown_games++;
-      if (event.data.win) {
-        stats.clown_wins++;
-      }
-      saveStats(true);
-      console.log(`🎮 Клоун: игр=${stats.clown_games}, побед=${stats.clown_wins}`);
+      if (data.win) stats.clown_wins++;
+      saveStatsLocal();
+      syncStats();
+      console.log(`🎮 Clown: games=${stats.clown_games}, wins=${stats.clown_wins}`);
     }
 
-    // Игра против Vladeos
-    if (event.data.type === 'game_complete' && event.data.game === 'vladeos') {
+    // Vladeos game
+    if (data.type === 'game_complete' && data.game === 'vladeos') {
       stats.vladeos_games++;
-      if (event.data.win) {
-        stats.vladeos_wins++;
-      }
-      saveStats(true);
-      console.log(`⚔️ Vladeos: игр=${stats.vladeos_games}, побед=${stats.vladeos_wins}`);
+      if (data.win) stats.vladeos_wins++;
+      saveStatsLocal();
+      syncStats();
+      console.log(`⚔️ Vladeos: games=${stats.vladeos_games}, wins=${stats.vladeos_wins}`);
     }
 
-    // Башня - прогресс уровня
-    if (event.data.type === 'tower_update') {
-      if (event.data.level > stats.tower_max_level) {
-        stats.tower_max_level = event.data.level;
+    // Tower progress
+    if (data.type === 'tower_update') {
+      if (data.level > stats.tower_max_level) {
+        stats.tower_max_level = data.level;
       }
-      if (event.data.passed_level) {
+      if (data.passed_level) {
         stats.tower_total_levels++;
-        saveStats(true);
-        console.log(`🏰 Башня: макс.уровень=${stats.tower_max_level}, всего пройдено=${stats.tower_total_levels}`);
+        saveStatsLocal();
+        syncStats();
+        console.log(`🏰 Tower: max=${stats.tower_max_level}, total=${stats.tower_total_levels}`);
       }
     }
 
-    // Урон по боссу
-    if (event.data.type === 'boss_damage') {
-      sendBossDamage(event.data.damage);
+    // Boss damage
+    if (data.type === 'boss_damage' && data.damage) {
+      sendBossDamage(data.damage);
     }
 
-    // Конец игры босса
-    if (event.data.type === 'game_over' && event.data.game === 'boss') {
-      const currentScreen = document.querySelector('.screen.active').id;
-      if (currentScreen === 'reader-screen') {
-        document.getElementById('reader-iframe').src = "";
+    // Boss game over
+    if (data.type === 'game_over' && data.game === 'boss') {
+      const current = document.querySelector('.screen.active').id;
+      if (current === 'reader-screen') {
+        document.getElementById('reader-iframe').src = '';
         navigateTo('list-screen');
       }
     }
   });
 
-  // Инициализация при загрузке
+  // ==================== INIT ====================
   loadStats();
-  console.log('🦝 Raccoon Life WebApp готов!');
+  console.log('🦝 Raccoon Life WebApp ready!');
   console.log('👤 User ID:', getUserId());
 </script>
 </body>

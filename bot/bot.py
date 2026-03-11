@@ -1,3 +1,7 @@
+"""
+Raccoon Life Bot - Backend API
+Синхронизация игровой статистики и урона по боссу
+"""
 import os
 import logging
 import sqlite3
@@ -11,546 +15,596 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from dotenv import load_dotenv
 
+# Загрузка переменных окружения
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
-# ID администратора, который может делать рассылки (ваш user_id в Telegram)
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Пути к файлам
-# При запуске через exec() __file__ не работает, используем cwd или переменную окружения
-if os.environ.get('PROJECT_DIR'):
-    PROJECT_DIR = Path(os.environ['PROJECT_DIR'])
-else:
-    PROJECT_DIR = Path.cwd()
-
-BOT_DIR = PROJECT_DIR / 'bot'
-DB_NAME = str(BOT_DIR / "users.db")
+BOT_DIR = Path(__file__).parent
+PROJECT_DIR = BOT_DIR.parent
+DB_PATH = str(BOT_DIR / "users.db")
 WEBAPP_DIR = PROJECT_DIR / "webapp"
 
-logger.info(f"Using database file at: {DB_NAME}")
-logger.info(f"WebApp directory: {WEBAPP_DIR}")
+logger.info(f"Database: {DB_PATH}")
+logger.info(f"WebApp: {WEBAPP_DIR}")
 
-# Flask app для API
+# Flask приложение
 app = Flask(__name__, static_folder=str(WEBAPP_DIR), static_url_path='')
-# Разрешаем запросы с любых доменов (важно для Telegram WebApps)
-CORS(app)
+CORS(app)  # Разрешаем CORS для WebApp
 
-# Роут для отдачи index.html и других файлов из webapp/
-@app.route('/')
-def index_route():
-    """Отдаёт index.html из папки webapp/"""
-    from flask import send_from_directory
-    return send_from_directory(WEBAPP_DIR, 'index.html')
 
-# Роут для других HTML файлов (game.html, tower_game.html, etc.)
-@app.route('/<path:filename>')
-def static_files(filename):
-    """Отдаёт статические файлы из webapp/"""
-    from flask import send_from_directory
-    return send_from_directory(WEBAPP_DIR, filename)
+# ==================== БАЗА ДАННЫХ ====================
 
-@app.route('/api/boss_hp', methods=['GET'])
-def api_get_boss_hp():
-    """API endpoint для получения HP босса"""
-    boss_info = get_boss_hp()
-    # Возвращаем JSON с четкой структурой
-    response = jsonify({'status': 'ok', 'boss': boss_info})
-    # ВАЖНО: Отключаем кеширование, чтобы браузер всегда запрашивал актуальное здоровье
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
+def get_db_connection():
+    """Создает подключение к базе данных"""
+    conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-@app.route('/api/player_stats', methods=['GET'])
-def api_get_player_stats():
-    """API endpoint для получения статистики игрока по боссу"""
-    try:
-        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
-        if not user_id:
-            return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
-        
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT total_damage FROM boss_damage WHERE user_id = ?", (int(user_id),))
-            row = cursor.fetchone()
-            if row:
-                return jsonify({'total_damage': row[0], 'hits': 0, 'crits': 0})
-            return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Error getting player stats: {e}")
-        return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
-
-@app.route('/api/sync', methods=['POST'])
-def api_sync():
-    """API endpoint для синхронизации данных"""
-    try:
-        data = request.json
-        data_type = data.get('type')
-        logger.info(f"📥 API sync received: type={data_type}, data={data}")
-
-        if data_type == 'sync_stats':
-            user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
-            logger.info(f"👤 sync_stats: user_id={user_id}")
-            if user_id:
-                if update_db_stats(user_id, data):
-                    logger.info(f"✅ sync_stats успешно для user_id={user_id}")
-                    return jsonify({'status': 'ok'})
-                else:
-                    logger.error("❌ Database update failed")
-                    return jsonify({'status': 'error', 'message': 'Database update failed'}), 500
-            else:
-                logger.warning("⚠️ sync_stats received without user_id")
-
-        if data_type == 'boss_damage':
-            # Получаем user_id из тела запроса или заголовка
-            user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
-
-            # Принудительно превращаем damage в число
-            try:
-                damage = int(data.get('damage', 0))
-            except (ValueError, TypeError):
-                damage = 0
-
-            logger.info(f"💥 Boss damage: user_id={user_id}, damage={damage}")
-            if damage > 0 and user_id:
-                if update_boss_damage(int(user_id), damage):
-                    # Возвращаем актуальное состояние босса ТОЛЬКО если обновление прошло успешно
-                    boss_info = get_boss_hp()
-                    return jsonify({'status': 'ok', 'boss': boss_info})
-                else:
-                    logger.error("❌ Update boss damage returned False")
-            elif damage > 0:
-                logger.warning(f"⚠️ Boss damage without user_id: {damage}")
-
-        return jsonify({'status': 'ok'})
-    except Exception as e:
-        logger.error(f"❌ API sync error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-def run_flask():
-    """Запуск Flask сервера"""
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 def init_db():
-    with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-        cursor = conn.cursor()
+    """Инициализация базы данных - создание таблиц"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Таблица пользователей
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
-                username TEXT, first_name TEXT, last_name TEXT,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
                 registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Таблица статистики игроков
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_stats (
                 user_id INTEGER PRIMARY KEY,
-                clown_games INTEGER DEFAULT 0, clown_wins INTEGER DEFAULT 0,
-                vladeos_games INTEGER DEFAULT 0, vladeos_wins INTEGER DEFAULT 0,
-                tower_max_level INTEGER DEFAULT 0, tower_total_levels INTEGER DEFAULT 0,
+                clown_games INTEGER DEFAULT 0,
+                clown_wins INTEGER DEFAULT 0,
+                vladeos_games INTEGER DEFAULT 0,
+                vladeos_wins INTEGER DEFAULT 0,
+                tower_max_level INTEGER DEFAULT 0,
+                tower_total_levels INTEGER DEFAULT 0,
                 quests TEXT DEFAULT '[]',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
+        
+        # Таблица урона по боссу
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS boss_damage (
                 user_id INTEGER PRIMARY KEY,
                 total_damage INTEGER DEFAULT 0,
+                hits INTEGER DEFAULT 0,
                 last_hit TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
+        
+        # Глобальная таблица босса
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS boss_global (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 current_hp INTEGER DEFAULT 1000000000,
                 max_hp INTEGER DEFAULT 1000000000,
-                last_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                kill_count INTEGER DEFAULT 0
+                kill_count INTEGER DEFAULT 0,
+                last_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        # Инициализируем босса если таблица пустая
-        cursor.execute("INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp) VALUES (1, 1000000000, 1000000000)")
-
-        # Миграция для boss_damage: проверяем и добавляем last_hit если нет
-        cursor.execute("PRAGMA table_info(boss_damage)")
-        boss_damage_cols = {info[1] for info in cursor.fetchall()}
-        if 'last_hit' not in boss_damage_cols:
-            try:
-                cursor.execute("ALTER TABLE boss_damage ADD COLUMN last_hit TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-                logger.info("Миграция: добавлена колонка last_hit в boss_damage")
-            except Exception as e:
-                logger.error(f"Ошибка миграции boss_damage: {e}")
-
-        # Миграция для boss_global
-        cursor.execute("PRAGMA table_info(boss_global)")
-        boss_cols = {info[1] for info in cursor.fetchall()}
-        if 'kill_count' not in boss_cols:
-            try:
-                cursor.execute("ALTER TABLE boss_global ADD COLUMN kill_count INTEGER DEFAULT 0")
-                logger.info("Миграция: добавлена колонка kill_count в boss_global")
-            except Exception as e:
-                logger.error(f"Ошибка миграции boss_global: {e}")
-
-        # Миграция для user_stats
-        cursor.execute("PRAGMA table_info(user_stats)")
-        columns = {info[1] for info in cursor.fetchall()}
-        required_columns = {
-            'clown_games': 'INTEGER DEFAULT 0', 'clown_wins': 'INTEGER DEFAULT 0',
-            'vladeos_games': 'INTEGER DEFAULT 0', 'vladeos_wins': 'INTEGER DEFAULT 0',
-            'tower_max_level': 'INTEGER DEFAULT 0', 'tower_total_levels': 'INTEGER DEFAULT 0',
-            'quests': "TEXT DEFAULT '[]'"
-        }
-        for col, dtype in required_columns.items():
-            if col not in columns:
-                try:
-                    cursor.execute(f"ALTER TABLE user_stats ADD COLUMN {col} {dtype}")
-                    logger.info(f"Миграция: добавлена колонка {col}")
-                except Exception as e:
-                    logger.error(f"Ошибка добавления колонки {col}: {e}")
+        
+        # Инициализация босса
+        cursor.execute('''
+            INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count) 
+            VALUES (1, 1000000000, 1000000000, 0)
+        ''')
+        
         conn.commit()
-        logger.info("✅ Инициализация БД завершена")
+        logger.info("✅ База данных инициализирована")
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка инициализации БД: {e}")
+        raise
+    finally:
+        conn.close()
 
-def update_db_stats(user_id, data):
-    """Записывает данные из JSON в таблицу user_stats"""
+
+def ensure_user_exists(user_id: int, user_data: dict = None):
+    """Гарантирует существование пользователя в БД"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        logger.info(f"📝 update_db_stats вызвана для user_id={user_id}, данные: {data}")
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            # Создаем запись, если её нет
-            cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user_id,))
+        # Данные пользователя
+        username = user_data.get('username', '') if user_data else ''
+        first_name = user_data.get('first_name', '') if user_data else ''
+        last_name = user_data.get('last_name', '') if user_data else ''
+        
+        # Создаем или обновляем пользователя
+        cursor.execute('''
+            INSERT INTO users (user_id, username, first_name, last_name)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                username = excluded.username,
+                first_name = excluded.first_name,
+                last_name = excluded.last_name
+        ''', (user_id, username, first_name, last_name))
+        
+        # Создаем запись статистики если нет
+        cursor.execute('''
+            INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)
+        ''', (user_id,))
+        
+        conn.commit()
+        logger.debug(f"Пользователь {user_id} существует в БД")
+        
+    except Exception as e:
+        logger.error(f"Ошибка ensure_user_exists: {e}")
+        raise
+    finally:
+        conn.close()
 
-            cursor.execute('''
-                UPDATE user_stats SET
-                clown_games = ?, clown_wins = ?,
-                vladeos_games = ?, vladeos_wins = ?,
-                tower_max_level = ?, tower_total_levels = ?,
-                quests = ?
-                WHERE user_id = ?
-            ''', (
-                data.get('clown_games', 0), data.get('clown_wins', 0),
-                data.get('vladeos_games', 0), data.get('vladeos_wins', 0),
-                data.get('tower_max_level', 0), data.get('tower_total_levels', 0),
-                json.dumps(data.get('quests') or []),
-                user_id
-            ))
-            conn.commit()
-            
-            # Проверяем что записалось
-            cursor.execute("SELECT * FROM user_stats WHERE user_id = ?", (user_id,))
-            row = cursor.fetchone()
-            logger.info(f"✅ После обновления в БД: {row}")
-            
-        logger.info(f"✅ Успешное обновление БД для {user_id}")
+
+# ==================== API ФУНКЦИИ ====================
+
+def save_user_stats(user_id: int, stats_data: dict) -> bool:
+    """
+    Сохраняет статистику игрока в базу данных
+    
+    Args:
+        user_id: ID пользователя в Telegram
+        stats_data: Словарь с данными статистики
+    
+    Returns:
+        True если успешно, False иначе
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Гарантируем существование пользователя
+        ensure_user_exists(user_id)
+        
+        # Обновляем статистику
+        cursor.execute('''
+            UPDATE user_stats SET
+                clown_games = ?,
+                clown_wins = ?,
+                vladeos_games = ?,
+                vladeos_wins = ?,
+                tower_max_level = ?,
+                tower_total_levels = ?,
+                quests = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        ''', (
+            int(stats_data.get('clown_games', 0)),
+            int(stats_data.get('clown_wins', 0)),
+            int(stats_data.get('vladeos_games', 0)),
+            int(stats_data.get('vladeos_wins', 0)),
+            int(stats_data.get('tower_max_level', 0)),
+            int(stats_data.get('tower_total_levels', 0)),
+            json.dumps(stats_data.get('quests', [])),
+            user_id
+        ))
+        
+        conn.commit()
+        logger.info(f"✅ Статистика сохранена для user_id={user_id}")
         return True
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"❌ Ошибка БД при обновлении статистики для {user_id}: {e}")
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка сохранения статистики: {e}")
+        conn.rollback()
         return False
+    finally:
+        conn.close()
 
-def update_boss_damage(user_id, damage):
-    """Обновляет урон игрока по боссу и уменьшает HP босса"""
+
+def add_boss_damage(user_id: int, damage: int) -> dict:
+    """
+    Добавляет урон по боссу и уменьшает HP босса
+    
+    Args:
+        user_id: ID пользователя в Telegram
+        damage: Количество урона
+    
+    Returns:
+        Словарь с текущим состоянием босса или None при ошибке
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            # Гарантируем, что пользователь существует, чтобы не было ошибки FK (если игрок не нажал /start)
-            cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-
-            # Обновляем урон игрока
-            cursor.execute('''
-                INSERT INTO boss_damage (user_id, total_damage, last_hit)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(user_id) DO UPDATE SET
-                total_damage = total_damage + ?,
+        # Гарантируем существование пользователя
+        ensure_user_exists(user_id)
+        
+        # Обновляем урон игрока
+        cursor.execute('''
+            INSERT INTO boss_damage (user_id, total_damage, hits, last_hit)
+            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                total_damage = total_damage + excluded.total_damage,
+                hits = hits + 1,
                 last_hit = CURRENT_TIMESTAMP
-            ''', (user_id, damage, damage))
-
-            # Уменьшаем HP босса (без last_hit, т.к. такой колонки нет в boss_global)
+        ''', (user_id, damage))
+        
+        # Уменьшаем HP босса
+        cursor.execute('''
+            UPDATE boss_global 
+            SET current_hp = current_hp - ?
+            WHERE id = 1 AND current_hp > 0
+        ''', (damage,))
+        
+        # Проверяем состояние босса
+        cursor.execute('SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1')
+        row = cursor.fetchone()
+        
+        boss_killed = False
+        if row and row['current_hp'] <= 0:
+            # Босс умер - возрождаем
+            boss_killed = True
             cursor.execute('''
-                UPDATE boss_global SET current_hp = current_hp - ?
-                WHERE id = 1 AND current_hp > 0
-            ''', (damage,))
-
-            # Проверяем не умер ли босс
-            cursor.execute("SELECT current_hp FROM boss_global WHERE id = 1")
-            row = cursor.fetchone()
-            if row and row[0] <= 0:
-                # Босс умер! Увеличиваем счетчик убийств и возрождаем
-                cursor.execute('''
-                    UPDATE boss_global SET
+                UPDATE boss_global SET
                     current_hp = max_hp,
                     kill_count = kill_count + 1,
                     last_reset = CURRENT_TIMESTAMP
-                ''')
-                logger.info(f"💀 БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
-
-            conn.commit()
-        logger.info(f"💥 Урон по боссу: user {user_id}, damage {damage}")
-        return True
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"❌ Ошибка обновления урона по боссу: {e}")
-        return False
-
-def get_boss_leaderboard():
-    """Возвращает топ игроков по урону боссу"""
-    try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT u.first_name, u.username, b.total_damage, b.last_hit
-                FROM boss_damage b
-                JOIN users u ON b.user_id = u.user_id
-                WHERE b.total_damage > 0
-                ORDER BY b.total_damage DESC
-                LIMIT 10
+                WHERE id = 1
             ''')
-            return cursor.fetchall()
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Error fetching boss leaderboard: {e}")
-        return []
+            logger.info(f"💀 БОСС УБИТ! user_id={user_id}, kill_count={row['kill_count'] + 1}")
+        
+        conn.commit()
+        
+        # Получаем актуальное состояние босса
+        cursor.execute('SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1')
+        boss_row = cursor.fetchone()
+        
+        boss_info = {
+            'current_hp': boss_row['current_hp'] if boss_row else 1000000000,
+            'max_hp': boss_row['max_hp'] if boss_row else 1000000000,
+            'kill_count': boss_row['kill_count'] if boss_row else 0,
+            'boss_killed': boss_killed
+        }
+        
+        logger.info(f"💥 Урон нанесен: user_id={user_id}, damage={damage}, HP={boss_info['current_hp']:,}")
+        return boss_info
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка добавления урона: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
 
-def get_boss_hp():
-    """Возвращает текущие HP босса"""
+
+def get_boss_hp() -> dict:
+    """Получает текущее HP босса"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1")
-            row = cursor.fetchone()
-            if row:
-                return {'current_hp': row[0], 'max_hp': row[1], 'kill_count': row[2]}
-            return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Error getting boss HP: {e}")
+        cursor.execute('SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1')
+        row = cursor.fetchone()
+        
+        if row:
+            return {
+                'current_hp': row['current_hp'],
+                'max_hp': row['max_hp'],
+                'kill_count': row['kill_count']
+            }
         return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
-
-def get_boss_total_hp():
-    """Возвращает оставшееся HP босса"""
-    return get_boss_hp()['current_hp']
-
-def get_leaderboard_text():
-    """Fetches and formats the leaderboard text based on tower_max_level."""
-    try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT u.first_name, u.username, s.tower_max_level
-                FROM user_stats s
-                JOIN users u ON s.user_id = u.user_id
-                WHERE s.tower_max_level > 0
-                ORDER BY s.tower_max_level DESC
-                LIMIT 10
-            ''')
-            leaders = cursor.fetchall()
-
-            if not leaders:
-                return "Пока нету данных для рейтинга. Начните играть!"
-
-            message = "🏆 <b>Топ игроков по башне:</b>\n\n"
-            for i, leader in enumerate(leaders):
-                display_name = leader['first_name'] or leader['username'] or "Аноним"
-                # Basic HTML escaping
-                display_name = display_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                message += f"{i+1}. {display_name} - {leader['tower_max_level']} этаж\n"
-            
-            return message
-
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Error fetching leaderboard: {e}")
-        return "Не удалось загрузить рейтинг. Попробуйте позже."
-
-async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends the leaderboard to the chat."""
-    leaderboard_text = get_leaderboard_text()
-    await update.message.reply_text(leaderboard_text, parse_mode=ParseMode.HTML)
-
-async def boss_leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Рейтинг урона по боссу"""
-    try:
-        leaders = get_boss_leaderboard()
-        boss_info = get_boss_hp()
-
-        message = f"🔺 <b>Босс Енотов - Секретная Организация</b>\n\n"
-        message += f"💀 <b>HP Босса:</b> {boss_info['current_hp']:,} / {boss_info['max_hp']:,}\n"
-        message += f"☠️ <b>Убит раз:</b> {boss_info['kill_count']}\n\n"
         
-        if not leaders:
-            message += "Пока никто не нанес урона боссу!\n"
-        else:
-            message += "<b>Топ урона:</b>\n"
-            for i, leader in enumerate(leaders):
-                display_name = leader['first_name'] or leader['username'] or "Аноним"
-                display_name = display_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                message += f"{i+1}. {display_name} - {leader['total_damage']:,} урона\n"
-
-        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
     except Exception as e:
-        logger.error(f"Error in boss leaderboard: {e}")
-        await update.message.reply_text("❌ Не удалось загрузить рейтинг босса")
+        logger.error(f"Ошибка get_boss_hp: {e}")
+        return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
+    finally:
+        conn.close()
 
-async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Рассылка сообщений всем игрокам. Использование: /broadcast <текст>"""
-    user_id = update.effective_user.id
-    
-    # Проверка прав администратора
-    if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ У вас нет прав для рассылки сообщений.")
-        return
-    
-    # Получаем текст сообщения (после команды)
-    if not context.args:
-        await update.message.reply_text(
-            "❌ Использование: /broadcast <текст сообщения>\n\n"
-            "Пример: /broadcast 🎉 Новый квест доступен!"
-        )
-        return
-    
-    message_text = " ".join(context.args)
-    
-    # Получаем всех пользователей из БД
-    try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT user_id FROM users")
-            users = cursor.fetchall()
-        
-        if not users:
-            await update.message.reply_text("❌ В базе данных нет пользователей.")
-            return
-        
-        # Отправляем сообщение всем пользователям
-        success_count = 0
-        fail_count = 0
-        
-        status_message = await update.message.reply_text(f"🔄 Начинаю рассылку для {len(users)} пользователей...")
-        
-        for (target_user_id,) in users:
-            try:
-                await context.bot.send_message(
-                    chat_id=target_user_id,
-                    text=message_text,
-                    parse_mode=ParseMode.HTML
-                )
-                success_count += 1
-            except Exception as e:
-                logger.error(f"Не удалось отправить пользователю {target_user_id}: {e}")
-                fail_count += 1
-            
-            # Небольшая задержка чтобы избежать лимитов
-            import asyncio
-            await asyncio.sleep(0.05)
-        
-        await status_message.edit_text(
-            f"✅ Рассылка завершена!\n\n"
-            f"📩 Отправлено: {success_count}\n"
-            f"❌ Ошибок: {fail_count}\n"
-            f"📊 Всего: {len(users)}"
-        )
-        
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Ошибка при рассылке: {e}")
-        await update.message.reply_text(f"❌ Ошибка при рассылке: {e}")
 
-async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать количество зарегистрированных пользователей"""
-    user_id = update.effective_user.id
-    
-    # Проверка прав администратора
-    if user_id != ADMIN_ID:
-        await update.message.reply_text("❌ У вас нет прав для этой команды.")
-        return
+def get_player_stats(user_id: int) -> dict:
+    """Получает статистику игрока"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
     try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM users")
-            total = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM user_stats WHERE tower_max_level > 0")
-            active = cursor.fetchone()[0]
+        cursor.execute('''
+            SELECT clown_games, clown_wins, vladeos_games, vladeos_wins,
+                   tower_max_level, tower_total_levels, quests
+            FROM user_stats WHERE user_id = ?
+        ''', (user_id,))
+        row = cursor.fetchone()
         
-        await update.message.reply_text(
-            f"📊 Статистика пользователей:\n\n"
-            f"👥 Всего: {total}\n"
-            f"🎮 Активных (играли в башню): {active}"
-        )
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Ошибка при получении статистики: {e}")
-        await update.message.reply_text(f"❌ Ошибка: {e}")
+        if row:
+            return {
+                'clown_games': row['clown_games'],
+                'clown_wins': row['clown_wins'],
+                'vladeos_games': row['vladeos_games'],
+                'vladeos_wins': row['vladeos_wins'],
+                'tower_max_level': row['tower_max_level'],
+                'tower_total_levels': row['tower_total_levels'],
+                'quests': json.loads(row['quests']) if row['quests'] else []
+            }
+        return {}
+        
+    except Exception as e:
+        logger.error(f"Ошибка get_player_stats: {e}")
+        return {}
+    finally:
+        conn.close()
 
-async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Принимает данные от tg.sendData()"""
-    user_id = update.effective_user.id
-    raw_data = update.effective_message.web_app_data.data
 
+def get_boss_damage(user_id: int) -> dict:
+    """Получает урон игрока по боссу"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        data = json.loads(raw_data)
+        cursor.execute('SELECT total_damage, hits, last_hit FROM boss_damage WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            return {
+                'total_damage': row['total_damage'],
+                'hits': row['hits'],
+                'last_hit': row['last_hit']
+            }
+        return {'total_damage': 0, 'hits': 0, 'last_hit': None}
+        
+    except Exception as e:
+        logger.error(f"Ошибка get_boss_damage: {e}")
+        return {'total_damage': 0, 'hits': 0, 'last_hit': None}
+    finally:
+        conn.close()
+
+
+# ==================== API ROUTES ====================
+
+@app.route('/')
+def index_route():
+    """Главная страница - отдает index.html"""
+    return app.send_static_file('index.html')
+
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    """Отдача статических файлов из webapp/"""
+    return app.send_static_file(filename)
+
+
+@app.route('/api/boss_hp', methods=['GET'])
+def api_get_boss_hp():
+    """Получить HP босса"""
+    boss_info = get_boss_hp()
+    response = jsonify({'status': 'ok', 'boss': boss_info})
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@app.route('/api/player_stats', methods=['GET'])
+def api_get_player_stats():
+    """Получить статистику игрока"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        
+        user_id = int(user_id)
+        
+        stats = get_player_stats(user_id)
+        damage = get_boss_damage(user_id)
+        
+        return jsonify({
+            'status': 'ok',
+            'stats': stats,
+            'boss_damage': damage
+        })
+        
+    except Exception as e:
+        logger.error(f"Ошибка api_get_player_stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/sync', methods=['POST'])
+def api_sync():
+    """
+    Основной endpoint для синхронизации данных
+    
+    Принимает:
+    - type: 'sync_stats' или 'boss_damage'
+    - userId: ID пользователя
+    - Данные в зависимости от типа
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+        
+        data = request.get_json()
         data_type = data.get('type')
-
-        if data_type == 'sync_stats':
-            if update_db_stats(user_id, data):
-                await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
-            else:
-                await update.message.reply_text("⚠️ Не удалось сохранить прогресс. Попробуйте позже.")
         
+        logger.info(f"📥 API sync: type={data_type}")
+        
+        if data_type == 'sync_stats':
+            return handle_sync_stats(data)
         elif data_type == 'boss_damage':
-            damage = data.get('damage', 0)
-            if damage > 0 and update_boss_damage(user_id, damage):
-                logger.info(f"Босс: игрок {user_id} нанес {damage} урона")
+            return handle_boss_damage(data)
+        else:
+            logger.warning(f"⚠️ Неизвестный тип синхронизации: {data_type}")
+            return jsonify({'status': 'ok'})  # Игнорируем неизвестные типы
+            
     except Exception as e:
-        logger.error(f"Ошибка обработки WebAppData: {e}")
+        logger.error(f"❌ API sync error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+def handle_sync_stats(data: dict):
+    """Обработка синхронизации статистики"""
+    user_id = data.get('userId') or data.get('user_id')
+    
+    if not user_id:
+        logger.warning("⚠️ sync_stats без user_id")
+        return jsonify({'status': 'error', 'message': 'user_id required'}), 400
+    
+    user_id = int(user_id)
+    logger.info(f"👤 sync_stats: user_id={user_id}")
+    
+    # Извлекаем данные статистики
+    stats_data = {
+        'clown_games': data.get('clown_games', 0),
+        'clown_wins': data.get('clown_wins', 0),
+        'vladeos_games': data.get('vladeos_games', 0),
+        'vladeos_wins': data.get('vladeos_wins', 0),
+        'tower_max_level': data.get('tower_max_level', 0),
+        'tower_total_levels': data.get('tower_total_levels', 0),
+        'quests': data.get('quests', [])
+    }
+    
+    logger.info(f"📊 Данные статистики: {stats_data}")
+    
+    if save_user_stats(user_id, stats_data):
+        logger.info(f"✅ sync_stats успешно: user_id={user_id}")
+        return jsonify({'status': 'ok'})
+    else:
+        logger.error(f"❌ sync_stats ошибка: user_id={user_id}")
+        return jsonify({'status': 'error', 'message': 'Database error'}), 500
+
+
+def handle_boss_damage(data: dict):
+    """Обработка урона по боссу"""
+    user_id = data.get('userId') or data.get('user_id')
+    
+    if not user_id:
+        logger.warning("⚠️ boss_damage без user_id")
+        return jsonify({'status': 'error', 'message': 'user_id required'}), 400
+    
+    user_id = int(user_id)
+    
+    try:
+        damage = int(data.get('damage', 0))
+    except (ValueError, TypeError):
+        damage = 0
+    
+    if damage <= 0:
+        logger.warning(f"⚠️ boss_damage: damage={damage}")
+        return jsonify({'status': 'error', 'message': 'damage must be > 0'}), 400
+    
+    logger.info(f"💥 boss_damage: user_id={user_id}, damage={damage}")
+    
+    boss_info = add_boss_damage(user_id, damage)
+    
+    if boss_info:
+        return jsonify({'status': 'ok', 'boss': boss_info})
+    else:
+        return jsonify({'status': 'error', 'message': 'Database error'}), 500
+
+
+# ==================== TELEGRAM BOT ====================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Код сохранения пользователя (оставляем ваш)
+    """Обработчик команды /start"""
     user = update.effective_user
+    
+    # Сохраняем пользователя в БД
     try:
-        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
-            cursor = conn.cursor()
-            # Используем UPSERT: если пользователь был создан заглушкой (через урон), обновляем его данные
-            cursor.execute("""
-                INSERT INTO users (user_id, username, first_name, last_name) VALUES (?, ?, ?, ?)
-                ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, first_name=excluded.first_name, last_name=excluded.last_name
-            """, (user.id, user.username, user.first_name, user.last_name))
-            cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user.id,))
-            conn.commit()
-        logger.info(f"User {user.id} ({user.username}) started the bot.")
-    except (sqlite3.Error, Exception) as e:
-        logger.error(f"Error saving user {user.id} to DB: {e}")
-
+        ensure_user_exists(
+            user.id,
+            {
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+        )
+        logger.info(f"👤 User {user.id} ({user.username}) started bot")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения пользователя: {e}")
+    
+    # Кнопка для запуска WebApp
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
-    await update.message.reply_text("Привет! Нажми кнопку ниже:", reply_markup=keyboard)
+    
+    await update.message.reply_text(
+        "Привет! Нажми кнопку ниже, чтобы играть:",
+        reply_markup=keyboard
+    )
+
+
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик данных от WebApp (tg.sendData)"""
+    user_id = update.effective_user.id
+    raw_data = update.effective_message.web_app_data.data
+    
+    try:
+        data = json.loads(raw_data)
+        data_type = data.get('type')
+        
+        logger.info(f"📨 WebAppData: type={data_type}, user_id={user_id}")
+        
+        if data_type == 'sync_stats':
+            if save_user_stats(user_id, data):
+                await update.message.reply_text("✨ Данные сохранены в облаке!")
+            else:
+                await update.message.reply_text("⚠️ Не удалось сохранить данные")
+                
+        elif data_type == 'boss_damage':
+            damage = data.get('damage', 0)
+            if damage > 0:
+                boss_info = add_boss_damage(user_id, damage)
+                if boss_info:
+                    logger.info(f"💥 Босс: {user_id} нанес {damage} урона")
+                    
+    except Exception as e:
+        logger.error(f"Ошибка обработки WebAppData: {e}")
+
 
 async def post_init(application: Application):
+    """Инициализация после запуска бота"""
     await application.bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
     )
 
+
+def run_flask():
+    """Запуск Flask сервера в отдельном потоке"""
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
+
 def main():
+    """Точка входа приложения"""
+    # Инициализация БД
     init_db()
     
-    # Запуск Flask сервера в отдельном потоке
+    # Запуск Flask в фоне
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    logger.info("Flask API server started on port 5000")
+    logger.info("🚀 Flask API server started on port 5000")
     
+    # Настройка Telegram бота
     telegram_app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
-
+    
+    # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(CommandHandler("leaderboard", leaderboard_command))
-    telegram_app.add_handler(CommandHandler("boss", boss_leaderboard_command))
-    telegram_app.add_handler(CommandHandler("broadcast", broadcast_command))
-    telegram_app.add_handler(CommandHandler("users", users_command))
-    # ВАЖНО: Хендлер для приема данных из Mini App
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
-
+    
+    # Запуск бота
+    logger.info("🤖 Starting Telegram bot...")
     telegram_app.run_polling()
+
 
 if __name__ == '__main__':
     main()
