@@ -339,6 +339,8 @@
     let playerMaxHP = 100;
     let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
     let gameActive = true;
+    let energyInterval = null;
+    let syncInterval = null;
 
     // Загрузка HP босса с сервера
     async function loadBossHP() {
@@ -352,6 +354,23 @@
       } catch (e) {
         console.error('Failed to load boss HP:', e);
       }
+    }
+
+    // Периодическая синхронизация HP босса (каждые 3 секунды)
+    function startBossSync() {
+      syncInterval = setInterval(async () => {
+        await loadBossHP();
+      }, 3000);
+    }
+
+    // Регенерация энергии (1 в секунду)
+    function startEnergyRegen() {
+      energyInterval = setInterval(() => {
+        if (gameActive && playerEnergy < 100) {
+          playerEnergy = Math.min(100, playerEnergy + 1);
+          updateEnergy();
+        }
+      }, 1000);
     }
 
     function loadStats() {
@@ -417,16 +436,18 @@
       switch(type) {
         case 'basic':
           damage = Math.floor(Math.random() * 50) + 50;
-          energyGain = 20;
+          energyGain = 20;  // Базовая атака дает энергию
           message = 'Обычный удар!';
           break;
         case 'strong':
           damage = Math.floor(Math.random() * 100) + 150;
+          energyGain = 10;  // Сильная атака тоже немного дает
           energyCost = 40;
           message = 'Сильная атака!';
           break;
         case 'ultimate':
           damage = Math.floor(Math.random() * 300) + 400;
+          energyGain = 5;  // Ульта тоже немного дает
           energyCost = 80;
           isCrit = true;
           message = '💥 УЛЬТИМАТИВНАЯ АТАКА!';
@@ -517,6 +538,11 @@
 
     function gameOver() {
       gameActive = false;
+      
+      // Очищаем интервалы
+      if (energyInterval) clearInterval(energyInterval);
+      if (syncInterval) clearInterval(syncInterval);
+      
       document.getElementById('msg').innerText = '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...';
       document.getElementById('msg').style.color = 'var(--accent)';
       document.getElementById('log').innerText = 'Возврат в меню игры...';
@@ -533,6 +559,8 @@
     // Инициализация
     loadStats();
     loadBossHP();  // Загружаем HP босса с сервера
+    startBossSync();  // Синхронизируем HP каждые 3 сек
+    startEnergyRegen();  // Регенерация энергии
     updateEnergy();
     updatePlayerHP();
   </script>
