@@ -287,11 +287,15 @@ def test_api_locally():
             'quests': ['test_quest']
         }
         
-        r = requests.post(f'{BASE_URL}/api/sync', json=test_data, timeout=5)
-        if r.status_code == 200 and r.json().get('status') == 'ok':
-            print_success("✅ /api/sync (stats) работает")
-        else:
-            print_error(f"❌ /api/sync (stats) ошибка: {r.status_code}")
+        try:
+            r = requests.post(f'{BASE_URL}/api/sync', json=test_data, timeout=5)
+            print(f"  Статус: {r.status_code}, Ответ: {r.text[:200]}")
+            if r.status_code == 200 and r.json().get('status') == 'ok':
+                print_success("✅ /api/sync (stats) работает")
+            else:
+                print_error(f"❌ /api/sync (stats) ошибка: {r.status_code} - {r.text[:200]}")
+        except Exception as e:
+            print_error(f"❌ Ошибка запроса: {e}")
         
         # Тест 2: boss_damage
         print("  Тест 2: Урон по боссу...")
