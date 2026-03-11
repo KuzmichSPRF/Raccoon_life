@@ -92,7 +92,6 @@ def init_db():
                 tower_max_level INTEGER DEFAULT 0,
                 tower_total_levels INTEGER DEFAULT 0,
                 quests TEXT DEFAULT '[]',
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
@@ -142,17 +141,6 @@ def init_db():
 
 def _add_missing_columns(cursor):
     """Добавляет недостающие колонки в существующие таблицы"""
-    
-    # Проверка user_stats на наличие updated_at
-    cursor.execute("PRAGMA table_info(user_stats)")
-    user_stats_cols = {row[1] for row in cursor.fetchall()}
-    
-    if 'updated_at' not in user_stats_cols:
-        try:
-            cursor.execute("ALTER TABLE user_stats ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-            logger.info("Миграция: добавлена колонка updated_at в user_stats")
-        except Exception as e:
-            logger.error(f"Ошибка миграции user_stats.updated_at: {e}")
     
     # Проверка boss_damage на наличие hits
     cursor.execute("PRAGMA table_info(boss_damage)")
@@ -242,8 +230,7 @@ def save_user_stats(user_id: int, stats_data: dict) -> bool:
                 vladeos_wins = ?,
                 tower_max_level = ?,
                 tower_total_levels = ?,
-                quests = ?,
-                updated_at = CURRENT_TIMESTAMP
+                quests = ?
             WHERE user_id = ?
         ''', (
             int(stats_data.get('clown_games', 0)),
