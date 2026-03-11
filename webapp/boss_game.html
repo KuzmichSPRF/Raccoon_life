@@ -368,23 +368,27 @@
       }
     }
 
+    // Загрузка статистики игрока с сервера
+    async function loadPlayerStats() {
+      try {
+        const url = tgUserId ? `/api/player_stats?userId=${tgUserId}` : '/api/player_stats';
+        const response = await fetch(url);
+        const data = await response.json();
+        playerStats.totalDamage = data.total_damage || 0;
+        playerStats.hits = data.hits || 0;
+        playerStats.crits = data.crits || 0;
+        updateStatsUI();
+        console.log('Player stats loaded:', playerStats);
+      } catch (e) {
+        console.error('Failed to load player stats:', e);
+      }
+    }
+
     // Периодическая синхронизация HP босса (каждые 3 секунды)
     function startBossSync() {
       syncInterval = setInterval(async () => {
         await loadBossHP();
       }, 3000);
-    }
-
-    function loadStats() {
-      const saved = localStorage.getItem('boss_stats');
-      if (saved) {
-        playerStats = JSON.parse(saved);
-        updateStatsUI();
-      }
-    }
-
-    function saveStats() {
-      localStorage.setItem('boss_stats', JSON.stringify(playerStats));
     }
 
     function formatNumber(num) {
@@ -525,7 +529,6 @@
         }
       }
 
-      saveStats();
       updateStatsUI();
       updateBossHP();
       updateEnergy();  // Финальное обновление энергии
@@ -591,19 +594,19 @@
     // Инициализация
     console.log('=== GAME INIT ===');
     gameActive = true;
-    
+
     // Проверяем что DOM загружен
     const bossHpFill = document.getElementById('boss-hp-fill');
-    const energyFill = document.getElementById('energy-fill');
+    const energyFill = document.getElementById('p-nrg');
     const btnBasic = document.querySelector('.btn-std');
-    
+
     console.log('DOM elements:', {
       bossHpFill: !!bossHpFill,
       energyFill: !!energyFill,
       btnBasic: !!btnBasic
     });
-    
-    loadStats();
+
+    loadPlayerStats();  // Загружаем статистику игрока с сервера
     loadBossHP();  // Загружаем HP босса с сервера
     startBossSync();  // Синхронизируем HP каждые 3 сек
     updateEnergy();

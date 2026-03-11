@@ -30,6 +30,25 @@ def api_get_boss_hp():
     boss_info = get_boss_hp()
     return jsonify(boss_info)
 
+@app.route('/api/player_stats', methods=['GET'])
+def api_get_player_stats():
+    """API endpoint для получения статистики игрока по боссу"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
+        
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT total_damage FROM boss_damage WHERE user_id = ?", (int(user_id),))
+            row = cursor.fetchone()
+            if row:
+                return jsonify({'total_damage': row[0], 'hits': 0, 'crits': 0})
+            return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
+    except Exception as e:
+        logger.error(f"Error getting player stats: {e}")
+        return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
+
 @app.route('/api/sync', methods=['POST'])
 def api_sync():
     """API endpoint для синхронизации данных"""
