@@ -28,7 +28,12 @@ app = Flask(__name__)
 def api_get_boss_hp():
     """API endpoint для получения HP босса"""
     boss_info = get_boss_hp()
-    return jsonify(boss_info)
+    response = jsonify(boss_info)
+    # ВАЖНО: Отключаем кеширование, чтобы браузер всегда запрашивал актуальное здоровье
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route('/api/player_stats', methods=['GET'])
 def api_get_player_stats():
@@ -60,13 +65,21 @@ def api_sync():
         if data_type == 'boss_damage':
             # Получаем user_id из тела запроса или заголовка
             user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
-            damage = data.get('damage', 0)
+            
+            # Принудительно превращаем damage в число
+            try:
+                damage = int(data.get('damage', 0))
+            except (ValueError, TypeError):
+                damage = 0
+
             logger.info(f"Boss damage: user_id={user_id}, damage={damage}")
             if damage > 0 and user_id:
-                update_boss_damage(int(user_id), damage)
-                # Возвращаем актуальное состояние босса для синхронизации клиента
-                boss_info = get_boss_hp()
-                return jsonify({'status': 'ok', 'boss': boss_info})
+                if update_boss_damage(int(user_id), damage):
+                    # Возвращаем актуальное состояние босса ТОЛЬКО если обновление прошло успешно
+                    boss_info = get_boss_hp()
+                    return jsonify({'status': 'ok', 'boss': boss_info})
+                else:
+                    logger.error("Update boss damage returned False")
             elif damage > 0:
                 logger.warning(f"Boss damage without user_id: {damage}")
 
