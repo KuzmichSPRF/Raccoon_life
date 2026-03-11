@@ -45,14 +45,14 @@ def api_get_player_stats():
         if not user_id:
             return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
         
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT total_damage FROM boss_damage WHERE user_id = ?", (int(user_id),))
             row = cursor.fetchone()
             if row:
                 return jsonify({'total_damage': row[0], 'hits': 0, 'crits': 0})
             return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Error getting player stats: {e}")
         return jsonify({'total_damage': 0, 'hits': 0, 'crits': 0})
 
@@ -95,7 +95,7 @@ def run_flask():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 def init_db():
-    with sqlite3.connect(DB_NAME) as conn:
+    with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -151,12 +151,10 @@ def init_db():
                 except Exception as e:
                     logger.error(f"Ошибка добавления колонки {col}: {e}")
 
-        conn.commit()
-
 def update_db_stats(user_id, data):
     """Записывает данные из JSON в таблицу user_stats"""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             # Создаем запись, если её нет
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user_id,))
@@ -175,17 +173,16 @@ def update_db_stats(user_id, data):
                 json.dumps(data.get('quests') or []),
                 user_id
             ))
-            conn.commit()
-            logger.info(f"Успешное обновление БД для {user_id}")
-            return True
-    except Exception as e:
-        logger.error(f"Ошибка БД: {e}")
+        logger.info(f"Успешное обновление БД для {user_id}")
+        return True
+    except (sqlite3.Error, Exception) as e:
+        logger.error(f"Ошибка БД при обновлении статистики для {user_id}: {e}")
         return False
 
 def update_boss_damage(user_id, damage):
     """Обновляет урон игрока по боссу и уменьшает HP босса"""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             # Гарантируем, что пользователь существует, чтобы не было ошибки FK (если игрок не нажал /start)
             cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
@@ -218,17 +215,16 @@ def update_boss_damage(user_id, damage):
                 ''')
                 logger.info(f"БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
             
-            conn.commit()
-            logger.info(f"Урон по боссу: user {user_id}, damage {damage}")
-            return True
-    except Exception as e:
+        logger.info(f"Урон по боссу: user {user_id}, damage {damage}")
+        return True
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Ошибка обновления урона по боссу: {e}")
         return False
 
 def get_boss_leaderboard():
     """Возвращает топ игроков по урону боссу"""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute('''
@@ -240,21 +236,21 @@ def get_boss_leaderboard():
                 LIMIT 10
             ''')
             return cursor.fetchall()
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Error fetching boss leaderboard: {e}")
         return []
 
 def get_boss_hp():
     """Возвращает текущие HP босса"""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1")
             row = cursor.fetchone()
             if row:
                 return {'current_hp': row[0], 'max_hp': row[1], 'kill_count': row[2]}
             return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Error getting boss HP: {e}")
         return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
 
@@ -265,7 +261,7 @@ def get_boss_total_hp():
 def get_leaderboard_text():
     """Fetches and formats the leaderboard text based on tower_max_level."""
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -291,7 +287,7 @@ def get_leaderboard_text():
             
             return message
 
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Error fetching leaderboard: {e}")
         return "Не удалось загрузить рейтинг. Попробуйте позже."
 
@@ -345,7 +341,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Получаем всех пользователей из БД
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT user_id FROM users")
             users = cursor.fetchall()
@@ -383,7 +379,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📊 Всего: {len(users)}"
         )
         
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Ошибка при рассылке: {e}")
         await update.message.reply_text(f"❌ Ошибка при рассылке: {e}")
 
@@ -397,7 +393,7 @@ async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM users")
             total = cursor.fetchone()[0]
@@ -410,7 +406,7 @@ async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👥 Всего: {total}\n"
             f"🎮 Активных (играли в башню): {active}"
         )
-    except Exception as e:
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Ошибка при получении статистики: {e}")
         await update.message.reply_text(f"❌ Ошибка: {e}")
 
@@ -440,7 +436,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Код сохранения пользователя (оставляем ваш)
     user = update.effective_user
     try:
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_NAME, timeout=10.0) as conn:
             cursor = conn.cursor()
             # Используем UPSERT: если пользователь был создан заглушкой (через урон), обновляем его данные
             cursor.execute("""
@@ -448,9 +444,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, first_name=excluded.first_name, last_name=excluded.last_name
             """, (user.id, user.username, user.first_name, user.last_name))
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user.id,))
-            conn.commit()
-            logger.info(f"User {user.id} ({user.username}) started the bot.")
-    except Exception as e:
+        logger.info(f"User {user.id} ({user.username}) started the bot.")
+    except (sqlite3.Error, Exception) as e:
         logger.error(f"Error saving user {user.id} to DB: {e}")
 
     keyboard = InlineKeyboardMarkup([[
