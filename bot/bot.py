@@ -67,6 +67,16 @@ def api_sync():
         data_type = data.get('type')
         logger.info(f"API sync received: {data_type}, data: {data}")
 
+        if data_type == 'sync_stats':
+            user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
+            if user_id:
+                if update_db_stats(user_id, data):
+                    return jsonify({'status': 'ok'})
+                else:
+                    return jsonify({'status': 'error', 'message': 'Database update failed'}), 500
+            else:
+                logger.warning("sync_stats received without user_id")
+
         if data_type == 'boss_damage':
             # Получаем user_id из тела запроса или заголовка
             user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)

@@ -453,6 +453,7 @@
     try {
       const data = {
           type: 'sync_stats',
+          userId: tg.initDataUnsafe?.user?.id,
           clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
           clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
           vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
@@ -588,6 +589,7 @@
     try {
         const data = {
             type: 'sync_stats',
+            userId: tg.initDataUnsafe?.user?.id,
             source: source,
             clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
             clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
@@ -625,6 +627,7 @@
     try {
         const data = {
             type: 'sync_stats',
+            userId: tg.initDataUnsafe?.user?.id,
             source: 'game_event',
             clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
             clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
