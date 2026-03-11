@@ -447,7 +447,7 @@
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
 
-    // Автоматическая отправка данных при просмотре рейтинга
+    // Автоматическая отправка данных при просмотре рейтинга (асинхронно, без закрытия приложения)
     try {
       const data = {
           type: 'sync_stats',
@@ -459,10 +459,8 @@
           tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
           quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
       };
-      // Отправляем данные боту
-      tg.sendData(JSON.stringify(data));
-      // Показываем временное сообщение
-      list.innerHTML = `<div style="text-align: center; color: var(--text-sec); padding: 20px 0;">🔄 Ваш прогресс отправлен на сервер...</div>`;
+      // Отправляем данные на REST API вместо tg.sendData() чтобы не закрывать приложение
+      sendToAPI(data);
     } catch (e) {
       console.error("Failed to sync data", e);
     }
@@ -485,7 +483,7 @@
     // Сортировка
     players.sort((a, b) => b.score - a.score);
 
-    players.forEach((p, i) => { // Этот блок теперь добавляет мок-данные ПОСЛЕ сообщения о синхронизации
+    players.forEach((p, i) => {
       const div = document.createElement('div');
       div.className = 'leaderboard-item';
       div.innerHTML = `
@@ -580,6 +578,20 @@
     } catch (e) {
         console.error("Failed to send stats:", e);
     }
+  }
+
+  // Отправка данных на REST API (не закрывает приложение)
+  function sendToAPI(data) {
+    // Отправляем данные через fetch на сервер
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    }).catch(err => {
+      console.error('Failed to send to API:', err);
+    });
   }
 
   // Отправка только на REST API (не закрывает приложение)
