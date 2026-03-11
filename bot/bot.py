@@ -574,13 +574,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Ошибка сохранения пользователя: {e}")
     
-    # Кнопка для запуска WebApp
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
-    ]])
+    # Кнопки для запуска WebApp
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [InlineKeyboardButton(text="🧪 Тест API", web_app=WebAppInfo(url=f"{WEBAPP_URL}/test_app.html"))],
+        [InlineKeyboardButton(text="🎮 Битва с Клоуном", web_app=WebAppInfo(url=f"{WEBAPP_URL}/game.html"))],
+        [InlineKeyboardButton(text="🏰 Башня", web_app=WebAppInfo(url=f"{WEBAPP_URL}/tower_game.html"))],
+        [InlineKeyboardButton(text="🔺 Босс", web_app=WebAppInfo(url=f"{WEBAPP_URL}/boss_game.html"))]
+    ])
     
     await update.message.reply_text(
-        "Привет! Нажми кнопку ниже, чтобы играть:",
+        "Привет! Выбери игру:",
         reply_markup=keyboard
     )
 
@@ -618,6 +622,7 @@ async def post_init(application: Application):
     await application.bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
     )
+    logger.info("✅ Menu button set")
 
 
 def run_flask():
