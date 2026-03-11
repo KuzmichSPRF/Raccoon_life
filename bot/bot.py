@@ -2,6 +2,8 @@ import os
 import logging
 import sqlite3
 import json
+from threading import Thread
+from flask import Flask, jsonify, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -18,6 +20,39 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+
+# Flask app для API
+app = Flask(__name__)
+
+@app.route('/api/boss_hp', methods=['GET'])
+def api_get_boss_hp():
+    """API endpoint для получения HP босса"""
+    boss_info = get_boss_hp()
+    return jsonify(boss_info)
+
+@app.route('/api/sync', methods=['POST'])
+def api_sync():
+    """API endpoint для синхронизации данных"""
+    try:
+        data = request.json
+        data_type = data.get('type')
+        
+        if data_type == 'boss_damage':
+            # Получаем user_id из Telegram initData (в реальном проекте нужно валидировать)
+            user_id = request.headers.get('X-Telegram-User-Id', 0)
+            damage = data.get('damage', 0)
+            if damage > 0:
+                update_boss_damage(int(user_id), damage)
+                return jsonify({'status': 'ok'})
+        
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        logger.error(f"API sync error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def run_flask():
+    """Запуск Flask сервера"""
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
@@ -39,7 +74,26 @@ def init_db():
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
-        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS boss_damage (
+                user_id INTEGER PRIMARY KEY,
+                total_damage INTEGER DEFAULT 0,
+                last_hit TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS boss_global (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                current_hp INTEGER DEFAULT 1000000000,
+                max_hp INTEGER DEFAULT 1000000000,
+                last_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                kill_count INTEGER DEFAULT 0
+            )
+        ''')
+        # Инициализируем босса если таблица пустая
+        cursor.execute("INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp) VALUES (1, 1000000000, 1000000000)")
+
         # Миграция: Проверяем и добавляем недостающие колонки, чтобы избежать вылетов на старой БД
         cursor.execute("PRAGMA table_info(user_stats)")
         columns = {info[1] for info in cursor.fetchall()}
@@ -56,7 +110,7 @@ def init_db():
                     logger.info(f"Миграция: добавлена колонка {col}")
                 except Exception as e:
                     logger.error(f"Ошибка добавления колонки {col}: {e}")
-                    
+
         conn.commit()
 
 def update_db_stats(user_id, data):
@@ -87,6 +141,83 @@ def update_db_stats(user_id, data):
     except Exception as e:
         logger.error(f"Ошибка БД: {e}")
         return False
+
+def update_boss_damage(user_id, damage):
+    """Обновляет урон игрока по боссу и уменьшает HP босса"""
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            # Обновляем урон игрока
+            cursor.execute('''
+                INSERT INTO boss_damage (user_id, total_damage, last_hit)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                total_damage = total_damage + ?,
+                last_hit = CURRENT_TIMESTAMP
+            ''', (user_id, damage, damage))
+            
+            # Уменьшаем HP босса
+            cursor.execute('''
+                UPDATE boss_global SET current_hp = current_hp - ?, last_hit = CURRENT_TIMESTAMP
+                WHERE id = 1 AND current_hp > 0
+            ''', (damage,))
+            
+            # Проверяем не умер ли босс
+            cursor.execute("SELECT current_hp FROM boss_global WHERE id = 1")
+            row = cursor.fetchone()
+            if row and row[0] <= 0:
+                # Босс умер! Увеличиваем счетчик убийств и возрождаем
+                cursor.execute('''
+                    UPDATE boss_global SET 
+                    current_hp = max_hp, 
+                    kill_count = kill_count + 1,
+                    last_reset = CURRENT_TIMESTAMP
+                ''')
+                logger.info(f"БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
+            
+            conn.commit()
+            logger.info(f"Урон по боссу: user {user_id}, damage {damage}")
+            return True
+    except Exception as e:
+        logger.error(f"Ошибка обновления урона по боссу: {e}")
+        return False
+
+def get_boss_leaderboard():
+    """Возвращает топ игроков по урону боссу"""
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT u.first_name, u.username, b.total_damage, b.last_hit
+                FROM boss_damage b
+                JOIN users u ON b.user_id = u.user_id
+                WHERE b.total_damage > 0
+                ORDER BY b.total_damage DESC
+                LIMIT 10
+            ''')
+            return cursor.fetchall()
+    except Exception as e:
+        logger.error(f"Error fetching boss leaderboard: {e}")
+        return []
+
+def get_boss_hp():
+    """Возвращает текущие HP босса"""
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1")
+            row = cursor.fetchone()
+            if row:
+                return {'current_hp': row[0], 'max_hp': row[1], 'kill_count': row[2]}
+            return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
+    except Exception as e:
+        logger.error(f"Error getting boss HP: {e}")
+        return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
+
+def get_boss_total_hp():
+    """Возвращает оставшееся HP босса"""
+    return get_boss_hp()['current_hp']
 
 def get_leaderboard_text():
     """Fetches and formats the leaderboard text based on tower_max_level."""
@@ -125,6 +256,30 @@ async def leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Sends the leaderboard to the chat."""
     leaderboard_text = get_leaderboard_text()
     await update.message.reply_text(leaderboard_text, parse_mode=ParseMode.HTML)
+
+async def boss_leaderboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Рейтинг урона по боссу"""
+    try:
+        leaders = get_boss_leaderboard()
+        boss_info = get_boss_hp()
+
+        message = f"🔺 <b>Босс Енотов - Секретная Организация</b>\n\n"
+        message += f"💀 <b>HP Босса:</b> {boss_info['current_hp']:,} / {boss_info['max_hp']:,}\n"
+        message += f"☠️ <b>Убит раз:</b> {boss_info['kill_count']}\n\n"
+        
+        if not leaders:
+            message += "Пока никто не нанес урона боссу!\n"
+        else:
+            message += "<b>Топ урона:</b>\n"
+            for i, leader in enumerate(leaders):
+                display_name = leader['first_name'] or leader['username'] or "Аноним"
+                display_name = display_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                message += f"{i+1}. {display_name} - {leader['total_damage']:,} урона\n"
+
+        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Error in boss leaderboard: {e}")
+        await update.message.reply_text("❌ Не удалось загрузить рейтинг босса")
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Рассылка сообщений всем игрокам. Использование: /broadcast <текст>"""
@@ -220,7 +375,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     """Принимает данные от tg.sendData()"""
     user_id = update.effective_user.id
     raw_data = update.effective_message.web_app_data.data
-    
+
     try:
         data = json.loads(raw_data)
         data_type = data.get('type')
@@ -230,6 +385,11 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text("✨ Данные успешно сохранены в облаке!")
             else:
                 await update.message.reply_text("⚠️ Не удалось сохранить прогресс. Попробуйте позже.")
+        
+        elif data_type == 'boss_damage':
+            damage = data.get('damage', 0)
+            if damage > 0 and update_boss_damage(user_id, damage):
+                logger.info(f"Босс: игрок {user_id} нанес {damage} урона")
     except Exception as e:
         logger.error(f"Ошибка обработки WebAppData: {e}")
 
@@ -259,16 +419,23 @@ async def post_init(application: Application):
 
 def main():
     init_db()
-    app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    
+    # Запуск Flask сервера в отдельном потоке
+    flask_thread = Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("Flask API server started on port 5000")
+    
+    telegram_app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("leaderboard", leaderboard_command))
-    app.add_handler(CommandHandler("broadcast", broadcast_command))
-    app.add_handler(CommandHandler("users", users_command))
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("leaderboard", leaderboard_command))
+    telegram_app.add_handler(CommandHandler("boss", boss_leaderboard_command))
+    telegram_app.add_handler(CommandHandler("broadcast", broadcast_command))
+    telegram_app.add_handler(CommandHandler("users", users_command))
     # ВАЖНО: Хендлер для приема данных из Mini App
-    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
+    telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
-    app.run_polling()
+    telegram_app.run_polling()
 
 if __name__ == '__main__':
     main()

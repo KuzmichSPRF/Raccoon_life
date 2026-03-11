@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Битва с Боссом Енотов</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+      --game-green: #00ff88;
+      --game-yellow: #ffcc00;
+      --boss-gold: #ffd700;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      text-align: center;
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
+      margin: 0;
+      padding: 15px;
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 1rem;
+    }
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      margin-top: 20px;
+    }
+    .boss-triangle {
+      width: 0;
+      height: 0;
+      border-left: 60px solid transparent;
+      border-right: 60px solid transparent;
+      border-bottom: 100px solid var(--boss-gold);
+      position: relative;
+      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+      animation: bossPulse 3s ease-in-out infinite;
+    }
+    @keyframes bossPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8)); }
+    }
+    .boss-triangle::after {
+      content: '👁️';
+      position: absolute;
+      font-size: 45px;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+      animation: eyeGlow 2s ease-in-out infinite;
+    }
+    @keyframes eyeGlow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
+      50% { filter: drop-shadow(0 0 20px rgba(255, 0, 85, 0.9)); }
+    }
+    .boss-triangle.hit {
+      animation: bossHit 0.3s ease-in-out;
+    }
+    @keyframes bossHit {
+      0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)); }
+      50% { filter: drop-shadow(0 0 50px rgba(255, 0, 85, 0.9)); }
+    }
+    .boss-hp-container {
+      width: 100%;
+      max-width: 300px;
+      margin: 10px auto;
+    }
+    .boss-hp-bar {
+      width: 100%;
+      height: 25px;
+      background: #333;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--boss-gold);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      position: relative;
+    }
+    .boss-hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0055, #ff4400, #ff8800, var(--boss-gold));
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    .boss-hp-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: 800;
+      font-size: 0.75rem;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+      z-index: 5;
+    }
+    .player-stats {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .stat-badge {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 8px 15px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .stat-badge .value {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .stat-badge .label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--text-sec);
+    }
+    .bars {
+      width: 80px;
+      margin-top: 10px;
+    }
+    .bar-label {
+      font-size: 8px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      display: block;
+      color: var(--text-sec);
+    }
+    .bar {
+      height: 6px;
+      background: #333;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .fill {
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+    .hp { background: var(--game-green); box-shadow: 0 0 5px var(--game-green); }
+    .energy { background: var(--game-yellow); box-shadow: 0 0 5px var(--game-yellow); }
+    .chip {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 35px;
+      background: #121214;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+    .chip.active {
+      border-color: var(--primary);
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(0,136,204,0.4);
+    }
+    .chip.hit {
+      animation: playerHit 0.3s ease-in-out;
+    }
+    @keyframes playerHit {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(0.5) drop-shadow(0 0 10px red); }
+    }
+    .animate-attack {
+      transform: translateX(50px) scale(1.2) !important;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 25px;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+      max-width: 350px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .btn {
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      font-size: 0.75rem;
+      font-family: 'Montserrat', sans-serif;
+      text-transform: uppercase;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { background: #333 !important; color: #666; opacity: 0.5; cursor: not-allowed; }
+    .btn-std { background: var(--primary); grid-column: span 2; font-size: 0.9rem; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
+    .btn-sp1 { background: #e67e22; }
+    .btn-sp2 { background: #9b59b6; }
+    .btn-sp3 { background: var(--accent); box-shadow: 0 0 15px rgba(255,0,85,0.3); }
+    .damage-number {
+      position: fixed;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 10px rgba(255,0,85,0.8);
+      pointer-events: none;
+      animation: damageFloat 1s ease-out forwards;
+      z-index: 1000;
+    }
+    @keyframes damageFloat {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+    }
+    .log {
+      font-size: 0.7rem;
+      margin-top: 15px;
+      color: var(--text-sec);
+      font-style: italic;
+      min-height: 1.2em;
+    }
+    .boss-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--boss-gold);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+    .boss-subtitle {
+      font-size: 0.7rem;
+      color: var(--text-sec);
+      margin-bottom: 15px;
+    }
+    .player-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .boss-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .player-name, .boss-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 5px;
+      color: var(--text-sec);
+    }
+  </style>
+</head>
+<body>
+  <div class="boss-title">🔺 Секретная Организация Енотов 🔺</div>
+  <div class="boss-subtitle">Все игроки против БОССА</div>
+
+  <div class="player-stats">
+    <div class="stat-badge">
+      <div class="value" id="total-dmg">0</div>
+      <div class="label">Ваш урон</div>
+    </div>
+    <div class="stat-badge">
+      <div class="value" id="hits-count">0</div>
+      <div class="label">Ударов</div>
+    </div>
+    <div class="stat-badge">
+      <div class="value" id="crit-count">0</div>
+      <div class="label">Критов</div>
+    </div>
+  </div>
+
+  <div class="arena">
+    <div class="player-area">
+      <div id="player-chip" class="chip active">🦝</div>
+      <div class="bars">
+        <span class="bar-label">HP <span id="p-hp-text">100</span></span>
+        <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
+        <span class="bar-label">Энергия</span>
+        <div class="bar"><div id="p-nrg" class="fill energy" style="width: 0%;"></div></div>
+      </div>
+      <div class="player-name">Вы</div>
+    </div>
+
+    <div class="boss-area">
+      <div class="boss-triangle" id="boss"></div>
+      <div class="boss-hp-container">
+        <div class="boss-hp-bar">
+          <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
+          <div class="boss-hp-text" id="boss-hp-text">1B HP</div>
+        </div>
+      </div>
+      <div class="boss-name">БОСС</div>
+    </div>
+  </div>
+
+  <div class="status-box" id="msg">Атакуй БОССА! Вместе мы сильнее!</div>
+
+  <div class="controls">
+    <button class="btn btn-std" onclick="attack('basic')">⚔️ Удар (+20 эн)</button>
+    <button class="btn btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>🔥 Сильный (40)</button>
+    <button class="btn btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>💥 Ульта (80)</button>
+    <button class="btn btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>💚 Лечение (50)</button>
+  </div>
+
+  <div class="log" id="log">Битва началась!</div>
+
+  <script>
+    const API_URL = '/api/boss_hp';
+    let bossHP = 1000000000;
+    let bossMaxHP = 1000000000;
+    let playerEnergy = 0;
+    let playerHP = 100;
+    let playerMaxHP = 100;
+    let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
+    let gameActive = true;
+
+    // Загрузка HP босса с сервера
+    async function loadBossHP() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        bossHP = data.current_hp || 1000000000;
+        bossMaxHP = data.max_hp || 1000000000;
+        updateBossHP();
+        console.log('Boss HP loaded:', bossHP);
+      } catch (e) {
+        console.error('Failed to load boss HP:', e);
+      }
+    }
+
+    function loadStats() {
+      const saved = localStorage.getItem('boss_stats');
+      if (saved) {
+        playerStats = JSON.parse(saved);
+        updateStatsUI();
+      }
+    }
+
+    function saveStats() {
+      localStorage.setItem('boss_stats', JSON.stringify(playerStats));
+    }
+
+    function formatNumber(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function updateBossHP() {
+      const percent = Math.max(0, (bossHP / bossMaxHP) * 100);
+      document.getElementById('boss-hp-fill').style.width = percent + '%';
+      document.getElementById('boss-hp-text').innerText = formatNumber(Math.ceil(bossHP)) + ' HP';
+    }
+
+    function updatePlayerHP() {
+      const percent = Math.max(0, (playerHP / playerMaxHP) * 100);
+      document.getElementById('p-hp').style.width = percent + '%';
+      document.getElementById('p-hp-text').innerText = Math.max(0, Math.floor(playerHP));
+    }
+
+    function updateStatsUI() {
+      document.getElementById('total-dmg').innerText = formatNumber(playerStats.totalDamage);
+      document.getElementById('hits-count').innerText = playerStats.hits;
+      document.getElementById('crit-count').innerText = playerStats.crits;
+    }
+
+    function updateEnergy() {
+      document.getElementById('energy-fill').style.width = playerEnergy + '%';
+      document.getElementById('btn-sp1').disabled = playerEnergy < 40;
+      document.getElementById('btn-sp2').disabled = playerEnergy < 80;
+      document.getElementById('btn-sp3').disabled = playerEnergy < 50;
+    }
+
+    function showDamageNumber(damage, isCrit, isPlayer) {
+      const target = document.getElementById(isPlayer ? 'player-chip' : 'boss');
+      const rect = target.getBoundingClientRect();
+      const el = document.createElement('div');
+      el.className = 'damage-number';
+      el.innerText = isCrit ? '💥' + damage : '-' + damage;
+      el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 80) + 'px';
+      el.style.top = (rect.top + rect.height / 2) + 'px';
+      if (isCrit) { el.style.fontSize = '2rem'; el.style.color = '#ffcc00'; }
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    function attack(type) {
+      if (!gameActive) return;
+
+      let damage = 0, energyGain = 0, energyCost = 0, message = '';
+      let isCrit = Math.random() < 0.15;
+
+      switch(type) {
+        case 'basic':
+          damage = Math.floor(Math.random() * 50) + 50;
+          energyGain = 20;
+          message = 'Обычный удар!';
+          break;
+        case 'strong':
+          damage = Math.floor(Math.random() * 100) + 150;
+          energyCost = 40;
+          message = 'Сильная атака!';
+          break;
+        case 'ultimate':
+          damage = Math.floor(Math.random() * 300) + 400;
+          energyCost = 80;
+          isCrit = true;
+          message = '💥 УЛЬТИМАТИВНАЯ АТАКА!';
+          break;
+        case 'heal':
+          energyCost = 50;
+          const heal = Math.floor(Math.random() * 20) + 30;
+          playerHP = Math.min(playerMaxHP, playerHP + heal);
+          message = '💚 Лечение +' + heal + ' HP!';
+          updatePlayerHP();
+          break;
+      }
+
+      if (type !== 'heal') {
+        if (isCrit) {
+          damage = Math.floor(damage * 2);
+          playerStats.crits++;
+          message = '💥 КРИТ! ' + message;
+        }
+        bossHP -= damage;
+        playerStats.totalDamage += damage;
+        playerStats.hits++;
+        playerEnergy = Math.min(100, playerEnergy + energyGain - energyCost);
+
+        showDamageNumber(damage, isCrit, false);
+        const boss = document.getElementById('boss');
+        boss.classList.remove('hit');
+        void boss.offsetWidth;
+        boss.classList.add('hit');
+
+        const playerChip = document.getElementById('player-chip');
+        playerChip.classList.add('animate-attack');
+        setTimeout(() => playerChip.classList.remove('animate-attack'), 400);
+      } else {
+        playerEnergy = Math.min(100, playerEnergy - energyCost);
+      }
+
+      // Ответ босса (рандомный удар от 1 до 100)
+      if (Math.random() < 0.4) {
+        const bossDamage = Math.floor(Math.random() * 100) + 1;
+        playerHP -= bossDamage;
+        updatePlayerHP();
+        message += ' Босс ответил на ' + bossDamage + ' урона!';
+        showDamageNumber(bossDamage, false, true);
+
+        const playerChip = document.getElementById('player-chip');
+        playerChip.classList.add('hit');
+        setTimeout(() => playerChip.classList.remove('hit'), 300);
+
+        if (playerHP <= 0) {
+          gameOver();
+          return;
+        }
+      }
+
+      saveStats();
+      updateStatsUI();
+      updateBossHP();
+      updateEnergy();
+      document.getElementById('msg').innerText = message;
+      document.getElementById('log').innerText = 'Урон: ' + (type === 'heal' ? '0' : damage) + ' | Энергия: ' + playerEnergy + ' | HP: ' + Math.floor(playerHP);
+
+      // Отправляем урон на сервер
+      if (type !== 'heal') {
+        sendDamageToServer(damage);
+        window.parent.postMessage({ type: 'boss_damage', damage: damage, totalDamage: playerStats.totalDamage }, '*');
+      }
+    }
+
+    // Отправка урона на сервер
+    async function sendDamageToServer(damage) {
+      try {
+        const tg = window.Telegram.WebApp;
+        const userId = tg.initDataUnsafe?.user?.id;
+        
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-User-Id': userId || '0'
+          },
+          body: JSON.stringify({ type: 'boss_damage', damage: damage })
+        });
+      } catch (e) {
+        console.error('Failed to send damage to server:', e);
+      }
+    }
+
+    function gameOver() {
+      gameActive = false;
+      document.getElementById('msg').innerText = '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...';
+      document.getElementById('msg').style.color = 'var(--accent)';
+      document.getElementById('log').innerText = 'Возврат в меню игры...';
+
+      // Блокируем кнопки
+      document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+
+      // Возврат в меню через 2 секунды
+      setTimeout(() => {
+        window.parent.postMessage({ type: 'game_over', game: 'boss' }, '*');
+      }, 2000);
+    }
+
+    // Инициализация
+    loadStats();
+    loadBossHP();  // Загружаем HP босса с сервера
+    updateEnergy();
+    updatePlayerHP();
+  </script>
+</body>
+</html>
