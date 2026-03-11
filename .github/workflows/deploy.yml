@@ -22,6 +22,9 @@ jobs:
             # Переходим в папку проекта (используем переменную из секрета для пути)
             cd /home/${{ secrets.SERVER_USER }}/my_bot || exit
             
+            # 1. Останавливаем бота ПЕРЕД любыми манипуляциями (снимаем блокировку с БД)
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl stop my_bot
+            
             # 0. СОХРАНЯЕМ БАЗУ ДАННЫХ (если она есть) во временный файл
             if [ -f "bot/users.db" ]; then
                 cp bot/users.db bot/users.db.bak
@@ -47,12 +50,14 @@ jobs:
             # 4. ВОССТАНАВЛИВАЕМ БАЗУ ДАННЫХ
             if [ -f "bot/users.db.bak" ]; then
                 mv bot/users.db.bak bot/users.db
+                # ВАЖНО: Даем права на запись всем пользователям (чтобы бот мог писать в файл)
+                chmod 666 bot/users.db
                 echo "Database restored."
             fi
             
             # 5. Перезапуск бота с передачей пароля в sudo
             # Флаг -S заставляет sudo читать пароль из стандартного ввода (echo)
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart my_bot
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl start my_bot
             
             # 5. Вывод финального статуса для отчета в Actions
             echo "--- Бот перезапущен. Статус службы: ---"

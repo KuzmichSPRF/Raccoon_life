@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+logger.info(f"Using database file at: {DB_NAME}")
 
 # Flask app для API
 app = Flask(__name__)
@@ -28,7 +29,8 @@ app = Flask(__name__)
 def api_get_boss_hp():
     """API endpoint для получения HP босса"""
     boss_info = get_boss_hp()
-    response = jsonify(boss_info)
+    # Возвращаем JSON с четкой структурой
+    response = jsonify({'status': 'ok', 'boss': boss_info})
     # ВАЖНО: Отключаем кеширование, чтобы браузер всегда запрашивал актуальное здоровье
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
