@@ -36,15 +36,19 @@ def api_sync():
     try:
         data = request.json
         data_type = data.get('type')
-        
+        logger.info(f"API sync received: {data_type}, data: {data}")
+
         if data_type == 'boss_damage':
-            # Получаем user_id из Telegram initData (в реальном проекте нужно валидировать)
-            user_id = request.headers.get('X-Telegram-User-Id', 0)
+            # Получаем user_id из тела запроса или заголовка
+            user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
             damage = data.get('damage', 0)
-            if damage > 0:
+            logger.info(f"Boss damage: user_id={user_id}, damage={damage}")
+            if damage > 0 and user_id:
                 update_boss_damage(int(user_id), damage)
                 return jsonify({'status': 'ok'})
-        
+            elif damage > 0:
+                logger.warning(f"Boss damage without user_id: {damage}")
+
         return jsonify({'status': 'ok'})
     except Exception as e:
         logger.error(f"API sync error: {e}")

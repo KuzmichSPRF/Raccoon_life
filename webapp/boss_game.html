@@ -301,7 +301,7 @@
       <div class="bars">
         <span class="bar-label">HP <span id="p-hp-text">100</span></span>
         <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
-        <span class="bar-label">Энергия</span>
+        <span class="bar-label">Энергия <span id="p-nrg-text">0</span></span>
         <div class="bar"><div id="p-nrg" class="fill energy" style="width: 0%;"></div></div>
       </div>
       <div class="player-name">Вы</div>
@@ -339,8 +339,20 @@
     let playerMaxHP = 100;
     let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
     let gameActive = true;
-    let energyInterval = null;
     let syncInterval = null;
+
+    // Проверка что Telegram WebApp загружен
+    let tgUserId = null;
+    try {
+      if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tgUserId = tg.initDataUnsafe?.user?.id;
+        console.log('Telegram WebApp ready, userId:', tgUserId);
+      }
+    } catch (e) {
+      console.log('Telegram WebApp not available:', e);
+    }
 
     // Загрузка HP босса с сервера
     async function loadBossHP() {
@@ -361,16 +373,6 @@
       syncInterval = setInterval(async () => {
         await loadBossHP();
       }, 3000);
-    }
-
-    // Регенерация энергии (1 в секунду)
-    function startEnergyRegen() {
-      energyInterval = setInterval(() => {
-        if (gameActive && playerEnergy < 100) {
-          playerEnergy = Math.min(100, playerEnergy + 1);
-          updateEnergy();
-        }
-      }, 1000);
     }
 
     function loadStats() {
@@ -408,10 +410,23 @@
     }
 
     function updateEnergy() {
-      document.getElementById('energy-fill').style.width = playerEnergy + '%';
-      document.getElementById('btn-sp1').disabled = playerEnergy < 40;
-      document.getElementById('btn-sp2').disabled = playerEnergy < 80;
-      document.getElementById('btn-sp3').disabled = playerEnergy < 50;
+      const energyFill = document.getElementById('p-nrg');
+      const energyText = document.getElementById('p-nrg-text');
+      const btnStrong = document.getElementById('btn-sp1');
+      const btnUlt = document.getElementById('btn-sp2');
+      const btnHeal = document.getElementById('btn-sp3');
+
+      energyFill.style.width = playerEnergy + '%';
+      energyText.innerText = Math.floor(playerEnergy);
+      btnStrong.disabled = playerEnergy < 40;
+      btnUlt.disabled = playerEnergy < 80;
+      btnHeal.disabled = playerEnergy < 50;
+      
+      console.log('updateEnergy:', playerEnergy, '| Buttons:', {
+        strong: !btnStrong.disabled,
+        ult: !btnUlt.disabled,
+        heal: !btnHeal.disabled
+      });
     }
 
     function showDamageNumber(damage, isCrit, isPlayer) {
@@ -428,36 +443,46 @@
     }
 
     function attack(type) {
-      if (!gameActive) return;
+      console.log('Attack called:', type, 'gameActive:', gameActive);
+      if (!gameActive) {
+        console.log('Game is not active!');
+        return;
+      }
 
-      let damage = 0, energyGain = 0, energyCost = 0, message = '';
+      let damage = 0, message = '';
       let isCrit = Math.random() < 0.15;
 
       switch(type) {
         case 'basic':
           damage = Math.floor(Math.random() * 50) + 50;
-          energyGain = 20;  // Базовая атака дает энергию
-          message = 'Обычный удар!';
+          playerEnergy = Math.min(100, playerEnergy + 20);
+          message = 'Обычный удар! +20 эн';
+          updateEnergy();  // Сразу обновляем UI
+          console.log('Basic attack: energy =', playerEnergy);
           break;
         case 'strong':
           damage = Math.floor(Math.random() * 100) + 150;
-          energyGain = 10;  // Сильная атака тоже немного дает
-          energyCost = 40;
-          message = 'Сильная атака!';
+          playerEnergy = Math.max(0, playerEnergy - 40);
+          message = 'Сильная атака! -40 эн';
+          updateEnergy();  // Сразу обновляем UI
+          console.log('Strong attack: energy =', playerEnergy);
           break;
         case 'ultimate':
           damage = Math.floor(Math.random() * 300) + 400;
-          energyGain = 5;  // Ульта тоже немного дает
-          energyCost = 80;
+          playerEnergy = Math.max(0, playerEnergy - 80);
           isCrit = true;
-          message = '💥 УЛЬТИМАТИВНАЯ АТАКА!';
+          message = '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн';
+          updateEnergy();  // Сразу обновляем UI
+          console.log('Ultimate: energy =', playerEnergy);
           break;
         case 'heal':
-          energyCost = 50;
+          playerEnergy = Math.max(0, playerEnergy - 50);
           const heal = Math.floor(Math.random() * 20) + 30;
           playerHP = Math.min(playerMaxHP, playerHP + heal);
-          message = '💚 Лечение +' + heal + ' HP!';
+          message = '💚 Лечение +' + heal + ' HP! -50 эн';
           updatePlayerHP();
+          updateEnergy();  // Сразу обновляем UI
+          console.log('Heal: energy =', playerEnergy);
           break;
       }
 
@@ -470,7 +495,6 @@
         bossHP -= damage;
         playerStats.totalDamage += damage;
         playerStats.hits++;
-        playerEnergy = Math.min(100, playerEnergy + energyGain - energyCost);
 
         showDamageNumber(damage, isCrit, false);
         const boss = document.getElementById('boss');
@@ -481,8 +505,6 @@
         const playerChip = document.getElementById('player-chip');
         playerChip.classList.add('animate-attack');
         setTimeout(() => playerChip.classList.remove('animate-attack'), 400);
-      } else {
-        playerEnergy = Math.min(100, playerEnergy - energyCost);
       }
 
       // Ответ босса (рандомный удар от 1 до 100)
@@ -506,31 +528,42 @@
       saveStats();
       updateStatsUI();
       updateBossHP();
-      updateEnergy();
+      updateEnergy();  // Финальное обновление энергии
       document.getElementById('msg').innerText = message;
-      document.getElementById('log').innerText = 'Урон: ' + (type === 'heal' ? '0' : damage) + ' | Энергия: ' + playerEnergy + ' | HP: ' + Math.floor(playerHP);
+      document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
+      console.log('Attack done - Energy:', playerEnergy, 'Damage:', damage);
 
       // Отправляем урон на сервер
       if (type !== 'heal') {
-        sendDamageToServer(damage);
-        window.parent.postMessage({ type: 'boss_damage', damage: damage, totalDamage: playerStats.totalDamage }, '*');
+        try {
+          sendDamageToServer(damage);
+        } catch (e) {
+          console.error('Failed to send to server:', e);
+        }
+        try {
+          window.parent.postMessage({ type: 'boss_damage', damage: damage, totalDamage: playerStats.totalDamage }, '*');
+        } catch (e) {
+          console.error('Failed to postMessage:', e);
+        }
       }
     }
 
     // Отправка урона на сервер
     async function sendDamageToServer(damage) {
       try {
-        const tg = window.Telegram.WebApp;
-        const userId = tg.initDataUnsafe?.user?.id;
-        
+        console.log('Sending damage:', damage, 'userId:', tgUserId);
         await fetch('/api/sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Telegram-User-Id': userId || '0'
           },
-          body: JSON.stringify({ type: 'boss_damage', damage: damage })
+          body: JSON.stringify({ 
+            type: 'boss_damage', 
+            damage: damage,
+            userId: tgUserId 
+          })
         });
+        console.log('Damage sent successfully');
       } catch (e) {
         console.error('Failed to send damage to server:', e);
       }
@@ -539,8 +572,7 @@
     function gameOver() {
       gameActive = false;
       
-      // Очищаем интервалы
-      if (energyInterval) clearInterval(energyInterval);
+      // Очищаем интервал синхронизации
       if (syncInterval) clearInterval(syncInterval);
       
       document.getElementById('msg').innerText = '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...';
@@ -557,12 +589,27 @@
     }
 
     // Инициализация
+    console.log('=== GAME INIT ===');
+    gameActive = true;
+    
+    // Проверяем что DOM загружен
+    const bossHpFill = document.getElementById('boss-hp-fill');
+    const energyFill = document.getElementById('energy-fill');
+    const btnBasic = document.querySelector('.btn-std');
+    
+    console.log('DOM elements:', {
+      bossHpFill: !!bossHpFill,
+      energyFill: !!energyFill,
+      btnBasic: !!btnBasic
+    });
+    
     loadStats();
     loadBossHP();  // Загружаем HP босса с сервера
     startBossSync();  // Синхронизируем HP каждые 3 сек
-    startEnergyRegen();  // Регенерация энергии
     updateEnergy();
     updatePlayerHP();
+    updateStatsUI();
+    console.log('Game initialized - HP:', bossHP, 'Energy:', playerEnergy);
   </script>
 </body>
 </html>

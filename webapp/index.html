@@ -563,9 +563,11 @@
 
     // Урон по боссу
     if (event.data.type === 'boss_damage') {
+        console.log('Received boss_damage from iframe:', event.data);
         try {
             const data = { type: 'boss_damage', damage: event.data.damage };
             sendToAPI(data);
+            console.log('Boss damage sent to API');
         } catch (e) {
             console.error("Failed to send boss damage:", e);
         }
@@ -603,6 +605,7 @@
 
   // Отправка данных на REST API (не закрывает приложение)
   function sendToAPI(data) {
+    console.log('sendToAPI called with:', data);
     // Отправляем данные через fetch на сервер
     fetch('/api/sync', {
       method: 'POST',
@@ -610,7 +613,9 @@
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data)
-    }).catch(err => {
+    })
+    .then(() => console.log('API sync success'))
+    .catch(err => {
       console.error('Failed to send to API:', err);
     });
   }
