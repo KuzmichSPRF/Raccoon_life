@@ -30,7 +30,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Пути к файлам
-BOT_DIR = Path(__file__).parent
+# При exec() __file__ не работает, используем абсолютный путь
+try:
+    _current_file = __file__
+except NameError:
+    _current_file = str(Path.cwd() / 'bot' / 'bot.py')
+
+BOT_DIR = Path(_current_file).parent
 PROJECT_DIR = BOT_DIR.parent
 DB_PATH = str(BOT_DIR / "users.db")
 WEBAPP_DIR = PROJECT_DIR / "webapp"
