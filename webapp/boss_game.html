@@ -339,7 +339,6 @@
     let playerMaxHP = 100;
     let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
     let gameActive = true;
-    let syncInterval = null;
 
     // Проверка что Telegram WebApp загружен
     let tgUserId = null;
@@ -357,18 +356,15 @@
     // Загрузка HP босса с сервера
     async function loadBossHP() {
       try {
-        // Добавляем timestamp для обхода кэша
-        const response = await fetch(API_URL + '?t=' + Date.now());
-        const data = await response.json();
-        
+        const res = await fetch('/api/boss_hp', { cache: 'no-store' });
+        const data = await res.json();
         if (data.status === 'ok' && data.boss) {
             bossHP = data.boss.current_hp;
             bossMaxHP = data.boss.max_hp;
+            updateBossHP();
         }
-        updateBossHP();
-        console.log('Boss HP loaded:', bossHP);
       } catch (e) {
-        console.error('Failed to load boss HP:', e);
+        console.error('Ошибка загрузки HP босса:', e);
       }
     }
 
@@ -386,13 +382,6 @@
       } catch (e) {
         console.error('Failed to load player stats:', e);
       }
-    }
-
-    // Периодическая синхронизация HP босса (каждые 3 секунды)
-    function startBossSync() {
-      syncInterval = setInterval(async () => {
-        await loadBossHP();
-      }, 3000);
     }
 
     function formatNumber(num) {
@@ -558,37 +547,28 @@
     // Отправка урона на сервер
     async function sendDamageToServer(damage) {
       try {
-        console.log('Sending damage:', damage, 'userId:', tgUserId);
-        const response = await fetch('/api/sync', {
+        const res = await fetch('/api/sync', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             type: 'boss_damage', 
+            userId: tgUserId,
             damage: damage,
-            userId: tgUserId 
           })
         });
-        
-        const data = await response.json();
-        // Мгновенная синхронизация с сервером
+        const data = await res.json();
         if (data.status === 'ok' && data.boss) {
             bossHP = data.boss.current_hp;
             bossMaxHP = data.boss.max_hp;
             updateBossHP();
         }
-        console.log('Damage sent successfully, new HP:', bossHP);
       } catch (e) {
-        console.error('Failed to send damage to server:', e);
+        console.error('Ошибка отправки урона:', e);
       }
     }
 
     function gameOver() {
       gameActive = false;
-      
-      // Очищаем интервал синхронизации
-      if (syncInterval) clearInterval(syncInterval);
       
       document.getElementById('msg').innerText = '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...';
       document.getElementById('msg').style.color = 'var(--accent)';
@@ -604,27 +584,20 @@
     }
 
     // Инициализация
-    console.log('=== GAME INIT ===');
-    gameActive = true;
-
-    // Проверяем что DOM загружен
-    const bossHpFill = document.getElementById('boss-hp-fill');
-    const energyFill = document.getElementById('p-nrg');
-    const btnBasic = document.querySelector('.btn-std');
-
-    console.log('DOM elements:', {
-      bossHpFill: !!bossHpFill,
-      energyFill: !!energyFill,
-      btnBasic: !!btnBasic
+    window.addEventListener('DOMContentLoaded', () => {
+        console.log('=== GAME INIT ===');
+        gameActive = true;
+        
+        loadPlayerStats();
+        loadBossHP();
+        
+        // Обновлять HP каждые 5 секунд
+        setInterval(loadBossHP, 5000);
+        
+        updateEnergy();
+        updatePlayerHP();
+        updateStatsUI();
     });
-
-    loadPlayerStats();  // Загружаем статистику игрока с сервера
-    loadBossHP();  // Загружаем HP босса с сервера
-    startBossSync();  // Синхронизируем HP каждые 3 сек
-    updateEnergy();
-    updatePlayerHP();
-    updateStatsUI();
-    console.log('Game initialized - HP:', bossHP, 'Energy:', playerEnergy);
   </script>
 </body>
 </html>
