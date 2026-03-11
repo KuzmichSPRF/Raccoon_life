@@ -357,10 +357,14 @@
     // Загрузка HP босса с сервера
     async function loadBossHP() {
       try {
-        const response = await fetch(API_URL);
+        // Добавляем timestamp для обхода кэша
+        const response = await fetch(API_URL + '?t=' + Date.now());
         const data = await response.json();
-        bossHP = data.current_hp || 1000000000;
-        bossMaxHP = data.max_hp || 1000000000;
+        
+        if (data.status === 'ok' && data.boss) {
+            bossHP = data.boss.current_hp;
+            bossMaxHP = data.boss.max_hp;
+        }
         updateBossHP();
         console.log('Boss HP loaded:', bossHP);
       } catch (e) {
@@ -555,7 +559,7 @@
     async function sendDamageToServer(damage) {
       try {
         console.log('Sending damage:', damage, 'userId:', tgUserId);
-        await fetch('/api/sync', {
+        const response = await fetch('/api/sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -566,7 +570,15 @@
             userId: tgUserId 
           })
         });
-        console.log('Damage sent successfully');
+        
+        const data = await response.json();
+        // Мгновенная синхронизация с сервером
+        if (data.status === 'ok' && data.boss) {
+            bossHP = data.boss.current_hp;
+            bossMaxHP = data.boss.max_hp;
+            updateBossHP();
+        }
+        console.log('Damage sent successfully, new HP:', bossHP);
       } catch (e) {
         console.error('Failed to send damage to server:', e);
       }

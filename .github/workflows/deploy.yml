@@ -26,8 +26,13 @@ jobs:
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl stop my_bot
             
             # 0. СОХРАНЯЕМ БАЗУ ДАННЫХ (если она есть) во временный файл
+            # Используем users.db* чтобы захватить также -wal и -shm файлы если они есть
             if [ -f "bot/users.db" ]; then
-                cp bot/users.db bot/users.db.bak
+                cp bot/users.db* bot/
+                # Переименовываем для бэкапа (грубо, но для GitHub Actions сойдет, или можно копировать в папку)
+                # Лучше скопировать во временную директорию
+                mkdir -p /tmp/bot_backup
+                cp bot/users.db* /tmp/bot_backup/
                 echo "Backup created."
             fi
 
@@ -48,11 +53,12 @@ jobs:
             fi
 
             # 4. ВОССТАНАВЛИВАЕМ БАЗУ ДАННЫХ
-            if [ -f "bot/users.db.bak" ]; then
-                mv bot/users.db.bak bot/users.db
+            if [ -f "/tmp/bot_backup/users.db" ]; then
+                mv /tmp/bot_backup/users.db* bot/
                 # ВАЖНО: Даем права на запись всем пользователям (чтобы бот мог писать в файл)
-                chmod 666 bot/users.db
+                chmod 666 bot/users.db*
                 echo "Database restored."
+                rm -rf /tmp/bot_backup
             fi
             
             # 5. Перезапуск бота с передачей пароля в sudo

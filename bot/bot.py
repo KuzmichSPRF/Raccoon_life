@@ -4,6 +4,7 @@ import sqlite3
 import json
 from threading import Thread
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -24,6 +25,8 @@ logger.info(f"Using database file at: {DB_NAME}")
 
 # Flask app для API
 app = Flask(__name__)
+# Разрешаем запросы с любых доменов (важно для Telegram WebApps)
+CORS(app)
 
 @app.route('/api/boss_hp', methods=['GET'])
 def api_get_boss_hp():
