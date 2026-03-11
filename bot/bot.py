@@ -126,6 +126,11 @@ def init_db():
         ''')
         
         conn.commit()
+        
+        # Миграции: добавляем недостающие колонки
+        _add_missing_columns(cursor)
+        conn.commit()
+        
         logger.info("✅ База данных инициализирована")
         
     except Exception as e:
@@ -133,6 +138,43 @@ def init_db():
         raise
     finally:
         conn.close()
+
+
+def _add_missing_columns(cursor):
+    """Добавляет недостающие колонки в существующие таблицы"""
+    
+    # Проверка user_stats на наличие updated_at
+    cursor.execute("PRAGMA table_info(user_stats)")
+    user_stats_cols = {row[1] for row in cursor.fetchall()}
+    
+    if 'updated_at' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            logger.info("Миграция: добавлена колонка updated_at в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.updated_at: {e}")
+    
+    # Проверка boss_damage на наличие hits
+    cursor.execute("PRAGMA table_info(boss_damage)")
+    boss_damage_cols = {row[1] for row in cursor.fetchall()}
+    
+    if 'hits' not in boss_damage_cols:
+        try:
+            cursor.execute("ALTER TABLE boss_damage ADD COLUMN hits INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка hits в boss_damage")
+        except Exception as e:
+            logger.error(f"Ошибка миграции boss_damage.hits: {e}")
+    
+    # Проверка boss_global на наличие kill_count
+    cursor.execute("PRAGMA table_info(boss_global)")
+    boss_global_cols = {row[1] for row in cursor.fetchall()}
+    
+    if 'kill_count' not in boss_global_cols:
+        try:
+            cursor.execute("ALTER TABLE boss_global ADD COLUMN kill_count INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка kill_count в boss_global")
+        except Exception as e:
+            logger.error(f"Ошибка миграции boss_global.kill_count: {e}")
 
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
