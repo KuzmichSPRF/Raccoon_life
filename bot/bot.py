@@ -169,30 +169,45 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
-        # Данные пользователя
-        username = user_data.get('username', '') if user_data else ''
-        first_name = user_data.get('first_name', '') if user_data else ''
-        last_name = user_data.get('last_name', '') if user_data else ''
-        
-        # Создаем или обновляем пользователя
-        cursor.execute('''
-            INSERT INTO users (user_id, username, first_name, last_name)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET
-                username = excluded.username,
-                first_name = excluded.first_name,
-                last_name = excluded.last_name
-        ''', (user_id, username, first_name, last_name))
+        # Проверяем существует ли пользователь
+        cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            # Обновляем данные если есть
+            if user_data:
+                username = user_data.get('username', '')
+                first_name = user_data.get('first_name', '')
+                last_name = user_data.get('last_name', '')
+                
+                cursor.execute('''
+                    UPDATE users SET
+                        username = ?,
+                        first_name = ?,
+                        last_name = ?
+                    WHERE user_id = ?
+                ''', (username, first_name, last_name, user_id))
+                logger.debug(f"Пользователь {user_id} обновлён")
+            else:
+                logger.debug(f"Пользователь {user_id} уже существует")
+        else:
+            # Создаем нового пользователя
+            username = user_data.get('username', '') if user_data else ''
+            first_name = user_data.get('first_name', '') if user_data else ''
+            last_name = user_data.get('last_name', '') if user_data else ''
+            
+            cursor.execute('''
+                INSERT INTO users (user_id, username, first_name, last_name)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, username, first_name, last_name))
+            logger.debug(f"Пользователь {user_id} создан")
         
         # Создаем запись статистики если нет
-        cursor.execute('''
-            INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)
-        ''', (user_id,))
+        cursor.execute('INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)', (user_id,))
         
         conn.commit()
-        logger.debug(f"Пользователь {user_id} существует в БД")
         
     except Exception as e:
         logger.error(f"Ошибка ensure_user_exists: {e}")
