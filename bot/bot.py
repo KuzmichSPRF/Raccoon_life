@@ -203,13 +203,14 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
 
 # ==================== API ФУНКЦИИ ====================
 
-def save_user_stats(user_id: int, stats_data: dict) -> bool:
+def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> bool:
     """
     Сохраняет статистику игрока в базу данных
     
     Args:
         user_id: ID пользователя в Telegram
         stats_data: Словарь с данными статистики
+        user_data: Словарь с данными пользователя (username, first_name, last_name)
     
     Returns:
         True если успешно, False иначе
@@ -218,8 +219,11 @@ def save_user_stats(user_id: int, stats_data: dict) -> bool:
     cursor = conn.cursor()
     
     try:
-        # Гарантируем существование пользователя
-        ensure_user_exists(user_id)
+        # Гарантируем существование пользователя (с обновлением данных)
+        if user_data:
+            ensure_user_exists(user_id, user_data)
+        else:
+            ensure_user_exists(user_id)
         
         # Обновляем статистику
         cursor.execute('''
@@ -504,6 +508,16 @@ def handle_sync_stats(data: dict):
     user_id = int(user_id)
     logger.info(f"👤 sync_stats: user_id={user_id}")
     
+    # Извлекаем данные пользователя (если есть)
+    user_data = None
+    if 'username' in data or 'first_name' in data:
+        user_data = {
+            'username': data.get('username', ''),
+            'first_name': data.get('first_name', ''),
+            'last_name': data.get('last_name', '')
+        }
+        logger.info(f"   Данные пользователя: {user_data}")
+    
     # Извлекаем данные статистики
     stats_data = {
         'clown_games': data.get('clown_games', 0),
@@ -517,7 +531,7 @@ def handle_sync_stats(data: dict):
     
     logger.info(f"📊 Данные статистики: {stats_data}")
     
-    if save_user_stats(user_id, stats_data):
+    if save_user_stats(user_id, stats_data, user_data):
         logger.info(f"✅ sync_stats успешно: user_id={user_id}")
         return jsonify({'status': 'ok'})
     else:

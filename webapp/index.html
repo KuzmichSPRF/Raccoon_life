@@ -236,9 +236,15 @@
     const userId = getUserId();
     if (!userId) return;
 
+    // Получаем данные пользователя из Telegram
+    const user = tg.initDataUnsafe?.user || {};
+
     const data = {
       type: 'sync_stats',
       userId: userId,
+      username: user.username || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
       clown_games: stats.clown_games,
       clown_wins: stats.clown_wins,
       vladeos_games: stats.vladeos_games,
