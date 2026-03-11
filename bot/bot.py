@@ -64,7 +64,9 @@ def api_sync():
             logger.info(f"Boss damage: user_id={user_id}, damage={damage}")
             if damage > 0 and user_id:
                 update_boss_damage(int(user_id), damage)
-                return jsonify({'status': 'ok'})
+                # Возвращаем актуальное состояние босса для синхронизации клиента
+                boss_info = get_boss_hp()
+                return jsonify({'status': 'ok', 'boss': boss_info})
             elif damage > 0:
                 logger.warning(f"Boss damage without user_id: {damage}")
 
