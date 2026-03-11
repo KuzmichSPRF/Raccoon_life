@@ -2,6 +2,7 @@ import os
 import logging
 import sqlite3
 import json
+from pathlib import Path
 from threading import Thread
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -20,13 +21,38 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+# Пути к файлам
+# При запуске через exec() __file__ не работает, используем cwd или переменную окружения
+if os.environ.get('PROJECT_DIR'):
+    PROJECT_DIR = Path(os.environ['PROJECT_DIR'])
+else:
+    PROJECT_DIR = Path.cwd()
+
+BOT_DIR = PROJECT_DIR / 'bot'
+DB_NAME = str(BOT_DIR / "users.db")
+WEBAPP_DIR = PROJECT_DIR / "webapp"
+
 logger.info(f"Using database file at: {DB_NAME}")
+logger.info(f"WebApp directory: {WEBAPP_DIR}")
 
 # Flask app для API
-app = Flask(__name__)
+app = Flask(__name__, static_folder=str(WEBAPP_DIR), static_url_path='')
 # Разрешаем запросы с любых доменов (важно для Telegram WebApps)
 CORS(app)
+
+# Роут для отдачи index.html и других файлов из webapp/
+@app.route('/')
+def index_route():
+    """Отдаёт index.html из папки webapp/"""
+    from flask import send_from_directory
+    return send_from_directory(WEBAPP_DIR, 'index.html')
+
+# Роут для других HTML файлов (game.html, tower_game.html, etc.)
+@app.route('/<path:filename>')
+def static_files(filename):
+    """Отдаёт статические файлы из webapp/"""
+    from flask import send_from_directory
+    return send_from_directory(WEBAPP_DIR, filename)
 
 @app.route('/api/boss_hp', methods=['GET'])
 def api_get_boss_hp():
