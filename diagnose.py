@@ -241,29 +241,37 @@ def test_api_locally():
         from threading import Thread
         import time
         
-        # Импорт bot.py
-        sys.path.insert(0, 'bot')
-        bot_path = Path("bot/bot.py")
+        # Импорт bot.py через importlib для правильного доступа к функциям
+        import importlib.util
+        bot_path = Path("bot/bot.py").absolute()
+        
+        spec = importlib.util.spec_from_file_location("bot_module", bot_path)
+        bot_module = importlib.util.module_from_spec(spec)
+        
+        # Загружаем только часть до main()
         code = bot_path.read_text(encoding='utf-8')
         main_idx = code.find('def main():')
         
         if main_idx > 0:
-            exec(code[:main_idx])
+            # Выполняем код в контексте модуля
+            exec(compile(code[:main_idx], str(bot_path), 'exec'), bot_module.__dict__)
         
         # Инициализация БД
-        init_db()
+        bot_module.init_db()
         print_success("БД инициализирована")
         
         # Запуск Flask
         print_info("Запуск Flask сервера на порту 5000...")
         flask_thread = Thread(
-            target=lambda: app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False),
+            target=lambda: bot_module.app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False),
             daemon=True
         )
         flask_thread.start()
         time.sleep(2)
         
         print_success("Flask сервер запущен")
+        
+        BASE_URL = 'http://127.0.0.1:5000'
         
         # Тест 1: sync_stats
         print("\n  Тест 1: Отправка статистики...")
@@ -279,7 +287,7 @@ def test_api_locally():
             'quests': ['test_quest']
         }
         
-        r = requests.post('http://127.0.0.1:5000/api/sync', json=test_data, timeout=5)
+        r = requests.post(f'{BASE_URL}/api/sync', json=test_data, timeout=5)
         if r.status_code == 200 and r.json().get('status') == 'ok':
             print_success("✅ /api/sync (stats) работает")
         else:
@@ -293,7 +301,7 @@ def test_api_locally():
             'damage': 1000
         }
         
-        r = requests.post('http://127.0.0.1:5000/api/sync', json=damage_data, timeout=5)
+        r = requests.post(f'{BASE_URL}/api/sync', json=damage_data, timeout=5)
         if r.status_code == 200:
             boss = r.json().get('boss', {})
             print_success(f"✅ /api/sync (damage) работает, HP босса: {boss.get('current_hp'):,}")
@@ -302,7 +310,7 @@ def test_api_locally():
         
         # Тест 3: boss_hp
         print("  Тест 3: Получение HP босса...")
-        r = requests.get('http://127.0.0.1:5000/api/boss_hp', timeout=5)
+        r = requests.get(f'{BASE_URL}/api/boss_hp', timeout=5)
         if r.status_code == 200:
             print_success("✅ /api/boss_hp работает")
         else:
@@ -310,7 +318,7 @@ def test_api_locally():
         
         # Проверка записи в БД
         print_subheader("Проверка записи в БД")
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(bot_module.DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
