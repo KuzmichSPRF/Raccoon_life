@@ -353,10 +353,23 @@
       console.log('Telegram WebApp not available:', e);
     }
 
+    // Если ID пользователя не найден (например, при тесте в браузере),
+    // генерируем случайный ID и сохраняем его, чтобы урон засчитывался.
+    if (!tgUserId) {
+        let storedId = localStorage.getItem('rl_temp_user_id');
+        if (!storedId) {
+            storedId = Math.floor(Math.random() * 1000000) + 100000;
+            localStorage.setItem('rl_temp_user_id', storedId);
+        }
+        tgUserId = parseInt(storedId);
+        console.log('Using fallback userId:', tgUserId);
+    }
+
     // Загрузка HP босса с сервера
     async function loadBossHP() {
       try {
-        const res = await fetch('/api/boss_hp', { cache: 'no-store' });
+        // Добавляем timestamp (t=...) чтобы гарантированно обойти любой кэш
+        const res = await fetch(API_URL + '?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         if (data.status === 'ok' && data.boss) {
             bossHP = data.boss.current_hp;
