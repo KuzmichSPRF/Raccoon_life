@@ -45,7 +45,13 @@ logger.info(f"Database: {DB_PATH}")
 logger.info(f"WebApp: {WEBAPP_DIR}")
 
 # Flask приложение
-app = Flask(__name__, static_folder=str(WEBAPP_DIR), static_url_path='')
+# Указываем root_path явно для работы при exec()
+app = Flask(
+    __name__,
+    static_folder=str(WEBAPP_DIR),
+    static_url_path='',
+    root_path=str(PROJECT_DIR)
+)
 CORS(app)  # Разрешаем CORS для WebApp
 
 
