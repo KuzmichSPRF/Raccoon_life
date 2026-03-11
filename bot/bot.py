@@ -627,7 +627,7 @@ async def post_init(application: Application):
 
 def run_flask():
     """Запуск Flask сервера в отдельном потоке"""
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
 
 
 def main():
