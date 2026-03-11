@@ -23,6 +23,9 @@
     tg.ready();
     tg.expand();
 
+    // Определяем базовый URL для API
+    const API_URL = '/api/sync';  // Относительный путь
+
     const logDiv = document.getElementById('log');
 
     function log(msg, type = 'info') {
@@ -59,7 +62,8 @@
     document.getElementById('status').innerHTML = `
       <b>User ID:</b> ${userId || '❌ НЕ НАЙДЕН'}<br>
       <b>initDataUnsafe:</b> ${tg.initDataUnsafe ? '✅' : '❌'}<br>
-      <b>initData:</b> ${tg.initData ? '✅ (есть)' : '❌'}
+      <b>initData:</b> ${tg.initData ? '✅ (есть)' : '❌'}<br>
+      <b>Current URL:</b> ${window.location.href}
     `;
 
     if (userId) {
@@ -77,8 +81,9 @@
       }
 
       log('📡 Отправка тестовых данных...', 'info');
+      log(`   URL: ${API_URL}`, 'info');
 
-      fetch('/api/sync', {
+      fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,9 +95,22 @@
           tower_total_levels: 500
         })
       })
-      .then(r => r.json())
-      .then(result => {
-        log(`✅ API ответ: ${JSON.stringify(result)}`, 'success');
+      .then(r => {
+        log(`   Status: ${r.status}`, 'info');
+        return r.text();  // Сначала получаем текст
+      })
+      .then(text => {
+        log(`   Response: ${text.substring(0, 200)}`, text.includes('error') ? 'error' : 'info');
+        try {
+          const result = JSON.parse(text);
+          if (result.status === 'ok') {
+            log(`✅ API ответ: ${JSON.stringify(result)}`, 'success');
+          } else {
+            log(`❌ API error: ${result.message}`, 'error');
+          }
+        } catch (e) {
+          log(`❌ Не JSON ответ: ${text.substring(0, 100)}`, 'error');
+        }
       })
       .catch(err => {
         log(`❌ Ошибка: ${err}`, 'error');
