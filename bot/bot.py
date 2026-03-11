@@ -59,7 +59,7 @@ def api_sync():
 
         if data_type == 'boss_damage':
             # Получаем user_id из тела запроса или заголовка
-            user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+            user_id = data.get('userId') or data.get('user_id') or request.headers.get('X-Telegram-User-Id', 0)
             damage = data.get('damage', 0)
             logger.info(f"Boss damage: user_id={user_id}, damage={damage}")
             if damage > 0 and user_id:
@@ -172,6 +172,9 @@ def update_boss_damage(user_id, damage):
     try:
         with sqlite3.connect(DB_NAME) as conn:
             cursor = conn.cursor()
+            # Гарантируем, что пользователь существует, чтобы не было ошибки FK (если игрок не нажал /start)
+            cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+
             # Обновляем урон игрока
             cursor.execute('''
                 INSERT INTO boss_damage (user_id, total_damage, last_hit)
@@ -424,8 +427,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with sqlite3.connect(DB_NAME) as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT OR IGNORE INTO users (user_id, username, first_name, last_name) VALUES (?, ?, ?, ?)",
-                           (user.id, user.username, user.first_name, user.last_name))
+            # Используем UPSERT: если пользователь был создан заглушкой (через урон), обновляем его данные
+            cursor.execute("""
+                INSERT INTO users (user_id, username, first_name, last_name) VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, first_name=excluded.first_name, last_name=excluded.last_name
+            """, (user.id, user.username, user.first_name, user.last_name))
             cursor.execute("INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)", (user.id,))
             conn.commit()
             logger.info(f"User {user.id} ({user.username}) started the bot.")
