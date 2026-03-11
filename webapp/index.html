@@ -30,7 +30,6 @@
       background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
     }
 
-    /* -------- ГЛАВНОЕ МЕНЮ -------- */
     .screen { display: none; padding: 5vh 16px 20px; flex-direction: column; gap: 12px; }
     .active { display: flex; }
 
@@ -38,12 +37,11 @@
       .screen { padding-top: 5vh; }
     }
 
-    /* Исправленное центрирование обложки */
     #cover-screen {
       text-align: center;
       align-items: center;
       justify-content: center;
-      height: 100vh; /* На всю высоту */
+      height: 100vh;
       gap: 20px;
       background: transparent;
       color: var(--text-main);
@@ -56,7 +54,7 @@
       text-transform: uppercase;
       letter-spacing: 1px;
     }
-    
+
     p {
       font-size: 1.1rem;
       line-height: 1.6;
@@ -71,7 +69,7 @@
       margin-top: 0;
       padding: 0 10px;
     }
-    
+
     @media (min-width: 400px) {
       .main-menu-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -94,9 +92,9 @@
     }
 
     .menu-card:active { transform: scale(0.95); box-shadow: inset 5px 5px 10px #0b0b0c, inset -5px -5px 10px #25252c; }
-    
-    .menu-card-icon { 
-      font-size: 2.5rem; 
+
+    .menu-card-icon {
+      font-size: 2.5rem;
       background: #121214;
       width: 70px;
       height: 70px;
@@ -107,22 +105,19 @@
       border: 2px solid var(--primary);
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.2);
     }
-    
+
     .menu-card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* -------- СПИСКИ -------- */
-    .section-title { 
-      font-size: 1.8rem; 
+    .section-title {
+      font-size: 1.8rem;
       font-weight: 800;
-      margin-bottom: 20px; 
+      margin-bottom: 20px;
       color: var(--text-main);
       padding-left: 5px;
-      border: none;
       text-align: left;
-      text-shadow: none;
       text-transform: uppercase;
     }
-    
+
     .list-item {
       background: var(--card-bg);
       border-radius: 12px;
@@ -137,7 +132,7 @@
       border: 1px solid rgba(255,255,255,0.05);
       transition: transform 0.2s;
     }
-    
+
     .list-item.completed {
       border: 1px solid var(--game-green);
       box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
@@ -145,22 +140,21 @@
 
     .list-item:active { transform: scale(0.98); }
     .list-item-info { flex: 1; overflow: hidden; }
-    .list-item-title { 
-      font-size: 1.1rem; 
+    .list-item-title {
+      font-size: 1.1rem;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       margin-bottom: 5px;
     }
-    
+
     .list-item.completed .list-item-title::after {
       content: ' ✅';
       color: var(--game-green);
     }
     .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
 
-    /* -------- РИДЕР -------- */
     #reader-screen { padding: 0; height: 100vh; flex-direction: column; background: var(--bg-color); }
     #reader-topbar {
       display: flex;
@@ -171,37 +165,34 @@
       position: relative;
       z-index: 100;
     }
-    #back-btn { 
-      background: transparent; 
-      border: none; 
-      font-size: 1.5rem; 
-      color: var(--text-main); 
-      padding: 5px 10px; 
-      cursor: pointer; 
+    #back-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-main);
+      padding: 5px 10px;
+      cursor: pointer;
       margin-right: 10px;
       box-shadow: none;
     }
     #back-btn:active { opacity: 0.6; transform: none; }
-    
     #reader-header-title { font-size: 1.1rem; font-weight: 700; }
-    
     #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
 
-    /* Центрированная кнопка */
     .btn-primary {
       background: var(--primary);
       color: white;
-      border: none; 
-      border-radius: 50px; 
+      border: none;
+      border-radius: 50px;
       padding: 16px;
       font-family: 'Montserrat', sans-serif;
       font-size: 1.1rem;
       font-weight: 800;
       text-transform: uppercase;
-      cursor: pointer; 
+      cursor: pointer;
       width: 80%;
       max-width: 280px;
-      margin: 0 auto; /* Дополнительная гарантия центра */
+      margin: 0 auto;
       box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
       transition: transform 0.2s;
     }
@@ -210,7 +201,6 @@
       box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
     }
 
-    /* -------- РЕЙТИНГ -------- */
     .leaderboard-item {
       background: var(--card-bg);
       border-radius: 15px;
@@ -295,6 +285,153 @@
   tg.ready();
   tg.expand();
 
+  // Получаем user_id из Telegram initData
+  function getUserId() {
+    // Пробуем получить из initDataUnsafe (безопасные данные)
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return tg.initDataUnsafe.user.id;
+    }
+    // Если нет (тест в браузере), пробуем из строки initData
+    if (tg.initData) {
+      const urlParams = new URLSearchParams(tg.initData);
+      const userStr = urlParams.get('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(decodeURIComponent(userStr));
+          return user.id;
+        } catch (e) {
+          console.error('Failed to parse user from initData:', e);
+        }
+      }
+    }
+    return null;
+  }
+
+  // Хранилище статистики в памяти
+  let stats = {
+    clown_games: 0,
+    clown_wins: 0,
+    vladeos_games: 0,
+    vladeos_wins: 0,
+    tower_max_level: 0,
+    tower_total_levels: 0,
+    quests: []
+  };
+
+  // Загружаем статистику из localStorage при старте
+  function loadStats() {
+    stats.clown_games = parseInt(localStorage.getItem('clown_games') || '0');
+    stats.clown_wins = parseInt(localStorage.getItem('clown_wins') || '0');
+    stats.vladeos_games = parseInt(localStorage.getItem('vladeos_games') || '0');
+    stats.vladeos_wins = parseInt(localStorage.getItem('vladeos_wins') || '0');
+    stats.tower_max_level = parseInt(localStorage.getItem('tower_max_level') || '0');
+    stats.tower_total_levels = parseInt(localStorage.getItem('tower_total_levels') || '0');
+    try {
+      stats.quests = JSON.parse(localStorage.getItem('completed_items') || '[]');
+    } catch (e) {
+      stats.quests = [];
+    }
+    console.log('📊 Статистика загружена:', stats);
+  }
+
+  // Сохраняем статистику в localStorage и отправляем на сервер
+  function saveStats(sendImmediately = true) {
+    localStorage.setItem('clown_games', stats.clown_games.toString());
+    localStorage.setItem('clown_wins', stats.clown_wins.toString());
+    localStorage.setItem('vladeos_games', stats.vladeos_games.toString());
+    localStorage.setItem('vladeos_wins', stats.vladeos_wins.toString());
+    localStorage.setItem('tower_max_level', stats.tower_max_level.toString());
+    localStorage.setItem('tower_total_levels', stats.tower_total_levels.toString());
+    localStorage.setItem('completed_items', JSON.stringify(stats.quests));
+    
+    console.log('💾 Статистика сохранена в localStorage:', stats);
+    
+    if (sendImmediately) {
+      sendStatsToServer();
+    }
+  }
+
+  // Отправка статистики на сервер
+  function sendStatsToServer() {
+    const userId = getUserId();
+    if (!userId) {
+      console.log('⚠️ Нет user_id, отмена отправки статистики');
+      return;
+    }
+
+    const data = {
+      type: 'sync_stats',
+      userId: userId,
+      clown_games: stats.clown_games,
+      clown_wins: stats.clown_wins,
+      vladeos_games: stats.vladeos_games,
+      vladeos_wins: stats.vladeos_wins,
+      tower_max_level: stats.tower_max_level,
+      tower_total_levels: stats.tower_total_levels,
+      quests: stats.quests
+    };
+
+    console.log('📡 Отправка статистики на сервер:', data);
+
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      console.log('📥 Ответ сервера:', response.status);
+      return response.json();
+    })
+    .then(result => {
+      if (result.status === 'ok') {
+        console.log('✅ Статистика успешно записана в базу!');
+      } else {
+        console.error('❌ Ошибка записи:', result.message);
+      }
+    })
+    .catch(err => {
+      console.error('❌ Ошибка сети:', err);
+    });
+  }
+
+  // Отправка урона боссу
+  function sendBossDamage(damage) {
+    const userId = getUserId();
+    if (!userId) {
+      console.log('⚠️ Нет user_id, отмена отправки урона боссу');
+      return;
+    }
+
+    const data = {
+      type: 'boss_damage',
+      userId: userId,
+      damage: damage
+    };
+
+    console.log('⚔️ Отправка урона боссу:', data);
+
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.status === 'ok') {
+        console.log('✅ Урон боссу записан!');
+      } else {
+        console.error('❌ Ошибка записи урона:', result.message);
+      }
+    })
+    .catch(err => {
+      console.error('❌ Ошибка сети:', err);
+    });
+  }
+
   const DATA = {
     newspapers: {
       title: "📰 Газеты",
@@ -372,7 +509,7 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     window.scrollTo(0,0);
-    
+
     tg.BackButton.offClick(handleBack);
     if (screenId === 'cover-screen') tg.BackButton.hide();
     else {
@@ -412,23 +549,17 @@
 
   function markAsCompleted(id) {
     if (!id) return;
-    try {
-      let completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
-      if (!completed.includes(id)) {
-        completed.push(id);
-        localStorage.setItem('completed_items', JSON.stringify(completed));
-        // Обновляем список, если он открыт
-        if (currentCategory) {
-          renderCategory(currentCategory);
-        }
-      }
-    } catch (e) {
-      console.error(e);
+    if (!stats.quests.includes(id)) {
+      stats.quests.push(id);
+      saveStats(true); // Сразу отправляем на сервер
+      console.log('✅ Квест завершен:', id);
+    }
+    if (currentCategory) {
+      renderCategory(currentCategory);
     }
   }
 
   function handleItemClick(item) {
-    // Если это ссылка или внешний ресурс, отмечаем как прочитанное сразу
     if ((item.type === 'link' || item.type === 'external') && item.id) {
       markAsCompleted(item.id);
     }
@@ -449,27 +580,10 @@
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
 
-    // Автоматическая отправка данных при просмотре рейтинга (асинхронно, без закрытия приложения)
-    try {
-      const data = {
-          type: 'sync_stats',
-          userId: tg.initDataUnsafe?.user?.id,
-          clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
-          clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
-          vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
-          vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
-          tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
-          tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
-          quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
-      };
-      // Отправляем данные на REST API вместо tg.sendData() чтобы не закрывать приложение
-      sendToAPI(data);
-    } catch (e) {
-      console.error("Failed to sync data", e);
-    }
+    // Сначала отправляем актуальную статистику
+    sendStatsToServer();
 
-    // Имитация данных игроков
-    // Формула для примера
+    // Показывем топ игроков
     const players = [
       { name: "Vladeos", games: 150, wins: 120, donat: 5000, login: 45, score: 0 },
       { name: "RaccoonKing", games: 300, wins: 100, donat: 0, login: 12, score: 0 },
@@ -478,12 +592,10 @@
       { name: "Guest_99", games: 5, wins: 0, donat: 0, login: 1 }
     ];
 
-    // Расчет очков
     players.forEach(p => {
       p.score = (p.wins * 15) + (p.games * 5) + (p.login * 10) + (p.donat * 1);
     });
 
-    // Сортировка
     players.sort((a, b) => b.score - a.score);
 
     players.forEach((p, i) => {
@@ -493,7 +605,12 @@
         <div class="rank-badge">#${i + 1}</div>
         <div class="player-details">
           <div class="player-name">${p.name}</div>
-          <div class="player-stats"><span class="stat-tag">🎮 ${p.games}</span> <span class="stat-tag">🏆 ${p.wins}</span> <span class="stat-tag">📅 ${p.login}</span> <span class="stat-tag">💎 ${p.donat}</span></div>
+          <div class="player-stats">
+            <span class="stat-tag">🎮 ${p.games}</span>
+            <span class="stat-tag">🏆 ${p.wins}</span>
+            <span class="stat-tag">📅 ${p.login}</span>
+            <span class="stat-tag">💎 ${p.donat}</span>
+          </div>
         </div>
         <div class="player-score">${p.score}</div>
       `;
@@ -503,153 +620,73 @@
     navigateTo('rating-screen');
   }
 
-  // Обработка сообщений от iframe (квесты, игры, башня)
+  // Обработка сообщений от iframe
   window.addEventListener('message', function(event) {
     if (!event.data) return;
 
+    console.log('📨 Сообщение от iframe:', event.data);
+
     // Завершение квеста
     if (event.data.type === 'quest_complete') {
-        // Просто отмечаем квест и обновляем список
-        markAsCompleted(event.data.id);
-        // Данные синхронизируются когда пользователь откроет рейтинг
-        // Если мы на reader-screen, очищаем iframe и возвращаемся к списку
-        const currentScreen = document.querySelector('.screen.active').id;
-        if (currentScreen === 'reader-screen') {
-            document.getElementById('reader-iframe').src = "";
-            navigateTo('list-screen');
-        }
+      markAsCompleted(event.data.id);
+      const currentScreen = document.querySelector('.screen.active').id;
+      if (currentScreen === 'reader-screen') {
+        document.getElementById('reader-iframe').src = "";
+        navigateTo('list-screen');
+      }
     }
 
-    // Статистика игр против Клоуна
+    // Игра против Клоуна
     if (event.data.type === 'game_complete' && event.data.game === 'clown') {
-        let games = parseInt(localStorage.getItem('clown_games') || '0');
-        localStorage.setItem('clown_games', games + 1);
-
-        if (event.data.win) {
-            let wins = parseInt(localStorage.getItem('clown_wins') || '0');
-            localStorage.setItem('clown_wins', wins + 1);
-        }
-        // Отправка только через REST API (не закрывает приложение)
-        sendToAPIOnly();
+      stats.clown_games++;
+      if (event.data.win) {
+        stats.clown_wins++;
+      }
+      saveStats(true);
+      console.log(`🎮 Клоун: игр=${stats.clown_games}, побед=${stats.clown_wins}`);
     }
 
-    // Статистика игр против Владоса
+    // Игра против Vladeos
     if (event.data.type === 'game_complete' && event.data.game === 'vladeos') {
-        let games = parseInt(localStorage.getItem('vladeos_games') || '0');
-        localStorage.setItem('vladeos_games', games + 1);
-
-        if (event.data.win) {
-            let wins = parseInt(localStorage.getItem('vladeos_wins') || '0');
-            localStorage.setItem('vladeos_wins', wins + 1);
-        }
-        // Отправка только через REST API (не закрывает приложение)
-        sendToAPIOnly();
+      stats.vladeos_games++;
+      if (event.data.win) {
+        stats.vladeos_wins++;
+      }
+      saveStats(true);
+      console.log(`⚔️ Vladeos: игр=${stats.vladeos_games}, побед=${stats.vladeos_wins}`);
     }
 
-    // Прогресс башни (максимальный уровень + сумма уровней)
+    // Башня - прогресс уровня
     if (event.data.type === 'tower_update') {
-        let currentMax = parseInt(localStorage.getItem('tower_max_level') || '0');
-        let currentTotal = parseInt(localStorage.getItem('tower_total_levels') || '0');
-
-        if (event.data.level > currentMax) {
-            localStorage.setItem('tower_max_level', event.data.level);
-        }
-        // Добавляем пройденный уровень к сумме
-        if (event.data.passed_level) {
-            localStorage.setItem('tower_total_levels', currentTotal + 1);
-            console.log('🏰 Башня: пройден уровень', event.data.level, 'Всего уровней:', currentTotal + 1);
-            // Отправка данных после каждого пройденного уровня
-            sendToAPIOnly();
-        }
+      if (event.data.level > stats.tower_max_level) {
+        stats.tower_max_level = event.data.level;
+      }
+      if (event.data.passed_level) {
+        stats.tower_total_levels++;
+        saveStats(true);
+        console.log(`🏰 Башня: макс.уровень=${stats.tower_max_level}, всего пройдено=${stats.tower_total_levels}`);
+      }
     }
 
     // Урон по боссу
     if (event.data.type === 'boss_damage') {
-        console.log('Received boss_damage from iframe:', event.data);
-        try {
-            const data = { type: 'boss_damage', damage: event.data.damage };
-            sendToAPI(data);
-            console.log('Boss damage sent to API');
-        } catch (e) {
-            console.error("Failed to send boss damage:", e);
-        }
+      sendBossDamage(event.data.damage);
     }
 
-    // Конец игры (босс)
+    // Конец игры босса
     if (event.data.type === 'game_over' && event.data.game === 'boss') {
-        const currentScreen = document.querySelector('.screen.active').id;
-        if (currentScreen === 'reader-screen') {
-            document.getElementById('reader-iframe').src = "";
-            navigateTo('list-screen');
-        }
+      const currentScreen = document.querySelector('.screen.active').id;
+      if (currentScreen === 'reader-screen') {
+        document.getElementById('reader-iframe').src = "";
+        navigateTo('list-screen');
+      }
     }
   });
 
-  // Функция отправки статистики в бот
-  function sendStatsToBot(source = null) {
-    try {
-        const data = {
-            type: 'sync_stats',
-            userId: tg.initDataUnsafe?.user?.id,
-            source: source,
-            clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
-            clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
-            vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
-            vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
-            tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
-            tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
-            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
-        };
-        tg.sendData(JSON.stringify(data));
-    } catch (e) {
-        console.error("Failed to send stats:", e);
-    }
-  }
-
-  // Отправка данных на REST API (не закрывает приложение)
-  function sendToAPI(data) {
-    console.log('📡 sendToAPI called with:', data);
-    // Отправляем данные через fetch на сервер
-    fetch('/api/sync', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => {
-      console.log('✅ API response status:', response.status);
-      return response.json();
-    })
-    .then(result => {
-      console.log('✅ API sync success:', result);
-    })
-    .catch(err => {
-      console.error('❌ Failed to send to API:', err);
-    });
-  }
-
-  // Отправка только на REST API (не закрывает приложение)
-  function sendToAPIOnly() {
-    try {
-        const data = {
-            type: 'sync_stats',
-            userId: tg.initDataUnsafe?.user?.id,
-            source: 'game_event',
-            clown_games: parseInt(localStorage.getItem('clown_games') || '0'),
-            clown_wins: parseInt(localStorage.getItem('clown_wins') || '0'),
-            vladeos_games: parseInt(localStorage.getItem('vladeos_games') || '0'),
-            vladeos_wins: parseInt(localStorage.getItem('vladeos_wins') || '0'),
-            tower_max_level: parseInt(localStorage.getItem('tower_max_level') || '0'),
-            tower_total_levels: parseInt(localStorage.getItem('tower_total_levels') || '0'),
-            quests: JSON.parse(localStorage.getItem('completed_items') || '[]')
-        };
-        console.log('📊 Отправка статистики:', data);
-        sendToAPI(data);
-    } catch (e) {
-        console.error("Failed to send to API:", e);
-    }
-  }
+  // Инициализация при загрузке
+  loadStats();
+  console.log('🦝 Raccoon Life WebApp готов!');
+  console.log('👤 User ID:', getUserId());
 </script>
 </body>
 </html>

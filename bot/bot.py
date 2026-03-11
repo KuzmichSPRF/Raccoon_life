@@ -150,7 +150,17 @@ def init_db():
         # Инициализируем босса если таблица пустая
         cursor.execute("INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp) VALUES (1, 1000000000, 1000000000)")
 
-        # Миграция для boss_global (на случай если таблица старая и без нужных колонок)
+        # Миграция для boss_damage: проверяем и добавляем last_hit если нет
+        cursor.execute("PRAGMA table_info(boss_damage)")
+        boss_damage_cols = {info[1] for info in cursor.fetchall()}
+        if 'last_hit' not in boss_damage_cols:
+            try:
+                cursor.execute("ALTER TABLE boss_damage ADD COLUMN last_hit TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                logger.info("Миграция: добавлена колонка last_hit в boss_damage")
+            except Exception as e:
+                logger.error(f"Ошибка миграции boss_damage: {e}")
+
+        # Миграция для boss_global
         cursor.execute("PRAGMA table_info(boss_global)")
         boss_cols = {info[1] for info in cursor.fetchall()}
         if 'kill_count' not in boss_cols:
@@ -160,7 +170,7 @@ def init_db():
             except Exception as e:
                 logger.error(f"Ошибка миграции boss_global: {e}")
 
-        # Миграция: Проверяем и добавляем недостающие колонки, чтобы избежать вылетов на старой БД
+        # Миграция для user_stats
         cursor.execute("PRAGMA table_info(user_stats)")
         columns = {info[1] for info in cursor.fetchall()}
         required_columns = {
@@ -177,6 +187,7 @@ def init_db():
                 except Exception as e:
                     logger.error(f"Ошибка добавления колонки {col}: {e}")
         conn.commit()
+        logger.info("✅ Инициализация БД завершена")
 
 def update_db_stats(user_id, data):
     """Записывает данные из JSON в таблицу user_stats"""
@@ -230,31 +241,31 @@ def update_boss_damage(user_id, damage):
                 total_damage = total_damage + ?,
                 last_hit = CURRENT_TIMESTAMP
             ''', (user_id, damage, damage))
-            
-            # Уменьшаем HP босса
+
+            # Уменьшаем HP босса (без last_hit, т.к. такой колонки нет в boss_global)
             cursor.execute('''
-                UPDATE boss_global SET current_hp = current_hp - ?, last_hit = CURRENT_TIMESTAMP
+                UPDATE boss_global SET current_hp = current_hp - ?
                 WHERE id = 1 AND current_hp > 0
             ''', (damage,))
-            
+
             # Проверяем не умер ли босс
             cursor.execute("SELECT current_hp FROM boss_global WHERE id = 1")
             row = cursor.fetchone()
             if row and row[0] <= 0:
                 # Босс умер! Увеличиваем счетчик убийств и возрождаем
                 cursor.execute('''
-                    UPDATE boss_global SET 
-                    current_hp = max_hp, 
+                    UPDATE boss_global SET
+                    current_hp = max_hp,
                     kill_count = kill_count + 1,
                     last_reset = CURRENT_TIMESTAMP
                 ''')
-                logger.info(f"БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
-            
+                logger.info(f"💀 БОСС УБИТ! Игрок {user_id} нанес последний удар. Возрождение...")
+
             conn.commit()
-        logger.info(f"Урон по боссу: user {user_id}, damage {damage}")
+        logger.info(f"💥 Урон по боссу: user {user_id}, damage {damage}")
         return True
     except (sqlite3.Error, Exception) as e:
-        logger.error(f"Ошибка обновления урона по боссу: {e}")
+        logger.error(f"❌ Ошибка обновления урона по боссу: {e}")
         return False
 
 def get_boss_leaderboard():
