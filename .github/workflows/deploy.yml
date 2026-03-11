@@ -22,6 +22,12 @@ jobs:
             # Переходим в папку проекта (используем переменную из секрета для пути)
             cd /home/${{ secrets.SERVER_USER }}/my_bot || exit
             
+            # 0. СОХРАНЯЕМ БАЗУ ДАННЫХ (если она есть) во временный файл
+            if [ -f "bot/users.db" ]; then
+                cp bot/users.db bot/users.db.bak
+                echo "Backup created."
+            fi
+
             # 1. Обновляем код из GitHub (сбрасываем локальные изменения, если они были)
             git fetch origin main
             git reset --hard origin/main
@@ -37,8 +43,14 @@ jobs:
             if [ -f "requirements.txt" ]; then
                 pip install -r requirements.txt
             fi
+
+            # 4. ВОССТАНАВЛИВАЕМ БАЗУ ДАННЫХ
+            if [ -f "bot/users.db.bak" ]; then
+                mv bot/users.db.bak bot/users.db
+                echo "Database restored."
+            fi
             
-            # 4. Перезапуск бота с передачей пароля в sudo
+            # 5. Перезапуск бота с передачей пароля в sudo
             # Флаг -S заставляет sudo читать пароль из стандартного ввода (echo)
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart my_bot
             
