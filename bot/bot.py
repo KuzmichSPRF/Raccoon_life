@@ -519,7 +519,89 @@ def get_leaderboard(limit: int = 10) -> list:
         conn.close()
 
 
-def get_user_tokens(user_id: int) -> dict:
+def get_user_by_username(username: str) -> dict:
+    """
+    Ищет пользователя по username (с @ или без)
+    Возвращает словарь с user_id или None
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Убираем @ если есть
+        username = username.lstrip('@')
+        
+        # Ищем по username
+        cursor.execute('''
+            SELECT user_id, username, first_name, last_name 
+            FROM users 
+            WHERE username = ?
+        ''', (username.lower(),))
+        row = cursor.fetchone()
+
+        if row:
+            return {
+                'user_id': row['user_id'],
+                'username': row['username'],
+                'first_name': row['first_name'],
+                'last_name': row['last_name']
+            }
+        
+        # Если не найдено, пробуем найти по first_name + last_name
+        cursor.execute('''
+            SELECT user_id, username, first_name, last_name 
+            FROM users 
+            WHERE LOWER(first_name) = ? OR LOWER(last_name) = ?
+        ''', (username.lower(), username.lower()))
+        row = cursor.fetchone()
+        
+        if row:
+            return {
+                'user_id': row['user_id'],
+                'username': row['username'],
+                'first_name': row['first_name'],
+                'last_name': row['last_name']
+            }
+        
+        return None
+
+    except Exception as e:
+        logger.error(f"Ошибка get_user_by_username: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def get_user_by_id_or_username(identifier: str) -> dict:
+    """
+    Ищет пользователя по ID или username
+    Возвращает словарь с user_id и информацией о пользователе
+    """
+    # Пробуем как ID (число)
+    try:
+        user_id = int(identifier)
+        # Получаем информацию о пользователе по ID
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT user_id, username, first_name, last_name 
+            FROM users 
+            WHERE user_id = ?
+        ''', (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                'user_id': row['user_id'],
+                'username': row['username'],
+                'first_name': row['first_name'],
+                'last_name': row['last_name']
+            }
+        return None
+    except ValueError:
+        # Это не число, ищем по username
+        return get_user_by_username(identifier)
     """
     Получает баланс токенов пользователя
 
@@ -1062,7 +1144,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Команда для админа: /add <user_id> <amount> [reason]
+    Команда для админа: /add <username|user_id> <amount> [reason]
     Начисляет токены пользователю и уведомляет его
     """
     # Проверка прав администратора
@@ -1073,22 +1155,36 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Проверка аргументов
     if len(context.args) < 2:
         await update.message.reply_text(
-            "❌ Использование: /add <user_id> <amount> [reason]\n"
+            "❌ Использование: /add <username|user_id> <amount> [reason]\n"
+            "Пример: /add @username 100 За победу в турнире\n"
             "Пример: /add 123456789 100 За победу в турнире"
         )
         return
 
     try:
-        user_id = int(context.args[0])
         amount = int(context.args[1])
         reason = ' '.join(context.args[2:]) if len(context.args) > 2 else 'Начисление админом'
     except ValueError:
-        await update.message.reply_text("❌ user_id и amount должны быть числами!")
+        await update.message.reply_text("❌ amount должен быть числом!")
         return
 
     if amount <= 0:
         await update.message.reply_text("❌ amount должен быть больше 0!")
         return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
 
     # Начисляем токены
     result = add_tokens(user_id, amount, f'admin_grant:{reason}')
@@ -1097,7 +1193,8 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Отправляем уведомление админу
         await update.message.reply_text(
             f"✅ Успешно!\n"
-            f"👤 Пользователь: {user_id}\n"
+            f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"🆔 ID: {user_id}\n"
             f"💰 Начислено: {amount} $ENT\n"
             f"📝 Причина: {reason}\n"
             f"💳 Новый баланс: {result['balance']} $ENT"
@@ -1129,7 +1226,7 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Команда для админа: /balance <user_id>
+    Команда для админа: /balance <username|user_id>
     Проверяет баланс пользователя
     """
     # Проверка прав администратора
@@ -1140,35 +1237,33 @@ async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Проверка аргументов
     if len(context.args) < 1:
         await update.message.reply_text(
-            "❌ Использование: /balance <user_id>\n"
+            "❌ Использование: /balance <username|user_id>\n"
+            "Пример: /balance @username\n"
             "Пример: /balance 123456789"
         )
         return
 
-    try:
-        user_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text("❌ user_id должен быть числом!")
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
         return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
 
     # Получаем баланс
     tokens = get_user_tokens(user_id)
 
-    # Получаем имя пользователя
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
-    user_row = cursor.fetchone()
-    conn.close()
-
-    if user_row:
-        name = user_row['username'] or f"{user_row['first_name'] or ''} {user_row['last_name'] or ''}".strip() or f"Игрок #{user_id}"
-    else:
-        name = f"Игрок #{user_id}"
-
     await update.message.reply_text(
         f"💳 <b>Баланс пользователя</b>\n\n"
-        f"👤 {name} ({user_id})\n"
+        f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
+        f"🆔 ID: {user_id}\n"
         f"💰 Баланс: <b>{tokens['balance']} $ENT</b>\n"
         f"📊 Всего заработано: {tokens['total_earned']} $ENT\n"
         f"💸 Всего потрачено: {tokens['total_spent']} $ENT",
@@ -1178,7 +1273,7 @@ async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Команда для админа: /spend <user_id> <amount> [reason]
+    Команда для админа: /spend <username|user_id> <amount> [reason]
     Списывает токены у пользователя и уведомляет его
     """
     # Проверка прав администратора
@@ -1189,22 +1284,36 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # Проверка аргументов
     if len(context.args) < 2:
         await update.message.reply_text(
-            "❌ Использование: /spend <user_id> <amount> [reason]\n"
+            "❌ Использование: /spend <username|user_id> <amount> [reason]\n"
+            "Пример: /spend @username 50 Штраф за читы\n"
             "Пример: /spend 123456789 50 Штраф за читы"
         )
         return
 
     try:
-        user_id = int(context.args[0])
         amount = int(context.args[1])
         reason = ' '.join(context.args[2:]) if len(context.args) > 2 else 'Списание админом'
     except ValueError:
-        await update.message.reply_text("❌ user_id и amount должны быть числами!")
+        await update.message.reply_text("❌ amount должен быть числом!")
         return
 
     if amount <= 0:
         await update.message.reply_text("❌ amount должен быть больше 0!")
         return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
 
     # Списываем токены
     result = spend_tokens(user_id, amount, f'admin_spend:{reason}')
@@ -1213,7 +1322,8 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Отправляем уведомление админу
         await update.message.reply_text(
             f"✅ Успешно!\n"
-            f"👤 Пользователь: {user_id}\n"
+            f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"🆔 ID: {user_id}\n"
             f"💰 Списано: {amount} $ENT\n"
             f"📝 Причина: {reason}\n"
             f"💳 Остаток: {result['balance']} $ENT"
