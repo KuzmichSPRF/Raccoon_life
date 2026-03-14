@@ -6,6 +6,9 @@ import os
 import logging
 import sqlite3
 import json
+import hmac
+import hashlib
+from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
 from flask import Flask, jsonify, request
@@ -272,6 +275,31 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
     finally:
         conn.close()
 
+# ==================== БЕЗОПАСНОСТЬ API ====================
+
+def validate_webapp_data(init_data: str) -> dict:
+    """Проверяет подлинность данных от Telegram WebApp"""
+    if not init_data:
+        return None
+    try:
+        parsed_data = dict(parse_qsl(init_data))
+        if 'hash' not in parsed_data:
+            return None
+            
+        hash_val = parsed_data.pop('hash')
+        sorted_keys = sorted(parsed_data.keys())
+        data_check_string = '\n'.join([f"{k}={parsed_data[k]}" for k in sorted_keys])
+        
+        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        
+        if calculated_hash == hash_val:
+            if 'user' in parsed_data:
+                return json.loads(parsed_data['user'])
+        return None
+    except Exception as e:
+        logger.error(f"Error validating initData: {e}")
+        return None
 
 # ==================== API ФУНКЦИИ ====================
 
@@ -997,6 +1025,13 @@ def api_casino_roulette():
 
         user_id = int(user_id)
         bet_amount = int(bet_amount)
+        
+        # Проверка авторизации
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        auth_user = validate_webapp_data(init_data)
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            logger.warning(f"🚨 БЛОКИРОВКА Рулетки: неверная подпись или подделка ID!")
+            return jsonify({'error': 'Unauthorized'}), 403
 
         if bet_amount <= 0:
             return jsonify({'error': 'betAmount must be > 0'}), 400
@@ -1078,8 +1113,22 @@ def api_sync():
         
         data = request.get_json()
         data_type = data.get('type')
+        user_id = data.get('userId') or data.get('user_id')
         
         logger.info(f"📥 API sync: type={data_type}")
+        
+        # Криптографическая проверка авторизации для важных действий
+        if data_type in ['earn_tokens', 'spend_tokens', 'boss_damage']:
+            init_data = request.headers.get('X-Telegram-Init-Data')
+            auth_user = validate_webapp_data(init_data)
+            
+            if not auth_user:
+                logger.warning(f"🚨 БЛОКИРОВКА: Запрос {data_type} без валидной подписи Telegram!")
+                return jsonify({'status': 'error', 'message': 'Unauthorized. Please use Telegram App.'}), 403
+                
+            if str(auth_user.get('id')) != str(user_id):
+                logger.warning(f"🚨 БЛОКИРОВКА: Подделка ID! Заявлен {user_id}, реальный {auth_user.get('id')}")
+                return jsonify({'status': 'error', 'message': 'ID mismatch'}), 403
 
         if data_type == 'sync_stats':
             return handle_sync_stats(data)

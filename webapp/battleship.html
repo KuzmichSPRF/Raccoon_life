@@ -1142,7 +1142,10 @@
     
     fetch('/api/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+      },
       body: JSON.stringify(data)
     })
     .then(r => r.json())

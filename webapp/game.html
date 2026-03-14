@@ -233,7 +233,10 @@
       // Списываем 100 токенов
       fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+        },
         body: JSON.stringify({
           type: 'spend_tokens',
           userId: userId,
@@ -404,7 +407,10 @@
       
       fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+        },
         body: JSON.stringify({
           type: 'earn_tokens',
           userId: userId,

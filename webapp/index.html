@@ -357,7 +357,10 @@
     // Загружаем баланс и проверяем, есть ли 1000 токенов
     fetch(`/api/tokens?userId=${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': tg.initData || ''
+      }
     })
     .then(res => res.json())
     .then(data => {
@@ -398,8 +401,10 @@
 
     fetch('/api/sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': tg.initData || ''
+      },
       body: JSON.stringify(data),
       keepalive: true
     })
@@ -496,7 +501,8 @@
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'X-Telegram-Init-Data': tg.initData || ''
       }
     })
       .then(res => {
