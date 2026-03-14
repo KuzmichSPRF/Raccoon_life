@@ -203,26 +203,31 @@
           toggleBtns(false);
           return;
       }
-      
+
+      // Логирование действия
+      if (typeof logGameAction === 'function') {
+        logGameAction('PLAYER_ACTION', { type: type, dmg: data.player_log?.dmg, heal: data.player_log?.heal });
+      }
+
       let pTxt = type === 'attack' ? "Енот наносит четкий удар!" :
                  type === 'trash' ? "Енот закидал Клоуна мусором!" :
                  type === 'snack' ? "Енот съел сухарик и подлечился!" : "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
       if(data.player_log.is_crit) pTxt = "💥 КРИТ: " + pTxt;
-      
+
       executeAction('p1-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt, data.player_log);
-      
+
       if (data.game_over && data.win) {
           setTimeout(() => endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆", true), 1000);
           return;
       }
-      
+
       setTimeout(() => {
           let bTxt = data.bot_log.action === 'bomb' ? "🤡 Клоун взрывает огромную петарду!" :
                      data.bot_log.action === 'heal' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Клоун бьет резиновым молотком!";
           if(data.bot_log.is_crit) bTxt = "🎈 КРИТ: " + bTxt;
-          
+
           executeAction('bot-chip', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt, data.bot_log);
-          
+
           if (data.game_over && !data.win) {
               setTimeout(() => endGame("Клоун оказался хитрее... Енот повержен 🤡", false), 1000);
           } else {
@@ -238,30 +243,34 @@
         if (window.parent && window.parent.getUserId) {
           return window.parent.getUserId();
         }
-      } catch (e) {}
+      } catch (e) {
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('AUTH_ERROR', 'Failed to get user ID from parent', { error: e.message });
+        }
+      }
       return null;
     }
     
     function buyCookie() {
       if (!active) return;
-      
+
       let userId = getUserId();
-      
+
       if (!userId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
         return;
       }
-      
+
       // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
-      
+
       document.getElementById('log').innerText = "🍪 Покупка печеньки...";
-      
+
       // Списываем 100 токенов
       fetch('/api/sync', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
         },
@@ -278,12 +287,12 @@
       })
       .then(result => {
         console.log('Result:', result);
-        
+
         // Проверяем статус ответа
         if (result.status === 'error') {
           const errorMsg = result.message || 'Ошибка сервера';
           console.error('API Error:', errorMsg);
-          
+
           if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
             document.getElementById('log').innerText = "❌ Недостаточно токенов!";
           } else {
@@ -291,17 +300,47 @@
           }
           return;
         }
-        
+
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
             window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
           }
-          
-          // Восстанавливаем 100% здоровья
+
+          // Восстанавливаем 100% здоровья и обновляем состояние на сервере
           pHP = pStats.maxHp;
-          updateUI();
-          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
           
+          // Обновляем состояние на сервере через game/clown endpoint
+          fetch('/api/game/clown', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+            },
+            body: JSON.stringify({
+              userId: userId,
+              action: 'cookie_heal',
+              healAmount: pHP
+            })
+          })
+          .then(r => r.json())
+          .then(healResult => {
+            console.log('Heal result:', healResult);
+            if (healResult.status === 'ok' && healResult.state) {
+              // Синхронизируем состояние с сервером
+              pHP = healResult.state.pHP || pHP;
+              pNRG = healResult.state.pNRG || pNRG;
+              bHP = healResult.state.bHP || bHP;
+              bNRG = healResult.state.bNRG || bNRG;
+            }
+            updateUI();
+          })
+          .catch(err => {
+            console.error('Heal sync error:', err);
+            updateUI();
+          });
+          
+          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+
           // Анимация лечения
           const chip = document.getElementById('p1-chip');
           chip.classList.add('heal-effect');
@@ -399,17 +438,23 @@
 
       // Отправляем результат родителю (победа если у бота <= 0 HP)
       const isWin = (bHP <= 0);
-      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, window.location.origin);
       
+      // Логирование результата игры
+      if (typeof logGameAction === 'function') {
+        logGameAction('GAME_END', { win: isWin, player_hp: pHP, bot_hp: bHP });
+      }
+      
+      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, window.location.origin);
+
       // Показываем награду при победе
       if (isWin) {
         showReward(10);
-      } else {
-        // Показываем кнопку "Сыграть ещё" при поражении
-        const restartBtn = document.getElementById('restart-btn');
-        if (restartBtn) {
-          restartBtn.style.display = 'block';
-        }
+      }
+      
+      // Показываем кнопку "Сыграть ещё" в любом случае
+      const restartBtn = document.getElementById('restart-btn');
+      if (restartBtn) {
+        restartBtn.style.display = 'block';
       }
     }
     

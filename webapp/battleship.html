@@ -514,7 +514,7 @@
   let gameOver = false;
   let movesCount = 0;
   let userId = null;
-  
+
   // Переменные для расстановки
   let selectedShipSize = null;
   let isHorizontal = true;
@@ -524,6 +524,14 @@
   // Инициализация
   function init() {
     userId = getUserId();
+    
+    // Security логирование инициализации
+    logSecurityEvent('GAME_INIT', 'Battleship game initialized', {
+      user_id: userId,
+      has_init_data: !!tg.initData,
+      has_init_data_unsafe: !!tg.initDataUnsafe
+    });
+    
     createEmptyBoard();
     initShipSelector();
     renderPlacementBoard();
@@ -541,10 +549,88 @@
         try {
           const user = JSON.parse(decodeURIComponent(userStr));
           return user.id;
-        } catch (e) {}
+        } catch (e) {
+          logSecurityEvent('AUTH_ERROR', 'Failed to parse user data', { error: e.message });
+        }
       }
     }
     return localStorage.getItem('rl_user_id');
+  }
+
+  // ==================== SECURITY MONITORING ====================
+  const SECURITY_LOG_BUFFER = [];
+  const MAX_BUFFER_SIZE = 50;
+  const FLUSH_INTERVAL = 30000; // 30 секунд
+
+  function logSecurityEvent(eventType, message, details = {}) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      event_type: eventType,
+      message: message,
+      user_id: userId || null,
+      game: 'battleship',
+      details: details,
+      page_url: window.location.href,
+      user_agent: navigator.userAgent
+    };
+
+    console.log(`🔒 [SECURITY] ${eventType}: ${message}`, details);
+
+    // Добавляем в буфер
+    SECURITY_LOG_BUFFER.push(logEntry);
+
+    // Ограничиваем размер буфера
+    if (SECURITY_LOG_BUFFER.length > MAX_BUFFER_SIZE) {
+      SECURITY_LOG_BUFFER.shift();
+    }
+  }
+
+  function flushSecurityLogs() {
+    if (SECURITY_LOG_BUFFER.length === 0) return;
+
+    const logsToSend = [...SECURITY_LOG_BUFFER];
+    SECURITY_LOG_BUFFER.length = 0;
+
+    // Отправляем логи на сервер для SIEM
+    fetch('/api/security/log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+      },
+      body: JSON.stringify({ logs: logsToSend }),
+      keepalive: true
+    })
+    .then(r => {
+      if (!r.ok) {
+        console.warn('⚠️ Failed to send security logs to server');
+      }
+    })
+    .catch(err => {
+      console.warn('⚠️ Security log flush error:', err);
+    });
+  }
+
+  // Периодическая отправка логов
+  setInterval(flushSecurityLogs, FLUSH_INTERVAL);
+
+  // Отправка логов при закрытии страницы
+  window.addEventListener('beforeunload', flushSecurityLogs);
+
+  function logGameAction(action, details = {}) {
+    logSecurityEvent('GAME_ACTION', action, details);
+  }
+
+  function logApiError(endpoint, error, responseStatus) {
+    logSecurityEvent('API_ERROR', `Error calling ${endpoint}`, {
+      error: error?.message || error,
+      status: responseStatus,
+      endpoint: endpoint
+    });
+  }
+
+  function logSuspiciousActivity(reason, details = {}) {
+    logSecurityEvent('SUSPICIOUS_ACTIVITY', reason, details);
   }
 
   function createEmptyBoard() {
@@ -1131,27 +1217,44 @@
   }
 
   function earnTokens(amount, reason) {
-    if (!userId) return;
-    
+    if (!userId) {
+      logSuspiciousActivity('earnTokens without userId', { amount: amount, reason: reason });
+      return;
+    }
+
+    logGameAction('TOKEN_EARN_REQUEST', { amount: amount, reason: reason });
+
     const data = {
       userId: userId
     };
-    
+
     fetch('/api/game/battleship', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
       },
       body: JSON.stringify(data)
     })
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) {
+        logApiError('/api/game/battleship', `HTTP ${r.status}`, r.status);
+        throw new Error(`HTTP ${r.status}`);
+      }
+      return r.json();
+    })
     .then(result => {
       if (result.status === 'ok') {
+        logGameAction('GAME_WIN_REPORTED', { win: true, game: 'battleship' });
         window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, window.location.origin);
+      } else {
+        logApiError('/api/game/battleship', result.error || 'Unknown error', null);
       }
     })
-    .catch(err => console.error('❌ Error:', err));
+    .catch(err => {
+      logApiError('/api/game/battleship', err, null);
+      console.error('❌ Error:', err);
+    });
   }
 
   function resetGame() {

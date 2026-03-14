@@ -357,7 +357,11 @@
         if (window.parent && window.parent.getUserId) {
           return window.parent.getUserId();
         }
-      } catch (e) {}
+      } catch (e) {
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('AUTH_ERROR', 'Failed to get user ID from parent', { error: e.message });
+        }
+      }
       return null;
     }
 
@@ -552,17 +556,30 @@
             if (result.tokens && result.tokens.balance !== undefined) {
               window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
             }
-            
+
             // Восстанавливаем 100% здоровья
             playerHP = playerMaxHP;
             updatePlayerHP();
             document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
-            
+
+            // Логирование покупки
+            if (typeof logGameAction === 'function') {
+              logGameAction('COOKIE_PURCHASE', { game: 'boss', userId: tgUserId });
+            }
+
             // Анимация лечения
             const chip = document.getElementById('player-chip');
             if (chip) {
               chip.classList.add('heal-effect');
               setTimeout(() => chip.classList.remove('heal-effect'), 400);
+            }
+          } else if (result.status === 'error') {
+            // Обработка ошибки
+            const errorMsg = result.message || 'Ошибка сервера';
+            document.getElementById('log').innerText = "❌ " + errorMsg;
+            
+            if (typeof logApiError === 'function') {
+              logApiError('/api/sync', errorMsg, null);
             }
           } else {
             document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
@@ -572,6 +589,10 @@
       .catch(err => {
         console.error('❌ Network Error:', err);
         document.getElementById('log').innerText = "❌ Ошибка сети!";
+        
+        if (typeof logApiError === 'function') {
+          logApiError('/api/sync', err, null);
+        }
       })
       .finally(() => {
         setTimeout(() => {

@@ -292,38 +292,58 @@
         if (window.parent && window.parent.getUserId) {
           return window.parent.getUserId();
         }
-      } catch (e) {}
+      } catch (e) {
+        if (typeof logSecurityEvent === 'function') {
+          logSecurityEvent('AUTH_ERROR', 'Failed to get user ID from parent', { error: e.message });
+        }
+      }
       return null;
     }
 
     function buyCookie() {
       let userId = getUserId();
-      
+
       if (!userId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
         return;
       }
-      
+
       // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
-      
+
       document.getElementById('log').innerText = "🍪 Покупка печеньки...";
-      
+
+      // Логирование покупки
+      if (typeof logGameAction === 'function') {
+        logGameAction('COOKIE_PURCHASE', { game: 'tower', userId: userId });
+      }
+
       apiCall('cookie')
       .then(result => {
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
             window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
           }
-          
-          pStats.hp = result.state.pHP;
+
+          // Синхронизируем состояние с сервером
+          pStats.hp = result.state.pHP || 100;
+          pStats.nrg = result.state.pNRG || pStats.nrg;
           updateUI();
           document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
-          
+
           const chip = document.getElementById('p-chip');
           chip.classList.add('heal-effect');
           setTimeout(() => chip.classList.remove('heal-effect'), 400);
+        } else if (result.status === 'error') {
+          // Обработка ошибки (например, недостаточно токенов)
+          const errorMsg = result.error || 'Ошибка сервера';
+          document.getElementById('log').innerText = "❌ " + errorMsg;
+          
+          // Логирование ошибки
+          if (typeof logApiError === 'function') {
+            logApiError('/api/game/tower', errorMsg, null);
+          }
         } else {
           document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
         }
@@ -331,6 +351,11 @@
       .catch(err => {
         console.error('❌ Error:', err);
         document.getElementById('log').innerText = "❌ Ошибка сети!";
+        
+        // Логирование ошибки сети
+        if (typeof logApiError === 'function') {
+          logApiError('/api/game/tower', err, null);
+        }
       })
       .finally(() => {
         setTimeout(() => {

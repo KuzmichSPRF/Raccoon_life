@@ -1195,6 +1195,58 @@ def api_get_tokens():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/security/log', methods=['POST'])
+def api_security_log():
+    """
+    Endpoint для приёма security логов от клиентов
+    Логи отправляются в SIEM систему или сохраняются для анализа
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        logs = data.get('logs', [])
+
+        if not isinstance(logs, list):
+            return jsonify({'error': 'logs must be an array'}), 400
+
+        # Обрабатываем каждый лог
+        for log_entry in logs:
+            event_type = log_entry.get('event_type', 'UNKNOWN')
+            message = log_entry.get('message', '')
+            user_id = log_entry.get('user_id')
+            details = log_entry.get('details', {})
+            timestamp = log_entry.get('timestamp', '')
+            game = log_entry.get('game', 'unknown')
+
+            # Логируем в security logger
+            security_logger.info(
+                f"CLIENT_SECURITY_LOG: game={game}, event={event_type}, user_id={user_id}, message={message}",
+                extra={
+                    'client_log': True,
+                    'game': game,
+                    'event_type': event_type,
+                    'user_id': user_id,
+                    'details': details,
+                    'timestamp': timestamp
+                }
+            )
+
+            # Проверка на подозрительную активность
+            if event_type in ['SUSPICIOUS_ACTIVITY', 'AUTH_ERROR']:
+                security_logger.warning(
+                    f"🚨 CLIENT ALERT: game={game}, event={event_type}, user_id={user_id}, message={message}",
+                    extra={'details': details}
+                )
+
+        return jsonify({'status': 'ok', 'received': len(logs)})
+
+    except Exception as e:
+        logger.error(f"Ошибка api_security_log: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/casino/roulette', methods=['POST'])
 @limiter.limit("20 per minute")
 def api_casino_roulette():
@@ -1432,11 +1484,12 @@ def api_game_clown():
             state = {'pHP': 100, 'pNRG': 0, 'bHP': 100, 'bNRG': 0}
             save_game_session(user_id, 'clown', state)
             return jsonify({'status': 'ok', 'state': state})
-            
+
         state = get_game_session(user_id, 'clown')
         if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
-        
-        if action == 'cookie':
+
+        # Обработка лечения печенькой (два варианта: 'cookie' и 'cookie_heal')
+        if action in ['cookie', 'cookie_heal']:
             spend_result = spend_tokens(user_id, 100, 'cookie_heal')
             if not spend_result: return jsonify({'status': 'error', 'error': 'Недостаточно токенов!'}), 400
             state['pHP'] = 100
