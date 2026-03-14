@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Морской Бой</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+      --water: #1a3a5c;
+      --water-hover: #2a5a8c;
+      --ship: #4a6fa5;
+      --hit: #ff4444;
+      --miss: #888888;
+      --kill: #ff6b6b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 10px;
+      overflow-x: hidden;
+    }
+    
+    .game-container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    
+    .game-header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .game-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    
+    .game-status {
+      font-size: 0.9rem;
+      color: var(--text-sec);
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 10px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .game-status.win {
+      background: linear-gradient(145deg, #1a5c3a, #0d3d22);
+      border: 1px solid #00ff88;
+      color: #00ff88;
+    }
+    
+    .game-status.lose {
+      background: linear-gradient(145deg, #5c1a1a, #3d0d0d);
+      border: 1px solid var(--hit);
+      color: var(--hit);
+    }
+    
+    .game-status.enemy-turn {
+      background: linear-gradient(145deg, #5c3a1a, #3d220d);
+      border: 1px solid #ffaa00;
+      color: #ffaa00;
+      animation: pulse-border 1s infinite;
+    }
+    
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 5px rgba(255, 170, 0, 0.3); }
+      50% { box-shadow: 0 0 15px rgba(255, 170, 0, 0.6); }
+    }
+    
+    .board-container {
+      margin-bottom: 20px;
+    }
+    
+    .board-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    
+    .board {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      background: var(--card-bg);
+      padding: 5px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .cell {
+      aspect-ratio: 1;
+      background: var(--water);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    
+    .cell:active {
+      transform: scale(0.9);
+    }
+    
+    .cell.ship {
+      background: var(--ship);
+    }
+    
+    .cell.hit {
+      background: var(--hit);
+      animation: pulse 0.5s;
+    }
+    
+    .cell.miss {
+      background: var(--miss);
+    }
+    
+    .cell.kill {
+      background: var(--kill);
+      animation: pulse 0.5s;
+    }
+    
+    .cell.not-allowed {
+      cursor: not-allowed;
+    }
+    
+    .cell.enemy-target {
+      animation: enemy-target-pulse 0.5s infinite;
+      border: 2px solid #ffaa00;
+    }
+    
+    @keyframes enemy-target-pulse {
+      0%, 100% { box-shadow: 0 0 5px rgba(255, 170, 0, 0.5); }
+      50% { box-shadow: 0 0 15px rgba(255, 170, 0, 0.9); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .enemy-board .cell.ship {
+      background: var(--water);
+    }
+    
+    .enemy-board .cell.hit::after {
+      content: '✕';
+      font-size: 0.8rem;
+    }
+    
+    .enemy-board .cell.miss::after {
+      content: '•';
+      font-size: 1.2rem;
+      color: var(--text-main);
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:active {
+      transform: scale(0.95);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .reward-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      z-index: 1000;
+      border: 2px solid #ffd700;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+      animation: popIn 0.3s forwards;
+      max-width: 80%;
+    }
+    
+    @keyframes popIn {
+      to { transform: translate(-50%, -50%) scale(1); }
+    }
+    
+    .reward-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    
+    .reward-text {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #ffd700;
+      margin-bottom: 5px;
+    }
+    
+    .reward-amount {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #ffd700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 999;
+      display: none;
+    }
+    
+    .overlay.active {
+      display: block;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-sec);
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="game-header">
+      <div class="game-title">⚓ Морской Бой</div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="player-ships">10</div>
+        <div class="stat-label">Кораблей</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="enemy-ships">10</div>
+        <div class="stat-label">Врага</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="moves-count">0</div>
+        <div class="stat-label">Ходов</div>
+      </div>
+    </div>
+    
+    <div class="game-status" id="game-status">
+      Ваш ход! Стреляйте по полю врага
+    </div>
+    
+    <div class="board-container">
+      <div class="board-title">🎯 Поле врага</div>
+      <div class="board enemy-board" id="enemy-board"></div>
+    </div>
+    
+    <div class="board-container">
+      <div class="board-title">🚢 Ваше поле</div>
+      <div class="board player-board" id="player-board"></div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn btn-secondary" onclick="resetGame()">🔄 Заново</button>
+      <button class="btn btn-primary" onclick="closeGame()">✕ Выход</button>
+    </div>
+  </div>
+  
+  <div class="overlay" id="overlay" onclick="closeReward()"></div>
+  <div class="reward-popup" id="reward-popup" style="display: none;">
+    <div class="reward-icon">🎉</div>
+    <div class="reward-text">Победа!</div>
+    <div class="reward-amount">+100 $ENT</div>
+  </div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const BOARD_SIZE = 10;
+  const SHIPS = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]; // 10 кораблей
+  
+  let playerBoard = [];
+  let enemyBoard = [];
+  let playerShips = [];
+  let enemyShips = [];
+  let playerHits = [];
+  let enemyHits = [];
+  let isPlayerTurn = true;
+  let gameOver = false;
+  let movesCount = 0;
+  let userId = null;
+
+  // Инициализация
+  function init() {
+    userId = getUserId();
+    createEmptyBoard();
+    placeShips(playerBoard, playerShips, playerHits);
+    placeShips(enemyBoard, enemyShips, enemyHits);
+    renderBoards();
+    updateStats();
+  }
+
+  function getUserId() {
+    if (tg.initDataUnsafe?.user?.id) {
+      return tg.initDataUnsafe.user.id;
+    }
+    if (tg.initData) {
+      const urlParams = new URLSearchParams(tg.initData);
+      const userStr = urlParams.get('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(decodeURIComponent(userStr));
+          return user.id;
+        } catch (e) {}
+      }
+    }
+    return localStorage.getItem('rl_user_id');
+  }
+
+  function createEmptyBoard() {
+    playerBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+    enemyBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+    playerShips = [];
+    enemyShips = [];
+    playerHits = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(false));
+    enemyHits = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(false));
+  }
+
+  function placeShips(board, ships, hits) {
+    SHIPS.forEach(size => {
+      let placed = false;
+      while (!placed) {
+        const horizontal = Math.random() < 0.5;
+        const row = Math.floor(Math.random() * BOARD_SIZE);
+        const col = Math.floor(Math.random() * BOARD_SIZE);
+        
+        if (canPlaceShip(board, row, col, size, horizontal)) {
+          const ship = [];
+          for (let i = 0; i < size; i++) {
+            const r = horizontal ? row : row + i;
+            const c = horizontal ? col + i : col;
+            board[r][c] = 1;
+            ship.push({ row: r, col: c });
+          }
+          ships.push(ship);
+          placed = true;
+        }
+      }
+    });
+  }
+
+  function canPlaceShip(board, row, col, size, horizontal) {
+    for (let i = 0; i < size; i++) {
+      const r = horizontal ? row : row + i;
+      const c = horizontal ? col + i : col;
+      
+      if (r >= BOARD_SIZE || c >= BOARD_SIZE) return false;
+      if (board[r][c] === 1) return false;
+      
+      // Проверка соседних клеток
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+            if (board[nr][nc] === 1) return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  function renderBoards() {
+    renderPlayerBoard();
+    renderEnemyBoard();
+  }
+
+  function renderPlayerBoard() {
+    const board = document.getElementById('player-board');
+    board.innerHTML = '';
+    
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell not-allowed';
+        
+        if (playerBoard[row][col] === 1) {
+          cell.classList.add('ship');
+        }
+        
+        if (playerHits[row][col]) {
+          if (playerBoard[row][col] === 1) {
+            cell.classList.add('kill');
+          } else {
+            cell.classList.add('miss');
+          }
+        }
+        
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function renderEnemyBoard() {
+    const board = document.getElementById('enemy-board');
+    board.innerHTML = '';
+    
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        
+        if (enemyHits[row][col]) {
+          if (enemyBoard[row][col] === 1) {
+            cell.classList.add('kill');
+          } else {
+            cell.classList.add('miss');
+          }
+        } else if (isPlayerTurn && !gameOver) {
+          cell.onclick = () => playerShoot(row, col);
+        } else {
+          cell.classList.add('not-allowed');
+        }
+        
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function playerShoot(row, col) {
+    if (gameOver || !isPlayerTurn || enemyHits[row][col]) return;
+
+    enemyHits[row][col] = true;
+    movesCount++;
+
+    const hit = enemyBoard[row][col] === 1;
+
+    // Проверяем, убит ли корабль
+    const killedShip = checkShipKilled(row, col, enemyShips, enemyHits);
+    
+    // Если корабль убит, открываем клетки вокруг
+    if (killedShip) {
+      markAroundKilledShip(killedShip, enemyHits);
+    }
+
+    if (hit) {
+      updateStats();
+      renderEnemyBoard();
+
+      if (checkWin(enemyShips, enemyHits)) {
+        gameOver = true;
+        renderEnemyBoard();
+        showWin();
+        return;
+      }
+
+      // Стреляем снова при попадании
+      document.getElementById('game-status').textContent = killedShip ? '💀 Корабль убит! Стреляйте снова!' : '🎯 Попадание! Стреляйте снова!';
+    } else {
+      isPlayerTurn = false;
+      updateStats();
+      renderEnemyBoard();
+      document.getElementById('game-status').textContent = '🤖 Ход противника...';
+
+      setTimeout(enemyTurn, 500);
+    }
+  }
+
+  function enemyTurn() {
+    if (gameOver) return;
+    
+    const status = document.getElementById('game-status');
+    status.textContent = '🤖 Противник прицеливается...';
+    status.className = 'game-status enemy-turn';
+
+    // Простой ИИ: ищет раненые корабли, иначе стреляет случайно
+    let target = findDamagedShip();
+
+    if (!target) {
+      do {
+        target = {
+          row: Math.floor(Math.random() * BOARD_SIZE),
+          col: Math.floor(Math.random() * BOARD_SIZE)
+        };
+      } while (playerHits[target.row][target.col]);
+    }
+    
+    // Показываем куда целится враг
+    highlightEnemyTarget(target.row, target.col);
+    
+    setTimeout(() => {
+      // Убираем подсветку
+      clearEnemyTarget();
+
+      const hit = playerBoard[target.row][target.col] === 1;
+      playerHits[target.row][target.col] = true;
+      movesCount++;
+
+      // Проверяем, убит ли корабль
+      const killedShip = checkShipKilled(target.row, target.col, playerShips, playerHits);
+      
+      // Если корабль убит, открываем клетки вокруг
+      if (killedShip) {
+        markAroundKilledShip(killedShip, playerHits);
+      }
+
+      renderPlayerBoard();
+      updateStats();
+
+      if (hit) {
+        status.textContent = killedShip ? '� Корабль убит!' : '�💥 Попадание по вашему кораблю!';
+
+        if (checkWin(playerShips, playerHits)) {
+          gameOver = true;
+          status.textContent = '💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!';
+          status.className = 'game-status lose';
+          return;
+        }
+
+        // ИИ стреляет снова при попадании
+        setTimeout(enemyTurn, 800);
+      } else {
+        status.textContent = '🎯 Промах! Ваш ход!';
+        setTimeout(() => {
+          isPlayerTurn = true;
+          status.textContent = '🎯 Ваш ход! Стреляйте по полю врага';
+          status.className = 'game-status';
+          renderEnemyBoard();
+        }, 500);
+      }
+    }, 1000);
+  }
+  
+  function highlightEnemyTarget(row, col) {
+    const board = document.getElementById('player-board');
+    const index = row * BOARD_SIZE + col;
+    if (board.children[index]) {
+      board.children[index].classList.add('enemy-target');
+    }
+  }
+  
+  function clearEnemyTarget() {
+    const board = document.getElementById('player-board');
+    for (let cell of board.children) {
+      cell.classList.remove('enemy-target');
+    }
+  }
+
+  // Проверяет, убит ли корабль в данной клетке
+  function checkShipKilled(row, col, ships, hits) {
+    for (const ship of ships) {
+      // Проверяем, есть ли эта клетка в корабле
+      const inShip = ship.some(segment => segment.row === row && segment.col === col);
+      if (inShip) {
+        // Проверяем, все ли клетки корабля подбиты
+        const allHit = ship.every(segment => hits[segment.row][segment.col]);
+        if (allHit) {
+          return ship; // Возвращаем убитый корабль
+        }
+      }
+    }
+    return null;
+  }
+
+  // Помечает промахами все клетки вокруг убитого корабля
+  function markAroundKilledShip(ship, hits) {
+    for (const segment of ship) {
+      // Проверяем все соседние клетки (3x3)
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = segment.row + dr;
+          const nc = segment.col + dc;
+          
+          // Если клетка в пределах поля и ещё не отмечена
+          if (nr >= 0 && nr < BOARD_SIZE && 
+              nc >= 0 && nc < BOARD_SIZE && 
+              !hits[nr][nc]) {
+            hits[nr][nc] = true; // Помечаем как промах
+          }
+        }
+      }
+    }
+  }
+
+  function findDamagedShip() {
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        if (playerHits[row][col] && playerBoard[row][col] === 1) {
+          // Проверяем соседей
+          const neighbors = [
+            { row: row - 1, col },
+            { row: row + 1, col },
+            { row, col: col - 1 },
+            { row, col: col + 1 }
+          ];
+          
+          for (const n of neighbors) {
+            if (n.row >= 0 && n.row < BOARD_SIZE && 
+                n.col >= 0 && n.col < BOARD_SIZE && 
+                !playerHits[n.row][n.col]) {
+              return n;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function checkWin(ships, hits) {
+    for (const ship of ships) {
+      for (const segment of ship) {
+        if (!hits[segment.row][segment.col]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function updateStats() {
+    const playerAlive = countAliveShips(playerShips, playerHits);
+    const enemyAlive = countAliveShips(enemyShips, enemyHits);
+    
+    document.getElementById('player-ships').textContent = playerAlive;
+    document.getElementById('enemy-ships').textContent = enemyAlive;
+    document.getElementById('moves-count').textContent = movesCount;
+  }
+
+  function countAliveShips(ships, hits) {
+    let alive = 0;
+    for (const ship of ships) {
+      const allHit = ship.every(s => hits[s.row][s.col]);
+      if (!allHit) alive++;
+    }
+    return alive;
+  }
+
+  function showWin() {
+    const status = document.getElementById('game-status');
+    status.textContent = '🎉 ПОБЕДА! Все корабли врага уничтожены!';
+    status.className = 'game-status win';
+    
+    // Показываем награду
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('reward-popup').style.display = 'block';
+    
+    // Отправляем данные о победе (100 токенов)
+    earnTokens(100, 'battleship_win');
+    
+    // Закрываем игру через 2 секунды
+    setTimeout(() => {
+      tg.close();
+    }, 2500);
+  }
+
+  function showLose() {
+    const status = document.getElementById('game-status');
+    status.textContent = '💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!';
+    status.className = 'game-status lose';
+  }
+
+  function earnTokens(amount, reason) {
+    if (!userId) return;
+    
+    const data = {
+      type: 'earn_tokens',
+      userId: userId,
+      amount: amount,
+      reason: reason
+    };
+    
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+      console.log('✅ Tokens earned:', result);
+    })
+    .catch(err => console.error('❌ Error:', err));
+  }
+
+  function resetGame() {
+    gameOver = false;
+    isPlayerTurn = true;
+    movesCount = 0;
+    document.getElementById('game-status').textContent = '🎯 Ваш ход! Стреляйте по полю врага';
+    document.getElementById('game-status').className = 'game-status';
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('reward-popup').style.display = 'none';
+    
+    createEmptyBoard();
+    placeShips(playerBoard, playerShips, playerHits);
+    placeShips(enemyBoard, enemyShips, enemyHits);
+    renderBoards();
+    updateStats();
+  }
+
+  function closeGame() {
+    tg.close();
+  }
+
+  function closeReward() {
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('reward-popup').style.display = 'none';
+  }
+
+  // Запуск игры
+  init();
+</script>
+</body>
+</html>
