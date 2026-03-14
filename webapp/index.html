@@ -168,9 +168,12 @@
 
   // ==================== USER ID ====================
   function getUserId() {
+    // Пробуем получить из initDataUnsafe
     if (tg.initDataUnsafe?.user?.id) {
       return tg.initDataUnsafe.user.id;
     }
+    
+    // Пробуем распарсить initData
     if (tg.initData) {
       const urlParams = new URLSearchParams(tg.initData);
       const userStr = urlParams.get('user');
@@ -183,6 +186,13 @@
         }
       }
     }
+    
+    // Fallback: пробуем из localStorage
+    const storedId = localStorage.getItem('rl_user_id');
+    if (storedId) {
+      return parseInt(storedId);
+    }
+    
     return null;
   }
 
@@ -312,21 +322,37 @@
 
   function loadTokenBalance() {
     const userId = getUserId();
-    if (!userId) return;
+    
+    console.log('💳 Загрузка баланса токенов... userId:', userId);
+    
+    if (!userId) {
+      console.warn('⚠️ Нет user_id, баланс не загружен');
+      return;
+    }
 
+    console.log('📡 Запрос к /api/tokens?userId=' + userId);
+    
     fetch(`/api/tokens?userId=${userId}`)
-      .then(res => res.json())
+      .then(res => {
+        console.log('📥 Ответ сервера:', res.status);
+        return res.json();
+      })
       .then(data => {
+        console.log('📦 Данные:', data);
         if (data.status === 'ok' && data.tokens) {
           const balanceEl = document.getElementById('token-balance');
           if (balanceEl) {
             balanceEl.innerText = data.tokens.balance.toLocaleString('ru-RU');
+            console.log('✅ Баланс обновлён:', data.tokens.balance);
+          } else {
+            console.error('❌ Не найден элемент #token-balance');
           }
-          console.log('💰 Token balance:', data.tokens.balance);
+        } else {
+          console.error('❌ Ошибка в ответе сервера:', data);
         }
       })
       .catch(err => {
-        console.error('Ошибка загрузки баланса:', err);
+        console.error('❌ Ошибка загрузки баланса:', err);
       });
   }
 
@@ -359,6 +385,11 @@
     } else {
       tg.BackButton.show();
       tg.BackButton.onClick(handleBack);
+    }
+    
+    // Обновляем баланс при переходе на главный экран
+    if (screenId === 'main-menu') {
+      setTimeout(() => loadTokenBalance(), 200);
     }
   }
 
@@ -632,10 +663,24 @@
   });
 
   // ==================== INIT ====================
-  loadStats();
-  loadTokenBalance();  // Загружаем баланс токенов
-  console.log('🦝 Raccoon Life WebApp ready!');
-  console.log('👤 User ID:', getUserId());
+  // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
+  window.addEventListener('DOMContentLoaded', () => {
+    loadStats();
+    
+    // Сохраняем user_id в localStorage для future use
+    const userId = getUserId();
+    if (userId) {
+      localStorage.setItem('rl_user_id', userId);
+      console.log('💾 User ID сохранён:', userId);
+    }
+    
+    // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
+    setTimeout(() => {
+      loadTokenBalance();
+      console.log('🦝 Raccoon Life WebApp ready!');
+      console.log('👤 User ID:', getUserId());
+    }, 300);
+  });
 </script>
 </body>
 </html>
