@@ -410,11 +410,11 @@ def get_boss_damage(user_id: int) -> dict:
     """Получает урон игрока по боссу"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute('SELECT total_damage, hits, last_hit FROM boss_damage WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()
-        
+
         if row:
             return {
                 'total_damage': row['total_damage'],
@@ -422,10 +422,69 @@ def get_boss_damage(user_id: int) -> dict:
                 'last_hit': row['last_hit']
             }
         return {'total_damage': 0, 'hits': 0, 'last_hit': None}
-        
+
     except Exception as e:
         logger.error(f"Ошибка get_boss_damage: {e}")
         return {'total_damage': 0, 'hits': 0, 'last_hit': None}
+    finally:
+        conn.close()
+
+
+def get_leaderboard(limit: int = 10) -> list:
+    """
+    Получает топ игроков по максимальному урону по боссу
+
+    Args:
+        limit: Количество игроков в рейтинге (по умолчанию 10)
+
+    Returns:
+        Список словарей с данными игроков
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Получаем топ игроков по урону с данными пользователя
+        cursor.execute('''
+            SELECT 
+                u.user_id,
+                u.username,
+                u.first_name,
+                u.last_name,
+                bd.total_damage,
+                bd.hits,
+                bd.last_hit
+            FROM boss_damage bd
+            JOIN users u ON bd.user_id = u.user_id
+            WHERE bd.total_damage > 0
+            ORDER BY bd.total_damage DESC
+            LIMIT ?
+        ''', (limit,))
+
+        rows = cursor.fetchall()
+        leaderboard = []
+
+        for i, row in enumerate(rows):
+            # Формируем имя: username или first_name last_name
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': row['user_id'],
+                'name': name,
+                'total_damage': row['total_damage'],
+                'hits': row['hits'],
+                'last_hit': row['last_hit']
+            })
+
+        logger.info(f"🏆 Leaderboard: получено {len(leaderboard)} игроков")
+        return leaderboard
+
+    except Exception as e:
+        logger.error(f"Ошибка get_leaderboard: {e}")
+        return []
     finally:
         conn.close()
 
@@ -460,23 +519,47 @@ def api_get_player_stats():
     """Получить статистику игрока"""
     try:
         user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
-        
+
         if not user_id:
             return jsonify({'error': 'user_id required'}), 400
-        
+
         user_id = int(user_id)
-        
+
         stats = get_player_stats(user_id)
         damage = get_boss_damage(user_id)
-        
+
         return jsonify({
             'status': 'ok',
             'stats': stats,
             'boss_damage': damage
         })
-        
+
     except Exception as e:
         logger.error(f"Ошибка api_get_player_stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/leaderboard', methods=['GET'])
+def api_get_leaderboard():
+    """Получить рейтинг игроков по урону боссу"""
+    try:
+        limit = request.args.get('limit', 10)
+        limit = int(limit) if limit else 10
+        limit = min(limit, 100)  # Максимум 100 игроков
+
+        leaderboard = get_leaderboard(limit)
+
+        response = jsonify({
+            'status': 'ok',
+            'leaderboard': leaderboard
+        })
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    except Exception as e:
+        logger.error(f"Ошибка api_get_leaderboard: {e}")
         return jsonify({'error': str(e)}), 500
 
 

@@ -360,32 +360,57 @@
 
   function showLeaderboard() {
     const list = document.getElementById('leaderboard-list');
-    list.innerHTML = '';
+    list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка рейтинга...</div>';
 
     // Sync stats when opening leaderboard
     syncStats();
 
-    // Mock leaderboard data
-    const players = [
-      { name: "Vladeos", games: 150, wins: 120, score: 2850 },
-      { name: "RaccoonKing", games: 300, wins: 100, score: 2500 }
-    ];
+    // Загрузка рейтинга из API
+    fetch('/api/leaderboard?limit=20')
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
+          renderLeaderboard(data.leaderboard);
+        } else {
+          list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Пока нет игроков в рейтинге. Стань первым! 🏆</div>';
+        }
+      })
+      .catch(err => {
+        console.error('Ошибка загрузки рейтинга:', err);
+        list.innerHTML = '<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка загрузки рейтинга</div>';
+      });
+
+    navigateTo('rating-screen');
+  }
+
+  function renderLeaderboard(players) {
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '';
 
     players.forEach((p, i) => {
       const div = document.createElement('div');
       div.className = 'list-item';
+      
+      // Определение позиции (золото, серебро, бронза)
+      let rankColor = 'var(--primary)';
+      let rankIcon = '#' + p.rank;
+      if (p.rank === 1) { rankColor = '#ffd700'; rankIcon = '🥇'; }
+      else if (p.rank === 2) { rankColor = '#c0c0c0'; rankIcon = '🥈'; }
+      else if (p.rank === 3) { rankColor = '#cd7f32'; rankIcon = '🥉'; }
+
+      // Форматирование урона
+      const formattedDamage = p.total_damage.toLocaleString('ru-RU');
+
       div.innerHTML = `
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary); width: 40px;">#${i+1}</div>
+        <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${rankIcon}</div>
         <div style="flex: 1;">
           <div style="font-weight: 700;">${p.name}</div>
-          <div style="font-size: 0.8rem; color: var(--text-sec);">🎮 ${p.games} | 🏆 ${p.wins}</div>
+          <div style="font-size: 0.75rem; color: var(--text-sec);">💥 Ударов: ${p.hits || 0}</div>
         </div>
-        <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent);">${p.score}</div>
+        <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${formattedDamage}</div>
       `;
       list.appendChild(div);
     });
-
-    navigateTo('rating-screen');
   }
 
   // ==================== DATA ====================
