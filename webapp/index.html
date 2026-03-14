@@ -811,15 +811,10 @@
       stats.clown_games++;
       if (data.win) {
         stats.clown_wins++;
-        earnTokens(10, 'clown_win');  // 10 $ENT за победу
+        setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
       }
       saveStatsLocal();
-      console.log(`🎮 Clown: games=${stats.clown_games}, wins=${stats.clown_wins}`);
-      if (userId) {
-        syncStats();
-      } else {
-        console.warn('⚠️ Нет user_id, данные не отправлены');
-      }
+      if (userId) syncStats();
     }
 
     // Vladeos game
@@ -827,15 +822,15 @@
       stats.vladeos_games++;
       if (data.win) {
         stats.vladeos_wins++;
-        earnTokens(10, 'vladeos_win');  // 10 $ENT за победу
+        setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
       }
       saveStatsLocal();
-      console.log(`⚔️ Vladeos: games=${stats.vladeos_games}, wins=${stats.vladeos_wins}`);
-      if (userId) {
-        syncStats();
-      } else {
-        console.warn('⚠️ Нет user_id, данные не отправлены');
-      }
+      if (userId) syncStats();
+    }
+    
+    // Battleship game
+    if (data.type === 'game_complete' && data.game === 'battleship') {
+      setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
     }
 
     // Tower progress
@@ -846,20 +841,8 @@
       if (data.passed_level) {
         stats.tower_total_levels++;
         saveStatsLocal();
-        console.log(`🏰 Tower: max=${stats.tower_max_level}, total=${stats.tower_total_levels}`);
-        
-        // Начисляем токены: 1 за первые 10 уровней, дальше умножается каждые 10 уровней
-        const multiplier = Math.floor((data.level - 1) / 10) + 1;
-        const tokensToEarn = multiplier;
-        
-        console.log(`💰 Tower level ${data.level}: ${tokensToEarn} $ENT (x${multiplier})`);
-        earnTokens(tokensToEarn, 'tower_level:' + data.level);
-        
-        if (userId) {
-          syncStats();
-        } else {
-          console.warn('⚠️ Нет user_id, данные не отправлены');
-        }
+        setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
+        if (userId) syncStats();
       }
     }
 

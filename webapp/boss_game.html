@@ -581,104 +581,103 @@
       });
     }
 
-    function attack(type) {
-      console.log('Attack called:', type, 'gameActive:', gameActive);
-      if (!gameActive) {
-        console.log('Game is not active!');
-        return;
-      }
+    async function attack(type) {
+      if (!gameActive) return;
 
-      let damage = 0, message = '';
-      let isCrit = Math.random() < 0.15;
+      // Локальная проверка энергии, чтобы не спамить сервер
+      if (type === 'strong' && playerEnergy < 40) return;
+      if (type === 'ultimate' && playerEnergy < 80) return;
+      if (type === 'heal' && playerEnergy < 50) return;
 
-      switch(type) {
-        case 'basic':
-          damage = Math.floor(Math.random() * 50) + 50;
-          playerEnergy = Math.min(100, playerEnergy + 20);
-          message = 'Обычный удар! +20 эн';
-          updateEnergy();  // Сразу обновляем UI
-          console.log('Basic attack: energy =', playerEnergy);
-          break;
-        case 'strong':
-          damage = Math.floor(Math.random() * 100) + 150;
-          playerEnergy = Math.max(0, playerEnergy - 40);
-          message = 'Сильная атака! -40 эн';
-          updateEnergy();  // Сразу обновляем UI
-          console.log('Strong attack: energy =', playerEnergy);
-          break;
-        case 'ultimate':
-          damage = Math.floor(Math.random() * 300) + 400;
-          playerEnergy = Math.max(0, playerEnergy - 80);
-          isCrit = true;
-          message = '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн';
-          updateEnergy();  // Сразу обновляем UI
-          console.log('Ultimate: energy =', playerEnergy);
-          break;
-        case 'heal':
-          playerEnergy = Math.max(0, playerEnergy - 50);
-          const heal = Math.floor(Math.random() * 20) + 30;
-          playerHP = Math.min(playerMaxHP, playerHP + heal);
-          message = '💚 Лечение +' + heal + ' HP! -50 эн';
+      // Блокируем кнопки
+      document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+      document.getElementById('msg').innerText = "Атакуем...";
+
+      try {
+        const res = await fetch('/api/boss/attack', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+          },
+          body: JSON.stringify({ userId: tgUserId, action: type })
+        });
+
+        const data = await res.json();
+
+        if (data.status === 'error') {
+            document.getElementById('msg').innerText = "❌ Ошибка: " + (data.message || 'Сбой API');
+            updateEnergy();
+            return;
+        }
+
+        let damage = data.damage;
+        let heal = data.heal;
+        let isCrit = data.is_crit;
+        let bossDamage = data.boss_damage;
+        let energyChange = data.energy_change;
+        let message = '';
+
+        // Применяем серверные данные
+        playerEnergy = Math.max(0, Math.min(100, playerEnergy + energyChange));
+        
+        if (type === 'basic') message = 'Обычный удар! +20 эн';
+        else if (type === 'strong') message = 'Сильная атака! -40 эн';
+        else if (type === 'ultimate') message = '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн';
+        else if (type === 'heal') {
+            playerHP = Math.min(playerMaxHP, playerHP + heal);
+            message = '💚 Лечение +' + heal + ' HP! -50 эн';
+            updatePlayerHP();
+        }
+
+        if (type !== 'heal') {
+          if (isCrit) {
+            playerStats.crits++;
+            message = '💥 КРИТ! ' + message;
+          }
+          bossHP = data.boss_hp;
+          playerStats.totalDamage += damage;
+          playerStats.hits++;
+
+          showDamageNumber(damage, isCrit, false);
+          const boss = document.getElementById('boss');
+          boss.classList.remove('hit');
+          void boss.offsetWidth;
+          boss.classList.add('hit');
+
+          const playerChip = document.getElementById('player-chip');
+          playerChip.classList.add('animate-attack');
+          setTimeout(() => playerChip.classList.remove('animate-attack'), 400);
+        }
+
+        // Ответ босса
+        if (bossDamage > 0) {
+          playerHP -= bossDamage;
           updatePlayerHP();
-          updateEnergy();  // Сразу обновляем UI
-          console.log('Heal: energy =', playerEnergy);
-          break;
-      }
+          message += ' Босс ответил на ' + bossDamage + ' урона!';
+          showDamageNumber(bossDamage, false, true);
 
-      if (type !== 'heal') {
-        if (isCrit) {
-          damage = Math.floor(damage * 2);
-          playerStats.crits++;
-          message = '💥 КРИТ! ' + message;
+          const playerChip = document.getElementById('player-chip');
+          playerChip.classList.add('hit');
+          setTimeout(() => playerChip.classList.remove('hit'), 300);
+
+          if (playerHP <= 0) {
+            gameOver();
+            return;
+          }
         }
-        bossHP -= damage;
-        playerStats.totalDamage += damage;
-        playerStats.hits++;
 
-        showDamageNumber(damage, isCrit, false);
-        const boss = document.getElementById('boss');
-        boss.classList.remove('hit');
-        void boss.offsetWidth;
-        boss.classList.add('hit');
+        updateStatsUI();
+        updateBossHP();
+        document.getElementById('msg').innerText = message;
+        document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
 
-        const playerChip = document.getElementById('player-chip');
-        playerChip.classList.add('animate-attack');
-        setTimeout(() => playerChip.classList.remove('animate-attack'), 400);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('msg').innerText = "❌ Ошибка соединения!";
       }
 
-      // Ответ босса (рандомный удар от 1 до 100)
-      if (Math.random() < 0.4) {
-        const bossDamage = Math.floor(Math.random() * 100) + 1;
-        playerHP -= bossDamage;
-        updatePlayerHP();
-        message += ' Босс ответил на ' + bossDamage + ' урона!';
-        showDamageNumber(bossDamage, false, true);
-
-        const playerChip = document.getElementById('player-chip');
-        playerChip.classList.add('hit');
-        setTimeout(() => playerChip.classList.remove('hit'), 300);
-
-        if (playerHP <= 0) {
-          gameOver();
-          return;
-        }
-      }
-
-      updateStatsUI();
-      updateBossHP();
-      updateEnergy();  // Финальное обновление энергии
-      document.getElementById('msg').innerText = message;
-      document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
-      console.log('Attack done - Energy:', playerEnergy, 'Damage:', damage);
-
-      // Отправляем урон родителю (index.html) для синхронизации с сервером
-      if (type !== 'heal') {
-        try {
-          window.parent.postMessage({ type: 'boss_damage', damage: damage, totalDamage: playerStats.totalDamage }, '*');
-        } catch (e) {
-          console.error('Failed to postMessage:', e);
-        }
-      }
+      updateEnergy();
     }
 
     function gameOver() {

@@ -1134,13 +1134,10 @@
     if (!userId) return;
     
     const data = {
-      type: 'earn_tokens',
-      userId: userId,
-      amount: amount,
-      reason: reason
+      userId: userId
     };
     
-    fetch('/api/sync', {
+    fetch('/api/game/battleship', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -1150,7 +1147,9 @@
     })
     .then(r => r.json())
     .then(result => {
-      console.log('✅ Tokens earned:', result);
+      if (result.status === 'ok') {
+        window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, '*');
+      }
     })
     .catch(err => console.error('❌ Error:', err));
   }

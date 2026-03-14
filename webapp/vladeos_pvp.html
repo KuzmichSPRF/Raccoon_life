@@ -225,42 +225,39 @@
       }, 400);
     }
 
-    function showResult() {
-      // 5% шанс на победу
-      const luckyWin = Math.random() < 0.05;
-
-      let playerNum, vladeosNum;
-
-      if (luckyWin) {
-        // Игрок побеждает с минимальным отрывом
-        vladeosNum = Math.floor(Math.random() * 90) + 1;
-        playerNum = vladeosNum + 1;
-      } else {
-        // Vladeos побеждает (как обычно)
-        playerNum = Math.floor(Math.random() * 90) + 1;
-        vladeosNum = playerNum + 1;
-      }
-
-      pScore.innerText = playerNum;
-      vScore.innerText = vladeosNum;
-
-      pScore.classList.add('visible');
-      vScore.classList.add('visible');
-
-      if (luckyWin) {
-        msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
-        msg.style.color = 'var(--game-green)';
-        // Сообщаем родителю о победе
-        window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
-        // Показываем награду
-        showReward(100);
-      } else {
-        msg.innerText = "Vladeos победил! 🏆";
-        msg.style.color = 'var(--accent)';
-        // Сообщаем родителю о поражении
-        window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
-        // Показываем кнопку рестарта
-        restartArea.classList.remove('hidden');
+    async function showResult() {
+      let userId = null;
+      try { userId = window.parent.Telegram?.WebApp?.initDataUnsafe?.user?.id || localStorage.getItem('rl_user_id'); } catch(e){}
+      
+      try {
+        const res = await fetch('/api/game/vladeos', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+          },
+          body: JSON.stringify({ userId: userId })
+        });
+        const data = await res.json();
+        
+        pScore.innerText = data.p_score || 0;
+        vScore.innerText = data.v_score || 0;
+        pScore.classList.add('visible');
+        vScore.classList.add('visible');
+  
+        if (data.win) {
+          msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
+          msg.style.color = 'var(--game-green)';
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
+          showReward(100);
+        } else {
+          msg.innerText = "Vladeos победил! 🏆";
+          msg.style.color = 'var(--accent)';
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
+          restartArea.classList.remove('hidden');
+        }
+      } catch(e) {
+        msg.innerText = "❌ Ошибка соединения!";
       }
     }
     
@@ -269,9 +266,6 @@
       const amountEl = overlay.querySelector('.reward-amount');
       amountEl.textContent = '+' + amount + ' $ENT';
       overlay.style.display = 'flex';
-      
-      // Начисляем токены
-      earnTokens(amount, 'vladeos_win');
     }
     
     function continueGame() {
@@ -279,36 +273,6 @@
       resetGame();
     }
     
-    function earnTokens(amount, reason) {
-      let userId = null;
-      if (window.parent !== window) {
-        try {
-          const tg = window.parent.tg || window.parent.Telegram?.WebApp;
-          if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            userId = tg.initDataUnsafe.user.id;
-          }
-        } catch (e) {}
-      }
-      
-      if (!userId) return;
-      
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-        },
-        body: JSON.stringify({
-          type: 'earn_tokens',
-          userId: userId,
-          amount: amount,
-          reason: reason
-        })
-      })
-      .then(r => r.json())
-      .then(result => console.log('✅ Tokens earned:', result))
-      .catch(err => console.error('❌ Error:', err));
-    }
 
     function resetGame() {
       pScore.classList.remove('visible');

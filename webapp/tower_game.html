@@ -154,13 +154,28 @@
     let eStats = { hp: 100, maxHp: 100, dmg: 10 };
     let turn = true; // true = player
 
+    async function apiCall(actionType) {
+        let userId = getUserId();
+        if (!userId) return null;
+        try {
+            const res = await fetch('/api/game/tower', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+                },
+                body: JSON.stringify({ userId: userId, action: actionType, level: level })
+            });
+            return await res.json();
+        } catch(e) { return null; }
+    }
+
     function initGame() {
       level = 1;
-      pStats = { hp: 100, maxHp: 100, nrg: 0 };
       startLevel();
     }
 
-    function startLevel() {
+    async function startLevel() {
       document.getElementById('lvl-display').innerText = "LVL " + level;
       document.getElementById('btn-next').style.display = 'none';
       toggleButtons(false);
@@ -177,19 +192,14 @@
         document.getElementById('e-chip').classList.remove('boss');
       }
 
-      // Скалирование (усложнение)
-      // Обычные враги: растем на 15% за уровень
-      // Босс: растёт медленнее - на 10% за уровень для проходимости
-      let scale;
-      if (isBoss) {
-        scale = 0.2 + (level * 0.08); // Босс: медленнее растёт (8% за уровень)
-      } else {
-        scale = 0.15 + (level * 0.1); // Обычные враги: 10% за уровень
+      const data = await apiCall('start');
+      if (data && data.status === 'ok') {
+          eStats.maxHp = data.state.eMaxHP;
+          eStats.hp = data.state.eHP;
+          eStats.dmg = data.state.eDmg;
+          pStats.hp = data.state.pHP;
+          pStats.nrg = data.state.pNRG;
       }
-      
-      eStats.maxHp = Math.floor(enemyTemplate.hp * scale);
-      eStats.hp = eStats.maxHp;
-      eStats.dmg = Math.max(1, Math.floor(enemyTemplate.dmg * scale));
 
       // UI врага
       document.getElementById('e-name').innerText = enemyTemplate.name;
@@ -200,60 +210,58 @@
       updateUI();
     }
 
-    function playerTurn(action) {
+    async function playerTurn(actionType) {
       if (!turn) return;
-      let dmg = 0, heal = 0, cost = 0, txt = "";
-      let crit = Math.random() < 0.2;
-
-      if (action === 'attack') { dmg = 15; pStats.nrg = Math.min(100, pStats.nrg + 20); txt = "Удар лапой!"; }
-      else if (action === 'trash') { dmg = 30; cost = 40; txt = "Мусорный залп!"; }
-      else if (action === 'snack') { heal = 40; cost = 30; txt = "Вкусный снэк!"; }
-      else if (action === 'rage') { dmg = 80; cost = 80; crit = true; txt = "ЯРОСТЬ ЕНОТА!"; }
-
-      if (crit && dmg > 0) { dmg = Math.floor(dmg * 1.5); txt += " (КРИТ!)"; }
+      turn = false;
+      toggleButtons(true);
       
-      pStats.nrg -= cost;
-      animateAction('p-chip', dmg, heal, crit);
+      const data = await apiCall(actionType);
+      if (!data || data.status !== 'ok') {
+          if (data && data.error === 'No active session') await apiCall('start');
+          toggleButtons(false); turn = true; return;
+      }
       
-      if (dmg > 0) eStats.hp -= dmg;
-      if (heal > 0) pStats.hp = Math.min(pStats.maxHp, pStats.hp + heal);
+      let txt = actionType === 'attack' ? "Удар лапой!" : actionType === 'trash' ? "Мусорный залп!" :
+                actionType === 'snack' ? "Вкусный снэк!" : "ЯРОСТЬ ЕНОТА!";
+      if (data.player_log.is_crit) txt += " (КРИТ!)";
 
+      pStats.nrg = data.player_log.pNRG;
+      pStats.hp = data.player_log.pHP;
+      eStats.hp = data.player_log.eHP;
+
+      animateAction('p-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit);
       document.getElementById('log').innerText = `Вы: ${txt}`;
       updateUI();
 
-      if (eStats.hp <= 0) winLevel();
-      else {
-        turn = false;
-        toggleButtons(true); // disable
-        setTimeout(enemyTurn, 1000);
+      if (data.game_over && data.win) {
+          setTimeout(winLevel, 1000);
+          return;
       }
-    }
 
-    function enemyTurn() {
-      let dmg = Math.floor(eStats.dmg * (0.8 + Math.random() * 0.4)); // Разброс урона
-      let crit = Math.random() < 0.1;
-      if (crit) dmg = Math.floor(dmg * 1.5);
+      setTimeout(() => {
+          let bTxt = `Враг атакует на ${data.bot_log.dmg} урона!`;
+          pStats.nrg = data.bot_log.pNRG;
+          pStats.hp = data.bot_log.pHP;
+          eStats.hp = data.bot_log.eHP;
 
-      animateAction('e-chip', dmg, 0, crit);
-      pStats.hp -= dmg;
-      
-      document.getElementById('log').innerText = `Враг атакует на ${dmg} урона!`;
-      updateUI();
+          animateAction('e-chip', data.bot_log.dmg, 0, data.bot_log.is_crit);
+          document.getElementById('log').innerText = bTxt;
+          updateUI();
 
-      if (pStats.hp <= 0) {
-        document.getElementById('msg').innerText = "ВЫ ПРОИГРАЛИ!";
-        document.getElementById('msg').style.color = "red";
-        setTimeout(() => location.reload(), 2000);
-      } else {
-        turn = true;
-        toggleButtons(false);
-      }
+          if (data.game_over && !data.win) {
+              document.getElementById('msg').innerText = "ВЫ ПРОИГРАЛИ!";
+              document.getElementById('msg').style.color = "red";
+              setTimeout(() => location.reload(), 2000);
+          } else {
+              turn = true;
+              toggleButtons(false);
+          }
+      }, 1500);
     }
 
     function winLevel() {
       document.getElementById('msg').innerText = "ПОБЕДА! (+30 HP)";
       document.getElementById('msg').style.color = "var(--game-green)";
-      pStats.hp = Math.min(pStats.maxHp, pStats.hp + 30); // Хил за победу
       updateUI();
       document.getElementById('btn-next').style.display = 'block';
       toggleButtons(true); // disable combat buttons
@@ -302,51 +310,17 @@
       
       document.getElementById('log').innerText = "🍪 Покупка печеньки...";
       
-      // Списываем 100 токенов
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-        },
-        body: JSON.stringify({
-          type: 'spend_tokens',
-          userId: userId,
-          amount: 100,
-          reason: 'cookie_heal'
-        })
-      })
-      .then(r => {
-        console.log('Response status:', r.status);
-        return r.json();
-      })
+      apiCall('cookie')
       .then(result => {
-        console.log('Result:', result);
-        
-        // Проверяем статус ответа
-        if (result.status === 'error') {
-          const errorMsg = result.message || 'Ошибка сервера';
-          console.error('API Error:', errorMsg);
-          
-          if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
-            document.getElementById('log').innerText = "❌ Недостаточно токенов!";
-          } else {
-            document.getElementById('log').innerText = "❌ " + errorMsg;
-          }
-          return;
-        }
-        
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
             window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
           }
           
-          // Восстанавливаем 100% здоровья
-          pStats.hp = pStats.maxHp;
+          pStats.hp = result.state.pHP;
           updateUI();
           document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
           
-          // Анимация лечения
           const chip = document.getElementById('p-chip');
           chip.classList.add('heal-effect');
           setTimeout(() => chip.classList.remove('heal-effect'), 400);

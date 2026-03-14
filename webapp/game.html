@@ -173,34 +173,62 @@
     let active = true;
     let pStats = { maxHp: 100 };
 
-    function action(type) {
+    window.addEventListener('DOMContentLoaded', () => {
+      apiCall('start');
+    });
+
+    async function apiCall(actionType) {
+        let userId = getUserId();
+        if (!userId) return null;
+        try {
+            const res = await fetch('/api/game/clown', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
+                },
+                body: JSON.stringify({ userId: userId, action: actionType })
+            });
+            return await res.json();
+        } catch(e) { return null; }
+    }
+
+    async function action(type) {
       if (!active) return;
       toggleBtns(true);
 
-      let dmg = 0, heal = 0, cost = 0, text = "";
-      let isCrit = Math.random() < 0.2;
-
-      if (type === 'attack') {
-        dmg = 10; pNRG = Math.min(100, pNRG + 20);
-        text = "Енот наносит четкий удар!";
-      } else if (type === 'trash') {
-        dmg = 25; cost = 40;
-        text = "Енот закидал Клоуна мусором!";
-      } else if (type === 'snack') {
-        heal = 30; cost = 30;
-        text = "Енот съел сухарик и подлечился!";
-      } else if (type === 'rage') {
-        dmg = 50; cost = 80; isCrit = true;
-        text = "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
+      const data = await apiCall(type);
+      if (!data || data.status !== 'ok') {
+          if (data && data.error === 'No active session') await apiCall('start');
+          toggleBtns(false);
+          return;
       }
-
-      if (isCrit && dmg > 0) { dmg = Math.floor(dmg * 1.5); text = "💥 КРИТ: " + text; }
-
-      pNRG -= cost;
-      executeAction('p1-chip', dmg, heal, isCrit, text);
-
-      if (bHP <= 0) return endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆");
-      if (active) setTimeout(botTurn, 1500);
+      
+      let pTxt = type === 'attack' ? "Енот наносит четкий удар!" :
+                 type === 'trash' ? "Енот закидал Клоуна мусором!" :
+                 type === 'snack' ? "Енот съел сухарик и подлечился!" : "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
+      if(data.player_log.is_crit) pTxt = "💥 КРИТ: " + pTxt;
+      
+      executeAction('p1-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt, data.player_log);
+      
+      if (data.game_over && data.win) {
+          setTimeout(() => endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆", true), 1000);
+          return;
+      }
+      
+      setTimeout(() => {
+          let bTxt = data.bot_log.action === 'bomb' ? "🤡 Клоун взрывает огромную петарду!" :
+                     data.bot_log.action === 'heal' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Клоун бьет резиновым молотком!";
+          if(data.bot_log.is_crit) bTxt = "🎈 КРИТ: " + bTxt;
+          
+          executeAction('bot-chip', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt, data.bot_log);
+          
+          if (data.game_over && !data.win) {
+              setTimeout(() => endGame("Клоун оказался хитрее... Енот повержен 🤡", false), 1000);
+          } else {
+              setTimeout(() => toggleBtns(false), 1000);
+          }
+      }, 1500);
     }
 
     function getUserId() {
@@ -399,36 +427,9 @@
       document.getElementById('reward-overlay').style.display = 'none';
       restartGame();
     }
-    
-    function earnTokens(amount, reason) {
-      let userId = getUserId();
-      
-      if (!userId) return;
-      
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-        },
-        body: JSON.stringify({
-          type: 'earn_tokens',
-          userId: userId,
-          amount: amount,
-          reason: reason
-        })
-      })
-      .then(r => r.json())
-      .then(result => console.log('✅ Tokens earned:', result))
-      .catch(err => console.error('❌ Error:', err));
-    }
 
-    function restartGame() {
-      // Сбрасываем статы
-      pHP = 100;
-      pNRG = 0;
-      bHP = 100;
-      bNRG = 0;
+    async function restartGame() {
+      await apiCall('start');
       active = true;
       
       // Сбрасываем UI
