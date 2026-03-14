@@ -150,6 +150,7 @@
     <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
     <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
     <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 $ENT)</button>
   </div>
 
   <button class="btn btn-std" id="restart-btn" onclick="restartGame()" style="display: none; margin-top: 15px; background: var(--game-green); color: #000;">🔄 Сыграть ещё</button>
@@ -170,11 +171,12 @@
     let pHP = 100, pNRG = 0;
     let bHP = 100, bNRG = 0;
     let active = true;
+    let pStats = { maxHp: 100 };
 
     function action(type) {
       if (!active) return;
       toggleBtns(true);
-      
+
       let dmg = 0, heal = 0, cost = 0, text = "";
       let isCrit = Math.random() < 0.2;
 
@@ -193,12 +195,72 @@
       }
 
       if (isCrit && dmg > 0) { dmg = Math.floor(dmg * 1.5); text = "💥 КРИТ: " + text; }
-      
+
       pNRG -= cost;
       executeAction('p1-chip', dmg, heal, isCrit, text);
 
       if (bHP <= 0) return endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆");
       if (active) setTimeout(botTurn, 1500);
+    }
+    
+    function buyCookie() {
+      if (!active) return;
+      
+      // Проверяем, есть ли 100 токенов
+      const userId = getUserId();
+      if (!userId) {
+        document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
+        return;
+      }
+      
+      // Блокируем кнопку на время запроса
+      const cookieBtn = document.getElementById('btn-cookie');
+      cookieBtn.disabled = true;
+      
+      // Списываем 100 токенов
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'spend_tokens',
+          userId: userId,
+          amount: 100,
+          reason: 'cookie_heal'
+        })
+      })
+      .then(r => r.json())
+      .then(result => {
+        if (result.status === 'ok') {
+          // Восстанавливаем 100% здоровья
+          pHP = pStats.maxHp;
+          updateUI();
+          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+          
+          // Анимация лечения
+          const chip = document.getElementById('p1-chip');
+          chip.classList.add('heal-effect');
+          setTimeout(() => chip.classList.remove('heal-effect'), 400);
+        } else {
+          document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+        }
+      })
+      .catch(err => {
+        console.error('❌ Error:', err);
+        document.getElementById('log').innerText = "❌ Ошибка покупки!";
+      })
+      .finally(() => {
+        setTimeout(() => {
+          cookieBtn.disabled = false;
+          if (active) toggleBtns(false);
+        }, 500);
+      });
+    }
+    
+    function getUserId() {
+      if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
+        return window.parent.tg.initDataUnsafe.user?.id;
+      }
+      return null;
     }
 
     function botTurn() {

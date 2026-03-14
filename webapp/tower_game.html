@@ -121,6 +121,7 @@
     <button class="btn btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>Мусор (40)</button>
     <button class="btn btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>Снэк (30)</button>
     <button class="btn btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>УЛЬТА (80)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100% HP</button>
     <button class="btn btn-next" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
   </div>
   
@@ -276,6 +277,61 @@
       setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 400);
     }
 
+    function buyCookie() {
+      // Проверяем, есть ли 100 токенов
+      const userId = getUserId();
+      if (!userId) {
+        document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
+        return;
+      }
+      
+      // Блокируем кнопку на время запроса
+      const cookieBtn = document.getElementById('btn-cookie');
+      cookieBtn.disabled = true;
+      
+      // Списываем 100 токенов
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'spend_tokens',
+          userId: userId,
+          amount: 100,
+          reason: 'cookie_heal'
+        })
+      })
+      .then(r => r.json())
+      .then(result => {
+        if (result.status === 'ok') {
+          // Восстанавливаем полное здоровье
+          pStats.hp = pStats.maxHp;
+          updateUI();
+          document.getElementById('log').innerText = "🍪 Печенька куплена! Здоровье восстановлено!";
+          
+          // Анимация лечения
+          const chip = document.getElementById('p-chip');
+          chip.classList.add('heal-effect');
+          setTimeout(() => chip.classList.remove('heal-effect'), 400);
+        } else {
+          document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+        }
+      })
+      .catch(err => {
+        console.error('❌ Error:', err);
+        document.getElementById('log').innerText = "❌ Ошибка покупки!";
+      })
+      .finally(() => {
+        cookieBtn.disabled = false;
+      });
+    }
+    
+    function getUserId() {
+      if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
+        return window.parent.tg.initDataUnsafe.user?.id;
+      }
+      return null;
+    }
+
     function updateUI() {
       document.getElementById('p-hp').style.width = Math.max(0, (pStats.hp / pStats.maxHp) * 100) + "%";
       document.getElementById('p-hp-text').innerText = Math.max(0, pStats.hp);
@@ -293,6 +349,11 @@
       ['btn-atk', 'btn-sp1', 'btn-sp2', 'btn-sp3'].forEach(id => {
         document.getElementById(id).disabled = disabled;
       });
+      // Кнопка печеньки всегда доступна
+      const cookieBtn = document.getElementById('btn-cookie');
+      if (cookieBtn) {
+        cookieBtn.disabled = false;
+      }
       if (!disabled) updateUI(); // Re-check energy
     }
 
