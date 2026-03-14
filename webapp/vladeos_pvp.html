@@ -106,6 +106,31 @@
     }
     .anim-left { animation: clash-left 0.4s ease-in-out; }
     .anim-right { animation: clash-right 0.4s ease-in-out; }
+    
+    /* Reward Popup */
+    .reward-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: none; align-items: center;
+      justify-content: center; z-index: 1000;
+    }
+    .reward-popup {
+      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      border-radius: 20px; padding: 30px; text-align: center;
+      border: 2px solid #ffd700; box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+      animation: popIn 0.3s forwards; max-width: 80%;
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .reward-icon { font-size: 3rem; margin-bottom: 10px; }
+    .reward-text { font-size: 1.2rem; font-weight: 800; color: #ffd700; margin-bottom: 5px; }
+    .reward-amount { font-size: 2rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    .btn-continue {
+      margin-top: 20px; padding: 14px 40px; background: var(--primary);
+      color: white; border: none; border-radius: 50px; font-weight: 800;
+      font-size: 1rem; cursor: pointer; text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
@@ -134,6 +159,16 @@
 
   <div id="restart-area" class="controls hidden">
     <button class="btn btn-diamond" onclick="resetGame()">Сыграть еще</button>
+  </div>
+  
+  <!-- Reward Popup -->
+  <div class="reward-overlay" id="reward-overlay">
+    <div class="reward-popup">
+      <div class="reward-icon">🎉</div>
+      <div class="reward-text">Победа!</div>
+      <div class="reward-amount">+10 $ENT</div>
+      <button class="btn-continue" onclick="continueGame()">Продолжить</button>
+    </div>
   </div>
 
   <script>
@@ -213,18 +248,63 @@
       vScore.classList.add('visible');
 
       if (luckyWin) {
-        msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили! +10 $ENT 🏆";
+        msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
         msg.style.color = 'var(--game-green)';
-        // Сообщаем родителю о победе (для начисления токенов)
+        // Сообщаем родителю о победе
         window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
+        // Показываем награду
+        showReward(10);
       } else {
         msg.innerText = "Vladeos победил! 🏆";
         msg.style.color = 'var(--accent)';
         // Сообщаем родителю о поражении
         window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
+        // Показываем кнопку рестарта
+        restartArea.classList.remove('hidden');
       }
-
-      restartArea.classList.remove('hidden');
+    }
+    
+    function showReward(amount) {
+      const overlay = document.getElementById('reward-overlay');
+      const amountEl = overlay.querySelector('.reward-amount');
+      amountEl.textContent = '+' + amount + ' $ENT';
+      overlay.style.display = 'flex';
+      
+      // Начисляем токены
+      earnTokens(amount, 'vladeos_win');
+    }
+    
+    function continueGame() {
+      document.getElementById('reward-overlay').style.display = 'none';
+      resetGame();
+    }
+    
+    function earnTokens(amount, reason) {
+      let userId = null;
+      if (window.parent !== window) {
+        try {
+          const tg = window.parent.tg || window.parent.Telegram?.WebApp;
+          if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            userId = tg.initDataUnsafe.user.id;
+          }
+        } catch (e) {}
+      }
+      
+      if (!userId) return;
+      
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'earn_tokens',
+          userId: userId,
+          amount: amount,
+          reason: reason
+        })
+      })
+      .then(r => r.json())
+      .then(result => console.log('✅ Tokens earned:', result))
+      .catch(err => console.error('❌ Error:', err));
     }
 
     function resetGame() {
