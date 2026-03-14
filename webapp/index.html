@@ -822,6 +822,14 @@
         stats.tower_total_levels++;
         saveStatsLocal();
         console.log(`🏰 Tower: max=${stats.tower_max_level}, total=${stats.tower_total_levels}`);
+        
+        // Начисляем токены: 1 за первые 10 уровней, дальше умножается каждые 10 уровней
+        const multiplier = Math.floor((data.level - 1) / 10) + 1;
+        const tokensToEarn = multiplier;
+        
+        console.log(`💰 Tower level ${data.level}: ${tokensToEarn} $ENT (x${multiplier})`);
+        earnTokens(tokensToEarn, 'tower_level:' + data.level);
+        
         if (userId) {
           syncStats();
         } else {
