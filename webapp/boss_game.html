@@ -468,44 +468,25 @@
         return;
       }
       
-      // Получаем user_id из Telegram или используем fallback
-      let userId = tgUserId;
-      let userIdSource = 'tgUserId';
-      
-      // Если tgUserId не найден, пробуем получить из window.parent
-      if (!userId) {
-        try {
-          if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
-            userId = window.parent.tg.initDataUnsafe.user?.id;
-            userIdSource = 'parent.tg';
-          }
-        } catch (e) {
-          console.error('Error getting user_id from parent:', e);
-        }
-      }
-      
-      // Если всё ещё нет user_id, пробуем из localStorage
-      if (!userId) {
-        const storedId = localStorage.getItem('rl_temp_user_id');
-        if (storedId) {
-          userId = parseInt(storedId);
-          userIdSource = 'localStorage';
-        }
-      }
-      
-      console.log('buyCookie: userId =', userId, 'from', userIdSource);
+      // Используем tgUserId который уже инициализирован при старте
+      const userId = tgUserId;
+      console.log('buyCookie: userId =', userId);
       
       if (!userId) {
-        document.getElementById('log').innerText = "❌ Ошибка: нет user_id. Проверьте подключение к Telegram.";
+        document.getElementById('log').innerText = "❌ Ошибка: нет user_id. Перезапустите игру.";
         return;
       }
       
       // Проверяем текущий баланс пользователя перед покупкой
       fetch(`/api/tokens?userId=${userId}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-cache'
       })
-      .then(r => r.json())
+      .then(r => {
+        console.log('Token API status:', r.status);
+        return r.json();
+      })
       .then(tokenData => {
         console.log('Token balance:', tokenData);
         const balance = tokenData.tokens?.balance || 0;
@@ -535,22 +516,17 @@
           })
         })
         .then(r => {
-          console.log('Response status:', r.status);
+          console.log('Spend tokens status:', r.status);
           return r.json();
         })
         .then(result => {
-          console.log('Result:', result);
+          console.log('Spend result:', result);
           
           // Проверяем статус ответа
           if (result.status === 'error') {
             const errorMsg = result.message || 'Ошибка сервера';
             console.error('API Error:', errorMsg);
-            
-            if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
-              document.getElementById('log').innerText = "❌ Недостаточно токенов!";
-            } else {
-              document.getElementById('log').innerText = "❌ " + errorMsg;
-            }
+            document.getElementById('log').innerText = "❌ " + errorMsg;
             return;
           }
           
