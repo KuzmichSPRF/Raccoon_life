@@ -176,11 +176,10 @@
 
     function playGame() {
       gradeSelection.classList.add('hidden');
-      // Сообщаем родительскому окну, что игра была сыграна (и проиграна)
-      window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
+      // Результат отправится в showResult() после определения победы/поражения
 
       msg.innerText = "БИТВА!";
-      
+
       pChip.classList.add('anim-left');
       vChip.classList.add('anim-right');
 
@@ -192,18 +191,39 @@
     }
 
     function showResult() {
-      const playerNum = Math.floor(Math.random() * 90) + 1; 
-      const vladeosNum = playerNum + 1;
+      // 1% шанс на победу (как в CS:GO - редкий джекпот)
+      const luckyWin = Math.random() < 0.01;
+      
+      let playerNum, vladeosNum;
+      
+      if (luckyWin) {
+        // Игрок побеждает с минимальным отрывом
+        vladeosNum = Math.floor(Math.random() * 90) + 1;
+        playerNum = vladeosNum + 1;
+      } else {
+        // Vladeos побеждает (как обычно)
+        playerNum = Math.floor(Math.random() * 90) + 1;
+        vladeosNum = playerNum + 1;
+      }
 
       pScore.innerText = playerNum;
       vScore.innerText = vladeosNum;
-      
+
       pScore.classList.add('visible');
       vScore.classList.add('visible');
 
-      msg.innerText = "Vladeos победил! 🏆";
-      msg.style.color = 'var(--accent)';
-      
+      if (luckyWin) {
+        msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили! +10 $ENT 🏆";
+        msg.style.color = 'var(--game-green)';
+        // Сообщаем родителю о победе (для начисления токенов)
+        window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
+      } else {
+        msg.innerText = "Vladeos победил! 🏆";
+        msg.style.color = 'var(--accent)';
+        // Сообщаем родителю о поражении
+        window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
+      }
+
       restartArea.classList.remove('hidden');
     }
 
