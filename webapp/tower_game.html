@@ -145,7 +145,8 @@
       { name: "Алмазный", icon: "💎", hp: 180, dmg: 10 }
     ];
 
-    const BOSS = { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 25 };
+    // Босс на 10 уровне - уменьшен урон с 25 до 18 для проходимости
+    const BOSS = { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 18 };
 
     let level = 1;
     let pStats = { hp: 100, maxHp: 100, nrg: 0 };
@@ -162,11 +163,11 @@
       document.getElementById('lvl-display').innerText = "LVL " + level;
       document.getElementById('btn-next').style.display = 'none';
       toggleButtons(false);
-      
+
       // Генерация врага
       let enemyTemplate;
       let isBoss = (level % 10 === 0);
-      
+
       if (isBoss) {
         enemyTemplate = BOSS;
         document.getElementById('e-chip').classList.add('boss');
@@ -176,8 +177,15 @@
       }
 
       // Скалирование (усложнение)
-      // Начинаем с низких статов (чтобы умирали с 2 ударов), растем на 10% за уровень
-      const scale = 0.15 + (level * 0.1);
+      // Обычные враги: растем на 15% за уровень
+      // Босс: растёт медленнее - на 10% за уровень для проходимости
+      let scale;
+      if (isBoss) {
+        scale = 0.2 + (level * 0.08); // Босс: медленнее растёт (8% за уровень)
+      } else {
+        scale = 0.15 + (level * 0.1); // Обычные враги: 10% за уровень
+      }
+      
       eStats.maxHp = Math.floor(enemyTemplate.hp * scale);
       eStats.hp = eStats.maxHp;
       eStats.dmg = Math.max(1, Math.floor(enemyTemplate.dmg * scale));
@@ -186,7 +194,7 @@
       document.getElementById('e-name').innerText = enemyTemplate.name;
       document.getElementById('e-chip').innerText = enemyTemplate.icon;
       document.getElementById('msg').innerText = isBoss ? "БОСС: КОТОПЕТУХ!" : "Враг: " + enemyTemplate.name;
-      
+
       turn = true;
       updateUI();
     }
