@@ -420,6 +420,8 @@
     function updateBalanceUI(newBalance) {
       balance = newBalance;
       document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
+      // Отправляем баланс родителю для синхронизации
+      window.parent.postMessage({ type: 'token_balance', balance: balance }, '*');
     }
 
     // Отрисовка колеса
@@ -470,57 +472,61 @@
     // Вращение
     async function spin() {
       if (isSpinning || !currentBet) return;
-      
+
       betAmount = getBetAmount();
-      
+
       if (betAmount > balance) {
         showResult('❌ Недостаточно токенов!', 'lose');
         return;
       }
-      
+
       isSpinning = true;
       document.getElementById('spin-btn').disabled = true;
       document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = true);
       document.getElementById('bet-amount').disabled = true;
-      
-      // Списываем ставку
-      await spendTokens(betAmount, 'roulette_bet');
+
+      // Списываем ставку локально (сервер обновится через API рулетки)
+      balance -= betAmount;
+      updateBalanceUI(balance);
       stats.totalBet += betAmount;
       document.getElementById('total-spent').innerText = stats.totalBet.toLocaleString('ru-RU');
-      
+
       // Определяем результат (с RTP 95%)
       const result = await playRound(currentBet, betAmount);
-      
+
       // Вращаем колесо
       const segmentIndex = segments.findIndex(s => s.value === result.number);
       const segmentAngle = 360 / segments.length;
       const targetAngle = 360 - (segmentIndex * segmentAngle) + segmentAngle / 2;
       const totalRotation = 360 * 5 + targetAngle; // 5 полных оборотов + целевой сектор
-      
+
       const wheel = document.getElementById('wheel');
+      wheel.style.transition = 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
       wheel.style.transform = `rotate(${totalRotation}deg)`;
-      
+
       // Показываем результат через 3 секунды
       setTimeout(() => {
-        wheel.style.transform = `rotate(${targetAngle}deg)`;
-        
         if (result.win) {
           stats.wins++;
           document.getElementById('total-wins').innerText = stats.wins;
           showResult(`🎉 Победа! +${result.winAmount} $ENT`, 'win');
           addToHistory(result.number, result.type, true);
+          // Начисляем выигрыш
+          balance += result.winAmount;
+          updateBalanceUI(balance);
         } else {
           showResult(`😢 Проигрыш -${betAmount} $ENT`, 'lose');
           addToHistory(result.number, result.type, false);
         }
-        
+
         isSpinning = false;
         document.getElementById('spin-btn').disabled = false;
         document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = false);
         document.getElementById('bet-amount').disabled = false;
 
-        // Обновляем баланс с сервера (синхронизация с родителем через postMessage в updateBalanceUI)
-        loadBalance();
+        // Сбрасываем transition чтобы колесо оставалось в позиции результата
+        wheel.style.transition = 'none';
+        wheel.style.transform = `rotate(${targetAngle}deg)`;
       }, 3000);
     }
 
@@ -582,7 +588,7 @@
     function addToHistory(number, type, win) {
       history.unshift({ number, type, win });
       if (history.length > 10) history.pop();
-      
+
       const list = document.getElementById('history-list');
       list.innerHTML = '';
       history.forEach(item => {
@@ -595,24 +601,6 @@
         }
         list.appendChild(el);
       });
-    }
-
-    // API: списание токенов
-    async function spendTokens(amount, reason) {
-      try {
-        await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'spend_tokens',
-            userId: tgUserId,
-            amount: amount,
-            reason: reason
-          })
-        });
-      } catch (e) {
-        console.error('Ошибка списания токенов:', e);
-      }
     }
 
     // Инициализация

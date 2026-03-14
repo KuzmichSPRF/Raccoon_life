@@ -808,6 +808,11 @@ def api_casino_roulette():
             'green': 14
         }
 
+        # Списываем ставку
+        spend_result = spend_tokens(user_id, bet_amount, 'roulette_bet')
+        if not spend_result:
+            return jsonify({'error': 'Insufficient tokens'}), 400
+
         # Генерация случайного результата
         import random
         result_segment = random.choice(segments)
