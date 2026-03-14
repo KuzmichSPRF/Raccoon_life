@@ -157,17 +157,13 @@
     <button class="btn btn-diamond" onclick="tryPlay('diamond')">Diamond 💎</button>
   </div>
 
-  <div id="restart-area" class="controls hidden">
-    <button class="btn btn-diamond" onclick="resetGame()">Сыграть еще</button>
-  </div>
-  
   <!-- Reward Popup -->
   <div class="reward-overlay" id="reward-overlay">
-    <div class="reward-popup">
-      <div class="reward-icon">🎉</div>
-      <div class="reward-text">Победа!</div>
-      <div class="reward-amount">+100 $ENT</div>
-      <button class="btn-continue" onclick="continueGame()">Продолжить</button>
+    <div class="reward-popup" id="reward-popup">
+      <div class="reward-icon" id="popup-icon">🎉</div>
+      <div class="reward-text" id="popup-title">Победа!</div>
+      <div class="reward-amount" id="popup-amount">+100 $ENT</div>
+      <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
 
@@ -178,7 +174,6 @@
     const pScore = document.getElementById('p-score');
     const vScore = document.getElementById('v-score');
     const gradeSelection = document.getElementById('grade-selection');
-    const restartArea = document.getElementById('restart-area');
 
     const insults = [
       "Не солидно...", 
@@ -249,22 +244,43 @@
           msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
           msg.style.color = 'var(--game-green)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, window.location.origin);
-          showReward(100);
+          showPopupResult(true, 100);
         } else {
           msg.innerText = "Vladeos победил! 🏆";
           msg.style.color = 'var(--accent)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, window.location.origin);
-          restartArea.classList.remove('hidden');
+          showPopupResult(false, 0);
         }
       } catch(e) {
         msg.innerText = "❌ Ошибка соединения!";
       }
     }
     
-    function showReward(amount) {
+    function showPopupResult(isWin, amount) {
       const overlay = document.getElementById('reward-overlay');
-      const amountEl = overlay.querySelector('.reward-amount');
-      amountEl.textContent = '+' + amount + ' $ENT';
+      const popup = document.getElementById('reward-popup');
+      const icon = document.getElementById('popup-icon');
+      const title = document.getElementById('popup-title');
+      const amountEl = document.getElementById('popup-amount');
+      const btn = document.getElementById('popup-btn');
+      
+      if (isWin) {
+        icon.innerText = '🎉';
+        title.innerText = 'Победа!';
+        title.style.color = '#ffd700';
+        amountEl.style.display = 'block';
+        amountEl.textContent = '+' + amount + ' $ENT';
+        popup.style.borderColor = '#ffd700';
+        btn.innerText = 'Продолжить';
+      } else {
+        icon.innerText = '💀';
+        title.innerText = 'Поражение!';
+        title.style.color = 'var(--accent)';
+        amountEl.style.display = 'none';
+        popup.style.borderColor = 'var(--accent)';
+        btn.innerText = 'Сыграть ещё';
+      }
+      
       overlay.style.display = 'flex';
     }
     
@@ -277,7 +293,6 @@
     function resetGame() {
       pScore.classList.remove('visible');
       vScore.classList.remove('visible');
-      restartArea.classList.add('hidden');
       gradeSelection.classList.remove('hidden');
       msg.innerText = "Выбери грейд фишки";
       msg.style.color = 'var(--text-main)';

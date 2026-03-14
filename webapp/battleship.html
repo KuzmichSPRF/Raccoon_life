@@ -485,10 +485,10 @@
   
   <div class="overlay" id="overlay"></div>
   <div class="reward-popup" id="reward-popup" style="display: none;">
-    <div class="reward-icon">🎉</div>
-    <div class="reward-text">Победа!</div>
-    <div class="reward-amount">+100 $ENT</div>
-    <button class="btn btn-primary" onclick="continueAfterWin()" style="margin-top: 20px;">▶️ Продолжить</button>
+    <div class="reward-icon" id="popup-icon">🎉</div>
+    <div class="reward-text" id="popup-title">Победа!</div>
+    <div class="reward-amount" id="popup-amount">+100 $ENT</div>
+    <button class="btn btn-primary" id="popup-btn" onclick="continueAfterWin()" style="margin-top: 20px;">▶️ Продолжить</button>
   </div>
 
 <script>
@@ -1202,9 +1202,7 @@
     status.textContent = '🎉 ПОБЕДА! Все корабли врага уничтожены!';
     status.className = 'game-status win';
     
-    // Показываем награду
-    document.getElementById('overlay').classList.add('active');
-    document.getElementById('reward-popup').style.display = 'block';
+    showPopupResult(true);
     
     // Отправляем данные о победе (100 токенов)
     earnTokens(100, 'battleship_win');
@@ -1214,6 +1212,34 @@
     const status = document.getElementById('game-status');
     status.textContent = '💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!';
     status.className = 'game-status lose';
+    showPopupResult(false);
+  }
+
+  function showPopupResult(isWin) {
+    const popup = document.getElementById('reward-popup');
+    const icon = document.getElementById('popup-icon');
+    const title = document.getElementById('popup-title');
+    const amount = document.getElementById('popup-amount');
+    const btn = document.getElementById('popup-btn');
+    
+    if (isWin) {
+      icon.innerText = '🎉';
+      title.innerText = 'Победа!';
+      title.style.color = '#ffd700';
+      amount.style.display = 'block';
+      popup.style.borderColor = '#ffd700';
+      btn.innerText = '▶️ Продолжить';
+    } else {
+      icon.innerText = '💀';
+      title.innerText = 'Поражение!';
+      title.style.color = 'var(--hit)';
+      amount.style.display = 'none';
+      popup.style.borderColor = 'var(--hit)';
+      btn.innerText = '🔄 Сыграть ещё';
+    }
+    
+    document.getElementById('overlay').classList.add('active');
+    popup.style.display = 'block';
   }
 
   function earnTokens(amount, reason) {

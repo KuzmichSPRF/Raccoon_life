@@ -153,15 +153,13 @@
     <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 $ENT)</button>
   </div>
 
-  <button class="btn btn-std" id="restart-btn" onclick="restartGame()" style="display: none; margin-top: 15px; background: var(--game-green); color: #000;">🔄 Сыграть ещё</button>
-
   <!-- Reward Popup -->
   <div class="reward-overlay" id="reward-overlay">
-    <div class="reward-popup">
-      <div class="reward-icon">🎉</div>
-      <div class="reward-text">Победа!</div>
-      <div class="reward-amount">+10 $ENT</div>
-      <button class="btn-continue" onclick="continueGame()">Продолжить</button>
+    <div class="reward-popup" id="reward-popup">
+      <div class="reward-icon" id="popup-icon">🎉</div>
+      <div class="reward-text" id="popup-title">Победа!</div>
+      <div class="reward-amount" id="popup-amount">+10 $ENT</div>
+      <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
 
@@ -453,26 +451,35 @@
       
       window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, window.location.origin);
 
-      // Показываем награду при победе
-      if (isWin) {
-        showReward(10);
-      }
-      
-      // Показываем кнопку "Сыграть ещё" в любом случае
-      const restartBtn = document.getElementById('restart-btn');
-      if (restartBtn) {
-        restartBtn.style.display = 'block';
-      }
+      showPopupResult(isWin);
     }
     
-    function showReward(amount) {
+    function showPopupResult(isWin) {
       const overlay = document.getElementById('reward-overlay');
-      const amountEl = overlay.querySelector('.reward-amount');
-      amountEl.textContent = '+' + amount + ' $ENT';
-      overlay.style.display = 'flex';
+      const popup = document.getElementById('reward-popup');
+      const icon = document.getElementById('popup-icon');
+      const title = document.getElementById('popup-title');
+      const amountEl = document.getElementById('popup-amount');
+      const btn = document.getElementById('popup-btn');
       
-      // Начисляем токены
-      earnTokens(amount, 'clown_win');
+      if (isWin) {
+        icon.innerText = '🎉';
+        title.innerText = 'Победа!';
+        title.style.color = '#ffd700';
+        amountEl.style.display = 'block';
+        amountEl.textContent = '+10 $ENT';
+        popup.style.borderColor = '#ffd700';
+        btn.innerText = 'Продолжить';
+      } else {
+        icon.innerText = '💀';
+        title.innerText = 'Поражение!';
+        title.style.color = 'var(--accent)';
+        amountEl.style.display = 'none';
+        popup.style.borderColor = 'var(--accent)';
+        btn.innerText = 'Сыграть ещё';
+      }
+      
+      overlay.style.display = 'flex';
     }
     
     function continueGame() {
@@ -495,12 +502,6 @@
       document.getElementById('msg').innerHTML = 'Твой ход, Енот! <br>Выбирай прием.';
       document.getElementById('log').innerText = 'Битва началась...';
       document.getElementById('controls').style.opacity = "1";
-      
-      // Скрываем кнопку рестарта
-      const restartBtn = document.getElementById('restart-btn');
-      if (restartBtn) {
-        restartBtn.style.display = 'none';
-      }
       
       updateUI();
       toggleBtns(false);
