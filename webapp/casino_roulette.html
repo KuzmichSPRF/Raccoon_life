@@ -310,7 +310,6 @@
       <button class="bet-btn bet-btn-red" onclick="selectBet('red')">🔴 Красное (x2)</button>
       <button class="bet-btn bet-btn-green" onclick="selectBet('green')">🟢 Зеро (x14)</button>
       <button class="bet-btn bet-btn-black" onclick="selectBet('black')">⚫ Чёрное (x2)</button>
-      <button class="bet-btn bet-btn-half" onclick="selectBet('half')">🔢 1-18 (x2)</button>
     </div>
     
     <div style="margin: 10px 0; color: var(--text-sec); font-size: 0.9rem;">
@@ -410,11 +409,19 @@
         const data = await res.json();
         if (data.status === 'ok' && data.tokens) {
           balance = data.tokens.balance;
-          document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
+          updateBalanceUI(balance);
         }
       } catch (e) {
         console.error('Ошибка загрузки баланса:', e);
       }
+    }
+
+    // Обновление баланса UI + синхронизация с родителем
+    function updateBalanceUI(newBalance) {
+      balance = newBalance;
+      document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
+      // Отправляем баланс родителю для синхронизации
+      window.parent.postMessage({ type: 'token_balance', balance: balance }, '*');
     }
 
     // Отрисовка колеса
@@ -435,15 +442,15 @@
     // Выбор ставки
     function selectBet(type) {
       if (isSpinning) return;
-      
+
       currentBet = type;
       document.getElementById('selected-bet').innerText = 
         type === 'red' ? '🔴 Красное' :
         type === 'black' ? '⚫ Чёрное' :
-        type === 'green' ? '🟢 Зеро' : '🔢 1-18';
-      
+        '🟢 Зеро';
+
       document.getElementById('spin-btn').disabled = false;
-      
+
       // Визуальное выделение
       document.querySelectorAll('.bet-btn').forEach(btn => {
         btn.style.boxShadow = 'none';
@@ -514,7 +521,7 @@
         document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = false);
         document.getElementById('bet-amount').disabled = false;
         
-        loadBalance(); // Обновляем баланс
+        loadBalance(); // Обновляем баланс с синхронизацией
       }, 3000);
     }
 
@@ -551,13 +558,12 @@
     function generateLocalResult(betType, amount) {
       const randIndex = Math.floor(Math.random() * segments.length);
       const segment = segments[randIndex];
-      
+
       let win = false;
       if (betType === 'red' && segment.type === 'red') win = true;
       else if (betType === 'black' && segment.type === 'black') win = true;
       else if (betType === 'green' && segment.type === 'green') win = true;
-      else if (betType === 'half' && segment.value >= 1 && segment.value <= 8) win = true;
-      
+
       return {
         number: segment.value,
         type: segment.type,
@@ -613,7 +619,9 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
       renderWheel();
-      loadBalance();
+      
+      // Запрашиваем баланс у родителя
+      window.parent.postMessage({ type: 'request_balance' }, '*');
       
       // Загрузка статистики из localStorage
       const savedStats = localStorage.getItem('roulette_stats');
@@ -621,6 +629,15 @@
         stats = JSON.parse(savedStats);
         document.getElementById('total-wins').innerText = stats.wins;
         document.getElementById('total-spent').innerText = stats.totalBet;
+      }
+    });
+
+    // Обработка сообщений от родителя (синхронизация баланса)
+    window.addEventListener('message', function(event) {
+      if (!event.data) return;
+      if (event.data.type === 'token_balance') {
+        updateBalanceUI(event.data.balance);
+        console.log('💰 Sync balance from parent:', event.data.balance);
       }
     });
 

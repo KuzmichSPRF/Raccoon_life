@@ -323,6 +323,14 @@
             balanceEl.innerText = data.tokens.balance.toLocaleString('ru-RU');
           }
           console.log('💰 Token balance:', data.tokens.balance);
+          // Отправляем баланс всем iframe для синхронизации
+          const iframes = document.querySelectorAll('iframe');
+          iframes.forEach(iframe => {
+            iframe.contentWindow.postMessage({ 
+              type: 'token_balance', 
+              balance: data.tokens.balance 
+            }, '*');
+          });
         }
       })
       .catch(err => {
@@ -595,6 +603,32 @@
       if (current === 'reader-screen') {
         document.getElementById('reader-iframe').src = '';
         navigateTo('list-screen');
+      }
+    }
+
+    // Синхронизация баланса токенов от рулетки
+    if (data.type === 'token_balance') {
+      const balanceEl = document.getElementById('token-balance');
+      if (balanceEl) {
+        balanceEl.innerText = data.balance.toLocaleString('ru-RU');
+      }
+      console.log('💰 Sync token balance:', data.balance);
+    }
+
+    // Запрос баланса при открытии казино
+    if (data.type === 'request_balance') {
+      const userId = getUserId();
+      if (userId) {
+        fetch(`/api/tokens?userId=${userId}`)
+          .then(res => res.json())
+          .then(tokenData => {
+            if (tokenData.status === 'ok' && tokenData.tokens) {
+              event.source.postMessage({
+                type: 'token_balance',
+                balance: tokenData.tokens.balance
+              }, '*');
+            }
+          });
       }
     }
   });

@@ -805,8 +805,7 @@ def api_casino_roulette():
         multipliers = {
             'red': 2,
             'black': 2,
-            'green': 14,
-            'half': 2
+            'green': 14
         }
 
         # Генерация случайного результата
@@ -820,8 +819,6 @@ def api_casino_roulette():
         elif bet_type == 'black' and result_segment['type'] == 'black':
             win = True
         elif bet_type == 'green' and result_segment['type'] == 'green':
-            win = True
-        elif bet_type == 'half' and 1 <= result_segment['value'] <= 8:
             win = True
 
         win_amount = 0
