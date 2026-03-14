@@ -244,6 +244,20 @@
       })
       .then(result => {
         console.log('Result:', result);
+        
+        // Проверяем статус ответа
+        if (result.status === 'error') {
+          const errorMsg = result.message || 'Ошибка сервера';
+          console.error('API Error:', errorMsg);
+          
+          if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
+            document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+          } else {
+            document.getElementById('log').innerText = "❌ " + errorMsg;
+          }
+          return;
+        }
+        
         if (result.status === 'ok') {
           // Восстанавливаем 100% здоровья
           pHP = pStats.maxHp;
@@ -255,8 +269,7 @@
           chip.classList.add('heal-effect');
           setTimeout(() => chip.classList.remove('heal-effect'), 400);
         } else {
-          const errorMsg = result.message || 'Недостаточно токенов!';
-          document.getElementById('log').innerText = "❌ " + errorMsg;
+          document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
         }
       })
       .catch(err => {
