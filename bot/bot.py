@@ -137,11 +137,18 @@ def init_db():
         ''')
         
         conn.commit()
-        
+
         # Миграции: добавляем недостающие колонки
         _add_missing_columns(cursor)
         conn.commit()
-        
+
+        # Создаём записи в user_tokens для всех пользователей у которых их нет
+        cursor.execute('''
+            INSERT OR IGNORE INTO user_tokens (user_id, balance, total_earned, total_spent)
+            SELECT user_id, 0, 0, 0 FROM users
+        ''')
+        conn.commit()
+
         logger.info("✅ База данных инициализирована")
         
     except Exception as e:
@@ -211,7 +218,7 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
                 username = user_data.get('username', '')
                 first_name = user_data.get('first_name', '')
                 last_name = user_data.get('last_name', '')
-                
+
                 cursor.execute('''
                     UPDATE users SET
                         username = ?,
@@ -227,18 +234,21 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
             username = user_data.get('username', '') if user_data else ''
             first_name = user_data.get('first_name', '') if user_data else ''
             last_name = user_data.get('last_name', '') if user_data else ''
-            
+
             cursor.execute('''
                 INSERT INTO users (user_id, username, first_name, last_name)
                 VALUES (?, ?, ?, ?)
             ''', (user_id, username, first_name, last_name))
             logger.debug(f"Пользователь {user_id} создан")
-        
+
         # Создаем запись статистики если нет
         cursor.execute('INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)', (user_id,))
         
+        # Создаем запись токенов если нет (с балансом 0)
+        cursor.execute('INSERT OR IGNORE INTO user_tokens (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)', (user_id,))
+
         conn.commit()
-        
+
     except Exception as e:
         logger.error(f"Ошибка ensure_user_exists: {e}")
         raise
@@ -602,6 +612,9 @@ def get_user_by_id_or_username(identifier: str) -> dict:
     except ValueError:
         # Это не число, ищем по username
         return get_user_by_username(identifier)
+
+
+def get_user_tokens(user_id: int) -> dict:
     """
     Получает баланс токенов пользователя
 
@@ -615,19 +628,23 @@ def get_user_by_id_or_username(identifier: str) -> dict:
     cursor = conn.cursor()
 
     try:
-        # Гарантируем существование пользователя
+        # Гарантируем существование пользователя (и создаём запись в user_tokens если нет)
         ensure_user_exists(user_id)
 
         cursor.execute('SELECT balance, total_earned, total_spent, last_earn FROM user_tokens WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()
 
         if row:
-            return {
+            result = {
                 'balance': row['balance'],
                 'total_earned': row['total_earned'],
                 'total_spent': row['total_spent'],
                 'last_earn': row['last_earn']
             }
+            logger.debug(f"🪙 get_user_tokens: user_id={user_id}, balance={result['balance']}")
+            return result
+        
+        logger.warning(f"⚠️ get_user_tokens: запись не найдена для user_id={user_id}")
         return {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None}
 
     except Exception as e:
@@ -827,12 +844,19 @@ def api_get_tokens():
     try:
         user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
 
+        logger.info(f"📥 API /api/tokens: userId={user_id}")
+
         if not user_id:
+            logger.warning("⚠️ userId не указан")
             return jsonify({'error': 'user_id required'}), 400
 
         user_id = int(user_id)
+        logger.info(f"🔍 Запрос токенов для user_id={user_id}")
+        
         tokens = get_user_tokens(user_id)
 
+        logger.info(f"💰 Ответ: balance={tokens['balance']}")
+        
         return jsonify({
             'status': 'ok',
             'tokens': tokens

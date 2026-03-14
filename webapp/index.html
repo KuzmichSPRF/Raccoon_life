@@ -327,14 +327,28 @@
     
     if (!userId) {
       console.warn('⚠️ Нет user_id, баланс не загружен');
+      // Пробуем получить баланс без userId (сервер вернёт ошибку)
+      const balanceEl = document.getElementById('token-balance');
+      if (balanceEl) {
+        balanceEl.innerText = '---';
+      }
       return;
     }
 
     console.log('📡 Запрос к /api/tokens?userId=' + userId);
     
-    fetch(`/api/tokens?userId=${userId}`)
+    fetch(`/api/tokens?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    })
       .then(res => {
         console.log('📥 Ответ сервера:', res.status);
+        if (!res.ok) {
+          throw new Error('HTTP error! status: ' + res.status);
+        }
         return res.json();
       })
       .then(data => {
@@ -353,6 +367,10 @@
       })
       .catch(err => {
         console.error('❌ Ошибка загрузки баланса:', err);
+        const balanceEl = document.getElementById('token-balance');
+        if (balanceEl) {
+          balanceEl.innerText = 'ERR';
+        }
       });
   }
 
