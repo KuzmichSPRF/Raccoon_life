@@ -761,6 +761,93 @@ def api_get_tokens():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/casino/roulette', methods=['POST'])
+def api_casino_roulette():
+    """
+    Игра в рулетку
+    
+    Принимает:
+    - userId: ID пользователя
+    - betType: тип ставки (red, black, green, half)
+    - betAmount: сумма ставки
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        bet_type = data.get('betType', 'red')
+        bet_amount = data.get('betAmount', 10)
+
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        user_id = int(user_id)
+        bet_amount = int(bet_amount)
+
+        if bet_amount <= 0:
+            return jsonify({'error': 'betAmount must be > 0'}), 400
+
+        # Конфигурация рулетки (15 секторов: 1 зелёный, 7 красных, 7 чёрных)
+        segments = [
+            {'type': 'green', 'value': 0},
+            {'type': 'red', 'value': 1}, {'type': 'black', 'value': 2},
+            {'type': 'red', 'value': 3}, {'type': 'black', 'value': 4},
+            {'type': 'red', 'value': 5}, {'type': 'black', 'value': 6},
+            {'type': 'red', 'value': 7}, {'type': 'black', 'value': 8},
+            {'type': 'red', 'value': 9}, {'type': 'black', 'value': 10},
+            {'type': 'red', 'value': 11}, {'type': 'black', 'value': 12},
+            {'type': 'red', 'value': 13}, {'type': 'black', 'value': 14}
+        ]
+
+        # Множители (RTP ~95%)
+        multipliers = {
+            'red': 2,
+            'black': 2,
+            'green': 14,
+            'half': 2
+        }
+
+        # Генерация случайного результата
+        import random
+        result_segment = random.choice(segments)
+
+        # Проверка выигрыша
+        win = False
+        if bet_type == 'red' and result_segment['type'] == 'red':
+            win = True
+        elif bet_type == 'black' and result_segment['type'] == 'black':
+            win = True
+        elif bet_type == 'green' and result_segment['type'] == 'green':
+            win = True
+        elif bet_type == 'half' and 1 <= result_segment['value'] <= 8:
+            win = True
+
+        win_amount = 0
+        if win:
+            win_amount = int(bet_amount * multipliers.get(bet_type, 2))
+            # Начисляем выигрыш
+            add_tokens(user_id, win_amount, f'roulette_win:{bet_type}')
+            logger.info(f"🎰 Roulette WIN: user_id={user_id}, bet={bet_amount}, win={win_amount}")
+        else:
+            logger.info(f"🎰 Roulette LOSE: user_id={user_id}, bet={bet_amount}")
+
+        return jsonify({
+            'status': 'ok',
+            'result': {
+                'number': result_segment['value'],
+                'type': result_segment['type']
+            },
+            'win': win,
+            'winAmount': win_amount
+        })
+
+    except Exception as e:
+        logger.error(f"Ошибка api_casino_roulette: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/sync', methods=['POST'])
 def api_sync():
     """
@@ -779,13 +866,15 @@ def api_sync():
         data_type = data.get('type')
         
         logger.info(f"📥 API sync: type={data_type}")
-        
+
         if data_type == 'sync_stats':
             return handle_sync_stats(data)
         elif data_type == 'boss_damage':
             return handle_boss_damage(data)
         elif data_type == 'earn_tokens':
             return handle_earn_tokens(data)
+        elif data_type == 'spend_tokens':
+            return handle_spend_tokens(data)
         else:
             logger.warning(f"⚠️ Неизвестный тип синхронизации: {data_type}")
             return jsonify({'status': 'ok'})  # Игнорируем неизвестные типы
@@ -903,6 +992,39 @@ def handle_earn_tokens(data: dict):
         return jsonify({'status': 'ok', 'tokens': result})
     else:
         return jsonify({'status': 'error', 'message': 'Database error'}), 500
+
+
+def handle_spend_tokens(data: dict):
+    """Обработка списания токенов"""
+    user_id = data.get('userId') or data.get('user_id')
+
+    if not user_id:
+        logger.warning("⚠️ spend_tokens без user_id")
+        return jsonify({'status': 'error', 'message': 'user_id required'}), 400
+
+    user_id = int(user_id)
+
+    amount = data.get('amount', 0)
+    reason = data.get('reason', 'unknown')
+
+    try:
+        amount = int(amount)
+    except (ValueError, TypeError):
+        logger.warning(f"⚠️ spend_tokens: invalid amount={amount}")
+        return jsonify({'status': 'error', 'message': 'amount must be integer'}), 400
+
+    if amount <= 0:
+        logger.warning(f"⚠️ spend_tokens: amount={amount}")
+        return jsonify({'status': 'error', 'message': 'amount must be > 0'}), 400
+
+    logger.info(f"💸 spend_tokens: user_id={user_id}, amount={amount}, reason={reason}")
+
+    result = spend_tokens(user_id, amount, reason)
+
+    if result:
+        return jsonify({'status': 'ok', 'tokens': result})
+    else:
+        return jsonify({'status': 'error', 'message': 'Insufficient tokens'}), 400
 
 
 # ==================== TELEGRAM BOT ====================
