@@ -166,7 +166,7 @@
     <div class="reward-popup">
       <div class="reward-icon">🎉</div>
       <div class="reward-text">Победа!</div>
-      <div class="reward-amount">+10 $ENT</div>
+      <div class="reward-amount">+100 $ENT</div>
       <button class="btn-continue" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -226,11 +226,11 @@
     }
 
     function showResult() {
-      // 1% шанс на победу (как в CS:GO - редкий джекпот)
-      const luckyWin = Math.random() < 0.01;
-      
+      // 5% шанс на победу
+      const luckyWin = Math.random() < 0.05;
+
       let playerNum, vladeosNum;
-      
+
       if (luckyWin) {
         // Игрок побеждает с минимальным отрывом
         vladeosNum = Math.floor(Math.random() * 90) + 1;
@@ -253,7 +253,7 @@
         // Сообщаем родителю о победе
         window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
         // Показываем награду
-        showReward(10);
+        showReward(100);
       } else {
         msg.innerText = "Vladeos победил! 🏆";
         msg.style.color = 'var(--accent)';
