@@ -653,10 +653,8 @@
         console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId });
       }, 500);
     } else if (item.type === 'link') {
-      tg.openLink(item.url);
       setTimeout(() => tg.openLink(item.url), 150);
     } else if (item.type === 'external') {
-      tg.openTelegramLink(item.url);
       setTimeout(() => tg.openTelegramLink(item.url), 150);
     }
   }
