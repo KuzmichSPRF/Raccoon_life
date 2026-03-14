@@ -224,7 +224,7 @@
       <button id="back-btn" onclick="handleBack()">✕</button>
       <b id="reader-header-title">Просмотр</b>
     </div>
-    <iframe id="reader-iframe" src="" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
+    <iframe id="reader-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
   </div>
 </div>
 
@@ -586,23 +586,28 @@
     cat.items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'list-item' + (item.id && completed.includes(item.id) ? ' completed' : '');
+      
+      // Экранирование HTML для предотвращения XSS
+      const safeTitle = escapeHTML(item.title);
+      const safeDesc = escapeHTML(item.desc);
+      
       div.innerHTML = `
         <div class="list-item-info">
-          <div class="list-item-title">${item.title}</div>
-          <div class="list-item-desc">${item.desc}</div>
+          <div class="list-item-title">${safeTitle}</div>
+          <div class="list-item-desc">${safeDesc}</div>
         </div>
         <div style="color: #ccc">›</div>
       `;
       div.onclick = () => handleItemClick(item);
       list.appendChild(div);
     });
-    
+
     // Показываем обучение при первом входе в раздел
     if (!hasSeenTutorial(catKey)) {
       showTutorial(catKey);
       markTutorialSeen(catKey);
     }
-    
+
     navigateTo('list-screen');
   }
 
@@ -644,11 +649,12 @@
         const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
         const userId = getUserId();
 
+        // Безопасная отправка сообщения с указанием конкретного origin
         iframe.contentWindow.postMessage({
           type: 'init_game',
           balance: currentBalance,
           userId: userId
-        }, '*');
+        }, window.location.origin);
 
         console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId });
       }, 500);
@@ -715,15 +721,20 @@
       // Форматирование баланса токенов
       const formattedBalance = p.balance.toLocaleString('ru-RU');
       const earnedLabel = p.total_earned ? `(всего заработано: ${p.total_earned.toLocaleString('ru-RU')})` : '';
+      
+      // Полное экранирование HTML для предотвращения XSS
       const safeName = escapeHTML(p.name);
+      const safeFormattedBalance = escapeHTML(formattedBalance);
+      const safeEarnedLabel = escapeHTML(earnedLabel);
+      const safeRankIcon = escapeHTML(rankIcon);
 
       div.innerHTML = `
-        <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${rankIcon}</div>
+        <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
         <div style="flex: 1;">
           <div style="font-weight: 700;">${safeName}</div>
-          <div style="font-size: 0.75rem; color: var(--text-sec);">💰 Баланс: ${formattedBalance} $ENT ${earnedLabel}</div>
+          <div style="font-size: 0.75rem; color: var(--text-sec);">💰 Баланс: ${safeFormattedBalance} $ENT ${safeEarnedLabel}</div>
         </div>
-        <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${formattedBalance}</div>
+        <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${safeFormattedBalance}</div>
       `;
       list.appendChild(div);
     });
@@ -787,11 +798,17 @@
 
   // ==================== MESSAGE HANDLER ====================
   window.addEventListener('message', function(event) {
+    // Проверка origin для безопасности
+    if (event.origin !== window.location.origin) {
+      console.warn('⚠️ Сообщение с недоверенного origin:', event.origin);
+      return;
+    }
+    
     if (!event.data) return;
 
     const data = event.data;
     console.log('📨 Message from iframe:', data);
-    
+
     // Получаем user_id для проверки
     const userId = getUserId();
     console.log('👤 Current user_id:', userId);

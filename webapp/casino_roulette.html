@@ -447,8 +447,8 @@
     function updateBalanceUI(newBalance) {
       balance = newBalance;
       document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
-      // Отправляем баланс родителю для синхронизации
-      window.parent.postMessage({ type: 'token_balance', balance: balance }, '*');
+      // Отправляем баланс родителю для синхронизации с проверенным origin
+      window.parent.postMessage({ type: 'token_balance', balance: balance }, window.location.origin);
     }
 
     // Отрисовка колеса
@@ -677,6 +677,12 @@
 
     // Обработка сообщений от родителя (главный экран)
     window.addEventListener('message', function(event) {
+      // Проверка origin для безопасности
+      if (event.origin !== window.location.origin) {
+        console.warn('⚠️ Сообщение с недоверенного origin:', event.origin);
+        return;
+      }
+      
       if (!event.data) return;
 
       // Инициализация от родителя - получаем баланс и user_id

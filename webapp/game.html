@@ -294,7 +294,7 @@
         
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
-            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
           }
           
           // Восстанавливаем 100% здоровья
@@ -399,7 +399,7 @@
 
       // Отправляем результат родителю (победа если у бота <= 0 HP)
       const isWin = (bHP <= 0);
-      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
+      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, window.location.origin);
       
       // Показываем награду при победе
       if (isWin) {

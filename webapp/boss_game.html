@@ -550,7 +550,7 @@
           
           if (result.status === 'ok') {
             if (result.tokens && result.tokens.balance !== undefined) {
-              window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
+              window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
             }
             
             // Восстанавливаем 100% здоровья
@@ -692,7 +692,7 @@
 
       // Возврат в меню через 2 секунды
       setTimeout(() => {
-        window.parent.postMessage({ type: 'game_over', game: 'boss' }, '*');
+        window.parent.postMessage({ type: 'game_over', game: 'boss' }, window.location.origin);
       }, 2000);
     }
 

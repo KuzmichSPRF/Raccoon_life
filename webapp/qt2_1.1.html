@@ -568,7 +568,7 @@
         document.getElementById("finish-btn").addEventListener("click", function() {
             try { audioIntro.pause(); } catch(e) {}
             try { audioBg.pause(); } catch(e) {}
-            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_1' }, '*');
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_1' }, window.location.origin);
         });
     </script>
 </body>

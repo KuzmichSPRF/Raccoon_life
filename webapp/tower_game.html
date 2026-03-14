@@ -270,7 +270,7 @@
     function nextLevel() {
       level++;
       // Отправляем прогресс родителю: текущий уровень и факт прохождения предыдущего
-      window.parent.postMessage({ type: 'tower_update', level: level, passed_level: true }, '*');
+      window.parent.postMessage({ type: 'tower_update', level: level, passed_level: true }, window.location.origin);
       document.getElementById('msg').style.color = "var(--text-main)";
       startLevel();
     }
@@ -314,7 +314,7 @@
       .then(result => {
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
-            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
           }
           
           pStats.hp = result.state.pHP;

@@ -1148,7 +1148,7 @@
     .then(r => r.json())
     .then(result => {
       if (result.status === 'ok') {
-        window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, '*');
+        window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, window.location.origin);
       }
     })
     .catch(err => console.error('❌ Error:', err));

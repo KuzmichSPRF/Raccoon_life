@@ -15,6 +15,8 @@ from pathlib import Path
 from threading import Thread
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -34,6 +36,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+security_logger = logging.getLogger('security')  # Отдельный logger для security событий
 
 # Пути к файлам
 # При exec() __file__ не работает, используем абсолютный путь
@@ -58,7 +61,59 @@ app = Flask(
     static_url_path='',
     root_path=str(PROJECT_DIR)
 )
-CORS(app)  # Разрешаем CORS для WebApp
+
+# Настройка CORS с ограничениями по происхождению
+ALLOWED_ORIGINS = [
+    WEBAPP_URL,  # Основной домен WebApp
+    'https://*.telegram.org',  # Telegram домены
+] if WEBAPP_URL else []
+
+CORS(app, origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS else ["*"])
+
+# Настройка Rate Limiting для защиты от brute-force и spam
+# Используем user_id из Telegram для идентификации, иначе IP
+def get_user_identifier():
+    """Получает идентификатор пользователя для rate limiting"""
+    user_id = request.headers.get('X-Telegram-User-Id')
+    if user_id:
+        return f'user:{user_id}'
+    # Для API endpoints с initData
+    init_data = request.headers.get('X-Telegram-Init-Data')
+    if init_data:
+        auth_user = validate_webapp_data(init_data)
+        if auth_user and auth_user.get('id'):
+            return f'user:{auth_user["id"]}'
+    # Fallback на IP
+    return f'ip:{get_remote_address()}'
+
+limiter = Limiter(
+    key_func=get_user_identifier,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# Обработчик ошибок rate limit
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Обработчик превышения лимита запросов"""
+    user_id = request.headers.get('X-Telegram-User-Id', 'unknown')
+    security_logger.warning(f"🚨 RATE LIMIT EXCEEDED: user_id={user_id}, path={request.path}")
+    return jsonify({
+        'error': 'Too Many Requests',
+        'message': 'Превышен лимит запросов. Пожалуйста, подождите.'
+    }), 429
+
+
+# Обработчик ошибки превышения размера запроса
+@app.errorhandler(413)
+def request_entity_too_large(e):
+    """Обработчик превышения размера запроса"""
+    security_logger.warning(f"🚨 PAYLOAD TOO LARGE: path={request.path}, content_length={request.content_length}")
+    return jsonify({
+        'error': 'Payload Too Large',
+        'message': 'Размер запроса превышает допустимый лимит (1MB)'
+    }), 413
 
 
 # ==================== БАЗА ДАННЫХ ====================
@@ -298,22 +353,109 @@ def validate_webapp_data(init_data: str) -> dict:
     try:
         parsed_data = dict(parse_qsl(init_data))
         if 'hash' not in parsed_data:
+            security_logger.warning(f"🚨 INVALID INIT DATA: отсутствует hash")
             return None
-            
+
         hash_val = parsed_data.pop('hash')
         sorted_keys = sorted(parsed_data.keys())
         data_check_string = '\n'.join([f"{k}={parsed_data[k]}" for k in sorted_keys])
-        
+
         secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-        
+
         if calculated_hash == hash_val:
             if 'user' in parsed_data:
-                return json.loads(parsed_data['user'])
+                user_data = json.loads(parsed_data['user'])
+                security_logger.info(f"✅ AUTH SUCCESS: user_id={user_data.get('id')}")
+                return user_data
+        else:
+            security_logger.warning(f"🚨 INVALID HASH: calculated hash mismatch")
         return None
     except Exception as e:
+        security_logger.error(f"🚨 VALIDATION ERROR: {e}")
         logger.error(f"Error validating initData: {e}")
         return None
+
+
+def sanitize_string(value: str, max_length: int = 255) -> str:
+    """
+    Санизирует строку - удаляет опасные символы и ограничивает длину
+    
+    Args:
+        value: Входная строка
+        max_length: Максимальная длина строки
+    
+    Returns:
+        Очищенная строка
+    """
+    if not value:
+        return ''
+    
+    # Преобразуем в строку если нужно
+    value = str(value)
+    
+    # Обрезаем до максимальной длины
+    value = value[:max_length]
+    
+    # Удаляем null-символы
+    value = value.replace('\x00', '')
+    
+    # Экранируем потенциально опасные HTML-символы
+    value = value.replace('<', '&lt;').replace('>', '&gt;')
+    
+    return value.strip()
+
+
+def validate_integer(value, min_val: int = None, max_val: int = None, default: int = 0) -> int:
+    """
+    Валидирует и преобразует значение в целое число
+    
+    Args:
+        value: Входное значение
+        min_val: Минимальное допустимое значение
+        max_val: Максимальное допустимое значение
+        default: Значение по умолчанию при ошибке
+    
+    Returns:
+        Валидированное целое число
+    """
+    try:
+        result = int(value)
+        
+        if min_val is not None and result < min_val:
+            return min_val
+        if max_val is not None and result > max_val:
+            return max_val
+            
+        return result
+    except (ValueError, TypeError):
+        return default
+
+
+def validate_list(value, default: list = None) -> list:
+    """
+    Валидирует список
+    
+    Args:
+        value: Входное значение
+        default: Значение по умолчанию
+    
+    Returns:
+        Валидированный список
+    """
+    if default is None:
+        default = []
+        
+    if isinstance(value, list):
+        # Ограничиваем количество элементов
+        return value[:100]
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, list):
+            return parsed[:100]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return default
 
 # ==================== ИГРОВЫЕ СЕССИИ ====================
 
@@ -1054,6 +1196,7 @@ def api_get_tokens():
 
 
 @app.route('/api/casino/roulette', methods=['POST'])
+@limiter.limit("20 per minute")
 def api_casino_roulette():
     """
     Игра в рулетку
@@ -1150,6 +1293,7 @@ def api_casino_roulette():
 
 
 @app.route('/api/boss/attack', methods=['POST'])
+@limiter.limit("30 per minute")
 def api_boss_attack():
     """Серверная логика атаки по боссу"""
     try:
@@ -1232,6 +1376,7 @@ def api_boss_attack():
 
 
 @app.route('/api/game/vladeos', methods=['POST'])
+@limiter.limit("10 per minute")
 def api_game_vladeos():
     """Логика Vladeos PvP"""
     try:
@@ -1253,6 +1398,7 @@ def api_game_vladeos():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/battleship', methods=['POST'])
+@limiter.limit("15 per minute")
 def api_game_battleship():
     """Античит Морского боя - кулдаун 10 сек"""
     try:
@@ -1272,6 +1418,7 @@ def api_game_battleship():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/clown', methods=['POST'])
+@limiter.limit("15 per minute")
 def api_game_clown():
     """Логика Битвы Фишек (Клоун)"""
     try:
@@ -1339,6 +1486,7 @@ def api_game_clown():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/tower', methods=['POST'])
+@limiter.limit("15 per minute")
 def api_game_tower():
     """Логика Башни"""
     try:
@@ -1420,10 +1568,11 @@ def api_game_tower():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sync', methods=['POST'])
+@limiter.limit("30 per minute")
 def api_sync():
     """
     Основной endpoint для синхронизации данных
-    
+
     Принимает:
     - type: 'sync_stats' или 'boss_damage'
     - userId: ID пользователя
@@ -1432,24 +1581,24 @@ def api_sync():
     try:
         if not request.is_json:
             return jsonify({'error': 'Content-Type must be application/json'}), 400
-        
+
         data = request.get_json()
         data_type = data.get('type')
         user_id = data.get('userId') or data.get('user_id')
-        
+
         logger.info(f"📥 API sync: type={data_type}")
-        
+
         # Криптографическая проверка авторизации для важных действий
         if data_type in ['earn_tokens', 'spend_tokens', 'boss_damage']:
             init_data = request.headers.get('X-Telegram-Init-Data')
             auth_user = validate_webapp_data(init_data)
-            
+
             if not auth_user:
-                logger.warning(f"🚨 БЛОКИРОВКА: Запрос {data_type} без валидной подписи Telegram!")
+                security_logger.warning(f"🚨 БЛОКИРОВКА: Запрос {data_type} без валидной подписи Telegram! user_id={user_id}")
                 return jsonify({'status': 'error', 'message': 'Unauthorized. Please use Telegram App.'}), 403
-                
+
             if str(auth_user.get('id')) != str(user_id):
-                logger.warning(f"🚨 БЛОКИРОВКА: Подделка ID! Заявлен {user_id}, реальный {auth_user.get('id')}")
+                security_logger.critical(f"🚨 ПОДДЕЛКА ID: Заявлен {user_id}, реальный {auth_user.get('id')}")
                 return jsonify({'status': 'error', 'message': 'ID mismatch'}), 403
 
         if data_type == 'sync_stats':
@@ -1477,37 +1626,39 @@ def handle_sync_stats(data: dict):
         logger.warning("⚠️ sync_stats без user_id")
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
 
-    user_id = int(user_id)
+    # Валидация user_id
+    user_id = validate_integer(user_id, min_val=1, max_val=2**63-1)
     logger.info(f"👤 sync_stats: user_id={user_id}")
 
     # Проверяем, не забанен ли пользователь
     if is_user_banned(user_id):
+        security_logger.warning(f"🚨 BANNED USER: user_id={user_id} попытался синхронизировать данные")
         logger.warning(f"⚠️ Забаненный пользователь попытался синхронизировать данные: user_id={user_id}")
         return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
-    # Извлекаем данные пользователя (если есть)
+    # Извлекаем данные пользователя (если есть) с санитизацией
     user_data = None
     if 'username' in data or 'first_name' in data:
         user_data = {
-            'username': data.get('username', ''),
-            'first_name': data.get('first_name', ''),
-            'last_name': data.get('last_name', '')
+            'username': sanitize_string(data.get('username', ''), max_length=64),
+            'first_name': sanitize_string(data.get('first_name', ''), max_length=128),
+            'last_name': sanitize_string(data.get('last_name', ''), max_length=128)
         }
         logger.info(f"   Данные пользователя: {user_data}")
 
-    # Извлекаем данные статистики
+    # Извлекаем данные статистики с валидацией
     stats_data = {
-        'clown_games': data.get('clown_games', 0),
-        'clown_wins': data.get('clown_wins', 0),
-        'vladeos_games': data.get('vladeos_games', 0),
-        'vladeos_wins': data.get('vladeos_wins', 0),
-        'tower_max_level': data.get('tower_max_level', 0),
-        'tower_total_levels': data.get('tower_total_levels', 0),
-        'quests': data.get('quests', [])
+        'clown_games': validate_integer(data.get('clown_games', 0), min_val=0, max_val=100000),
+        'clown_wins': validate_integer(data.get('clown_wins', 0), min_val=0, max_val=100000),
+        'vladeos_games': validate_integer(data.get('vladeos_games', 0), min_val=0, max_val=100000),
+        'vladeos_wins': validate_integer(data.get('vladeos_wins', 0), min_val=0, max_val=100000),
+        'tower_max_level': validate_integer(data.get('tower_max_level', 0), min_val=0, max_val=10000),
+        'tower_total_levels': validate_integer(data.get('tower_total_levels', 0), min_val=0, max_val=1000000),
+        'quests': validate_list(data.get('quests', []), default=[])
     }
-    
+
     logger.info(f"📊 Данные статистики: {stats_data}")
-    
+
     if save_user_stats(user_id, stats_data, user_data):
         logger.info(f"✅ sync_stats успешно: user_id={user_id}")
         return jsonify({'status': 'ok'})
@@ -1524,10 +1675,12 @@ def handle_boss_damage(data: dict):
         logger.warning("⚠️ boss_damage без user_id")
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
 
-    user_id = int(user_id)
+    # Валидация user_id
+    user_id = validate_integer(user_id, min_val=1, max_val=2**63-1)
 
     # Проверяем, не забанен ли пользователь
     if is_user_banned(user_id):
+        security_logger.warning(f"🚨 BANNED USER: user_id={user_id} попытался нанести урон боссу")
         logger.warning(f"⚠️ Забаненный пользователь попытался нанести урон: user_id={user_id}")
         return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
@@ -1540,8 +1693,12 @@ def handle_boss_damage(data: dict):
         logger.warning(f"⚠️ boss_damage: damage={damage}")
         return jsonify({'status': 'error', 'message': 'damage must be > 0'}), 400
 
+    # Валидация урона
+    damage = validate_integer(damage, min_val=1, max_val=10000, default=0)
+
     # АНТИЧИТ: Максимальный урон от ульты с критом в игре ~800. Берем лимит 3000 с запасом.
     if damage > 3000:
+        security_logger.warning(f"🚨 CHEAT ATTEMPT: user_id={user_id} попытался нанести {damage} урона! Обрезано до 3000.")
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} попытался нанести {damage} урона! Обрезано до 3000.")
         damage = 3000
 

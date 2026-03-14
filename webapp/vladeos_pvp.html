@@ -248,12 +248,12 @@
         if (data.win) {
           msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
           msg.style.color = 'var(--game-green)';
-          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, window.location.origin);
           showReward(100);
         } else {
           msg.innerText = "Vladeos победил! 🏆";
           msg.style.color = 'var(--accent)';
-          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, window.location.origin);
           restartArea.classList.remove('hidden');
         }
       } catch(e) {
