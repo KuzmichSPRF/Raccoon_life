@@ -173,8 +173,15 @@
     let active = true;
     let pStats = { maxHp: 100 };
 
-    window.addEventListener('DOMContentLoaded', () => {
-      apiCall('start');
+    window.addEventListener('DOMContentLoaded', async () => {
+      const data = await apiCall('start');
+      if (data && data.status === 'ok') {
+          pHP = data.state.pHP;
+          pNRG = data.state.pNRG;
+          bHP = data.state.bHP;
+          bNRG = data.state.bNRG;
+          updateUI();
+      }
     });
 
     async function apiCall(actionType) {
@@ -474,7 +481,14 @@
     }
 
     async function restartGame() {
-      await apiCall('start');
+      const data = await apiCall('start');
+      if (data && data.status === 'ok') {
+          pHP = data.state.pHP;
+          pNRG = data.state.pNRG;
+          bHP = data.state.bHP;
+          bNRG = data.state.bNRG;
+      }
+      
       active = true;
       
       // Сбрасываем UI
