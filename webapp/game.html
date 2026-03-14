@@ -75,11 +75,19 @@
     }
     .btn:active { transform: scale(0.95); }
     .btn:disabled { background: #333 !important; color: #666; opacity: 1; cursor: not-allowed; }
-    
+
     .btn-std { background: var(--primary); grid-column: span 2; font-size: 1rem; padding: 16px; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
     .btn-sp1 { background: #e67e22; }
     .btn-sp2 { background: #9b59b6; }
     .btn-sp3 { background: var(--accent); box-shadow: 0 0 15px rgba(255,0,85,0.3); }
+
+    #restart-btn {
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
 
     .log { font-size: 0.8rem; margin-top: 15px; color: var(--text-sec); font-style: italic; }
   </style>
@@ -118,7 +126,9 @@
     <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
     <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
   </div>
-  
+
+  <button class="btn btn-std" id="restart-btn" onclick="restartGame()" style="display: none; margin-top: 15px; background: var(--game-green); color: #000;">🔄 Сыграть ещё</button>
+
   <div class="log" id="log">Битва началась...</div>
 
   <script>
@@ -227,12 +237,42 @@
       active = false;
       updateUI();
       document.getElementById('msg').innerHTML = txt;
+      
+      // Показываем кнопку "Сыграть ещё"
+      const restartBtn = document.getElementById('restart-btn');
+      if (restartBtn) {
+        restartBtn.style.display = 'block';
+      }
+      
       document.getElementById('controls').style.opacity = "0.5";
       toggleBtns(true);
 
       // Отправляем результат родителю (победа если у бота <= 0 HP)
       const isWin = (bHP <= 0);
       window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
+    }
+
+    function restartGame() {
+      // Сбрасываем статы
+      pHP = 100;
+      pNRG = 0;
+      bHP = 100;
+      bNRG = 0;
+      active = true;
+      
+      // Сбрасываем UI
+      document.getElementById('msg').innerHTML = 'Твой ход, Енот! <br>Выбирай прием.';
+      document.getElementById('log').innerText = 'Битва началась...';
+      document.getElementById('controls').style.opacity = "1";
+      
+      // Скрываем кнопку рестарта
+      const restartBtn = document.getElementById('restart-btn');
+      if (restartBtn) {
+        restartBtn.style.display = 'none';
+      }
+      
+      updateUI();
+      toggleBtns(false);
     }
   </script>
 </body>

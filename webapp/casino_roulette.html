@@ -262,6 +262,11 @@
   </style>
 </head>
 <body>
+  <!-- Звук рулетки -->
+  <audio id="roulette-music" loop>
+    <source src="https://github.com/KuzmichSPRF/QT2/raw/refs/heads/main/music.mp3" type="audio/mpeg">
+  </audio>
+
   <div class="header">
     <span style="font-weight: 800;">🎰 Енотная Рулетка</span>
     <div class="balance-badge">
@@ -362,6 +367,10 @@
 
     // Проверка что Telegram WebApp загружен
     let tgUserId = null;
+    
+    // Аудио элемент
+    const rouletteMusic = document.getElementById('roulette-music');
+    
     try {
       if (window.Telegram && window.Telegram.WebApp) {
         const tg = window.Telegram.WebApp;
@@ -500,9 +509,24 @@
       const wheel = document.getElementById('wheel');
       wheel.style.transition = 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
       wheel.style.transform = `rotate(${totalRotation}deg)`;
+      
+      // Запускаем музыку при вращении
+      if (rouletteMusic) {
+        rouletteMusic.volume = 0.3;
+        rouletteMusic.currentTime = 0; // Начинаем с начала
+        rouletteMusic.play().catch(e => console.log('Музыка не запустилась:', e));
+        console.log('🎵 Музыка запущена при вращении');
+      }
 
       // Показываем результат через 3 секунды
       setTimeout(() => {
+        // Останавливаем музыку
+        if (rouletteMusic) {
+          rouletteMusic.pause();
+          rouletteMusic.currentTime = 0;
+          console.log('⏹️ Музыка остановлена');
+        }
+      
         if (result.win) {
           stats.wins++;
           document.getElementById('total-wins').innerText = stats.wins;
