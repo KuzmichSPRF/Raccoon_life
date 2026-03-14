@@ -102,8 +102,7 @@
   <div id="cover-screen" class="screen active">
     <div style="font-size: 5rem; filter: drop-shadow(0 0 20px rgba(0,136,204,0.5));">🦝</div>
     <h1>Raccoon Life</h1>
-    <p>Твой гид по миру енотов, квестов и новостей.</p>
-    <button class="btn-primary" onclick="navigateTo('main-menu')">Открыть меню</button>
+    <button class="btn-primary" onclick="tg.openLink(WEBAPP_URL)">🎮 Играть</button>
   </div>
 
   <div id="main-menu" class="screen">
@@ -165,6 +164,9 @@
   const tg = window.Telegram.WebApp;
   tg.ready();
   tg.expand();
+  
+  // URL для кнопки Играть
+  const WEBAPP_URL = window.location.origin;
 
   // ==================== USER ID ====================
   function getUserId() {
