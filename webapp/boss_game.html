@@ -350,6 +350,17 @@
     let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
     let gameActive = true;
 
+    function getUserId() {
+      let id = localStorage.getItem('rl_user_id');
+      if (id) return parseInt(id);
+      try {
+        if (window.parent && window.parent.getUserId) {
+          return window.parent.getUserId();
+        }
+      } catch (e) {}
+      return null;
+    }
+
     // Проверка что Telegram WebApp загружен
     let tgUserId = null;
     try {
@@ -361,6 +372,10 @@
       }
     } catch (e) {
       console.log('Telegram WebApp not available:', e);
+    }
+
+    if (!tgUserId) {
+        tgUserId = getUserId();
     }
 
     // Если ID пользователя не найден (например, при тесте в браузере),
@@ -531,6 +546,10 @@
           }
           
           if (result.status === 'ok') {
+            if (result.tokens && result.tokens.balance !== undefined) {
+              window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
+            }
+            
             // Восстанавливаем 100% здоровья
             playerHP = playerMaxHP;
             updatePlayerHP();

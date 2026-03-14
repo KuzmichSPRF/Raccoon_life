@@ -277,16 +277,19 @@
       setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 400);
     }
 
-    function buyCookie() {
-      // Получаем user_id из Telegram
-      let userId = null;
+    function getUserId() {
+      let id = localStorage.getItem('rl_user_id');
+      if (id) return parseInt(id);
       try {
-        if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
-          userId = window.parent.tg.initDataUnsafe.user?.id;
+        if (window.parent && window.parent.getUserId) {
+          return window.parent.getUserId();
         }
-      } catch (e) {
-        console.error('Error getting user_id:', e);
-      }
+      } catch (e) {}
+      return null;
+    }
+
+    function buyCookie() {
+      let userId = getUserId();
       
       if (!userId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
@@ -331,6 +334,10 @@
         }
         
         if (result.status === 'ok') {
+          if (result.tokens && result.tokens.balance !== undefined) {
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
+          }
+          
           // Восстанавливаем 100% здоровья
           pStats.hp = pStats.maxHp;
           updateUI();
