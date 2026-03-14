@@ -455,6 +455,11 @@
       const btnUlt = document.getElementById('btn-sp2');
       const btnHeal = document.getElementById('btn-sp3');
 
+      // Сначала разблокируем все кнопки (включая базовую атаку и печеньку)
+      if (gameActive) {
+        document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+      }
+
       energyFill.style.width = playerEnergy + '%';
       energyText.innerText = Math.floor(playerEnergy);
       btnStrong.disabled = playerEnergy < 40;
