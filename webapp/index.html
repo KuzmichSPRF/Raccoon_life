@@ -680,6 +680,19 @@
     navigateTo('rating-screen');
   }
 
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.toString().replace(/[&<>'"]/g, 
+      tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag)
+    );
+  }
+
   function renderLeaderboard(players) {
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
@@ -698,11 +711,12 @@
       // Форматирование баланса токенов
       const formattedBalance = p.balance.toLocaleString('ru-RU');
       const earnedLabel = p.total_earned ? `(всего заработано: ${p.total_earned.toLocaleString('ru-RU')})` : '';
+      const safeName = escapeHTML(p.name);
 
       div.innerHTML = `
         <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${rankIcon}</div>
         <div style="flex: 1;">
-          <div style="font-weight: 700;">${p.name}</div>
+          <div style="font-weight: 700;">${safeName}</div>
           <div style="font-size: 0.75rem; color: var(--text-sec);">💰 Баланс: ${formattedBalance} $ENT ${earnedLabel}</div>
         </div>
         <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${formattedBalance}</div>
