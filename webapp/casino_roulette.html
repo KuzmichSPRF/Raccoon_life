@@ -416,12 +416,10 @@
       }
     }
 
-    // Обновление баланса UI + синхронизация с родителем
+    // Обновление баланса UI
     function updateBalanceUI(newBalance) {
       balance = newBalance;
       document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
-      // Отправляем баланс родителю для синхронизации
-      window.parent.postMessage({ type: 'token_balance', balance: balance }, '*');
     }
 
     // Отрисовка колеса
@@ -520,8 +518,9 @@
         document.getElementById('spin-btn').disabled = false;
         document.querySelectorAll('.bet-btn').forEach(btn => btn.disabled = false);
         document.getElementById('bet-amount').disabled = false;
-        
-        loadBalance(); // Обновляем баланс с синхронизацией
+
+        // Обновляем баланс с сервера (синхронизация с родителем через postMessage в updateBalanceUI)
+        loadBalance();
       }, 3000);
     }
 
@@ -619,10 +618,8 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
       renderWheel();
-      
-      // Запрашиваем баланс у родителя
-      window.parent.postMessage({ type: 'request_balance' }, '*');
-      
+      loadBalance();  // Загружаем баланс с сервера
+
       // Загрузка статистики из localStorage
       const savedStats = localStorage.getItem('roulette_stats');
       if (savedStats) {

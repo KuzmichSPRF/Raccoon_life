@@ -323,14 +323,6 @@
             balanceEl.innerText = data.tokens.balance.toLocaleString('ru-RU');
           }
           console.log('💰 Token balance:', data.tokens.balance);
-          // Отправляем баланс всем iframe для синхронизации
-          const iframes = document.querySelectorAll('iframe');
-          iframes.forEach(iframe => {
-            iframe.contentWindow.postMessage({ 
-              type: 'token_balance', 
-              balance: data.tokens.balance 
-            }, '*');
-          });
         }
       })
       .catch(err => {
@@ -344,6 +336,8 @@
     if (current === 'reader-screen') {
       document.getElementById('reader-iframe').src = '';
       navigateTo('list-screen');
+      // Обновляем баланс при возврате из игры
+      setTimeout(() => loadTokenBalance(), 500);
     } else if (current === 'rating-screen') {
       navigateTo('main-menu');
     } else if (current === 'list-screen') {
@@ -411,7 +405,7 @@
 
   function handleItemClick(item) {
     if ((item.type === 'link' || item.type === 'external') && item.id) {
-      markAsCompleted(item.id);
+      markAsCompleted(data.id);
     }
     if (item.type === 'folder') {
       renderCategory(item.target);
@@ -613,23 +607,6 @@
         balanceEl.innerText = data.balance.toLocaleString('ru-RU');
       }
       console.log('💰 Sync token balance:', data.balance);
-    }
-
-    // Запрос баланса при открытии казино
-    if (data.type === 'request_balance') {
-      const userId = getUserId();
-      if (userId) {
-        fetch(`/api/tokens?userId=${userId}`)
-          .then(res => res.json())
-          .then(tokenData => {
-            if (tokenData.status === 'ok' && tokenData.tokens) {
-              event.source.postMessage({
-                type: 'token_balance',
-                balance: tokenData.tokens.balance
-              }, '*');
-            }
-          });
-      }
     }
   });
 
