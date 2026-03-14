@@ -1034,7 +1034,7 @@ def handle_spend_tokens(data: dict):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
     user = update.effective_user
-    
+
     # Сохраняем пользователя в БД
     try:
         ensure_user_exists(
@@ -1048,16 +1048,206 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
     except Exception as e:
         logger.error(f"Ошибка сохранения пользователя: {e}")
-    
+
     # Кнопка для запуска WebApp
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
     ]])
-    
+
     await update.message.reply_text(
         "Привет! Нажми кнопку ниже, чтобы играть:",
         reply_markup=keyboard
     )
+
+
+async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /add <user_id> <amount> [reason]
+    Начисляет токены пользователю и уведомляет его
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ Использование: /add <user_id> <amount> [reason]\n"
+            "Пример: /add 123456789 100 За победу в турнире"
+        )
+        return
+
+    try:
+        user_id = int(context.args[0])
+        amount = int(context.args[1])
+        reason = ' '.join(context.args[2:]) if len(context.args) > 2 else 'Начисление админом'
+    except ValueError:
+        await update.message.reply_text("❌ user_id и amount должны быть числами!")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ amount должен быть больше 0!")
+        return
+
+    # Начисляем токены
+    result = add_tokens(user_id, amount, f'admin_grant:{reason}')
+
+    if result:
+        # Отправляем уведомление админу
+        await update.message.reply_text(
+            f"✅ Успешно!\n"
+            f"👤 Пользователь: {user_id}\n"
+            f"💰 Начислено: {amount} $ENT\n"
+            f"📝 Причина: {reason}\n"
+            f"💳 Новый баланс: {result['balance']} $ENT"
+        )
+
+        # Отправляем уведомление пользователю
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"🎉 <b>Вам начислены токены!</b>\n\n"
+                    f"💰 Сумма: <b>+{amount} $ENT</b>\n"
+                    f"📝 Причина: {reason}\n"
+                    f"💳 Ваш баланс: {result['balance']} $ENT\n\n"
+                    f"Продолжайте играть в Raccoon Life! 🦝"
+                ),
+                parse_mode=ParseMode.HTML
+            )
+            logger.info(f"📬 Уведомление отправлено пользователю {user_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
+            await update.message.reply_text(
+                f"⚠️ Пользователь не найден или заблокировал бота!\n"
+                f"Но токены начислены (баланс: {result['balance']} $ENT)"
+            )
+    else:
+        await update.message.reply_text("❌ Ошибка при начислении токенов!")
+
+
+async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /balance <user_id>
+    Проверяет баланс пользователя
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "❌ Использование: /balance <user_id>\n"
+            "Пример: /balance 123456789"
+        )
+        return
+
+    try:
+        user_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ user_id должен быть числом!")
+        return
+
+    # Получаем баланс
+    tokens = get_user_tokens(user_id)
+
+    # Получаем имя пользователя
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+    user_row = cursor.fetchone()
+    conn.close()
+
+    if user_row:
+        name = user_row['username'] or f"{user_row['first_name'] or ''} {user_row['last_name'] or ''}".strip() or f"Игрок #{user_id}"
+    else:
+        name = f"Игрок #{user_id}"
+
+    await update.message.reply_text(
+        f"💳 <b>Баланс пользователя</b>\n\n"
+        f"👤 {name} ({user_id})\n"
+        f"💰 Баланс: <b>{tokens['balance']} $ENT</b>\n"
+        f"📊 Всего заработано: {tokens['total_earned']} $ENT\n"
+        f"💸 Всего потрачено: {tokens['total_spent']} $ENT",
+        parse_mode=ParseMode.HTML
+    )
+
+
+async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /spend <user_id> <amount> [reason]
+    Списывает токены у пользователя и уведомляет его
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ Использование: /spend <user_id> <amount> [reason]\n"
+            "Пример: /spend 123456789 50 Штраф за читы"
+        )
+        return
+
+    try:
+        user_id = int(context.args[0])
+        amount = int(context.args[1])
+        reason = ' '.join(context.args[2:]) if len(context.args) > 2 else 'Списание админом'
+    except ValueError:
+        await update.message.reply_text("❌ user_id и amount должны быть числами!")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ amount должен быть больше 0!")
+        return
+
+    # Списываем токены
+    result = spend_tokens(user_id, amount, f'admin_spend:{reason}')
+
+    if result:
+        # Отправляем уведомление админу
+        await update.message.reply_text(
+            f"✅ Успешно!\n"
+            f"👤 Пользователь: {user_id}\n"
+            f"💰 Списано: {amount} $ENT\n"
+            f"📝 Причина: {reason}\n"
+            f"💳 Остаток: {result['balance']} $ENT"
+        )
+
+        # Отправляем уведомление пользователю
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"⚠️ <b>Списание токенов</b>\n\n"
+                    f"💸 Сумма: <b>-{amount} $ENT</b>\n"
+                    f"📝 Причина: {reason}\n"
+                    f"💳 Ваш баланс: {result['balance']} $ENT\n\n"
+                    f"Обратитесь к администрации если вы не согласны с решением. 🦝"
+                ),
+                parse_mode=ParseMode.HTML
+            )
+            logger.info(f"📬 Уведомление о списании отправлено пользователю {user_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
+            await update.message.reply_text(
+                f"⚠️ Пользователь не найден или заблокировал бота!\n"
+                f"Но токены списаны (баланс: {result['balance']} $ENT)"
+            )
+    elif result is None:
+        # Проверяем текущий баланс для сообщения об ошибке
+        tokens = get_user_tokens(user_id)
+        await update.message.reply_text(
+            f"❌ Недостаточно токенов у пользователя!\n"
+            f"💰 Баланс: {tokens['balance']} $ENT (нужно {amount} $ENT)"
+        )
+    else:
+        await update.message.reply_text("❌ Ошибка при списании токенов!")
 
 
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1105,19 +1295,22 @@ def main():
     """Точка входа приложения"""
     # Инициализация БД
     init_db()
-    
+
     # Запуск Flask в фоне
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     logger.info("🚀 Flask API server started on port 5000")
-    
+
     # Настройка Telegram бота
     telegram_app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
-    
+
     # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
+    telegram_app.add_handler(CommandHandler("balance", get_balance_admin))
+    telegram_app.add_handler(CommandHandler("spend", spend_tokens_admin))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
-    
+
     # Запуск бота
     logger.info("🤖 Starting Telegram bot...")
     telegram_app.run_polling()
