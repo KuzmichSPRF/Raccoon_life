@@ -1137,6 +1137,33 @@ def handle_spend_tokens(data: dict):
 
 # ==================== TELEGRAM BOT ====================
 
+# Флаг для отслеживания начисления приветственных токенов (в памяти)
+WELCOME_BONUS_GRANTED = {}  # user_id -> True
+
+def has_received_welcome_bonus(user_id: int) -> bool:
+    """Проверяет получал ли пользователь приветственные токены"""
+    # Проверяем в памяти
+    if user_id in WELCOME_BONUS_GRANTED:
+        return True
+    
+    # Проверяем в БД - ищем начисление welcome_bonus
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Проверяем есть ли запись о начислении welcome_bonus в total_earned
+        cursor.execute('SELECT total_earned FROM user_tokens WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        if row and row[0] >= 1000:
+            # Если пользователь заработал >= 1000 токенов, считаем что он уже получил бонус
+            WELCOME_BONUS_GRANTED[user_id] = True
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Ошибка has_received_welcome_bonus: {e}")
+        return False
+    finally:
+        conn.close()
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
     user = update.effective_user
@@ -1152,6 +1179,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
         )
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
+        
+        # Проверяем нужно ли начислить приветственные токены
+        # Начисляем только если пользователь новый (первый раз запускает бота)
+        if not has_received_welcome_bonus(user.id):
+            # Проверяем баланс - если 0, начисляем приветственные
+            tokens = get_user_tokens(user.id)
+            if tokens['balance'] == 0 and tokens['total_earned'] == 0:
+                # Начисляем 1000 приветственных токенов
+                result = add_tokens(user.id, 1000, 'welcome_bonus')
+                if result:
+                    WELCOME_BONUS_GRANTED[user.id] = True
+                    logger.info(f"🎁 Приветственные токены начислены: user_id={user.id}, balance={result['balance']}")
+                    
+                    # Отправляем приветственное сообщение
+                    await update.message.reply_text(
+                        f"🎉 <b>Добро пожаловать в Raccoon Life!</b>\n\n"
+                        f"🦝 Вы получили <b>1000 $ENT</b> приветственных токенов!\n\n"
+                        f"Играйте в игры, выполняйте квесты и зарабатывайте ещё больше токенов! 💰\n\n"
+                        f"Нажмите кнопку ниже, чтобы начать:",
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
+                        ]]),
+                        parse_mode=ParseMode.HTML
+                    )
+                    return  # Выходим чтобы не дублировать сообщение
+        
     except Exception as e:
         logger.error(f"Ошибка сохранения пользователя: {e}")
 

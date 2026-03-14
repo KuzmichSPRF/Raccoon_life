@@ -456,7 +456,7 @@
 
   function handleItemClick(item) {
     if ((item.type === 'link' || item.type === 'external') && item.id) {
-      markAsCompleted(data.id);
+      markAsCompleted(item.id);
     }
     if (item.type === 'folder') {
       renderCategory(item.target);
@@ -467,24 +467,24 @@
       const iframe = document.getElementById('reader-iframe');
       iframe.src = item.url;
       navigateTo('reader-screen');
-      
+
       // Передаём баланс и user_id в iframe при загрузке (для рулетки)
       setTimeout(() => {
         const balanceEl = document.getElementById('token-balance');
         const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
         const userId = getUserId();
-        
+
         iframe.contentWindow.postMessage({
           type: 'init_game',
           balance: currentBalance,
           userId: userId
         }, '*');
-        
+
         console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId });
       }, 500);
     } else if (item.type === 'link') {
       tg.openLink(item.url);
-    } else {
+    } else if (item.type === 'external') {
       tg.openTelegramLink(item.url);
     }
   }
