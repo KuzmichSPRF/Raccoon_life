@@ -489,7 +489,66 @@ def get_boss_damage(user_id: int) -> dict:
 
 def get_leaderboard(limit: int = 10) -> list:
     """
-    Получает топ игроков по максимальному урону по боссу
+    Получает топ игроков по балансу токенов
+
+    Args:
+        limit: Количество игроков в рейтинге (по умолчанию 10)
+
+    Returns:
+        Список словарей с данными игроков
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Получаем топ игроков по токенам с данными пользователя
+        cursor.execute('''
+            SELECT
+                u.user_id,
+                u.username,
+                u.first_name,
+                u.last_name,
+                ut.balance,
+                ut.total_earned,
+                ut.total_spent
+            FROM user_tokens ut
+            JOIN users u ON ut.user_id = u.user_id
+            WHERE ut.balance > 0
+            ORDER BY ut.balance DESC
+            LIMIT ?
+        ''', (limit,))
+
+        rows = cursor.fetchall()
+        leaderboard = []
+
+        for i, row in enumerate(rows):
+            # Формируем имя: username или first_name last_name
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': row['user_id'],
+                'name': name,
+                'balance': row['balance'],
+                'total_earned': row['total_earned'],
+                'total_spent': row['total_spent']
+            })
+
+        logger.info(f"🏆 Token Leaderboard: получено {len(leaderboard)} игроков")
+        return leaderboard
+
+    except Exception as e:
+        logger.error(f"Ошибка get_leaderboard: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def get_boss_leaderboard(limit: int = 10) -> list:
+    """
+    Получает топ игроков по урону по боссу
 
     Args:
         limit: Количество игроков в рейтинге (по умолчанию 10)
@@ -503,7 +562,7 @@ def get_leaderboard(limit: int = 10) -> list:
     try:
         # Получаем топ игроков по урону с данными пользователя
         cursor.execute('''
-            SELECT 
+            SELECT
                 u.user_id,
                 u.username,
                 u.first_name,
@@ -536,11 +595,11 @@ def get_leaderboard(limit: int = 10) -> list:
                 'last_hit': row['last_hit']
             })
 
-        logger.info(f"🏆 Leaderboard: получено {len(leaderboard)} игроков")
+        logger.info(f"🏆 Boss Leaderboard: получено {len(leaderboard)} игроков")
         return leaderboard
 
     except Exception as e:
-        logger.error(f"Ошибка get_leaderboard: {e}")
+        logger.error(f"Ошибка get_boss_leaderboard: {e}")
         return []
     finally:
         conn.close()
