@@ -94,11 +94,78 @@
       box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
     }
     .btn-primary:active { transform: scale(0.95); }
+    
+    /* Tutorial Modal Styles */
+    .tutorial-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    }
+    .tutorial-overlay.active { display: flex; }
+    .tutorial-modal {
+      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      border-radius: 24px;
+      padding: 30px 20px;
+      max-width: 340px;
+      text-align: center;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 30px rgba(0, 136, 204, 0.3);
+      animation: tutorialSlideIn 0.3s ease-out;
+    }
+    @keyframes tutorialSlideIn {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .tutorial-icon { font-size: 4rem; margin-bottom: 15px; display: block; }
+    .tutorial-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
+    .tutorial-desc { font-size: 1rem; color: var(--text-sec); line-height: 1.5; margin-bottom: 20px; }
+    .tutorial-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 40px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    }
+    .tutorial-btn:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
 
 <div id="app">
+  <!-- Tutorial Modal -->
+  <div id="tutorial-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal">
+      <span class="tutorial-icon" id="tutorial-icon">📰</span>
+      <h3 class="tutorial-title" id="tutorial-title">Добро пожаловать!</h3>
+      <p class="tutorial-desc" id="tutorial-desc">Здесь вы найдете много интересного</p>
+      <button class="tutorial-btn" onclick="closeTutorial()">Понятно!</button>
+    </div>
+  </div>
+
+  <!-- Token Bonus Modal -->
+  <div id="token-bonus-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal" style="border-color: #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);">
+      <span class="tutorial-icon">🎁</span>
+      <h3 class="tutorial-title">Вам начислено 1000 $ENT!</h3>
+      <p class="tutorial-desc">Приветственные токены уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
+      <button class="tutorial-btn" onclick="closeTokenBonus()">Отлично!</button>
+    </div>
+  </div>
+
   <div id="cover-screen" class="screen active">
     <div style="font-size: 5rem; filter: drop-shadow(0 0 20px rgba(0,136,204,0.5));">🦝</div>
     <h1>Raccoon Life</h1>
@@ -229,6 +296,89 @@
     localStorage.setItem('tower_max_level', stats.tower_max_level.toString());
     localStorage.setItem('tower_total_levels', stats.tower_total_levels.toString());
     localStorage.setItem('completed_items', JSON.stringify(stats.quests));
+  }
+
+  // ==================== TUTORIAL SYSTEM ====================
+  const TUTORIALS = {
+    newspapers: {
+      icon: '📰',
+      title: '📰 Газеты',
+      desc: 'Здесь хранятся все выпуски The Raccoon Times. Читайте новости и будьте в курсе событий!'
+    },
+    quests: {
+      icon: '❓',
+      title: '❓ Квесты',
+      desc: 'Выполняйте квесты и зарабатывайте токены! За первое прохождение квеста вы получаете 500 $ENT.'
+    },
+    games: {
+      icon: '🎮',
+      title: '🎮 Игры',
+      desc: 'Играйте в мини-игры, побеждайте боссов и зарабатывайте токены! Каждая победа приносит награду.'
+    },
+    partners: {
+      icon: '🤝',
+      title: '🤝 Партнеры',
+      desc: 'Здесь вы найдете проекты наших партнеров. Поддерживайте друзей и получайте бонусы!'
+    }
+  };
+
+  function hasSeenTutorial(category) {
+    const seen = localStorage.getItem('rl_tutorial_' + category);
+    return seen === 'true';
+  }
+
+  function markTutorialSeen(category) {
+    localStorage.setItem('rl_tutorial_' + category, 'true');
+  }
+
+  function showTutorial(category) {
+    const tutorial = TUTORIALS[category];
+    if (!tutorial) return;
+
+    document.getElementById('tutorial-icon').innerText = tutorial.icon;
+    document.getElementById('tutorial-title').innerText = tutorial.title;
+    document.getElementById('tutorial-desc').innerText = tutorial.desc;
+    document.getElementById('tutorial-overlay').classList.add('active');
+  }
+
+  function closeTutorial() {
+    document.getElementById('tutorial-overlay').classList.remove('active');
+  }
+
+  // ==================== TOKEN BONUS NOTIFICATION ====================
+  function checkWelcomeBonus() {
+    // Проверяем, показывали ли уже уведомление
+    const hasShown = localStorage.getItem('rl_welcome_bonus_shown');
+    if (hasShown === 'true') return;
+
+    const userId = getUserId();
+    if (!userId) return;
+
+    // Загружаем баланс и проверяем, есть ли 1000 токенов
+    fetch(`/api/tokens?userId=${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok' && data.tokens) {
+        // Показываем уведомление если баланс >= 1000 и ещё не показывали
+        if (data.tokens.balance >= 1000 && data.tokens.total_earned >= 1000) {
+          showTokenBonus();
+          localStorage.setItem('rl_welcome_bonus_shown', 'true');
+        }
+      }
+    })
+    .catch(err => console.error('Ошибка проверки бонуса:', err));
+  }
+
+  function showTokenBonus() {
+    document.getElementById('token-bonus-overlay').classList.add('active');
+  }
+
+  function closeTokenBonus() {
+    document.getElementById('token-bonus-overlay').classList.remove('active');
+    localStorage.setItem('rl_welcome_bonus_shown', 'true');
   }
 
   // ==================== API ====================
@@ -438,6 +588,13 @@
       div.onclick = () => handleItemClick(item);
       list.appendChild(div);
     });
+    
+    // Показываем обучение при первом входе в раздел
+    if (!hasSeenTutorial(catKey)) {
+      showTutorial(catKey);
+      markTutorialSeen(catKey);
+    }
+    
     navigateTo('list-screen');
   }
 
@@ -703,17 +860,18 @@
   // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
   window.addEventListener('DOMContentLoaded', () => {
     loadStats();
-    
+
     // Сохраняем user_id в localStorage для future use
     const userId = getUserId();
     if (userId) {
       localStorage.setItem('rl_user_id', userId);
       console.log('💾 User ID сохранён:', userId);
     }
-    
+
     // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
     setTimeout(() => {
       loadTokenBalance();
+      checkWelcomeBonus(); // Проверяем и показываем уведомление о 1000 токенах
       console.log('🦝 Raccoon Life WebApp ready!');
       console.log('👤 User ID:', getUserId());
     }, 300);
