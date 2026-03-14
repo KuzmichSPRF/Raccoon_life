@@ -393,6 +393,10 @@
       localStorage.setItem('completed_items', JSON.stringify(completed));
       stats.quests = completed;
       syncStats(); // Sync on quest complete
+      
+      // Начисляем токены только за первое прохождение квеста
+      earnTokens(500, 'quest_complete:' + id);
+      
       if (currentCategory) renderCategory(currentCategory);
     }
   }
@@ -523,7 +527,6 @@
     // Quest complete
     if (data.type === 'quest_complete' && data.id) {
       markAsCompleted(data.id);
-      earnTokens(500, 'quest_complete:' + data.id);  // 500 $ENT за квест
       const current = document.querySelector('.screen.active').id;
       if (current === 'reader-screen') {
         document.getElementById('reader-iframe').src = '';
