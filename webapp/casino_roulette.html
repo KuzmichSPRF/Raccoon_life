@@ -65,25 +65,7 @@
       position: relative;
       overflow: hidden;
       transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-    }
-    .wheel-segment {
-      position: absolute;
-      width: 50%;
-      height: 50%;
-      transform-origin: 100% 100%;
-      left: 0;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      clip-path: polygon(0 0, 100% 0, 100% 100%);
-    }
-    .wheel-segment span {
-      position: absolute;
-      font-size: 1.5rem;
-      transform: rotate(45deg);
-      left: 30px;
-      top: 30px;
+      /* Градиент для сегментов будет установлен через JS */
     }
     .wheel-pointer {
       position: absolute;
@@ -114,6 +96,10 @@
       font-size: 2rem;
       z-index: 5;
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    .wheel-emoji {
+      z-index: 3;
+      pointer-events: none;
     }
     
     .bet-controls {
@@ -429,12 +415,35 @@
       const wheel = document.getElementById('wheel');
       const segmentAngle = 360 / segments.length;
       
+      // conic-gradient начинается с 12 часов (сверху), а не с 3 часов (справа)
+      // Поэтому начинаем с -90deg (или 270deg) чтобы 0 был справа
+      // Но нам нужно чтобы 0 (зелёный) был сверху под стрелкой при 0 rotation
+      // Поэтому просто рисуем как есть, а стрелка указывает сверху
+      
+      // Создаём conic-gradient для фона
+      const gradientParts = segments.map((seg, i) => {
+        const color = seg.type === 'green' ? '#00ff88' : (seg.type === 'red' ? '#ff4444' : '#333');
+        const start = i * segmentAngle;
+        const end = (i + 1) * segmentAngle;
+        return `${color} ${start}deg ${end}deg`;
+      });
+      wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+      
+      // Создаём элементы для эмодзи
       segments.forEach((seg, i) => {
         const el = document.createElement('div');
-        el.className = 'wheel-segment';
-        el.style.backgroundColor = seg.type === 'green' ? '#00ff88' : (seg.type === 'red' ? '#ff4444' : '#333');
-        el.style.transform = `rotate(${i * segmentAngle}deg)`;
-        el.innerHTML = `<span>${seg.emoji}</span>`;
+        el.className = 'wheel-emoji';
+        el.textContent = seg.emoji;
+        el.style.position = 'absolute';
+        el.style.fontSize = '1.5rem';
+        el.style.left = '50%';
+        el.style.top = '50%';
+        el.style.transformOrigin = '0 0';
+        // Позиционируем эмодзи на середине сегмента
+        // conic-gradient начинается сверху (12 часов), поэтому смещаем на -90deg
+        const angle = i * segmentAngle + (segmentAngle / 2);
+        // Поворачиваем и сдвигаем к краю
+        el.style.transform = `translate(-50%, -50%) rotate(${angle - 90}deg) translateY(-100px)`;
         wheel.appendChild(el);
       });
     }
@@ -494,10 +503,23 @@
       // Определяем результат (с RTP 95%)
       const result = await playRound(currentBet, betAmount);
 
+      console.log('🎯 Результат:', result);
+
       // Вращаем колесо
+      // conic-gradient начинается сверху (12 часов), стрелка тоже сверху
+      // Поэтому при rotation 0deg стрелка указывает на сегмент 0 (зелёный)
       const segmentIndex = segments.findIndex(s => s.value === result.number);
       const segmentAngle = 360 / segments.length;
-      const targetAngle = 360 - (segmentIndex * segmentAngle) + segmentAngle / 2;
+
+      console.log('📍 Индекс сегмента:', segmentIndex, '| Угол сегмента:', segmentAngle);
+
+      // Чтобы сегмент оказался под стрелкой (сверху), нужно повернуть колесо на:
+      // - (угол сегмента) чтобы компенсировать его позицию
+      const segmentRotation = segmentIndex * segmentAngle + (segmentAngle / 2);
+      const targetAngle = -segmentRotation;
+
+      console.log('🔄 Target angle:', targetAngle, '| Total rotation:', 360 * 5 + targetAngle);
+
       const totalRotation = 360 * 5 + targetAngle; // 5 полных оборотов + целевой сектор
 
       const wheel = document.getElementById('wheel');
