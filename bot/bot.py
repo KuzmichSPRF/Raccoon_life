@@ -539,40 +539,47 @@ def get_user_by_username(username: str) -> dict:
 
     try:
         # Убираем @ если есть
-        username = username.lstrip('@')
-        
+        original_username = username.lstrip('@')
+        username = original_username.lower()
+
+        logger.info(f"🔍 Поиск пользователя по username: '{username}'")
+
         # Ищем по username
         cursor.execute('''
-            SELECT user_id, username, first_name, last_name 
-            FROM users 
-            WHERE username = ?
-        ''', (username.lower(),))
+            SELECT user_id, username, first_name, last_name
+            FROM users
+            WHERE LOWER(username) = ?
+        ''', (username,))
         row = cursor.fetchone()
 
         if row:
+            logger.info(f"✅ Найден пользователь по username: {row['user_id']} ({row['username']})")
             return {
                 'user_id': row['user_id'],
                 'username': row['username'],
                 'first_name': row['first_name'],
                 'last_name': row['last_name']
             }
-        
+
         # Если не найдено, пробуем найти по first_name + last_name
+        logger.info(f"🔍 Не найдено по username, пробуем поиск по имени...")
         cursor.execute('''
-            SELECT user_id, username, first_name, last_name 
-            FROM users 
+            SELECT user_id, username, first_name, last_name
+            FROM users
             WHERE LOWER(first_name) = ? OR LOWER(last_name) = ?
-        ''', (username.lower(), username.lower()))
+        ''', (username, username))
         row = cursor.fetchone()
-        
+
         if row:
+            logger.info(f"✅ Найден пользователь по имени: {row['user_id']} ({row['first_name']} {row['last_name']})")
             return {
                 'user_id': row['user_id'],
                 'username': row['username'],
                 'first_name': row['first_name'],
                 'last_name': row['last_name']
             }
-        
+
+        logger.warning(f"❌ Пользователь '{username}' не найден")
         return None
 
     except Exception as e:
@@ -1251,6 +1258,7 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Ищем пользователя по username или ID
     identifier = context.args[0]
+    logger.info(f"🔍 Поиск пользователя: {identifier}")
     user_info = get_user_by_id_or_username(identifier)
 
     if not user_info:
@@ -1262,6 +1270,8 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = user_info['user_id']
     user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+
+    logger.info(f"💰 Начисление токенов: user_id={user_id}, amount={amount}, reason={reason}")
 
     # Начисляем токены
     result = add_tokens(user_id, amount, f'admin_grant:{reason}')
