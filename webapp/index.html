@@ -400,6 +400,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      keepalive: true
     })
     .then(r => r.json())
     .then(result => {
@@ -607,8 +609,10 @@
       stats.quests = completed;
       syncStats(); // Sync on quest complete
       
-      // Начисляем токены только за первое прохождение квеста
-      earnTokens(500, 'quest_complete:' + id);
+      // Начисляем токены только за первое прохождение квестов (пропускаем газеты)
+      if (!id.startsWith('news_')) {
+        earnTokens(500, 'quest_complete:' + id);
+      }
       
       if (currentCategory) renderCategory(currentCategory);
     }
@@ -644,8 +648,10 @@
       }, 500);
     } else if (item.type === 'link') {
       tg.openLink(item.url);
+      setTimeout(() => tg.openLink(item.url), 150);
     } else if (item.type === 'external') {
       tg.openTelegramLink(item.url);
+      setTimeout(() => tg.openTelegramLink(item.url), 150);
     }
   }
 
