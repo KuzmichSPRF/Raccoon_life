@@ -465,11 +465,34 @@
     function buyCookie() {
       if (!gameActive) return;
       
-      // Проверяем, есть ли user_id
-      if (!tgUserId) {
+      // Получаем user_id из Telegram или используем fallback
+      let userId = tgUserId;
+      
+      // Если tgUserId не найден, пробуем получить из window.parent
+      if (!userId) {
+        try {
+          if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
+            userId = window.parent.tg.initDataUnsafe.user?.id;
+          }
+        } catch (e) {
+          console.error('Error getting user_id from parent:', e);
+        }
+      }
+      
+      // Если всё ещё нет user_id, пробуем из localStorage
+      if (!userId) {
+        const storedId = localStorage.getItem('rl_temp_user_id');
+        if (storedId) {
+          userId = parseInt(storedId);
+        }
+      }
+      
+      if (!userId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
         return;
       }
+      
+      console.log('buyCookie: userId =', userId);
       
       // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
@@ -483,7 +506,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'spend_tokens',
-          userId: tgUserId,
+          userId: userId,
           amount: 100,
           reason: 'cookie_heal'
         })
