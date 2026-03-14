@@ -199,6 +199,10 @@
           eStats.dmg = data.state.eDmg;
           pStats.hp = data.state.pHP;
           pStats.nrg = data.state.pNRG;
+      } else if (data && data.error === 'Too Many Requests') {
+          document.getElementById('msg').innerText = "Слишком быстро! Подождите пару секунд...";
+          document.getElementById('msg').style.color = "var(--accent)";
+          return;
       }
 
       // UI врага
@@ -217,7 +221,12 @@
       
       const data = await apiCall(actionType);
       if (!data || data.status !== 'ok') {
-          if (data && data.error === 'No active session') await apiCall('start');
+          if (data && data.error === 'No active session') {
+              await apiCall('start');
+          } else if (data && data.error === 'Too Many Requests') {
+              document.getElementById('msg').innerText = "Слишком быстро! Подождите...";
+              document.getElementById('msg').style.color = "var(--accent)";
+          }
           toggleButtons(false); turn = true; return;
       }
       

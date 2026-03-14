@@ -1345,7 +1345,7 @@ def api_casino_roulette():
 
 
 @app.route('/api/boss/attack', methods=['POST'])
-@limiter.limit("30 per minute")
+@limiter.limit("120 per minute")
 def api_boss_attack():
     """Серверная логика атаки по боссу"""
     try:
@@ -1442,7 +1442,7 @@ def api_boss_attack():
 
 
 @app.route('/api/game/vladeos', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("30 per minute")
 def api_game_vladeos():
     """Логика Vladeos PvP"""
     try:
@@ -1464,7 +1464,7 @@ def api_game_vladeos():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/battleship', methods=['POST'])
-@limiter.limit("15 per minute")
+@limiter.limit("30 per minute")
 def api_game_battleship():
     """Античит Морского боя - кулдаун 10 сек"""
     try:
@@ -1484,7 +1484,7 @@ def api_game_battleship():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/clown', methods=['POST'])
-@limiter.limit("15 per minute")
+@limiter.limit("120 per minute")
 def api_game_clown():
     """Логика Битвы Фишек (Клоун)"""
     try:
@@ -1553,7 +1553,7 @@ def api_game_clown():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/tower', methods=['POST'])
-@limiter.limit("15 per minute")
+@limiter.limit("120 per minute")
 def api_game_tower():
     """Логика Башни"""
     try:
