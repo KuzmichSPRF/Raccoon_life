@@ -164,7 +164,13 @@
                     'Content-Type': 'application/json',
                     'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
                 },
-                body: JSON.stringify({ userId: userId, action: actionType, level: level })
+                body: JSON.stringify({ 
+                    userId: userId, 
+                    action: actionType, 
+                    level: level,
+                    currentEnergy: pStats.nrg,
+                    currentHP: pStats.hp
+                })
             });
             return await res.json();
         } catch(e) { return null; }
@@ -243,6 +249,10 @@
       updateUI();
 
       if (data.game_over && data.win) {
+          if (data.state) {
+              pStats.hp = data.state.pHP;
+              pStats.nrg = data.state.pNRG;
+          }
           setTimeout(winLevel, 1000);
           return;
       }

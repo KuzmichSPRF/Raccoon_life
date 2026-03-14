@@ -1571,7 +1571,11 @@ def api_game_tower():
             base_dmg = 18 if is_boss else random.randint(8, 18)
             scale = (0.2 + (level * 0.08)) if is_boss else (0.15 + (level * 0.1))
             
-            state = {'level': level, 'pHP': 100, 'pNRG': 0, 'eHP': int(base_hp * scale), 'eMaxHP': int(base_hp * scale), 'eDmg': max(1, int(base_dmg * scale))}
+            current_energy = min(100, max(0, int(data.get('currentEnergy', 0))))
+            current_hp = int(data.get('currentHP', 100))
+            if current_hp <= 0: current_hp = 100
+            
+            state = {'level': level, 'pHP': current_hp, 'pNRG': current_energy, 'eHP': int(base_hp * scale), 'eMaxHP': int(base_hp * scale), 'eDmg': max(1, int(base_dmg * scale))}
             save_game_session(user_id, 'tower', state)
             return jsonify({'status': 'ok', 'state': state})
             
