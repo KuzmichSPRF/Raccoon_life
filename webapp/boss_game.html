@@ -463,16 +463,21 @@
     }
 
     function buyCookie() {
-      if (!gameActive) return;
+      if (!gameActive) {
+        console.log('buyCookie: game not active');
+        return;
+      }
       
       // Получаем user_id из Telegram или используем fallback
       let userId = tgUserId;
+      let userIdSource = 'tgUserId';
       
       // Если tgUserId не найден, пробуем получить из window.parent
       if (!userId) {
         try {
           if (window.parent && window.parent.tg && window.parent.tg.initDataUnsafe) {
             userId = window.parent.tg.initDataUnsafe.user?.id;
+            userIdSource = 'parent.tg';
           }
         } catch (e) {
           console.error('Error getting user_id from parent:', e);
@@ -484,69 +489,87 @@
         const storedId = localStorage.getItem('rl_temp_user_id');
         if (storedId) {
           userId = parseInt(storedId);
+          userIdSource = 'localStorage';
         }
       }
       
+      console.log('buyCookie: userId =', userId, 'from', userIdSource);
+      
       if (!userId) {
-        document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
+        document.getElementById('log').innerText = "❌ Ошибка: нет user_id. Проверьте подключение к Telegram.";
         return;
       }
       
-      console.log('buyCookie: userId =', userId);
-      
-      // Блокируем кнопку на время запроса
-      const cookieBtn = document.getElementById('btn-cookie');
-      cookieBtn.disabled = true;
-      
-      document.getElementById('log').innerText = "🍪 Покупка печеньки...";
-      
-      // Списываем 100 токенов
-      fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'spend_tokens',
-          userId: userId,
-          amount: 100,
-          reason: 'cookie_heal'
-        })
+      // Проверяем текущий баланс пользователя перед покупкой
+      fetch(`/api/tokens?userId=${userId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       })
-      .then(r => {
-        console.log('Response status:', r.status);
-        return r.json();
-      })
-      .then(result => {
-        console.log('Result:', result);
+      .then(r => r.json())
+      .then(tokenData => {
+        console.log('Token balance:', tokenData);
+        const balance = tokenData.tokens?.balance || 0;
         
-        // Проверяем статус ответа
-        if (result.status === 'error') {
-          // Обработка ошибок API
-          const errorMsg = result.message || 'Ошибка сервера';
-          console.error('API Error:', errorMsg);
-          
-          if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
-            document.getElementById('log').innerText = "❌ Недостаточно токенов!";
-          } else {
-            document.getElementById('log').innerText = "❌ " + errorMsg;
-          }
+        if (balance < 100) {
+          document.getElementById('log').innerText = `❌ Недостаточно токенов! Баланс: ${balance} $ENT (нужно 100)`;
+          const cookieBtn = document.getElementById('btn-cookie');
+          setTimeout(() => { cookieBtn.disabled = false; }, 500);
           return;
         }
         
-        if (result.status === 'ok') {
-          // Восстанавливаем 100% здоровья
-          playerHP = playerMaxHP;
-          updatePlayerHP();
-          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+        // Блокируем кнопку на время запроса
+        const cookieBtn = document.getElementById('btn-cookie');
+        cookieBtn.disabled = true;
+        
+        document.getElementById('log').innerText = "🍪 Покупка печеньки...";
+        
+        // Списываем 100 токенов
+        return fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'spend_tokens',
+            userId: userId,
+            amount: 100,
+            reason: 'cookie_heal'
+          })
+        })
+        .then(r => {
+          console.log('Response status:', r.status);
+          return r.json();
+        })
+        .then(result => {
+          console.log('Result:', result);
           
-          // Анимация лечения
-          const chip = document.getElementById('player-chip');
-          if (chip) {
-            chip.classList.add('heal-effect');
-            setTimeout(() => chip.classList.remove('heal-effect'), 400);
+          // Проверяем статус ответа
+          if (result.status === 'error') {
+            const errorMsg = result.message || 'Ошибка сервера';
+            console.error('API Error:', errorMsg);
+            
+            if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
+              document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+            } else {
+              document.getElementById('log').innerText = "❌ " + errorMsg;
+            }
+            return;
           }
-        } else {
-          document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
-        }
+          
+          if (result.status === 'ok') {
+            // Восстанавливаем 100% здоровья
+            playerHP = playerMaxHP;
+            updatePlayerHP();
+            document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+            
+            // Анимация лечения
+            const chip = document.getElementById('player-chip');
+            if (chip) {
+              chip.classList.add('heal-effect');
+              setTimeout(() => chip.classList.remove('heal-effect'), 400);
+            }
+          } else {
+            document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
+          }
+        });
       })
       .catch(err => {
         console.error('❌ Network Error:', err);
@@ -554,7 +577,8 @@
       })
       .finally(() => {
         setTimeout(() => {
-          cookieBtn.disabled = false;
+          const cookieBtn = document.getElementById('btn-cookie');
+          if (cookieBtn) cookieBtn.disabled = false;
         }, 500);
       });
     }
