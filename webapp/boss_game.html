@@ -465,7 +465,7 @@
     function buyCookie() {
       if (!gameActive) return;
       
-      // Проверяем, есть ли 100 токенов
+      // Проверяем, есть ли user_id
       if (!tgUserId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
         return;
@@ -474,6 +474,8 @@
       // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
+      
+      document.getElementById('log').innerText = "🍪 Покупка печеньки...";
       
       // Списываем 100 токенов
       fetch('/api/sync', {
@@ -486,8 +488,12 @@
           reason: 'cookie_heal'
         })
       })
-      .then(r => r.json())
+      .then(r => {
+        console.log('Response status:', r.status);
+        return r.json();
+      })
       .then(result => {
+        console.log('Result:', result);
         if (result.status === 'ok') {
           // Восстанавливаем 100% здоровья
           playerHP = playerMaxHP;
@@ -501,12 +507,13 @@
             setTimeout(() => chip.classList.remove('heal-effect'), 400);
           }
         } else {
-          document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+          const errorMsg = result.message || 'Недостаточно токенов!';
+          document.getElementById('log').innerText = "❌ " + errorMsg;
         }
       })
       .catch(err => {
         console.error('❌ Error:', err);
-        document.getElementById('log').innerText = "❌ Ошибка покупки!";
+        document.getElementById('log').innerText = "❌ Ошибка сети!";
       })
       .finally(() => {
         setTimeout(() => {
