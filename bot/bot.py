@@ -117,10 +117,22 @@ def init_db():
                 last_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
+
+        # Таблица токенов $ENT
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_tokens (
+                user_id INTEGER PRIMARY KEY,
+                balance INTEGER DEFAULT 0,
+                total_earned INTEGER DEFAULT 0,
+                total_spent INTEGER DEFAULT 0,
+                last_earn TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+        ''')
+
         # Инициализация босса
         cursor.execute('''
-            INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count) 
+            INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count)
             VALUES (1, 1000000000, 1000000000, 0)
         ''')
         
@@ -141,28 +153,46 @@ def init_db():
 
 def _add_missing_columns(cursor):
     """Добавляет недостающие колонки в существующие таблицы"""
-    
+
     # Проверка boss_damage на наличие hits
     cursor.execute("PRAGMA table_info(boss_damage)")
     boss_damage_cols = {row[1] for row in cursor.fetchall()}
-    
+
     if 'hits' not in boss_damage_cols:
         try:
             cursor.execute("ALTER TABLE boss_damage ADD COLUMN hits INTEGER DEFAULT 0")
             logger.info("Миграция: добавлена колонка hits в boss_damage")
         except Exception as e:
             logger.error(f"Ошибка миграции boss_damage.hits: {e}")
-    
+
     # Проверка boss_global на наличие kill_count
     cursor.execute("PRAGMA table_info(boss_global)")
     boss_global_cols = {row[1] for row in cursor.fetchall()}
-    
+
     if 'kill_count' not in boss_global_cols:
         try:
             cursor.execute("ALTER TABLE boss_global ADD COLUMN kill_count INTEGER DEFAULT 0")
             logger.info("Миграция: добавлена колонка kill_count в boss_global")
         except Exception as e:
             logger.error(f"Ошибка миграции boss_global.kill_count: {e}")
+
+    # Проверка наличия таблицы user_tokens
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_tokens'")
+    if not cursor.fetchone():
+        try:
+            cursor.execute('''
+                CREATE TABLE user_tokens (
+                    user_id INTEGER PRIMARY KEY,
+                    balance INTEGER DEFAULT 0,
+                    total_earned INTEGER DEFAULT 0,
+                    total_spent INTEGER DEFAULT 0,
+                    last_earn TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(user_id) REFERENCES users(user_id)
+                )
+            ''')
+            logger.info("Миграция: создана таблица user_tokens")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_tokens: {e}")
 
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
@@ -489,6 +519,152 @@ def get_leaderboard(limit: int = 10) -> list:
         conn.close()
 
 
+def get_user_tokens(user_id: int) -> dict:
+    """
+    Получает баланс токенов пользователя
+
+    Args:
+        user_id: ID пользователя в Telegram
+
+    Returns:
+        Словарь с данными о токенах
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Гарантируем существование пользователя
+        ensure_user_exists(user_id)
+
+        cursor.execute('SELECT balance, total_earned, total_spent, last_earn FROM user_tokens WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+
+        if row:
+            return {
+                'balance': row['balance'],
+                'total_earned': row['total_earned'],
+                'total_spent': row['total_spent'],
+                'last_earn': row['last_earn']
+            }
+        return {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None}
+
+    except Exception as e:
+        logger.error(f"Ошибка get_user_tokens: {e}")
+        return {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None}
+    finally:
+        conn.close()
+
+
+def add_tokens(user_id: int, amount: int, reason: str = '') -> dict:
+    """
+    Начисляет токены пользователю
+
+    Args:
+        user_id: ID пользователя в Telegram
+        amount: Количество токенов для начисления
+        reason: Причина начисления (для логирования)
+
+    Returns:
+        Словарь с обновленным балансом или None при ошибке
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Гарантируем существование пользователя
+        ensure_user_exists(user_id)
+
+        cursor.execute('''
+            INSERT INTO user_tokens (user_id, balance, total_earned, last_earn)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                balance = balance + excluded.balance,
+                total_earned = total_earned + excluded.total_earned,
+                last_earn = CURRENT_TIMESTAMP
+        ''', (user_id, amount, amount))
+
+        conn.commit()
+
+        # Получаем обновленный баланс
+        cursor.execute('SELECT balance, total_earned, total_spent FROM user_tokens WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+
+        tokens_info = {
+            'balance': row['balance'],
+            'total_earned': row['total_earned'],
+            'total_spent': row['total_spent'],
+            'earned_now': amount,
+            'reason': reason
+        }
+
+        logger.info(f"💰 +{amount} $ENT: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        return tokens_info
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка add_tokens: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+
+def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
+    """
+    Списывает токены у пользователя
+
+    Args:
+        user_id: ID пользователя в Telegram
+        amount: Количество токенов для списания
+        reason: Причина списания
+
+    Returns:
+        Словарь с обновленным балансом или None при ошибке/недостатке средств
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Проверяем текущий баланс
+        cursor.execute('SELECT balance FROM user_tokens WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+
+        if not row or row['balance'] < amount:
+            logger.warning(f"⚠️ Недостаточно токенов: user_id={user_id}, нужно={amount}, есть={row['balance'] if row else 0}")
+            return None
+
+        cursor.execute('''
+            UPDATE user_tokens SET
+                balance = balance - ?,
+                total_spent = total_spent + ?,
+                last_earn = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        ''', (amount, amount, user_id))
+
+        conn.commit()
+
+        # Получаем обновленный баланс
+        cursor.execute('SELECT balance, total_earned, total_spent FROM user_tokens WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+
+        tokens_info = {
+            'balance': row['balance'],
+            'total_earned': row['total_earned'],
+            'total_spent': row['total_spent'],
+            'spent_now': amount,
+            'reason': reason
+        }
+
+        logger.info(f"💸 -{amount} $ENT: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        return tokens_info
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка spend_tokens: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+
 # ==================== API ROUTES ====================
 
 @app.route('/')
@@ -563,6 +739,28 @@ def api_get_leaderboard():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/tokens', methods=['GET'])
+def api_get_tokens():
+    """Получить баланс токенов пользователя"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        user_id = int(user_id)
+        tokens = get_user_tokens(user_id)
+
+        return jsonify({
+            'status': 'ok',
+            'tokens': tokens
+        })
+
+    except Exception as e:
+        logger.error(f"Ошибка api_get_tokens: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/sync', methods=['POST'])
 def api_sync():
     """
@@ -586,6 +784,8 @@ def api_sync():
             return handle_sync_stats(data)
         elif data_type == 'boss_damage':
             return handle_boss_damage(data)
+        elif data_type == 'earn_tokens':
+            return handle_earn_tokens(data)
         else:
             logger.warning(f"⚠️ Неизвестный тип синхронизации: {data_type}")
             return jsonify({'status': 'ok'})  # Игнорируем неизвестные типы
@@ -640,28 +840,67 @@ def handle_sync_stats(data: dict):
 def handle_boss_damage(data: dict):
     """Обработка урона по боссу"""
     user_id = data.get('userId') or data.get('user_id')
-    
+
     if not user_id:
         logger.warning("⚠️ boss_damage без user_id")
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
-    
+
     user_id = int(user_id)
-    
+
     try:
         damage = int(data.get('damage', 0))
     except (ValueError, TypeError):
         damage = 0
-    
+
     if damage <= 0:
         logger.warning(f"⚠️ boss_damage: damage={damage}")
         return jsonify({'status': 'error', 'message': 'damage must be > 0'}), 400
-    
+
     logger.info(f"💥 boss_damage: user_id={user_id}, damage={damage}")
-    
+
     boss_info = add_boss_damage(user_id, damage)
-    
+
+    # Начисляем токены: 10 $ENT за каждые 10000 урона
     if boss_info:
+        tokens_earned = (damage // 10000) * 10
+        if tokens_earned > 0:
+            add_tokens(user_id, tokens_earned, f'boss_damage:{damage}')
+            logger.info(f"💰 Начислено {tokens_earned} $ENT за урон боссу")
+
         return jsonify({'status': 'ok', 'boss': boss_info})
+    else:
+        return jsonify({'status': 'error', 'message': 'Database error'}), 500
+
+
+def handle_earn_tokens(data: dict):
+    """Обработка начисления токенов за победы и квесты"""
+    user_id = data.get('userId') or data.get('user_id')
+
+    if not user_id:
+        logger.warning("⚠️ earn_tokens без user_id")
+        return jsonify({'status': 'error', 'message': 'user_id required'}), 400
+
+    user_id = int(user_id)
+
+    amount = data.get('amount', 0)
+    reason = data.get('reason', 'unknown')
+
+    try:
+        amount = int(amount)
+    except (ValueError, TypeError):
+        logger.warning(f"⚠️ earn_tokens: invalid amount={amount}")
+        return jsonify({'status': 'error', 'message': 'amount must be integer'}), 400
+
+    if amount <= 0:
+        logger.warning(f"⚠️ earn_tokens: amount={amount}")
+        return jsonify({'status': 'error', 'message': 'amount must be > 0'}), 400
+
+    logger.info(f"💰 earn_tokens: user_id={user_id}, amount={amount}, reason={reason}")
+
+    result = add_tokens(user_id, amount, reason)
+
+    if result:
+        return jsonify({'status': 'ok', 'tokens': result})
     else:
         return jsonify({'status': 'error', 'message': 'Database error'}), 500
 

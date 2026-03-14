@@ -52,6 +52,19 @@
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.2);
     }
     .menu-card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; }
+    .token-balance {
+      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      border-radius: 15px; padding: 15px; margin-bottom: 15px;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+    }
+    .token-icon { font-size: 1.8rem; }
+    .token-amount {
+      font-size: 1.5rem; font-weight: 800; color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    .token-label { font-size: 0.7rem; color: var(--text-sec); text-transform: uppercase; }
     .section-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; }
     .list-item {
       background: var(--card-bg); border-radius: 12px; padding: 16px;
@@ -94,6 +107,13 @@
   </div>
 
   <div id="main-menu" class="screen">
+    <div class="token-balance">
+      <span class="token-icon">💰</span>
+      <div>
+        <div class="token-amount" id="token-balance">0</div>
+        <div class="token-label">$ENT Tokens</div>
+      </div>
+    </div>
     <div class="main-menu-grid">
       <div class="menu-card" onclick="renderCategory('newspapers')">
         <span class="menu-card-icon">📰</span>
@@ -270,6 +290,44 @@
 
     console.log('⚔️ Sending boss damage:', data);
     sendToAPI(data);
+  }
+
+  function earnTokens(amount, reason) {
+    const userId = getUserId();
+    if (!userId) return;
+
+    const data = {
+      type: 'earn_tokens',
+      userId: userId,
+      amount: amount,
+      reason: reason
+    };
+
+    console.log('💰 Earning tokens:', data);
+    sendToAPI(data);
+    
+    // Обновляем баланс в UI
+    loadTokenBalance();
+  }
+
+  function loadTokenBalance() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    fetch(`/api/tokens?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.tokens) {
+          const balanceEl = document.getElementById('token-balance');
+          if (balanceEl) {
+            balanceEl.innerText = data.tokens.balance.toLocaleString('ru-RU');
+          }
+          console.log('💰 Token balance:', data.tokens.balance);
+        }
+      })
+      .catch(err => {
+        console.error('Ошибка загрузки баланса:', err);
+      });
   }
 
   // ==================== NAVIGATION ====================
@@ -465,6 +523,7 @@
     // Quest complete
     if (data.type === 'quest_complete' && data.id) {
       markAsCompleted(data.id);
+      earnTokens(500, 'quest_complete:' + data.id);  // 500 $ENT за квест
       const current = document.querySelector('.screen.active').id;
       if (current === 'reader-screen') {
         document.getElementById('reader-iframe').src = '';
@@ -475,7 +534,10 @@
     // Clown game
     if (data.type === 'game_complete' && data.game === 'clown') {
       stats.clown_games++;
-      if (data.win) stats.clown_wins++;
+      if (data.win) {
+        stats.clown_wins++;
+        earnTokens(10, 'clown_win');  // 10 $ENT за победу
+      }
       saveStatsLocal();
       console.log(`🎮 Clown: games=${stats.clown_games}, wins=${stats.clown_wins}`);
       if (userId) {
@@ -488,7 +550,10 @@
     // Vladeos game
     if (data.type === 'game_complete' && data.game === 'vladeos') {
       stats.vladeos_games++;
-      if (data.win) stats.vladeos_wins++;
+      if (data.win) {
+        stats.vladeos_wins++;
+        earnTokens(10, 'vladeos_win');  // 10 $ENT за победу
+      }
       saveStatsLocal();
       console.log(`⚔️ Vladeos: games=${stats.vladeos_games}, wins=${stats.vladeos_wins}`);
       if (userId) {
@@ -532,6 +597,7 @@
 
   // ==================== INIT ====================
   loadStats();
+  loadTokenBalance();  // Загружаем баланс токенов
   console.log('🦝 Raccoon Life WebApp ready!');
   console.log('👤 User ID:', getUserId());
 </script>
