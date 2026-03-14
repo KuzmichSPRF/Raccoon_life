@@ -340,6 +340,8 @@
       setTimeout(() => loadTokenBalance(), 500);
     } else if (current === 'rating-screen') {
       navigateTo('main-menu');
+      // Обновляем баланс при возврате на главное меню
+      setTimeout(() => loadTokenBalance(), 500);
     } else if (current === 'list-screen') {
       navigateTo('main-menu');
     } else if (current === 'main-menu') {
@@ -413,8 +415,24 @@
       tg.showAlert(item.msg);
     } else if (item.type === 'iframe') {
       document.getElementById('reader-header-title').innerText = item.title;
-      document.getElementById('reader-iframe').src = item.url;
+      const iframe = document.getElementById('reader-iframe');
+      iframe.src = item.url;
       navigateTo('reader-screen');
+      
+      // Передаём баланс и user_id в iframe при загрузке (для рулетки)
+      setTimeout(() => {
+        const balanceEl = document.getElementById('token-balance');
+        const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
+        const userId = getUserId();
+        
+        iframe.contentWindow.postMessage({
+          type: 'init_game',
+          balance: currentBalance,
+          userId: userId
+        }, '*');
+        
+        console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId });
+      }, 500);
     } else if (item.type === 'link') {
       tg.openLink(item.url);
     } else {
@@ -607,6 +625,9 @@
         balanceEl.innerText = data.balance.toLocaleString('ru-RU');
       }
       console.log('💰 Sync token balance:', data.balance);
+      
+      // Дополнительно загружаем с сервера для актуальности
+      setTimeout(() => loadTokenBalance(), 200);
     }
   });
 

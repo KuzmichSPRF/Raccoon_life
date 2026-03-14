@@ -97,11 +97,7 @@
       z-index: 5;
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     }
-    .wheel-emoji {
-      z-index: 3;
-      pointer-events: none;
-    }
-    
+
     .bet-controls {
       background: var(--card-bg);
       border-radius: 20px;
@@ -339,21 +335,21 @@
     // Конфигурация рулетки (15 секторов: 1 зелёный, 7 красных, 7 чёрных)
     // RTP 95% достигается за счёт множителей
     const segments = [
-      { type: 'green', value: 0, emoji: '🟢' },  // 0 - зелёный
-      { type: 'red', value: 1, emoji: '🔴' },
-      { type: 'black', value: 2, emoji: '⚫' },
-      { type: 'red', value: 3, emoji: '🔴' },
-      { type: 'black', value: 4, emoji: '⚫' },
-      { type: 'red', value: 5, emoji: '🔴' },
-      { type: 'black', value: 6, emoji: '⚫' },
-      { type: 'red', value: 7, emoji: '🔴' },
-      { type: 'black', value: 8, emoji: '⚫' },
-      { type: 'red', value: 9, emoji: '🔴' },
-      { type: 'black', value: 10, emoji: '⚫' },
-      { type: 'red', value: 11, emoji: '🔴' },
-      { type: 'black', value: 12, emoji: '⚫' },
-      { type: 'red', value: 13, emoji: '🔴' },
-      { type: 'black', value: 14, emoji: '⚫' }
+      { type: 'green', value: 0 },  // 0 - зелёный
+      { type: 'red', value: 1 },
+      { type: 'black', value: 2 },
+      { type: 'red', value: 3 },
+      { type: 'black', value: 4 },
+      { type: 'red', value: 5 },
+      { type: 'black', value: 6 },
+      { type: 'red', value: 7 },
+      { type: 'black', value: 8 },
+      { type: 'red', value: 9 },
+      { type: 'black', value: 10 },
+      { type: 'red', value: 11 },
+      { type: 'black', value: 12 },
+      { type: 'red', value: 13 },
+      { type: 'black', value: 14 }
     ];
 
     // Множители (RTP ~95%)
@@ -395,14 +391,16 @@
         const data = await res.json();
         if (data.status === 'ok' && data.tokens) {
           balance = data.tokens.balance;
-          updateBalanceUI(balance);
+          // Обновляем только UI без отправки родителю (чтобы не было цикла)
+          document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
+          console.log('💰 Загрузили баланс с сервера:', balance);
         }
       } catch (e) {
         console.error('Ошибка загрузки баланса:', e);
       }
     }
 
-    // Обновление баланса UI
+    // Обновление баланса UI (используется при изменении в игре)
     function updateBalanceUI(newBalance) {
       balance = newBalance;
       document.getElementById('balance').innerText = balance.toLocaleString('ru-RU');
@@ -415,11 +413,6 @@
       const wheel = document.getElementById('wheel');
       const segmentAngle = 360 / segments.length;
       
-      // conic-gradient начинается с 12 часов (сверху), а не с 3 часов (справа)
-      // Поэтому начинаем с -90deg (или 270deg) чтобы 0 был справа
-      // Но нам нужно чтобы 0 (зелёный) был сверху под стрелкой при 0 rotation
-      // Поэтому просто рисуем как есть, а стрелка указывает сверху
-      
       // Создаём conic-gradient для фона
       const gradientParts = segments.map((seg, i) => {
         const color = seg.type === 'green' ? '#00ff88' : (seg.type === 'red' ? '#ff4444' : '#333');
@@ -428,24 +421,6 @@
         return `${color} ${start}deg ${end}deg`;
       });
       wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
-      
-      // Создаём элементы для эмодзи
-      segments.forEach((seg, i) => {
-        const el = document.createElement('div');
-        el.className = 'wheel-emoji';
-        el.textContent = seg.emoji;
-        el.style.position = 'absolute';
-        el.style.fontSize = '1.5rem';
-        el.style.left = '50%';
-        el.style.top = '50%';
-        el.style.transformOrigin = '0 0';
-        // Позиционируем эмодзи на середине сегмента
-        // conic-gradient начинается сверху (12 часов), поэтому смещаем на -90deg
-        const angle = i * segmentAngle + (segmentAngle / 2);
-        // Поворачиваем и сдвигаем к краю
-        el.style.transform = `translate(-50%, -50%) rotate(${angle - 90}deg) translateY(-100px)`;
-        wheel.appendChild(el);
-      });
     }
 
     // Выбор ставки
@@ -628,8 +603,8 @@
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
       renderWheel();
-      loadBalance();  // Загружаем баланс с сервера
-
+      // Не загружаем баланс с сервера - получим от родителя
+      
       // Загрузка статистики из localStorage
       const savedStats = localStorage.getItem('roulette_stats');
       if (savedStats) {
@@ -639,12 +614,27 @@
       }
     });
 
-    // Обработка сообщений от родителя (синхронизация баланса)
+    // Обработка сообщений от родителя (главный экран)
     window.addEventListener('message', function(event) {
       if (!event.data) return;
-      if (event.data.type === 'token_balance') {
-        updateBalanceUI(event.data.balance);
-        console.log('💰 Sync balance from parent:', event.data.balance);
+
+      // Инициализация от родителя - получаем баланс и user_id
+      if (event.data.type === 'init_game') {
+        const initBalance = event.data.balance || 0;
+        const initUserId = event.data.userId;
+
+        if (initUserId) {
+          tgUserId = initUserId;
+          console.log('👤 Получили user_id от родителя:', tgUserId);
+        }
+
+        // Устанавливаем баланс от родителя
+        updateBalanceUI(initBalance);
+        console.log('💰 Получили баланс от родителя:', initBalance);
+
+        // Дополнительно загружаем с сервера для синхронизации
+        setTimeout(() => loadBalance(), 100);
+        return;
       }
     });
 
