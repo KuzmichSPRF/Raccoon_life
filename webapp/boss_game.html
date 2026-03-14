@@ -603,32 +603,60 @@
     }
 
     async function attack(type) {
-      if (!gameActive) return;
+      if (!gameActive) {
+        console.log('⚠️ Game not active, attack blocked');
+        return;
+      }
 
       // Локальная проверка энергии, чтобы не спамить сервер
-      if (type === 'strong' && playerEnergy < 40) return;
-      if (type === 'ultimate' && playerEnergy < 80) return;
-      if (type === 'heal' && playerEnergy < 50) return;
+      if (type === 'strong' && playerEnergy < 40) {
+        console.log('⚠️ Not enough energy for strong attack');
+        return;
+      }
+      if (type === 'ultimate' && playerEnergy < 80) {
+        console.log('⚠️ Not enough energy for ultimate');
+        return;
+      }
+      if (type === 'heal' && playerEnergy < 50) {
+        console.log('⚠️ Not enough energy for heal');
+        return;
+      }
 
-      // Блокируем кнопки
-      document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+      console.log('🎯 Starting attack:', type, '| Energy:', playerEnergy);
+
+      // Блокируем кнопки на время атаки
+      const buttons = document.querySelectorAll('.btn');
+      buttons.forEach(btn => btn.disabled = true);
       document.getElementById('msg').innerText = "Атакуем...";
 
       try {
+        console.log('📡 Sending attack request to /api/boss/attack');
+        
+        // Логирование атаки
+        if (typeof logGameAction === 'function') {
+          logGameAction('BOSS_ATTACK', { action: type, energy: playerEnergy });
+        }
+        
         const res = await fetch('/api/boss/attack', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
           },
           body: JSON.stringify({ userId: tgUserId, action: type })
         });
 
+        console.log('📥 Response status:', res.status);
         const data = await res.json();
+        console.log('📦 Response data:', data);
 
         if (data.status === 'error') {
-            document.getElementById('msg').innerText = "❌ Ошибка: " + (data.message || 'Сбой API');
+            const errorMsg = data.message || 'Сбой API';
+            console.error('❌ API Error:', errorMsg);
+            document.getElementById('msg').innerText = "❌ Ошибка: " + errorMsg;
             updateEnergy();
+            // Разблокируем кнопки при ошибке
+            buttons.forEach(btn => btn.disabled = false);
             return;
         }
 
@@ -641,7 +669,8 @@
 
         // Применяем серверные данные
         playerEnergy = Math.max(0, Math.min(100, playerEnergy + energyChange));
-        
+        console.log('⚡ Energy change:', energyChange, '| New energy:', playerEnergy);
+
         if (type === 'basic') message = 'Обычный удар! +20 эн';
         else if (type === 'strong') message = 'Сильная атака! -40 эн';
         else if (type === 'ultimate') message = '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн';
@@ -683,6 +712,7 @@
           setTimeout(() => playerChip.classList.remove('hit'), 300);
 
           if (playerHP <= 0) {
+            console.log('💀 Player died, game over');
             gameOver();
             return;
           }
@@ -692,12 +722,15 @@
         updateBossHP();
         document.getElementById('msg').innerText = message;
         document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
+        console.log('✅ Attack completed, message:', message);
 
       } catch (err) {
-        console.error(err);
+        console.error('❌ Attack error:', err);
         document.getElementById('msg').innerText = "❌ Ошибка соединения!";
       }
 
+      // Разблокируем кнопки после атаки
+      console.log('🔓 Unlocking buttons');
       updateEnergy();
     }
 

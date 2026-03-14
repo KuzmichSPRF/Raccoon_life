@@ -1350,13 +1350,17 @@ def api_boss_attack():
     """Серверная логика атаки по боссу"""
     try:
         if not request.is_json:
+            logger.warning("🚨 Boss attack: не JSON запрос")
             return jsonify({'error': 'Content-Type must be application/json'}), 400
 
         data = request.get_json()
         user_id = data.get('userId') or data.get('user_id')
         action = data.get('action', 'basic')
 
+        logger.info(f"💥 Boss attack: user_id={user_id}, action={action}")
+
         if not user_id:
+            logger.warning("⚠️ Boss attack: нет user_id")
             return jsonify({'error': 'user_id required'}), 400
 
         user_id = int(user_id)
@@ -1365,11 +1369,14 @@ def api_boss_attack():
         init_data = request.headers.get('X-Telegram-Init-Data')
         auth_user = validate_webapp_data(init_data)
         if not auth_user or str(auth_user.get('id')) != str(user_id):
+            security_logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись! user_id={user_id}")
             logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись!")
             return jsonify({'error': 'Unauthorized'}), 403
 
         # Проверка бана
         if is_user_banned(user_id):
+            security_logger.warning(f"🚨 BANNED USER: user_id={user_id} попытался атаковать босса")
+            logger.warning(f"⚠️ Забаненный пользователь попытался атаковать босса")
             return jsonify({'error': 'User is banned'}), 403
 
         damage = 0
@@ -1394,6 +1401,7 @@ def api_boss_attack():
             heal = random.randint(30, 50)
             energy_change = -50
         else:
+            logger.warning(f"⚠️ Неизвестное действие: {action}")
             return jsonify({'error': 'Invalid action'}), 400
 
         if is_crit and damage > 0:
@@ -1404,13 +1412,17 @@ def api_boss_attack():
         if random.random() < 0.4:
             boss_damage = random.randint(1, 100)
 
+        logger.info(f"💥 Attack params: damage={damage}, boss_damage={boss_damage}, energy={energy_change}, crit={is_crit}")
+
         # Применяем урон по боссу в БД
         boss_info = None
         if damage > 0:
             boss_info = add_boss_damage(user_id, damage)
-            
+
         if not boss_info:
             boss_info = get_boss_hp()
+
+        logger.info(f"✅ Boss attack success: user_id={user_id}, boss_hp={boss_info['current_hp']}")
 
         return jsonify({
             'status': 'ok',
@@ -1423,7 +1435,9 @@ def api_boss_attack():
         })
 
     except Exception as e:
-        logger.error(f"Ошибка api_boss_attack: {e}")
+        logger.error(f"❌ Ошибка api_boss_attack: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
