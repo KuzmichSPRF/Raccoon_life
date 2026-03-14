@@ -77,7 +77,10 @@ def init_db():
                 username TEXT,
                 first_name TEXT,
                 last_name TEXT,
-                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_banned INTEGER DEFAULT 0,
+                banned_at TIMESTAMP,
+                ban_reason TEXT
             )
         ''')
         
@@ -160,6 +163,19 @@ def init_db():
 
 def _add_missing_columns(cursor):
     """Добавляет недостающие колонки в существующие таблицы"""
+
+    # Проверка users на наличие is_banned
+    cursor.execute("PRAGMA table_info(users)")
+    users_cols = {row[1] for row in cursor.fetchall()}
+
+    if 'is_banned' not in users_cols:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE users ADD COLUMN banned_at TIMESTAMP")
+            cursor.execute("ALTER TABLE users ADD COLUMN ban_reason TEXT")
+            logger.info("Миграция: добавлены колонки бана в users")
+        except Exception as e:
+            logger.error(f"Ошибка миграции users ban columns: {e}")
 
     # Проверка boss_damage на наличие hits
     cursor.execute("PRAGMA table_info(boss_damage)")
@@ -650,13 +666,36 @@ def get_user_tokens(user_id: int) -> dict:
             }
             logger.debug(f"🪙 get_user_tokens: user_id={user_id}, balance={result['balance']}")
             return result
-        
+
         logger.warning(f"⚠️ get_user_tokens: запись не найдена для user_id={user_id}")
         return {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None}
 
     except Exception as e:
         logger.error(f"Ошибка get_user_tokens: {e}")
         return {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None}
+    finally:
+        conn.close()
+
+
+def is_user_banned(user_id: int) -> bool:
+    """
+    Проверяет, забанен ли пользователь
+
+    Args:
+        user_id: ID пользователя в Telegram
+
+    Returns:
+        True если забанен, False иначе
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT is_banned FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        return bool(row and row[0])
+    except Exception as e:
+        logger.error(f"Ошибка is_user_banned: {e}")
+        return False
     finally:
         conn.close()
 
@@ -1002,14 +1041,19 @@ def api_sync():
 def handle_sync_stats(data: dict):
     """Обработка синхронизации статистики"""
     user_id = data.get('userId') or data.get('user_id')
-    
+
     if not user_id:
         logger.warning("⚠️ sync_stats без user_id")
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
-    
+
     user_id = int(user_id)
     logger.info(f"👤 sync_stats: user_id={user_id}")
-    
+
+    # Проверяем, не забанен ли пользователь
+    if is_user_banned(user_id):
+        logger.warning(f"⚠️ Забаненный пользователь попытался синхронизировать данные: user_id={user_id}")
+        return jsonify({'status': 'error', 'message': 'User is banned'}), 403
+
     # Извлекаем данные пользователя (если есть)
     user_data = None
     if 'username' in data or 'first_name' in data:
@@ -1019,7 +1063,7 @@ def handle_sync_stats(data: dict):
             'last_name': data.get('last_name', '')
         }
         logger.info(f"   Данные пользователя: {user_data}")
-    
+
     # Извлекаем данные статистики
     stats_data = {
         'clown_games': data.get('clown_games', 0),
@@ -1050,6 +1094,11 @@ def handle_boss_damage(data: dict):
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
 
     user_id = int(user_id)
+
+    # Проверяем, не забанен ли пользователь
+    if is_user_banned(user_id):
+        logger.warning(f"⚠️ Забаненный пользователь попытался нанести урон: user_id={user_id}")
+        return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
     try:
         damage = int(data.get('damage', 0))
@@ -1086,6 +1135,11 @@ def handle_earn_tokens(data: dict):
 
     user_id = int(user_id)
 
+    # Проверяем, не забанен ли пользователь
+    if is_user_banned(user_id):
+        logger.warning(f"⚠️ Забаненный пользователь попытался получить токены: user_id={user_id}")
+        return jsonify({'status': 'error', 'message': 'User is banned'}), 403
+
     amount = data.get('amount', 0)
     reason = data.get('reason', 'unknown')
 
@@ -1118,6 +1172,11 @@ def handle_spend_tokens(data: dict):
         return jsonify({'status': 'error', 'message': 'user_id required'}), 400
 
     user_id = int(user_id)
+
+    # Проверяем, не забанен ли пользователь
+    if is_user_banned(user_id):
+        logger.warning(f"⚠️ Забаненный пользователь попытался потратить токены: user_id={user_id}")
+        return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
     amount = data.get('amount', 0)
     reason = data.get('reason', 'unknown')
@@ -1175,6 +1234,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
     user = update.effective_user
 
+    # Проверяем, не забанен ли пользователь
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT is_banned FROM users WHERE user_id = ?', (user.id,))
+        row = cursor.fetchone()
+        if row and row[0]:
+            await update.message.reply_text(
+                "⛔️ <b>Вы заблокированы!</b>\n\n"
+                "Вы не можете использовать этого бота.",
+                parse_mode=ParseMode.HTML
+            )
+            return
+    finally:
+        conn.close()
+
     # Сохраняем пользователя в БД
     try:
         ensure_user_exists(
@@ -1186,7 +1261,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
         )
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
-        
+
         # Проверяем нужно ли начислить приветственные токены
         # Начисляем только если пользователь новый (первый раз запускает бота)
         if not has_received_welcome_bonus(user.id):
@@ -1198,7 +1273,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if result:
                     WELCOME_BONUS_GRANTED[user.id] = True
                     logger.info(f"🎁 Приветственные токены начислены: user_id={user.id}, balance={result['balance']}")
-                    
+
                     # Отправляем приветственное сообщение
                     await update.message.reply_text(
                         f"🎉 <b>Добро пожаловать в Raccoon Life!</b>\n\n"
@@ -1211,7 +1286,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         parse_mode=ParseMode.HTML
                     )
                     return  # Выходим чтобы не дублировать сообщение
-        
+
     except Exception as e:
         logger.error(f"Ошибка сохранения пользователя: {e}")
 
@@ -1447,6 +1522,286 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("❌ Ошибка при списании токенов!")
 
 
+async def ban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /ban <username|user_id> [reason]
+    Банит пользователя и блокирует доступ к боту
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "❌ Использование: /ban <username|user_id> [reason]\n"
+            "Пример: /ban @username Нарушение правил\n"
+            "Пример: /ban 123456789 Читерство"
+        )
+        return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    reason = ' '.join(context.args[1:]) if len(context.args) > 1 else 'Нарушение правил'
+    
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+
+    # Проверяем, не забанен ли уже
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT is_banned FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        if row and row[0]:
+            await update.message.reply_text(f"⚠️ Пользователь уже забанен!")
+            return
+        
+        # Банит пользователя
+        cursor.execute('''
+            UPDATE users SET
+                is_banned = 1,
+                banned_at = CURRENT_TIMESTAMP,
+                ban_reason = ?
+            WHERE user_id = ?
+        ''', (reason, user_id))
+        conn.commit()
+        
+        logger.info(f"🚫 BAN: user_id={user_id}, reason={reason}")
+        
+        # Отправляем уведомление админу
+        await update.message.reply_text(
+            f"✅ <b>Пользователь забанен!</b>\n\n"
+            f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"🆔 ID: {user_id}\n"
+            f"📝 Причина: {reason}\n\n"
+            f"Пользователь больше не сможет использовать бота.",
+            parse_mode=ParseMode.HTML
+        )
+        
+        # Отправляем уведомление пользователю
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"⛔️ <b>Вы заблокированы!</b>\n\n"
+                    f"📝 Причина: {reason}\n\n"
+                    f"Вы больше не можете использовать бота Raccoon Life."
+                ),
+                parse_mode=ParseMode.HTML
+            )
+            logger.info(f"📬 Уведомление о бане отправлено пользователю {user_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка ban_user_admin: {e}")
+        await update.message.reply_text(f"❌ Ошибка при бане: {e}")
+    finally:
+        conn.close()
+
+
+async def unban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /unban <username|user_id>
+    Разбанивает пользователя
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "❌ Использование: /unban <username|user_id>\n"
+            "Пример: /unban @username\n"
+            "Пример: /unban 123456789"
+        )
+        return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+
+    # Разбаниваем пользователя
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT is_banned FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        if not row or not row[0]:
+            await update.message.reply_text(f"⚠️ Пользователь не забанен!")
+            return
+        
+        cursor.execute('''
+            UPDATE users SET
+                is_banned = 0,
+                banned_at = NULL,
+                ban_reason = NULL
+            WHERE user_id = ?
+        ''', (user_id,))
+        conn.commit()
+        
+        logger.info(f"✅ UNBAN: user_id={user_id}")
+        
+        await update.message.reply_text(
+            f"✅ <b>Пользователь разбанен!</b>\n\n"
+            f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"🆔 ID: {user_id}\n\n"
+            f"Пользователь снова может использовать бота.",
+            parse_mode=ParseMode.HTML
+        )
+        
+        # Отправляем уведомление пользователю
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=(
+                    f"✅ <b>Вы разбанены!</b>\n\n"
+                    f"Вы снова можете использовать бота Raccoon Life."
+                ),
+                parse_mode=ParseMode.HTML
+            )
+            logger.info(f"📬 Уведомление о разбане отправлено пользователю {user_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка unban_user_admin: {e}")
+        await update.message.reply_text(f"❌ Ошибка при разбане: {e}")
+    finally:
+        conn.close()
+
+
+async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /delete <username|user_id>
+    Полностью удаляет пользователя из базы данных
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "❌ Использование: /delete <username|user_id>\n"
+            "Пример: /delete @username\n"
+            "Пример: /delete 123456789"
+        )
+        return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(
+            f"❌ Пользователь '{identifier}' не найден!\n"
+            f"Убедитесь что он запускал бота (@{context.bot.username})"
+        )
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+
+    # Получаем баланс для отображения
+    tokens = get_user_tokens(user_id)
+
+    # Отправляем подтверждение
+    await update.message.reply_text(
+        f"⚠️ <b>Подтверждение удаления</b>\n\n"
+        f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
+        f"🆔 ID: {user_id}\n"
+        f"💰 Баланс: {tokens['balance']} $ENT\n\n"
+        f"Все данные пользователя будут безвозвратно удалены!\n"
+        f"Для подтверждения отправьте: /delete_confirm {user_id}",
+        parse_mode=ParseMode.HTML
+    )
+
+
+async def delete_user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /delete_confirm <user_id>
+    Подтверждение удаления пользователя
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text("❌ Укажите ID пользователя: /delete_confirm <user_id>")
+        return
+
+    try:
+        user_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ ID должен быть числом!")
+        return
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Проверяем существует ли пользователь
+        cursor.execute('SELECT username, first_name, last_name FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            await update.message.reply_text(f"❌ Пользователь {user_id} не найден!")
+            return
+        
+        user_name = row[0] or f"{row[1]} {row[2]}" or f"Игрок #{user_id}"
+        
+        # Удаляем пользователя из всех таблиц
+        cursor.execute('DELETE FROM boss_damage WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM user_stats WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM user_tokens WHERE user_id = ?', (user_id,))
+        cursor.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
+        
+        conn.commit()
+        
+        logger.info(f"🗑️ DELETE: user_id={user_id} ({user_name})")
+        
+        await update.message.reply_text(
+            f"✅ <b>Пользователь удален!</b>\n\n"
+            f"👤 {user_name}\n"
+            f"🆔 ID: {user_id}\n\n"
+            f"Все данные безвозвратно удалены.",
+            parse_mode=ParseMode.HTML
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка delete_user_confirm: {e}")
+        await update.message.reply_text(f"❌ Ошибка при удалении: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик данных от WebApp (tg.sendData)"""
     user_id = update.effective_user.id
@@ -1506,6 +1861,10 @@ def main():
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
     telegram_app.add_handler(CommandHandler("balance", get_balance_admin))
     telegram_app.add_handler(CommandHandler("spend", spend_tokens_admin))
+    telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
+    telegram_app.add_handler(CommandHandler("unban", unban_user_admin))
+    telegram_app.add_handler(CommandHandler("delete", delete_user_admin))
+    telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
     # Запуск бота
