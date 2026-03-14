@@ -542,41 +542,13 @@
       document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
       console.log('Attack done - Energy:', playerEnergy, 'Damage:', damage);
 
-      // Отправляем урон на сервер
+      // Отправляем урон родителю (index.html) для синхронизации с сервером
       if (type !== 'heal') {
-        try {
-          sendDamageToServer(damage);
-        } catch (e) {
-          console.error('Failed to send to server:', e);
-        }
         try {
           window.parent.postMessage({ type: 'boss_damage', damage: damage, totalDamage: playerStats.totalDamage }, '*');
         } catch (e) {
           console.error('Failed to postMessage:', e);
         }
-      }
-    }
-
-    // Отправка урона на сервер
-    async function sendDamageToServer(damage) {
-      try {
-        const res = await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            type: 'boss_damage', 
-            userId: tgUserId,
-            damage: damage,
-          })
-        });
-        const data = await res.json();
-        if (data.status === 'ok' && data.boss) {
-            bossHP = data.boss.current_hp;
-            bossMaxHP = data.boss.max_hp;
-            updateBossHP();
-        }
-      } catch (e) {
-        console.error('Ошибка отправки урона:', e);
       }
     }
 
