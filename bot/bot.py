@@ -13,6 +13,7 @@ from flask_cors import CORS
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import BotCommand
 from dotenv import load_dotenv
 
 # Загрузка переменных окружения
@@ -1832,10 +1833,24 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
+    # Устанавливаем кнопку меню
     await application.bot.set_chat_menu_button(
         menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
     )
     logger.info("✅ Menu button set")
+    
+    # Устанавливаем список команд для меню
+    commands = [
+        BotCommand('start', '🚀 Запустить бота'),
+        BotCommand('add', '💰 Начислить токены (админ)'),
+        BotCommand('balance', '💳 Проверить баланс (админ)'),
+        BotCommand('spend', '💸 Списать токены (админ)'),
+        BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
+        BotCommand('unban', '✅ Разбанить пользователя (админ)'),
+        BotCommand('delete', '🗑️ Удалить пользователя (админ)')
+    ]
+    await application.bot.set_my_commands(commands)
+    logger.info("✅ Commands menu set")
 
 
 def run_flask():
