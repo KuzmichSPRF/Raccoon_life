@@ -182,7 +182,7 @@ def init_db():
             )
         ''')
 
-        # Таблица токенов $ENT
+        # Таблица шишек
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_tokens (
                 user_id INTEGER PRIMARY KEY,
@@ -711,7 +711,7 @@ def get_boss_damage(user_id: int) -> dict:
 
 def get_leaderboard(limit: int = 10) -> list:
     """
-    Получает топ игроков по балансу токенов
+    Получает топ игроков по балансу шишек
 
     Args:
         limit: Количество игроков в рейтинге (по умолчанию 10)
@@ -723,7 +723,7 @@ def get_leaderboard(limit: int = 10) -> list:
     cursor = conn.cursor()
 
     try:
-        # Получаем топ игроков по токенам с данными пользователя
+        # Получаем топ игроков по шишкам с данными пользователя
         cursor.execute('''
             SELECT
                 u.user_id,
@@ -921,7 +921,7 @@ def get_user_by_id_or_username(identifier: str) -> dict:
 
 def get_user_tokens(user_id: int) -> dict:
     """
-    Получает баланс токенов пользователя
+    Получает баланс шишек пользователя
 
     Args:
         user_id: ID пользователя в Telegram
@@ -984,11 +984,11 @@ def is_user_banned(user_id: int) -> bool:
 
 def add_tokens(user_id: int, amount: int, reason: str = '') -> dict:
     """
-    Начисляет токены пользователю
+    Начисляет шишки пользователю
 
     Args:
         user_id: ID пользователя в Telegram
-        amount: Количество токенов для начисления
+        amount: Количество шишек для начисления
         reason: Причина начисления (для логирования)
 
     Returns:
@@ -1024,7 +1024,7 @@ def add_tokens(user_id: int, amount: int, reason: str = '') -> dict:
             'reason': reason
         }
 
-        logger.info(f"💰 +{amount} $ENT: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        logger.info(f"💰 +{amount} Шишек: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
         return tokens_info
 
     except Exception as e:
@@ -1037,11 +1037,11 @@ def add_tokens(user_id: int, amount: int, reason: str = '') -> dict:
 
 def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
     """
-    Списывает токены у пользователя
+    Списывает шишки у пользователя
 
     Args:
         user_id: ID пользователя в Telegram
-        amount: Количество токенов для списания
+        amount: Количество шишек для списания
         reason: Причина списания
 
     Returns:
@@ -1056,7 +1056,7 @@ def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
         row = cursor.fetchone()
 
         if not row or row['balance'] < amount:
-            logger.warning(f"⚠️ Недостаточно токенов: user_id={user_id}, нужно={amount}, есть={row['balance'] if row else 0}")
+            logger.warning(f"⚠️ Недостаточно шишек: user_id={user_id}, нужно={amount}, есть={row['balance'] if row else 0}")
             return None
 
         cursor.execute('''
@@ -1081,7 +1081,7 @@ def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
             'reason': reason
         }
 
-        logger.info(f"💸 -{amount} $ENT: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        logger.info(f"💸 -{amount} Шишек: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
         return tokens_info
 
     except Exception as e:
@@ -1168,7 +1168,7 @@ def api_get_leaderboard():
 
 @app.route('/api/tokens', methods=['GET'])
 def api_get_tokens():
-    """Получить баланс токенов пользователя"""
+    """Получить баланс шишек пользователя"""
     try:
         user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
 
@@ -1179,7 +1179,7 @@ def api_get_tokens():
             return jsonify({'error': 'user_id required'}), 400
 
         user_id = int(user_id)
-        logger.info(f"🔍 Запрос токенов для user_id={user_id}")
+        logger.info(f"🔍 Запрос шишек для user_id={user_id}")
         
         tokens = get_user_tokens(user_id)
 
@@ -1777,12 +1777,12 @@ def handle_boss_damage(data: dict):
 
     boss_info = add_boss_damage(user_id, damage)
 
-    # Начисляем токены: 10 $ENT за каждые 10000 урона
+    # Начисляем шишки: 10 Шишек за каждые 10000 урона
     if boss_info:
         tokens_earned = (damage // 10000) * 10
         if tokens_earned > 0:
             add_tokens(user_id, tokens_earned, f'boss_damage:{damage}')
-            logger.info(f"💰 Начислено {tokens_earned} $ENT за урон боссу")
+            logger.info(f"💰 Начислено {tokens_earned} Шишек за урон боссу")
 
         return jsonify({'status': 'ok', 'boss': boss_info})
     else:
@@ -1790,7 +1790,7 @@ def handle_boss_damage(data: dict):
 
 
 def handle_earn_tokens(data: dict):
-    """Обработка начисления токенов за победы и квесты"""
+    """Обработка начисления шишек за победы и квесты"""
     user_id = data.get('userId') or data.get('user_id')
 
     if not user_id:
@@ -1801,7 +1801,7 @@ def handle_earn_tokens(data: dict):
 
     # Проверяем, не забанен ли пользователь
     if is_user_banned(user_id):
-        logger.warning(f"⚠️ Забаненный пользователь попытался получить токены: user_id={user_id}")
+        logger.warning(f"⚠️ Забаненный пользователь попытался получить шишки: user_id={user_id}")
         return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
     amount = data.get('amount', 0)
@@ -1847,7 +1847,7 @@ def handle_earn_tokens(data: dict):
 
 
 def handle_spend_tokens(data: dict):
-    """Обработка списания токенов"""
+    """Обработка списания шишек"""
     user_id = data.get('userId') or data.get('user_id')
 
     if not user_id:
@@ -1858,7 +1858,7 @@ def handle_spend_tokens(data: dict):
 
     # Проверяем, не забанен ли пользователь
     if is_user_banned(user_id):
-        logger.warning(f"⚠️ Забаненный пользователь попытался потратить токены: user_id={user_id}")
+        logger.warning(f"⚠️ Забаненный пользователь попытался потратить шишки: user_id={user_id}")
         return jsonify({'status': 'error', 'message': 'User is banned'}), 403
 
     amount = data.get('amount', 0)
@@ -1886,11 +1886,11 @@ def handle_spend_tokens(data: dict):
 
 # ==================== TELEGRAM BOT ====================
 
-# Флаг для отслеживания начисления приветственных токенов (в памяти)
+# Флаг для отслеживания начисления приветственных шишек (в памяти)
 WELCOME_BONUS_GRANTED = {}  # user_id -> True
 
 def has_received_welcome_bonus(user_id: int) -> bool:
-    """Проверяет получал ли пользователь приветственные токены"""
+    """Проверяет получал ли пользователь приветственные шишки"""
     # Проверяем в памяти
     if user_id in WELCOME_BONUS_GRANTED:
         return True
@@ -1903,7 +1903,7 @@ def has_received_welcome_bonus(user_id: int) -> bool:
         cursor.execute('SELECT total_earned FROM user_tokens WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()
         if row and row[0] >= 1000:
-            # Если пользователь заработал >= 1000 токенов, считаем что он уже получил бонус
+            # Если пользователь заработал >= 1000 шишек, считаем что он уже получил бонус
             WELCOME_BONUS_GRANTED[user_id] = True
             return True
         return False
@@ -1945,23 +1945,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
 
-        # Проверяем нужно ли начислить приветственные токены
+        # Проверяем нужно ли начислить приветственные шишки
         # Начисляем только если пользователь новый (первый раз запускает бота)
         if not has_received_welcome_bonus(user.id):
             # Проверяем баланс - если 0, начисляем приветственные
             tokens = get_user_tokens(user.id)
             if tokens['balance'] == 0 and tokens['total_earned'] == 0:
-                # Начисляем 1000 приветственных токенов
+                # Начисляем 1000 приветственных шишек
                 result = add_tokens(user.id, 1000, 'welcome_bonus')
                 if result:
                     WELCOME_BONUS_GRANTED[user.id] = True
-                    logger.info(f"🎁 Приветственные токены начислены: user_id={user.id}, balance={result['balance']}")
+                    logger.info(f"🎁 Приветственные шишки начислены: user_id={user.id}, balance={result['balance']}")
 
                     # Отправляем приветственное сообщение
                     await update.message.reply_text(
                         f"🎉 <b>Добро пожаловать в Raccoon Life!</b>\n\n"
-                        f"🦝 Вы получили <b>1000 $ENT</b> приветственных токенов!\n\n"
-                        f"Играйте в игры, выполняйте квесты и зарабатывайте ещё больше токенов! 💰\n\n"
+                        f"🦝 Вы получили <b>1000 Шишек</b> приветственных шишек!\n\n"
+                        f"Играйте в игры, выполняйте квесты и зарабатывайте ещё больше шишек! 💰\n\n"
                         f"Нажмите кнопку ниже, чтобы начать:",
                         reply_markup=InlineKeyboardMarkup([[
                             InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
@@ -1987,7 +1987,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /add <username|user_id> <amount> [reason]
-    Начисляет токены пользователю и уведомляет его
+    Начисляет шишки пользователю и уведомляет его
     """
     # Проверка прав администратора
     if update.effective_user.id != ADMIN_ID:
@@ -2029,9 +2029,9 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user_info['user_id']
     user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
 
-    logger.info(f"💰 Начисление токенов: user_id={user_id}, amount={amount}, reason={reason}")
+    logger.info(f"💰 Начисление шишек: user_id={user_id}, amount={amount}, reason={reason}")
 
-    # Начисляем токены
+    # Начисляем шишки
     result = add_tokens(user_id, amount, f'admin_grant:{reason}')
 
     if result:
@@ -2040,9 +2040,9 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ Успешно!\n"
             f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
             f"🆔 ID: {user_id}\n"
-            f"💰 Начислено: {amount} $ENT\n"
+            f"💰 Начислено: {amount} Шишек\n"
             f"📝 Причина: {reason}\n"
-            f"💳 Новый баланс: {result['balance']} $ENT"
+            f"💳 Новый баланс: {result['balance']} Шишек"
         )
 
         # Отправляем уведомление пользователю
@@ -2050,10 +2050,10 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=user_id,
                 text=(
-                    f"🎉 <b>Вам начислены токены!</b>\n\n"
-                    f"💰 Сумма: <b>+{amount} $ENT</b>\n"
+                    f"🎉 <b>Вам начислены шишки!</b>\n\n"
+                    f"💰 Сумма: <b>+{amount} Шишек</b>\n"
                     f"📝 Причина: {reason}\n"
-                    f"💳 Ваш баланс: {result['balance']} $ENT\n\n"
+                    f"💳 Ваш баланс: {result['balance']} Шишек\n\n"
                     f"Продолжайте играть в Raccoon Life! 🦝"
                 ),
                 parse_mode=ParseMode.HTML
@@ -2063,10 +2063,10 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
             await update.message.reply_text(
                 f"⚠️ Пользователь не найден или заблокировал бота!\n"
-                f"Но токены начислены (баланс: {result['balance']} $ENT)"
+                f"Но шишки начислены (баланс: {result['balance']} Шишек)"
             )
     else:
-        await update.message.reply_text("❌ Ошибка при начислении токенов!")
+        await update.message.reply_text("❌ Ошибка при начислении шишек!")
 
 
 async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2109,9 +2109,9 @@ async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💳 <b>Баланс пользователя</b>\n\n"
         f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
         f"🆔 ID: {user_id}\n"
-        f"💰 Баланс: <b>{tokens['balance']} $ENT</b>\n"
-        f"📊 Всего заработано: {tokens['total_earned']} $ENT\n"
-        f"💸 Всего потрачено: {tokens['total_spent']} $ENT",
+        f"💰 Баланс: <b>{tokens['balance']} Шишек</b>\n"
+        f"📊 Всего заработано: {tokens['total_earned']} Шишек\n"
+        f"💸 Всего потрачено: {tokens['total_spent']} Шишек",
         parse_mode=ParseMode.HTML
     )
 
@@ -2119,7 +2119,7 @@ async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /spend <username|user_id> <amount> [reason]
-    Списывает токены у пользователя и уведомляет его
+    Списывает шишки у пользователя и уведомляет его
     """
     # Проверка прав администратора
     if update.effective_user.id != ADMIN_ID:
@@ -2160,7 +2160,7 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = user_info['user_id']
     user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
 
-    # Списываем токены
+    # Списываем шишки
     result = spend_tokens(user_id, amount, f'admin_spend:{reason}')
 
     if result:
@@ -2169,9 +2169,9 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
             f"✅ Успешно!\n"
             f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
             f"🆔 ID: {user_id}\n"
-            f"💰 Списано: {amount} $ENT\n"
+            f"💰 Списано: {amount} Шишек\n"
             f"📝 Причина: {reason}\n"
-            f"💳 Остаток: {result['balance']} $ENT"
+            f"💳 Остаток: {result['balance']} Шишек"
         )
 
         # Отправляем уведомление пользователю
@@ -2179,10 +2179,10 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await context.bot.send_message(
                 chat_id=user_id,
                 text=(
-                    f"⚠️ <b>Списание токенов</b>\n\n"
-                    f"💸 Сумма: <b>-{amount} $ENT</b>\n"
+                    f"⚠️ <b>Списание шишек</b>\n\n"
+                    f"💸 Сумма: <b>-{amount} Шишек</b>\n"
                     f"📝 Причина: {reason}\n"
-                    f"💳 Ваш баланс: {result['balance']} $ENT\n\n"
+                    f"💳 Ваш баланс: {result['balance']} Шишек\n\n"
                     f"Обратитесь к администрации если вы не согласны с решением. 🦝"
                 ),
                 parse_mode=ParseMode.HTML
@@ -2192,17 +2192,17 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
             logger.warning(f"⚠️ Не удалось отправить уведомление пользователю {user_id}: {e}")
             await update.message.reply_text(
                 f"⚠️ Пользователь не найден или заблокировал бота!\n"
-                f"Но токены списаны (баланс: {result['balance']} $ENT)"
+                f"Но шишки списаны (баланс: {result['balance']} Шишек)"
             )
     elif result is None:
         # Проверяем текущий баланс для сообщения об ошибке
         tokens = get_user_tokens(user_id)
         await update.message.reply_text(
-            f"❌ Недостаточно токенов у пользователя!\n"
-            f"💰 Баланс: {tokens['balance']} $ENT (нужно {amount} $ENT)"
+            f"❌ Недостаточно шишек у пользователя!\n"
+            f"💰 Баланс: {tokens['balance']} Шишек (нужно {amount} Шишек)"
         )
     else:
-        await update.message.reply_text("❌ Ошибка при списании токенов!")
+        await update.message.reply_text("❌ Ошибка при списании шишек!")
 
 
 async def ban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2418,7 +2418,7 @@ async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚠️ <b>Подтверждение удаления</b>\n\n"
         f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
         f"🆔 ID: {user_id}\n"
-        f"💰 Баланс: {tokens['balance']} $ENT\n\n"
+        f"💰 Баланс: {tokens['balance']} Шишек\n\n"
         f"Все данные пользователя будут безвозвратно удалены!\n"
         f"Для подтверждения отправьте: /delete_confirm {user_id}",
         parse_mode=ParseMode.HTML
@@ -2524,9 +2524,9 @@ async def post_init(application: Application):
     # Устанавливаем список команд для меню
     commands = [
         BotCommand('start', '🚀 Запустить бота'),
-        BotCommand('add', '💰 Начислить токены (админ)'),
+        BotCommand('add', '💰 Начислить шишки (админ)'),
         BotCommand('balance', '💳 Проверить баланс (админ)'),
-        BotCommand('spend', '💸 Списать токены (админ)'),
+        BotCommand('spend', '💸 Списать шишки (админ)'),
         BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
         BotCommand('unban', '✅ Разбанить пользователя (админ)'),
         BotCommand('delete', '🗑️ Удалить пользователя (админ)')

@@ -150,7 +150,7 @@
     <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
     <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
     <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 $ENT)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 Шишек)</button>
   </div>
 
   <!-- Reward Popup -->
@@ -158,7 +158,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+10 $ENT</div>
+      <div class="reward-amount" id="popup-amount">+10 Шишек</div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -289,7 +289,7 @@
 
       document.getElementById('log').innerText = "🍪 Покупка печеньки...";
 
-      // Списываем 100 токенов
+      // Списываем 100 шишек
       fetch('/api/sync', {
         method: 'POST',
         headers: {
@@ -316,7 +316,7 @@
           console.error('API Error:', errorMsg);
 
           if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
-            document.getElementById('log').innerText = "❌ Недостаточно токенов!";
+            document.getElementById('log').innerText = "❌ Недостаточно шишек!";
           } else {
             document.getElementById('log').innerText = "❌ " + errorMsg;
           }
@@ -456,7 +456,7 @@
         title.innerText = 'Победа!';
         title.style.color = '#ffd700';
         amountEl.style.display = 'block';
-        amountEl.textContent = '+10 $ENT';
+        amountEl.textContent = '+10 Шишек';
         popup.style.borderColor = '#ffd700';
         btn.innerText = 'Продолжить';
       } else {

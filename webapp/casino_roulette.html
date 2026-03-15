@@ -305,7 +305,7 @@
     <span style="font-weight: 800;">🎰 Енотная Рулетка</span>
     <div class="balance-badge">
       <span class="balance-icon">💰</span>
-      <span id="balance">0</span> $ENT
+      <span id="balance">0</span> Шишек
     </div>
   </div>
 
@@ -503,7 +503,7 @@
       betAmount = getBetAmount();
 
       if (betAmount > balance) {
-        showResult('❌ Недостаточно токенов!', 'lose');
+        showResult('❌ Недостаточно шишек!', 'lose');
         return;
       }
 
@@ -564,13 +564,13 @@
         if (result.win) {
           stats.wins++;
           document.getElementById('total-wins').innerText = stats.wins;
-          showResult(`🎉 Победа! +${result.winAmount} $ENT`, 'win');
+          showResult(`🎉 Победа! +${result.winAmount} Шишек`, 'win');
           addToHistory(result.number, result.type, true);
           // Начисляем выигрыш
           balance += result.winAmount;
           updateBalanceUI(balance);
         } else {
-          showResult(`😢 Проигрыш -${betAmount} $ENT`, 'lose');
+          showResult(`😢 Проигрыш -${betAmount} Шишек`, 'lose');
           addToHistory(result.number, result.type, false);
         }
 

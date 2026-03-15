@@ -160,8 +160,8 @@
   <div id="token-bonus-overlay" class="tutorial-overlay">
     <div class="tutorial-modal" style="border-color: #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);">
       <span class="tutorial-icon">🎁</span>
-      <h3 class="tutorial-title">Вам начислено 1000 $ENT!</h3>
-      <p class="tutorial-desc">Приветственные токены уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
+      <h3 class="tutorial-title">Вам начислено 1000 Шишек!</h3>
+      <p class="tutorial-desc">Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
       <button class="tutorial-btn" onclick="closeTokenBonus()">Отлично!</button>
     </div>
   </div>
@@ -178,7 +178,7 @@
       <span class="token-icon">💰</span>
       <div>
         <div class="token-amount" id="token-balance">0</div>
-        <div class="token-label">$ENT Tokens</div>
+        <div class="token-label">Шишки</div>
       </div>
     </div>
     <div class="main-menu-grid">
@@ -308,12 +308,12 @@
     quests: {
       icon: '❓',
       title: '❓ Квесты',
-      desc: 'Выполняйте квесты и зарабатывайте токены! За первое прохождение квеста вы получаете 500 $ENT.'
+      desc: 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 500 Шишек.'
     },
     games: {
       icon: '🎮',
       title: '🎮 Игры',
-      desc: 'Играйте и зарабатывайте! Морской Бой и Vladeos — 100 $ENT за победу.'
+      desc: 'Играйте и зарабатывайте! Морской Бой и Vladeos — 100 Шишек за победу.'
     },
     partners: {
       icon: '🤝',
@@ -354,7 +354,7 @@
     const userId = getUserId();
     if (!userId) return;
 
-    // Загружаем баланс и проверяем, есть ли 1000 токенов
+    // Загружаем баланс и проверяем, есть ли 1000 шишек
     fetch(`/api/tokens?userId=${userId}`, {
       method: 'GET',
       headers: { 
@@ -620,7 +620,7 @@
       stats.quests = completed;
       syncStats(); // Sync on quest complete
       
-      // Начисляем токены только за первое прохождение квестов (пропускаем газеты)
+      // Начисляем шишки только за первое прохождение квестов (пропускаем газеты)
       if (!id.startsWith('news_')) {
         earnTokens(500, 'quest_complete:' + id);
       }
@@ -732,7 +732,7 @@
         <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
         <div style="flex: 1;">
           <div style="font-weight: 700;">${safeName}</div>
-          <div style="font-size: 0.75rem; color: var(--text-sec);">💰 Баланс: ${safeFormattedBalance} $ENT ${safeEarnedLabel}</div>
+        <div style="font-size: 0.75rem; color: var(--text-sec);">💰 Баланс: ${safeFormattedBalance} Шишек ${safeEarnedLabel}</div>
         </div>
         <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${safeFormattedBalance}</div>
       `;
@@ -780,12 +780,12 @@
     games: {
       title: "🎮 Игры",
       items: [
-        { title: "Битва фишек", desc: "10 $ENT за победу", url: "game.html", type: "iframe" },
-        { title: "PVP: Vladeos", desc: "100 $ENT (5% шанс)", url: "vladeos_pvp.html", type: "iframe" },
-        { title: "Башня 3.0", desc: "1-10 $ENT за уровень", url: "tower_game.html", type: "iframe" },
+        { title: "Битва фишек", desc: "10 Шишек за победу", url: "game.html", type: "iframe" },
+        { title: "PVP: Vladeos", desc: "100 Шишек (5% шанс)", url: "vladeos_pvp.html", type: "iframe" },
+        { title: "Башня 3.0", desc: "1-10 Шишек за уровень", url: "tower_game.html", type: "iframe" },
         { title: "🔺 Босс Енотов", desc: "1 млрд HP", url: "boss_game.html", type: "iframe" },
-        { title: "🎰 Енотная Рулетка", desc: "Казино на токены", url: "casino_roulette.html", type: "iframe" },
-        { title: "⚓ Морской Бой", desc: "100 $ENT за победу", url: "battleship.html", type: "iframe" }
+        { title: "🎰 Енотная Рулетка", desc: "Казино на шишки", url: "casino_roulette.html", type: "iframe" },
+        { title: "⚓ Морской Бой", desc: "100 Шишек за победу", url: "battleship.html", type: "iframe" }
       ]
     },
     partners: {
@@ -877,7 +877,7 @@
       }
     }
 
-    // Синхронизация баланса токенов от рулетки
+    // Синхронизация баланса шишек от рулетки
     if (data.type === 'token_balance') {
       const balanceEl = document.getElementById('token-balance');
       if (balanceEl) {

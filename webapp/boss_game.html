@@ -335,7 +335,7 @@
     <button class="btn btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>🔥 Сильный (40)</button>
     <button class="btn btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>💥 Ульта (80)</button>
     <button class="btn btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>💚 Лечение (50)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 $ENT)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 Шишек)</button>
   </div>
 
   <div class="log" id="log">Битва началась!</div>
@@ -516,7 +516,7 @@
         const balance = tokenData.tokens?.balance || 0;
         
         if (balance < 100) {
-          document.getElementById('log').innerText = `❌ Недостаточно токенов! Баланс: ${balance} $ENT (нужно 100)`;
+          document.getElementById('log').innerText = `❌ Недостаточно шишек! Баланс: ${balance} Шишек (нужно 100)`;
           const cookieBtn = document.getElementById('btn-cookie');
           setTimeout(() => { cookieBtn.disabled = false; }, 500);
           return;
@@ -528,7 +528,7 @@
         
         document.getElementById('log').innerText = "🍪 Покупка печеньки...";
         
-        // Списываем 100 токенов
+        // Списываем 100 шишек
         return fetch('/api/sync', {
           method: 'POST',
           headers: { 
