@@ -492,6 +492,28 @@
   </div>
 
 <script>
+  const lang = localStorage.getItem('rl_lang') || 'ru';
+  const t = {
+    ru: {
+      title: "⚓ Морской Бой", st: "Расставьте корабли на поле", sel: "Выберите корабль", rotH: "Горизонтально", rotV: "Вертикально",
+      b1: "🚢 Ваше поле", b2: "🎯 Поле врага", btnA: "🎲 Авто", btnStart: "▶️ Начать бой", s1: "Кораблей", s2: "Врага", s3: "Ходов",
+      btnR: "🔄 Заново", btnE: "✕ Выход", rotBtn: "🔄 Поворот: ",
+      stBat: "🎯 Ваш ход! Стреляйте по полю врага", stHit: "🎯 Попадание! Стреляйте снова!", stKill: "💀 Корабль убит! Стреляйте снова!",
+      stEnemy: "🤖 Ход противника...", stEnemyAim: "🤖 Противник прицеливается...", stEnemyKill: "💀 Корабль убит!", stEnemyHit: "💥 Попадание по вашему кораблю!", stEnemyMiss: "🎯 Промах! Ваш ход!",
+      winAll: "🎉 ПОБЕДА! Все корабли врага уничтожены!", loseAll: "💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!",
+      win: "Победа!", lose: "Поражение!", cont: "▶️ Продолжить", again: "🔄 Сыграть ещё", cones: "Шишек"
+    },
+    en: {
+      title: "⚓ Battleship", st: "Place ships on the board", sel: "Select a ship", rotH: "Horizontal", rotV: "Vertical",
+      b1: "🚢 Your board", b2: "🎯 Enemy board", btnA: "🎲 Auto", btnStart: "▶️ Start Battle", s1: "Ships", s2: "Enemy", s3: "Moves",
+      btnR: "🔄 Restart", btnE: "✕ Exit", rotBtn: "🔄 Rotation: ",
+      stBat: "🎯 Your turn! Fire at the enemy board", stHit: "🎯 Hit! Fire again!", stKill: "💀 Ship destroyed! Fire again!",
+      stEnemy: "🤖 Enemy's turn...", stEnemyAim: "🤖 Enemy is aiming...", stEnemyKill: "💀 Ship destroyed!", stEnemyHit: "💥 Hit on your ship!", stEnemyMiss: "🎯 Miss! Your turn!",
+      winAll: "🎉 VICTORY! All enemy ships destroyed!", loseAll: "💀 DEFEAT! All your ships destroyed!",
+      win: "Victory!", lose: "Defeat!", cont: "▶️ Continue", again: "🔄 Play Again", cones: "Cones"
+    }
+  }[lang];
+
   const tg = window.Telegram.WebApp;
   tg.ready();
   tg.expand();
@@ -532,6 +554,22 @@
       has_init_data_unsafe: !!tg.initDataUnsafe
     });
     
+    document.querySelector('.game-title').innerText = t.title;
+    document.getElementById('game-status').innerText = t.st;
+    document.querySelector('.ship-selector-title').innerText = t.sel;
+    document.getElementById('rotation-text').parentElement.childNodes[0].nodeValue = t.rotBtn;
+    document.getElementById('rotation-text').innerText = t.rotH;
+    document.querySelectorAll('.board-title')[0].innerText = t.b1;
+    document.querySelectorAll('.board-title')[1].innerText = t.b2;
+    document.querySelectorAll('.board-title')[2].innerText = t.b1;
+    document.querySelector('.btn-secondary').innerText = t.btnA;
+    document.getElementById('start-btn').innerText = t.btnStart;
+    document.querySelectorAll('.stat-label')[0].innerText = t.s1;
+    document.querySelectorAll('.stat-label')[1].innerText = t.s2;
+    document.querySelectorAll('.stat-label')[2].innerText = t.s3;
+    document.querySelectorAll('.btn-secondary')[1].innerText = t.btnR;
+    document.querySelector('.btn-primary').innerText = t.btnE;
+
     createEmptyBoard();
     initShipSelector();
     renderPlacementBoard();
@@ -679,7 +717,7 @@
 
   function toggleRotation() {
     isHorizontal = !isHorizontal;
-    document.getElementById('rotation-text').textContent = isHorizontal ? 'Горизонтально' : 'Вертикально';
+    document.getElementById('rotation-text').textContent = isHorizontal ? t.rotH : t.rotV;
     renderPlacementBoard();
   }
 
@@ -818,7 +856,7 @@
     const startBtn = document.getElementById('start-btn');
     if (placedTotal >= totalShips) {
       startBtn.disabled = false;
-      document.getElementById('game-status').textContent = '✅ Все корабли размещены! Нажмите "Начать бой"';
+      document.getElementById('game-status').textContent = lang === 'ru' ? '✅ Все корабли размещены! Нажмите "Начать бой"' : '✅ All ships placed! Press "Start Battle"';
     }
   }
 
@@ -881,7 +919,7 @@
     updatePhaseIndicator();
     
     // Настраиваем UI для боя
-    document.getElementById('game-status').textContent = '🎯 Ваш ход! Стреляйте по полю врага';
+    document.getElementById('game-status').textContent = t.stBat;
     document.getElementById('game-status').className = 'game-status';
     
     renderBattleBoards();
@@ -1002,12 +1040,12 @@
       }
 
       // Стреляем снова при попадании
-      document.getElementById('game-status').textContent = killedShip ? '💀 Корабль убит! Стреляйте снова!' : '🎯 Попадание! Стреляйте снова!';
+      document.getElementById('game-status').textContent = killedShip ? t.stKill : t.stHit;
     } else {
       isPlayerTurn = false;
       updateStats();
       renderEnemyBoard();
-      document.getElementById('game-status').textContent = '🤖 Ход противника...';
+      document.getElementById('game-status').textContent = t.stEnemy;
 
       setTimeout(enemyTurn, 500);
     }
@@ -1017,7 +1055,7 @@
     if (gameOver) return;
     
     const status = document.getElementById('game-status');
-    status.textContent = '🤖 Противник прицеливается...';
+    status.textContent = t.stEnemyAim;
     status.className = 'game-status enemy-turn';
 
     // Простой ИИ: ищет раненые корабли, иначе стреляет случайно
@@ -1055,11 +1093,11 @@
       updateStats();
       
       if (hit) {
-        status.textContent = killedShip ? '💀 Корабль убит!' : '� Попадание по вашему кораблю!';
+        status.textContent = killedShip ? t.stEnemyKill : t.stEnemyHit;
         
         if (checkWin(playerShips, playerHits)) {
           gameOver = true;
-          status.textContent = '💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!';
+          status.textContent = t.loseAll;
           status.className = 'game-status lose';
           return;
         }
@@ -1067,10 +1105,10 @@
         // ИИ стреляет снова при попадании
         setTimeout(enemyTurn, 800);
       } else {
-        status.textContent = '🎯 Промах! Ваш ход!';
+        status.textContent = t.stEnemyMiss;
         setTimeout(() => {
           isPlayerTurn = true;
-          status.textContent = '🎯 Ваш ход! Стреляйте по полю врага';
+          status.textContent = t.stBat;
           status.className = 'game-status';
           renderEnemyBoard();
         }, 500);
@@ -1199,7 +1237,7 @@
 
   function showWin() {
     const status = document.getElementById('game-status');
-    status.textContent = '🎉 ПОБЕДА! Все корабли врага уничтожены!';
+    status.textContent = t.winAll;
     status.className = 'game-status win';
     
     showPopupResult(true);
@@ -1210,7 +1248,7 @@
 
   function showLose() {
     const status = document.getElementById('game-status');
-    status.textContent = '💀 ПОРАЖЕНИЕ! Ваши корабли уничтожены!';
+    status.textContent = t.loseAll;
     status.className = 'game-status lose';
     showPopupResult(false);
   }
@@ -1224,18 +1262,19 @@
     
     if (isWin) {
       icon.innerText = '🎉';
-      title.innerText = 'Победа!';
+      title.innerText = t.win;
       title.style.color = '#ffd700';
       amount.style.display = 'block';
+      amount.textContent = '+100 ' + t.cones;
       popup.style.borderColor = '#ffd700';
-      btn.innerText = '▶️ Продолжить';
+      btn.innerText = t.cont;
     } else {
       icon.innerText = '💀';
-      title.innerText = 'Поражение!';
+      title.innerText = t.lose;
       title.style.color = 'var(--hit)';
       amount.style.display = 'none';
       popup.style.borderColor = 'var(--hit)';
-      btn.innerText = '🔄 Сыграть ещё';
+      btn.innerText = t.again;
     }
     
     document.getElementById('overlay').classList.add('active');
@@ -1291,7 +1330,7 @@
     selectedShipSize = null;
     placedShips = { 1: 0, 2: 0, 3: 0, 4: 0 };
     
-    document.getElementById('game-status').textContent = 'Расставьте корабли на поле';
+    document.getElementById('game-status').textContent = t.st;
     document.getElementById('game-status').className = 'game-status';
     document.getElementById('overlay').classList.remove('active');
     document.getElementById('reward-popup').style.display = 'none';

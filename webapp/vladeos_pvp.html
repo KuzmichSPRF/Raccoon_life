@@ -138,13 +138,13 @@
   <div class="status-box" id="msg">Выбери грейд фишки</div>
 
   <div class="arena">
-    <div class="chip-wrapper">
-      <div id="p-chip" class="chip player">🦝</div>
+    <div class="cap-wrapper">
+      <div id="p-cap" class="cap player">🦝</div>
       <div id="p-score" class="score">0</div>
     </div>
     <div style="font-size: 2rem; font-weight: 800; color: #333;">VS</div>
-    <div class="chip-wrapper">
-      <div id="v-chip" class="chip vladeos">😎</div>
+    <div class="cap-wrapper">
+      <div id="v-cap" class="cap vladeos">😎</div>
       <div id="v-score" class="score">0</div>
     </div>
   </div>
@@ -196,7 +196,7 @@
 
         setTimeout(() => { 
           msg.style.color = 'var(--text-main)'; 
-          msg.innerText = "Выбери грейд фишки"; 
+          msg.innerText = t.msgStart; 
         }, 1500);
         return;
       }
@@ -208,14 +208,14 @@
       gradeSelection.classList.add('hidden');
       // Результат отправится в showResult() после определения победы/поражения
 
-      msg.innerText = "БИТВА!";
+      msg.innerText = lang === 'ru' ? "БИТВА!" : "BATTLE!";
 
-      pChip.classList.add('anim-left');
-      vChip.classList.add('anim-right');
+      pCap.classList.add('anim-left');
+      vCap.classList.add('anim-right');
 
       setTimeout(() => {
-        pChip.classList.remove('anim-left');
-        vChip.classList.remove('anim-right');
+        pCap.classList.remove('anim-left');
+        vCap.classList.remove('anim-right');
         showResult();
       }, 400);
     }
@@ -241,18 +241,18 @@
         vScore.classList.add('visible');
   
         if (data.win) {
-          msg.innerText = "🍀 НЕВЕРОЯТНО! Вы победили!";
+          msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, window.location.origin);
           showPopupResult(true, 100);
         } else {
-          msg.innerText = "Vladeos победил! 🏆";
+          msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
           msg.style.color = 'var(--accent)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, window.location.origin);
           showPopupResult(false, 0);
         }
       } catch(e) {
-        msg.innerText = "❌ Ошибка соединения!";
+        msg.innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
       }
     }
     
@@ -266,19 +266,19 @@
       
       if (isWin) {
         icon.innerText = '🎉';
-        title.innerText = 'Победа!';
+        title.innerText = lang === 'ru' ? 'Победа!' : 'Victory!';
         title.style.color = '#ffd700';
         amountEl.style.display = 'block';
-        amountEl.textContent = '+' + amount + ' Шишек';
+        amountEl.textContent = '+' + amount + (lang === 'ru' ? ' Шишек' : ' Cones');
         popup.style.borderColor = '#ffd700';
-        btn.innerText = 'Продолжить';
+        btn.innerText = lang === 'ru' ? 'Продолжить' : 'Continue';
       } else {
         icon.innerText = '💀';
-        title.innerText = 'Поражение!';
+        title.innerText = lang === 'ru' ? 'Поражение!' : 'Defeat!';
         title.style.color = 'var(--accent)';
         amountEl.style.display = 'none';
         popup.style.borderColor = 'var(--accent)';
-        btn.innerText = 'Сыграть ещё';
+        btn.innerText = lang === 'ru' ? 'Сыграть ещё' : 'Play Again';
       }
       
       overlay.style.display = 'flex';
@@ -294,7 +294,7 @@
       pScore.classList.remove('visible');
       vScore.classList.remove('visible');
       gradeSelection.classList.remove('hidden');
-      msg.innerText = "Выбери грейд фишки";
+      msg.innerText = t.msgStart;
       msg.style.color = 'var(--text-main)';
     }
   </script>

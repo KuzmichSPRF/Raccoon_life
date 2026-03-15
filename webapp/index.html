@@ -95,6 +95,10 @@
     }
     .btn-primary:active { transform: scale(0.95); }
     
+    /* Language Switcher */
+    .lang-switcher { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
+    .lang-switcher:active { transform: scale(0.95); }
+    
     /* Tutorial Modal Styles */
     .tutorial-overlay {
       position: fixed;
@@ -152,7 +156,7 @@
       <span class="tutorial-icon" id="tutorial-icon">📰</span>
       <h3 class="tutorial-title" id="tutorial-title">Добро пожаловать!</h3>
       <p class="tutorial-desc" id="tutorial-desc">Здесь вы найдете много интересного</p>
-      <button class="tutorial-btn" onclick="closeTutorial()">Понятно!</button>
+      <button class="tutorial-btn" onclick="closeTutorial()" data-i18n="btn_understood">Понятно!</button>
     </div>
   </div>
 
@@ -160,17 +164,20 @@
   <div id="token-bonus-overlay" class="tutorial-overlay">
     <div class="tutorial-modal" style="border-color: #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);">
       <span class="tutorial-icon">🎁</span>
-      <h3 class="tutorial-title">Вам начислено 1000 Шишек!</h3>
-      <p class="tutorial-desc">Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
-      <button class="tutorial-btn" onclick="closeTokenBonus()">Отлично!</button>
+      <h3 class="tutorial-title" data-i18n="bonus_title">Вам начислено 1000 Шишек!</h3>
+      <p class="tutorial-desc" data-i18n="bonus_desc">Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
+      <button class="tutorial-btn" onclick="closeTokenBonus()" data-i18n="btn_great">Отлично!</button>
     </div>
   </div>
 
   <div id="cover-screen" class="screen active">
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+      <button class="lang-switcher" onclick="toggleLanguage()" id="lang-btn">RU</button>
+    </div>
     <div style="font-size: 5rem; filter: drop-shadow(0 0 20px rgba(0,136,204,0.5));">🦝</div>
     <h1>Raccoon Life</h1>
-    <p>Твой гид по миру енотов, квестов и новостей.</p>
-    <button class="btn-primary" onclick="navigateTo('main-menu')">Открыть меню</button>
+    <p data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
+    <button class="btn-primary" onclick="navigateTo('main-menu')" data-i18n="cover_btn">Открыть меню</button>
   </div>
 
   <div id="main-menu" class="screen">
@@ -178,33 +185,33 @@
       <span class="token-icon">🌲</span>
       <div>
         <div class="token-amount" id="token-balance">0</div>
-        <div class="token-label">Шишки</div>
+        <div class="token-label" data-i18n="cones">Шишки</div>
       </div>
     </div>
     <div class="main-menu-grid">
       <div class="menu-card" onclick="renderCategory('newspapers')">
         <span class="menu-card-icon">📰</span>
-        <span class="menu-card-title">Газеты</span>
+        <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
       </div>
       <div class="menu-card" onclick="renderCategory('quests')">
         <span class="menu-card-icon">❓</span>
-        <span class="menu-card-title">Квесты</span>
+        <span class="menu-card-title" data-i18n="menu_quests">Квесты</span>
       </div>
       <div class="menu-card" onclick="renderCategory('games')">
         <span class="menu-card-icon">🎮</span>
-        <span class="menu-card-title">Игры</span>
+        <span class="menu-card-title" data-i18n="menu_games">Игры</span>
       </div>
       <div class="menu-card" onclick="renderCategory('partners')">
         <span class="menu-card-icon">🤝</span>
-        <span class="menu-card-title">Партнеры</span>
+        <span class="menu-card-title" data-i18n="menu_partners">Партнеры</span>
       </div>
       <div class="menu-card" onclick="showLeaderboard()">
         <span class="menu-card-icon">🏆</span>
-        <span class="menu-card-title">Рейтинг</span>
+        <span class="menu-card-title" data-i18n="menu_rating">Рейтинг</span>
       </div>
       <div class="menu-card" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0')">
         <span class="menu-card-icon">💎</span>
-        <span class="menu-card-title">Поддержать</span>
+        <span class="menu-card-title" data-i18n="menu_support">Поддержать</span>
       </div>
     </div>
   </div>
@@ -215,14 +222,14 @@
   </div>
 
   <div id="rating-screen" class="screen">
-    <h2 class="section-title">🏆 Топ Богачей</h2>
+    <h2 class="section-title" data-i18n="top_rich">🏆 Топ Богачей</h2>
     <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
   <div id="reader-screen" class="screen">
     <div id="reader-topbar">
       <button id="back-btn" onclick="handleBack()">✕</button>
-      <b id="reader-header-title">Просмотр</b>
+      <b id="reader-header-title" data-i18n="reader_title">Просмотр</b>
     </div>
     <iframe id="reader-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
   </div>
@@ -235,6 +242,86 @@
   
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
+
+  // ==================== TRANSLATIONS ====================
+  let currentLang = localStorage.getItem('rl_lang') || 'ru';
+
+  const i18n = {
+    ru: {
+      lang_btn: "RU",
+      cover_desc: "Твой гид по миру енотов, квестов и новостей.",
+      cover_btn: "Открыть меню",
+      cones: "Шишки",
+      cones_plural: "Шишек",
+      menu_news: "Газеты",
+      menu_quests: "Квесты",
+      menu_games: "Игры",
+      menu_partners: "Партнеры",
+      menu_rating: "Рейтинг",
+      menu_support: "Поддержать",
+      top_rich: "🏆 Топ Богачей",
+      reader_title: "Просмотр",
+      btn_understood: "Понятно!",
+      bonus_title: "Вам начислено 1000 Шишек!",
+      bonus_desc: "Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!",
+      btn_great: "Отлично!",
+      loading_rating: "Загрузка рейтинга...",
+      empty_rating: "Пока нет игроков в рейтинге. Стань первым! 🏆",
+      error_rating: "Ошибка загрузки рейтинга",
+      total_earned: "всего заработано",
+      balance_text: "Баланс"
+    },
+    en: {
+      lang_btn: "EN",
+      cover_desc: "Your guide to the world of raccoons, quests, and news.",
+      cover_btn: "Open Menu",
+      cones: "Cones",
+      cones_plural: "Cones",
+      menu_news: "News",
+      menu_quests: "Quests",
+      menu_games: "Games",
+      menu_partners: "Partners",
+      menu_rating: "Rating",
+      menu_support: "Support",
+      top_rich: "🏆 Top Richest",
+      reader_title: "Viewer",
+      btn_understood: "Got it!",
+      bonus_title: "You received 1000 Cones!",
+      bonus_desc: "Welcome cones are already on your balance. Play, complete quests, and earn even more!",
+      btn_great: "Great!",
+      loading_rating: "Loading rating...",
+      empty_rating: "No players in the rating yet. Be the first! 🏆",
+      error_rating: "Error loading rating",
+      total_earned: "total earned",
+      balance_text: "Balance"
+    }
+  };
+
+  function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (i18n[currentLang] && i18n[currentLang][key]) {
+        el.innerText = i18n[currentLang][key];
+      }
+    });
+    
+    const langBtn = document.getElementById('lang-btn');
+    if (langBtn) {
+      langBtn.innerText = i18n[currentLang].lang_btn;
+    }
+  }
+
+  function toggleLanguage() {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('rl_lang', currentLang);
+    applyTranslations();
+    
+    if (currentCategory && document.getElementById('list-screen').classList.contains('active')) {
+      renderCategory(currentCategory);
+    } else if (document.getElementById('rating-screen').classList.contains('active')) {
+      showLeaderboard();
+    }
+  }
 
   // ==================== USER ID ====================
   function getUserId() {
@@ -299,28 +386,30 @@
   }
 
   // ==================== TUTORIAL SYSTEM ====================
-  const TUTORIALS = {
-    newspapers: {
-      icon: '📰',
-      title: '📰 Газеты',
-      desc: 'Здесь хранятся все выпуски The Raccoon Times. Читайте новости и будьте в курсе событий!'
-    },
-    quests: {
-      icon: '❓',
-      title: '❓ Квесты',
-      desc: 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 500 Шишек.'
-    },
-    games: {
-      icon: '🎮',
-      title: '🎮 Игры',
-      desc: 'Играйте и зарабатывайте! Морской Бой и Vladeos — 100 Шишек за победу.'
-    },
-    partners: {
-      icon: '🤝',
-      title: '🤝 Партнеры',
-      desc: 'Здесь вы найдете проекты наших партнеров. Поддерживайте друзей и получайте бонусы!'
-    }
-  };
+  function getTutorials() {
+    return {
+      newspapers: {
+        icon: '📰',
+        title: currentLang === 'ru' ? '📰 Газеты' : '📰 News',
+        desc: currentLang === 'ru' ? 'Здесь хранятся все выпуски The Raccoon Times. Читайте новости и будьте в курсе событий!' : 'All issues of The Raccoon Times are stored here. Read the news and stay updated!'
+      },
+      quests: {
+        icon: '❓',
+        title: currentLang === 'ru' ? '❓ Квесты' : '❓ Quests',
+        desc: currentLang === 'ru' ? 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 500 Шишек.' : 'Complete quests and earn cones! For the first completion of a quest you receive 500 Cones.'
+      },
+      games: {
+        icon: '🎮',
+        title: currentLang === 'ru' ? '🎮 Игры' : '🎮 Games',
+        desc: currentLang === 'ru' ? 'Играйте и зарабатывайте! Морской Бой и Vladeos — 100 Шишек за победу.' : 'Play and earn! Battleship and Vladeos — 100 Cones per win.'
+      },
+      partners: {
+        icon: '🤝',
+        title: currentLang === 'ru' ? '🤝 Партнеры' : '🤝 Partners',
+        desc: currentLang === 'ru' ? 'Здесь вы найдете проекты наших партнеров. Поддерживайте друзей и получайте бонусы!' : 'Here you will find our partners\' projects. Support friends and get bonuses!'
+      }
+    };
+  }
 
   function hasSeenTutorial(category) {
     const seen = localStorage.getItem('rl_tutorial_' + category);
@@ -332,7 +421,8 @@
   }
 
   function showTutorial(category) {
-    const tutorial = TUTORIALS[category];
+    const tutorials = getTutorials();
+    const tutorial = tutorials[category];
     if (!tutorial) return;
 
     document.getElementById('tutorial-icon').innerText = tutorial.icon;
@@ -576,6 +666,7 @@
 
   function renderCategory(catKey) {
     currentCategory = catKey;
+    const DATA = getDATA();
     const cat = DATA[catKey];
     document.getElementById('category-title').innerText = cat.title;
     const list = document.getElementById('category-list');
@@ -667,7 +758,7 @@
 
   function showLeaderboard() {
     const list = document.getElementById('leaderboard-list');
-    list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка рейтинга...</div>';
+    list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].loading_rating}</div>`;
 
     // Sync stats when opening leaderboard
     syncStats();
@@ -679,12 +770,12 @@
         if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
           renderLeaderboard(data.leaderboard);
         } else {
-          list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Пока нет игроков в рейтинге. Стань первым! 🏆</div>';
+          list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].empty_rating}</div>`;
         }
       })
       .catch(err => {
         console.error('Ошибка загрузки рейтинга:', err);
-        list.innerHTML = '<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка загрузки рейтинга</div>';
+        list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}</div>`;
       });
 
     navigateTo('rating-screen');
@@ -720,7 +811,7 @@
 
       // Форматирование баланса токенов
       const formattedBalance = p.balance.toLocaleString('ru-RU');
-      const earnedLabel = p.total_earned ? `(всего заработано: ${p.total_earned.toLocaleString('ru-RU')})` : '';
+      const earnedLabel = p.total_earned ? `(${i18n[currentLang].total_earned}: ${p.total_earned.toLocaleString('ru-RU')})` : '';
       
       // Полное экранирование HTML для предотвращения XSS
       const safeName = escapeHTML(p.name);
@@ -732,7 +823,7 @@
         <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
         <div style="flex: 1;">
           <div style="font-weight: 700;">${safeName}</div>
-        <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 Баланс: ${safeFormattedBalance} Шишек ${safeEarnedLabel}</div>
+        <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${safeFormattedBalance} ${i18n[currentLang].cones_plural} ${safeEarnedLabel}</div>
         </div>
         <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${safeFormattedBalance}</div>
       `;
@@ -741,60 +832,63 @@
   }
 
   // ==================== DATA ====================
-  const DATA = {
-    newspapers: {
-      title: "📰 Газеты",
-      items: [
-        { id: "news_17", title: "Выпуск #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
-        { id: "news_16", title: "Выпуск #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
-        { id: "news_15", title: "Выпуск #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
-        { id: "news_14", title: "Выпуск #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
-        { id: "news_13", title: "Выпуск #13", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-SEPTEMBER-04092025-13-RU-09-06", type: "link" },
-        { id: "news_12", title: "Выпуск #12", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-AUGUST-2469-2025--RU-08-17", type: "link" },
-        { id: "news_11", title: "Выпуск #11", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JULY-2025-1155-RU-07-26", type: "link" },
-        { id: "news_10", title: "Выпуск #10", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-55-87-JULY-2025-10-RU-07-06", type: "link" },
-        { id: "news_9", title: "Выпуск #9", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-2025-9-579611-RU-06-08", type: "link" },
-        { id: "news_8", title: "Выпуск #8", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-45872025-8-RU-05-18", type: "link" },
-        { id: "news_7", title: "Выпуск #7", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-99867-May-2025-7-RU-04-30", type: "link" },
-        { id: "news_6", title: "Выпуск #6", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-2346-TIMES-April-2025-6-RU-04-18", type: "link" },
-        { id: "news_5", title: "Выпуск #5", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-5-03-25", type: "link" },
-        { id: "news_4", title: "Выпуск #4", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-4-03-04", type: "link" },
-        { id: "news_3", title: "Выпуск #3", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2025-2-02-08", type: "link" },
-        { id: "news_2", title: "Выпуск #2", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-2025-2-01-23", type: "link" },
-        { id: "news_1", title: "Выпуск #1", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-01-08", type: "link" }
-      ]
-    },
-    quests: {
-      title: "❓ Квесты",
-      items: [
-        { title: "The Questoon Times Remake", desc: "Классика", type: "alert", msg: "🚧 Скоро... Заходите позже!" },
-        { title: "The Questoon Times 2", desc: "Продолжение", type: "folder", target: "qt_2" }
-      ]
-    },
-    qt_2: {
-      title: "QT 2",
-      items: [
-        { id: "qt2_1", title: "Глава 1: Встреча в баре", desc: "Начало", url: "qt2_1.1.html", type: "iframe" }
-      ]
-    },
-    games: {
-      title: "🎮 Игры",
-      items: [
-        { title: "Битва фишек", desc: "10 Шишек за победу", url: "game.html", type: "iframe" },
-        { title: "PVP: Vladeos", desc: "100 Шишек (5% шанс)", url: "vladeos_pvp.html", type: "iframe" },
-        { title: "Башня 3.0", desc: "1-10 Шишек за уровень", url: "tower_game.html", type: "iframe" },
-        { title: "🔺 Босс Енотов", desc: "1 млрд HP", url: "boss_game.html", type: "iframe" },
-        { title: "🎰 Енотная Рулетка", desc: "Казино на шишки", url: "casino_roulette.html", type: "iframe" },
-        { title: "⚓ Морской Бой", desc: "100 Шишек за победу", url: "battleship.html", type: "iframe" }
-      ]
-    },
-    partners: {
-      title: "🤝 Партнеры",
-      items: [
-        { title: "CapsGame", desc: "Игра про фишки", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
-      ]
-    }
-  };
+  function getDATA() {
+    const t = i18n[currentLang];
+    return {
+      newspapers: {
+        title: t.menu_news,
+        items: [
+          { id: "news_17", title: currentLang === 'ru' ? "Выпуск #17" : "Issue #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
+          { id: "news_16", title: currentLang === 'ru' ? "Выпуск #16" : "Issue #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
+          { id: "news_15", title: currentLang === 'ru' ? "Выпуск #15" : "Issue #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
+          { id: "news_14", title: currentLang === 'ru' ? "Выпуск #14" : "Issue #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
+          { id: "news_13", title: currentLang === 'ru' ? "Выпуск #13" : "Issue #13", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-SEPTEMBER-04092025-13-RU-09-06", type: "link" },
+          { id: "news_12", title: currentLang === 'ru' ? "Выпуск #12" : "Issue #12", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-AUGUST-2469-2025--RU-08-17", type: "link" },
+          { id: "news_11", title: currentLang === 'ru' ? "Выпуск #11" : "Issue #11", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JULY-2025-1155-RU-07-26", type: "link" },
+          { id: "news_10", title: currentLang === 'ru' ? "Выпуск #10" : "Issue #10", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-55-87-JULY-2025-10-RU-07-06", type: "link" },
+          { id: "news_9", title: currentLang === 'ru' ? "Выпуск #9" : "Issue #9", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-2025-9-579611-RU-06-08", type: "link" },
+          { id: "news_8", title: currentLang === 'ru' ? "Выпуск #8" : "Issue #8", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-May-45872025-8-RU-05-18", type: "link" },
+          { id: "news_7", title: currentLang === 'ru' ? "Выпуск #7" : "Issue #7", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-99867-May-2025-7-RU-04-30", type: "link" },
+          { id: "news_6", title: currentLang === 'ru' ? "Выпуск #6" : "Issue #6", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-2346-TIMES-April-2025-6-RU-04-18", type: "link" },
+          { id: "news_5", title: currentLang === 'ru' ? "Выпуск #5" : "Issue #5", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-5-03-25", type: "link" },
+          { id: "news_4", title: currentLang === 'ru' ? "Выпуск #4" : "Issue #4", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-2025-4-03-04", type: "link" },
+          { id: "news_3", title: currentLang === 'ru' ? "Выпуск #3" : "Issue #3", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2025-2-02-08", type: "link" },
+          { id: "news_2", title: currentLang === 'ru' ? "Выпуск #2" : "Issue #2", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-2025-2-01-23", type: "link" },
+          { id: "news_1", title: currentLang === 'ru' ? "Выпуск #1" : "Issue #1", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-JANUARY-01-08", type: "link" }
+        ]
+      },
+      quests: {
+        title: t.menu_quests,
+        items: [
+          { title: "The Questoon Times Remake", desc: currentLang === 'ru' ? "Классика" : "Classic", type: "alert", msg: currentLang === 'ru' ? "🚧 Скоро... Заходите позже!" : "🚧 Coming soon... Check back later!" },
+          { title: "The Questoon Times 2", desc: currentLang === 'ru' ? "Продолжение" : "Sequel", type: "folder", target: "qt_2" }
+        ]
+      },
+      qt_2: {
+        title: "QT 2",
+        items: [
+          { id: "qt2_1", title: currentLang === 'ru' ? "Глава 1: Встреча в баре" : "Chapter 1: Meeting at the bar", desc: currentLang === 'ru' ? "Начало" : "Beginning", url: "qt2_1.1.html", type: "iframe" }
+        ]
+      },
+      games: {
+        title: t.menu_games,
+        items: [
+          { title: currentLang === 'ru' ? "Битва фишек" : "Caps Battle", desc: currentLang === 'ru' ? "10 Шишек за победу" : "10 Cones per win", url: "game.html", type: "iframe" },
+          { title: "PVP: Vladeos", desc: currentLang === 'ru' ? "100 Шишек (5% шанс)" : "100 Cones (5% chance)", url: "vladeos_pvp.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "Башня 3.0" : "Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "🎰 Енотная Рулетка" : "🎰 Raccoon Roulette", desc: currentLang === 'ru' ? "Казино на шишки" : "Casino for cones", url: "casino_roulette.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" }
+        ]
+      },
+      partners: {
+        title: t.menu_partners,
+        items: [
+          { title: "CapsGame", desc: currentLang === 'ru' ? "Игра про фишки" : "Game about caps", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
+        ]
+      }
+    };
+  }
 
   // ==================== MESSAGE HANDLER ====================
   window.addEventListener('message', function(event) {
@@ -893,6 +987,7 @@
   // ==================== INIT ====================
   // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
   window.addEventListener('DOMContentLoaded', () => {
+    applyTranslations();
     loadStats();
 
     // Сохраняем user_id в localStorage для future use

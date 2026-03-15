@@ -37,12 +37,12 @@
 
     .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; }
     
-    .chip { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #333; 
+    .cap { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #333; 
             display: flex; align-items: center; justify-content: center; font-size: 40px; 
             background: #121214; position: relative; transition: all 0.3s ease; 
             box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
     
-    .chip.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4), inset 0 0 10px rgba(0,0,0,0.5); }
+    .cap.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4), inset 0 0 10px rgba(0,0,0,0.5); }
     
     /* Анимации */
     @keyframes crit-shake { 0% {transform: rotate(0);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0);} }
@@ -123,7 +123,7 @@
 
   <div class="arena">
     <div id="p1-area">
-      <div id="p1-chip" class="chip active">🦝</div>
+      <div id="p1-cap" class="cap active">🦝</div>
       <div class="bars">
         <span class="bar-label">HP</span>
         <div class="bar"><div id="p1-hp" class="fill hp" style="width: 100%;"></div></div>
@@ -134,7 +134,7 @@
     </div>
 
     <div id="bot-area">
-      <div id="bot-chip" class="chip">🤡</div>
+      <div id="bot-cap" class="cap">🤡</div>
       <div class="bars">
         <span class="bar-label">HP</span>
         <div class="bar"><div id="bot-hp" class="fill hp" style="width: 100%;"></div></div>
@@ -166,6 +166,32 @@
   <div class="log" id="log">Битва началась...</div>
 
   <script>
+    const lang = localStorage.getItem('rl_lang') || 'ru';
+    const t = {
+      ru: {
+        msgStart: "Твой ход, Енот! <br>Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун",
+        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: "🍪 100 HP (100 Шишек)",
+        logSt: "Битва началась..."
+      },
+      en: {
+        msgStart: "Your turn, Raccoon! <br>Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Clown",
+        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: "🍪 100 HP (100 Cones)",
+        logSt: "Battle started..."
+      }
+    }[lang];
+
+    document.getElementById('msg').innerHTML = t.msgStart;
+    document.querySelectorAll('.bar-label')[1].innerText = t.enL;
+    document.querySelectorAll('.bar-label')[3].innerText = t.enL;
+    document.querySelector('#p1-area p b').innerText = t.rac;
+    document.querySelector('#bot-area p b').innerText = t.clo;
+    document.querySelector('.btn-std').innerText = t.btnA;
+    document.getElementById('sp1').innerText = t.btnS1;
+    document.getElementById('sp2').innerText = t.btnS2;
+    document.getElementById('sp3').innerText = t.btnS3;
+    document.getElementById('btn-cookie').innerText = t.btnC;
+    document.getElementById('log').innerText = t.logSt;
+
     let pHP = 100, pNRG = 0;
     let bHP = 100, bNRG = 0;
     let active = true;
@@ -207,7 +233,7 @@
           if (data && data.error === 'No active session') {
               await apiCall('start');
           } else if (data && data.error === 'Too Many Requests') {
-              document.getElementById('msg').innerText = "Слишком быстро! Подождите...";
+              document.getElementById('msg').innerText = lang === 'ru' ? "Слишком быстро! Подождите..." : "Too fast! Wait...";
               document.getElementById('msg').style.color = "var(--accent)";
           }
           toggleBtns(false);
@@ -225,22 +251,22 @@
       pNRG = data.player_log.pNRG;
       bNRG = data.player_log.bNRG;
 
-      let pTxt = type === 'attack' ? "Енот наносит четкий удар!" :
-                 type === 'trash' ? "Енот закидал Клоуна мусором!" :
-                 type === 'snack' ? "Енот съел сухарик и подлечился!" : "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
-      if(data.player_log.is_crit) pTxt = "💥 КРИТ: " + pTxt;
+      let pTxt = type === 'attack' ? (lang === 'ru' ? "Енот наносит четкий удар!" : "Raccoon lands a solid hit!") :
+                 type === 'trash' ? (lang === 'ru' ? "Енот закидал Клоуна мусором!" : "Raccoon threw trash at Clown!") :
+                 type === 'snack' ? (lang === 'ru' ? "Енот съел сухарик и подлечился!" : "Raccoon ate a snack and healed!") : (lang === 'ru' ? "ПОЛНАЯ ЯРОСТЬ ЕНОТА!" : "FULL RACCOON RAGE!");
+      if(data.player_log.is_crit) pTxt = (lang === 'ru' ? "💥 КРИТ: " : "💥 CRIT: ") + pTxt;
 
-      executeAction('p1-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt);
+      executeAction('p1-cap', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt);
 
       if (data.game_over && data.win) {
-          setTimeout(() => endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆", true), 1000);
+          setTimeout(() => endGame(lang === 'ru' ? "Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆" : "Clown flies to the circus! RACCOON WINS! 🏆", true), 1000);
           return;
       }
 
       setTimeout(() => {
-          let bTxt = data.bot_log.action === 'bomb' ? "🤡 Клоун взрывает огромную петарду!" :
-                     data.bot_log.action === 'heal' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Клоун бьет резиновым молотком!";
-          if(data.bot_log.is_crit) bTxt = "🎈 КРИТ: " + bTxt;
+          let bTxt = data.bot_log.action === 'bomb' ? (lang === 'ru' ? "🤡 Клоун взрывает огромную петарду!" : "🤡 Clown explodes a giant firecracker!") :
+                     data.bot_log.action === 'heal' ? (lang === 'ru' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Clown pulled a medkit from his hat!") : (lang === 'ru' ? "🤡 Клоун бьет резиновым молотком!" : "🤡 Clown hits with a rubber hammer!");
+          if(data.bot_log.is_crit) bTxt = (lang === 'ru' ? "🎈 КРИТ: " : "🎈 CRIT: ") + bTxt;
 
           // Синхронизируем ВСЕ данные после хода клоуна
           pHP = data.bot_log.pHP;
@@ -248,10 +274,10 @@
           pNRG = data.bot_log.pNRG;
           bNRG = data.bot_log.bNRG;
 
-          executeAction('bot-chip', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt);
+          executeAction('bot-cap', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt);
 
           if (data.game_over && !data.win) {
-              setTimeout(() => endGame("Клоун оказался хитрее... Енот повержен 🤡", false), 1000);
+              setTimeout(() => endGame(lang === 'ru' ? "Клоун оказался хитрее... Енот повержен 🤡" : "Clown was trickier... Raccoon defeated 🤡", false), 1000);
           } else {
               setTimeout(() => toggleBtns(false), 1000);
           }
@@ -287,7 +313,7 @@
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
 
-      document.getElementById('log').innerText = "🍪 Покупка печеньки...";
+      document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
 
       // Списываем 100 шишек
       fetch('/api/sync', {
@@ -316,7 +342,7 @@
           console.error('API Error:', errorMsg);
 
           if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
-            document.getElementById('log').innerText = "❌ Недостаточно шишек!";
+            document.getElementById('log').innerText = lang === 'ru' ? "❌ Недостаточно шишек!" : "❌ Not enough cones!";
           } else {
             document.getElementById('log').innerText = "❌ " + errorMsg;
           }
@@ -361,19 +387,19 @@
             updateUI();
           });
           
-          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+          document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
           // Анимация лечения
-          const chip = document.getElementById('p1-chip');
-          chip.classList.add('heal-effect');
-          setTimeout(() => chip.classList.remove('heal-effect'), 400);
+          const cap = document.getElementById('p1-cap');
+          cap.classList.add('heal-effect');
+          setTimeout(() => cap.classList.remove('heal-effect'), 400);
         } else {
-          document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
+          document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
         }
       })
       .catch(err => {
         console.error('❌ Error:', err);
-        document.getElementById('log').innerText = "❌ Ошибка сети!";
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
       })
       .finally(() => {
         setTimeout(() => {
@@ -384,24 +410,24 @@
     }
 
     function executeAction(attackerId, dmg, heal, crit, txt) {
-      const chip = document.getElementById(attackerId);
+      const cap = document.getElementById(attackerId);
       const log = document.getElementById('log');
       
       // Логика урона
       if (dmg > 0) {
-        chip.classList.add(attackerId === 'p1-chip' ? 'animate-attack' : 'animate-bot-attack');
-        if (crit) chip.classList.add('crit');
+        cap.classList.add(attackerId === 'p1-cap' ? 'animate-attack' : 'animate-bot-attack');
+        if (crit) cap.classList.add('crit');
       }
       
       if (heal > 0) {
-        chip.classList.add('heal-effect');
+        cap.classList.add('heal-effect');
       }
 
       setTimeout(() => {
-        chip.classList.remove('animate-attack', 'animate-bot-attack', 'crit', 'heal-effect');
+        cap.classList.remove('animate-attack', 'animate-bot-attack', 'crit', 'heal-effect');
         updateUI();
         document.getElementById('msg').innerHTML = txt;
-        log.innerText = `Действие: ${txt} (${dmg > 0 ? -dmg + ' HP' : '+' + heal + ' HP'})`;
+        log.innerText = `${lang === 'ru' ? 'Действие' : 'Action'}: ${txt} (${dmg > 0 ? -dmg + ' HP' : '+' + heal + ' HP'})`;
       }, 400);
     }
 
@@ -453,19 +479,19 @@
       
       if (isWin) {
         icon.innerText = '🎉';
-        title.innerText = 'Победа!';
+        title.innerText = lang === 'ru' ? 'Победа!' : 'Victory!';
         title.style.color = '#ffd700';
         amountEl.style.display = 'block';
-        amountEl.textContent = '+10 Шишек';
+        amountEl.textContent = lang === 'ru' ? '+10 Шишек' : '+10 Cones';
         popup.style.borderColor = '#ffd700';
-        btn.innerText = 'Продолжить';
+        btn.innerText = lang === 'ru' ? 'Продолжить' : 'Continue';
       } else {
         icon.innerText = '💀';
-        title.innerText = 'Поражение!';
+        title.innerText = lang === 'ru' ? 'Поражение!' : 'Defeat!';
         title.style.color = 'var(--accent)';
         amountEl.style.display = 'none';
         popup.style.borderColor = 'var(--accent)';
-        btn.innerText = 'Сыграть ещё';
+        btn.innerText = lang === 'ru' ? 'Сыграть ещё' : 'Play Again';
       }
       
       overlay.style.display = 'flex';
@@ -488,8 +514,8 @@
       active = true;
       
       // Сбрасываем UI
-      document.getElementById('msg').innerHTML = 'Твой ход, Енот! <br>Выбирай прием.';
-      document.getElementById('log').innerText = 'Битва началась...';
+      document.getElementById('msg').innerHTML = t.msgStart;
+      document.getElementById('log').innerText = t.logSt;
       document.getElementById('controls').style.opacity = "1";
       
       updateUI();

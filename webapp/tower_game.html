@@ -46,13 +46,13 @@
 
     .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 10px; }
     
-    .chip { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #333; 
+    .cap { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #333; 
             display: flex; align-items: center; justify-content: center; font-size: 35px; 
             background: #121214; position: relative; transition: all 0.3s ease; 
             box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
     
-    .chip.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4); }
-    .chip.boss { border-color: var(--boss-color); box-shadow: 0 0 25px rgba(155, 89, 182, 0.6); animation: pulse 2s infinite; }
+    .cap.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4); }
+    .cap.boss { border-color: var(--boss-color); box-shadow: 0 0 25px rgba(155, 89, 182, 0.6); animation: pulse 2s infinite; }
 
     @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
     .animate-attack { transform: translateX(50px) scale(1.2) !important; }
@@ -97,7 +97,7 @@
 
   <div class="arena">
     <div id="player-area">
-      <div id="p-chip" class="chip active">🦝</div>
+      <div id="p-cap" class="cap active">🦝</div>
       <div class="bars">
         <span class="bar-label">HP <span id="p-hp-text">100</span></span>
         <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
@@ -107,7 +107,7 @@
     </div>
 
     <div id="enemy-area">
-      <div id="e-chip" class="chip">❓</div>
+      <div id="e-cap" class="cap">❓</div>
       <div class="bars">
         <span class="bar-label">HP <span id="e-hp-text">100</span></span>
         <div class="bar"><div id="e-hp" class="fill hp" style="width: 100%;"></div></div>
@@ -128,7 +128,32 @@
   <div class="log" id="log">...</div>
 
   <script>
-    const ENEMIES = [
+    const lang = localStorage.getItem('rl_lang') || 'ru';
+    const t = {
+      ru: {
+        title: "Башня 3.0", msgSt: "Новый противник!", enL: "Энергия",
+        btnA: "Удар (+20 Эн)", btnS1: "Мусор (40)", btnS2: "Снэк (30)", btnS3: "УЛЬТА (80)", btnC: "🍪 100% HP (100 Шишек)",
+        btnN: "СЛЕДУЮЩИЙ УРОВЕНЬ ➜", enemy: "Враг"
+      },
+      en: {
+        title: "Tower 3.0", msgSt: "New Enemy!", enL: "Energy",
+        btnA: "Attack (+20 En)", btnS1: "Trash (40)", btnS2: "Snack (30)", btnS3: "ULT (80)", btnC: "🍪 100% HP (100 Cones)",
+        btnN: "NEXT LEVEL ➜", enemy: "Enemy"
+      }
+    }[lang];
+
+    document.querySelectorAll('.header-info div')[1].innerText = t.title;
+    document.getElementById('msg').innerText = t.msgSt;
+    document.querySelectorAll('.bar-label')[1].childNodes[0].nodeValue = t.enL;
+    document.getElementById('btn-atk').innerText = t.btnA;
+    document.getElementById('btn-sp1').innerText = t.btnS1;
+    document.getElementById('btn-sp2').innerText = t.btnS2;
+    document.getElementById('btn-sp3').innerText = t.btnS3;
+    document.getElementById('btn-cookie').innerText = t.btnC;
+    document.getElementById('btn-next').innerText = t.btnN;
+    document.getElementById('e-name').innerText = t.enemy;
+
+    const ENEMIES = lang === 'ru' ? [
       { name: "Кэпс Новичок", icon: "⚪", hp: 80, dmg: 8 },
       { name: "Ржавая Бита", icon: "🟤", hp: 90, dmg: 9 },
       { name: "Смайлик", icon: "🙂", hp: 100, dmg: 10 },
@@ -144,10 +169,26 @@
       { name: "Дракон", icon: "🐉", hp: 160, dmg: 14 },
       { name: "Волшебник", icon: "🧙", hp: 90, dmg: 18 },
       { name: "Алмазный", icon: "💎", hp: 180, dmg: 10 }
+    ] : [
+      { name: "Caps Noob", icon: "⚪", hp: 80, dmg: 8 },
+      { name: "Rusty Bat", icon: "🟤", hp: 90, dmg: 9 },
+      { name: "Smiley", icon: "🙂", hp: 100, dmg: 10 },
+      { name: "Yin-Yang", icon: "☯️", hp: 110, dmg: 11 },
+      { name: "Skull", icon: "💀", hp: 120, dmg: 12 },
+      { name: "8-Ball", icon: "🎱", hp: 130, dmg: 13 },
+      { name: "Toxic", icon: "🤢", hp: 115, dmg: 14 },
+      { name: "Alien", icon: "👽", hp: 125, dmg: 12 },
+      { name: "Ninja", icon: "🥷", hp: 100, dmg: 16 },
+      { name: "Robot", icon: "🤖", hp: 140, dmg: 10 },
+      { name: "Vampire", icon: "🧛", hp: 110, dmg: 15 },
+      { name: "Zombie", icon: "🧟", hp: 150, dmg: 8 },
+      { name: "Dragon", icon: "🐉", hp: 160, dmg: 14 },
+      { name: "Wizard", icon: "🧙", hp: 90, dmg: 18 },
+      { name: "Diamond", icon: "💎", hp: 180, dmg: 10 }
     ];
 
     // Босс на 10 уровне - уменьшен урон с 25 до 18 для проходимости
-    const BOSS = { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 18 };
+    const BOSS = lang === 'ru' ? { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 18 } : { name: "CATROOSTER", icon: "🐱🐔", hp: 300, dmg: 18 };
 
     let level = 1;
     let pStats = { hp: 100, maxHp: 100, nrg: 0 };
@@ -192,10 +233,10 @@
 
       if (isBoss) {
         enemyTemplate = BOSS;
-        document.getElementById('e-chip').classList.add('boss');
+        document.getElementById('e-cap').classList.add('boss');
       } else {
         enemyTemplate = ENEMIES[Math.floor(Math.random() * ENEMIES.length)];
-        document.getElementById('e-chip').classList.remove('boss');
+        document.getElementById('e-cap').classList.remove('boss');
       }
 
       const data = await apiCall('start');
@@ -206,15 +247,15 @@
           pStats.hp = data.state.pHP;
           pStats.nrg = data.state.pNRG;
       } else if (data && data.error === 'Too Many Requests') {
-          document.getElementById('msg').innerText = "Слишком быстро! Подождите пару секунд...";
+          document.getElementById('msg').innerText = lang === 'ru' ? "Слишком быстро! Подождите пару секунд..." : "Too fast! Wait a few seconds...";
           document.getElementById('msg').style.color = "var(--accent)";
           return;
       }
 
       // UI врага
       document.getElementById('e-name').innerText = enemyTemplate.name;
-      document.getElementById('e-chip').innerText = enemyTemplate.icon;
-      document.getElementById('msg').innerText = isBoss ? "БОСС: КОТОПЕТУХ!" : "Враг: " + enemyTemplate.name;
+      document.getElementById('e-cap').innerText = enemyTemplate.icon;
+      document.getElementById('msg').innerText = isBoss ? (lang === 'ru' ? "БОСС: КОТОПЕТУХ!" : "BOSS: CATROOSTER!") : (lang === 'ru' ? "Враг: " : "Enemy: ") + enemyTemplate.name;
 
       turn = true;
       updateUI();
@@ -230,22 +271,23 @@
           if (data && data.error === 'No active session') {
               await apiCall('start');
           } else if (data && data.error === 'Too Many Requests') {
-              document.getElementById('msg').innerText = "Слишком быстро! Подождите...";
+              document.getElementById('msg').innerText = lang === 'ru' ? "Слишком быстро! Подождите..." : "Too fast! Wait...";
               document.getElementById('msg').style.color = "var(--accent)";
           }
           toggleButtons(false); turn = true; return;
       }
       
-      let txt = actionType === 'attack' ? "Удар лапой!" : actionType === 'trash' ? "Мусорный залп!" :
-                actionType === 'snack' ? "Вкусный снэк!" : "ЯРОСТЬ ЕНОТА!";
-      if (data.player_log.is_crit) txt += " (КРИТ!)";
+      let txt = actionType === 'attack' ? (lang === 'ru' ? "Удар лапой!" : "Paw attack!") :
+                actionType === 'trash' ? (lang === 'ru' ? "Мусорный залп!" : "Trash volley!") :
+                actionType === 'snack' ? (lang === 'ru' ? "Вкусный снэк!" : "Tasty snack!") : (lang === 'ru' ? "ЯРОСТЬ ЕНОТА!" : "RACCOON RAGE!");
+      if (data.player_log.is_crit) txt += (lang === 'ru' ? " (КРИТ!)" : " (CRIT!)");
 
       pStats.nrg = data.player_log.pNRG;
       pStats.hp = data.player_log.pHP;
       eStats.hp = data.player_log.eHP;
 
-      animateAction('p-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit);
-      document.getElementById('log').innerText = `Вы: ${txt}`;
+      animateAction('p-cap', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit);
+      document.getElementById('log').innerText = `${lang === 'ru' ? 'Вы' : 'You'}: ${txt}`;
       updateUI();
 
       if (data.game_over && data.win) {
@@ -258,17 +300,17 @@
       }
 
       setTimeout(() => {
-          let bTxt = `Враг атакует на ${data.bot_log.dmg} урона!`;
+          let bTxt = lang === 'ru' ? `Враг атакует на ${data.bot_log.dmg} урона!` : `Enemy attacks for ${data.bot_log.dmg} damage!`;
           pStats.nrg = data.bot_log.pNRG;
           pStats.hp = data.bot_log.pHP;
           eStats.hp = data.bot_log.eHP;
 
-          animateAction('e-chip', data.bot_log.dmg, 0, data.bot_log.is_crit);
+          animateAction('e-cap', data.bot_log.dmg, 0, data.bot_log.is_crit);
           document.getElementById('log').innerText = bTxt;
           updateUI();
 
           if (data.game_over && !data.win) {
-              document.getElementById('msg').innerText = "ВЫ ПРОИГРАЛИ!";
+              document.getElementById('msg').innerText = lang === 'ru' ? "ВЫ ПРОИГРАЛИ!" : "YOU LOST!";
               document.getElementById('msg').style.color = "red";
               setTimeout(() => location.reload(), 2000);
           } else {
@@ -279,7 +321,7 @@
     }
 
     function winLevel() {
-      document.getElementById('msg').innerText = "ПОБЕДА! (+30 HP)";
+      document.getElementById('msg').innerText = lang === 'ru' ? "ПОБЕДА! (+30 HP)" : "VICTORY! (+30 HP)";
       document.getElementById('msg').style.color = "var(--game-green)";
       updateUI();
       document.getElementById('btn-next').style.display = 'block';
@@ -297,7 +339,7 @@
     function animateAction(id, dmg, heal, crit) {
       const el = document.getElementById(id);
       if (dmg > 0) {
-        el.classList.add(id === 'p-chip' ? 'animate-attack' : 'animate-enemy-attack');
+        el.classList.add(id === 'p-cap' ? 'animate-attack' : 'animate-enemy-attack');
         if (crit) el.classList.add('crit');
       }
       if (heal > 0) el.classList.add('heal-effect');
@@ -323,7 +365,7 @@
       let userId = getUserId();
 
       if (!userId) {
-        document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет user_id" : "❌ Error: no user_id";
         return;
       }
 
@@ -331,7 +373,7 @@
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
 
-      document.getElementById('log').innerText = "🍪 Покупка печеньки...";
+      document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
 
       // Логирование покупки
       if (typeof logGameAction === 'function') {
@@ -349,11 +391,11 @@
           pStats.hp = result.state.pHP || 100;
           pStats.nrg = result.state.pNRG || pStats.nrg;
           updateUI();
-          document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+          document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
-          const chip = document.getElementById('p-chip');
-          chip.classList.add('heal-effect');
-          setTimeout(() => chip.classList.remove('heal-effect'), 400);
+          const cap = document.getElementById('p-cap');
+          cap.classList.add('heal-effect');
+          setTimeout(() => cap.classList.remove('heal-effect'), 400);
         } else if (result.status === 'error') {
           // Обработка ошибки (например, недостаточно шишек)
           const errorMsg = result.error || 'Ошибка сервера';
@@ -364,12 +406,12 @@
             logApiError('/api/game/tower', errorMsg, null);
           }
         } else {
-          document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
+          document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
         }
       })
       .catch(err => {
         console.error('❌ Error:', err);
-        document.getElementById('log').innerText = "❌ Ошибка сети!";
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
         
         // Логирование ошибки сети
         if (typeof logApiError === 'function') {

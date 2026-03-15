@@ -363,6 +363,26 @@
   </div>
 
   <script>
+    const lang = localStorage.getItem('rl_lang') || 'ru';
+    const t = {
+      ru: {
+        t1: "🎰 Енотная Рулетка", t2: " Шишек", r: "Сделайте ставку и крутите колесо!",
+        l1: "Ставка:", b1: "🔴 Красное (x2)", b2: "🟢 Зеро (x14)", b3: "⚫ Чёрное (x2)",
+        c: "Выбор: ", s: "🎲 Крутить!", st1: "Побед", st2: "Всего ставок", h: "📊 История",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)",
+        red: "🔴 Красное", black: "⚫ Чёрное", green: "🟢 Зеро",
+        noCones: "❌ Недостаточно шишек!", win: "🎉 Победа! +", lose: "😢 Проигрыш -"
+      },
+      en: {
+        t1: "🎰 Raccoon Roulette", t2: " Cones", r: "Place your bet and spin the wheel!",
+        l1: "Bet:", b1: "🔴 Red (x2)", b2: "🟢 Zero (x14)", b3: "⚫ Black (x2)",
+        c: "Choice: ", s: "🎲 Spin!", st1: "Wins", st2: "Total Bet", h: "📊 History",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)",
+        red: "🔴 Red", black: "⚫ Black", green: "🟢 Zero",
+        noCones: "❌ Not enough cones!", win: "🎉 Victory! +", lose: "😢 Defeat -"
+      }
+    }[lang];
+
     const API_URL = '/api/tokens';
     let balance = 0;
     let currentBet = null;
@@ -472,9 +492,9 @@
 
       currentBet = type;
       document.getElementById('selected-bet').innerText = 
-        type === 'red' ? '🔴 Красное' :
-        type === 'black' ? '⚫ Чёрное' :
-        '🟢 Зеро';
+        type === 'red' ? t.red :
+        type === 'black' ? t.black :
+        t.green;
 
       document.getElementById('spin-btn').disabled = false;
 
@@ -503,7 +523,7 @@
       betAmount = getBetAmount();
 
       if (betAmount > balance) {
-        showResult('❌ Недостаточно шишек!', 'lose');
+        showResult(t.noCones, 'lose');
         return;
       }
 
@@ -564,13 +584,13 @@
         if (result.win) {
           stats.wins++;
           document.getElementById('total-wins').innerText = stats.wins;
-          showResult(`🎉 Победа! +${result.winAmount} Шишек`, 'win');
+          showResult(`${t.win}${result.winAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'win');
           addToHistory(result.number, result.type, true);
           // Начисляем выигрыш
           balance += result.winAmount;
           updateBalanceUI(balance);
         } else {
-          showResult(`😢 Проигрыш -${betAmount} Шишек`, 'lose');
+          showResult(`${t.lose}${betAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'lose');
           addToHistory(result.number, result.type, false);
         }
 
@@ -663,6 +683,20 @@
 
     // Инициализация
     window.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('.header span').innerText = t.t1;
+      document.querySelector('.balance-badge').lastChild.nodeValue = t.t2;
+      document.getElementById('result').innerText = t.r;
+      document.querySelector('.bet-input-group label').innerText = t.l1;
+      document.querySelector('.bet-btn-red').innerText = t.b1;
+      document.querySelector('.bet-btn-green').innerText = t.b2;
+      document.querySelector('.bet-btn-black').innerText = t.b3;
+      document.querySelector('.bet-controls > div:nth-of-type(3)').childNodes[0].nodeValue = t.c;
+      document.getElementById('spin-btn').innerText = t.s;
+      document.querySelectorAll('.stat-label')[0].innerText = t.st1;
+      document.querySelectorAll('.stat-label')[1].innerText = t.st2;
+      document.querySelector('.history-title').innerText = t.h;
+      document.querySelector('.info-box').innerHTML = t.info;
+
       renderWheel();
       // Не загружаем баланс с сервера - получим от родителя
       

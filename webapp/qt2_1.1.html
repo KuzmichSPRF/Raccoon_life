@@ -278,29 +278,36 @@
         let isTyping = false;
         let currentSceneData = null;
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        if (lang === 'en') {
+            document.getElementById('init-btn').innerText = "CONNECT";
+            document.getElementById('start-btn').innerText = "Start";
+            document.getElementById('finish-btn').innerText = "STAGE CLEARED";
+        }
+
         // --- БАЗА ДАННЫХ СЦЕН (ЛОГИКА ИГРЫ) ---
         const SCENES = {
             'start': {
                 type: 'transition',
                 image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
-                text: 'А, это ты? Что, снова пришел? Ладно, расскажу тебе что было дальше...',
+                text: lang === 'ru' ? 'А, это ты? Что, снова пришел? Ладно, расскажу тебе что было дальше...' : "Ah, it's you? Back again? Alright, I'll tell you what happened next...",
                 choices: [
-                    { label: 'Ты кто?', target: 'who_are_you' },
-                    { label: 'Я пошел!', action: () => document.body.innerHTML = '' }
+                    { label: lang === 'ru' ? 'Ты кто?' : 'Who are you?', target: 'who_are_you' },
+                    { label: lang === 'ru' ? 'Я пошел!' : "I'm leaving!", action: () => document.body.innerHTML = '' }
                 ]
             },
             'who_are_you': {
                 type: 'question',
                 image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
-                text: 'Я кто? Это Я кто? Это Ты мне скажи кто Я!',
+                text: lang === 'ru' ? 'Я кто? Это Я кто? Это Ты мне скажи кто Я!' : 'Who am I? You tell me who I am!',
                 expected: '919',
                 correctTarget: 'correct_answer',
-                errorMsg: 'нет'
+                errorMsg: lang === 'ru' ? 'нет' : 'no'
             },
             'correct_answer': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/Image-202602011858.jpg',
-                text: 'НУ КОНЕЧНО!',
+                text: lang === 'ru' ? 'НУ КОНЕЧНО!' : 'EXACTLY!',
                 autoTargetDelay: 1000,
                 action: () => triggerSplashScreen()
             },
@@ -308,32 +315,32 @@
             'slide_1': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-01_02-20-22.jpg',
-                text: 'Это было совсем недавно, я вел одно простое, как мне тогда казалось, расследование...',
+                text: lang === 'ru' ? 'Это было совсем недавно, я вел одно простое, как мне тогда казалось, расследование...' : 'It was quite recently, I was conducting what seemed to me a simple investigation...',
                 clickTarget: 'slide_2'
             },
             'slide_2': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-03_15-26-29.jpg',
-                text: 'Я уже почти нашел отгадки, но дальше случилось то, что я не мог предвидеть...',
+                text: lang === 'ru' ? 'Я уже почти нашел отгадки, но дальше случилось то, что я не мог предвидеть...' : 'I almost found the answers, but then something happened that I couldn\'t foresee...',
                 clickTarget: 'slide_3'
             },
             'slide_3': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-03_16-36-17.jpg',
-                text: 'Я не смог с ними бороться, но я смог возглавить их...',
+                text: lang === 'ru' ? 'Я не смог с ними бороться, но я смог возглавить их...' : 'I couldn\'t fight them, but I could lead them...',
                 clickTarget: 'slide_4'
             },
             'slide_4': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/photo_2025-05-04_15-08-55.jpg',
-                text: 'Они не могли существовать без предводителя, и всё что мне было нужно - это получить документы...',
+                text: lang === 'ru' ? 'Они не могли существовать без предводителя, и всё что мне было нужно - это получить документы...' : 'They couldn\'t exist without a leader, and all I needed was to get the documents...',
                 clickTarget: 'seq_1'
             },
 
             'seq_1': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/rac_off.png',
-                text: 'Это должно было быть не сложно',
+                text: lang === 'ru' ? 'Это должно было быть не сложно' : 'It was supposed to be easy',
                 clickTarget: 'seq_2'
             },
             'seq_2': {
@@ -341,36 +348,36 @@
                 image: 'https://storage.googleapis.com/qt2-image/dver_off.png',
                 text: '',
                 choices: [
-                    { label: 'зайти в здание', target: 'seq_3' }
+                    { label: lang === 'ru' ? 'зайти в здание' : 'enter the building', target: 'seq_3' }
                 ]
             },
             'seq_3': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/v_off.png',
-                text: '- Мне нужно получить удостоверение лидера ено..',
+                text: lang === 'ru' ? '- Мне нужно получить удостоверение лидера ено..' : '- I need to get the ID of the raccoon lea..',
                 autoTargetDelay: 150, 
                 autoTarget: 'seq_4'
             },
             'seq_4': {
                 type: 'transition',
                 image: 'https://storage.googleapis.com/qt2-image/v_off.png',
-                text: '- Вам на 69 этаж, кабинет 369',
+                text: lang === 'ru' ? '- Вам на 69 этаж, кабинет 369' : '- You need the 69th floor, office 369',
                 skipTyping: true, 
                 choices: [
-                    { label: 'перейти в лифт', target: 'elevator_scene' }
+                    { label: lang === 'ru' ? 'перейти в лифт' : 'go to the elevator', target: 'elevator_scene' }
                 ]
             },
             'elevator_scene': {
                 type: 'triple_input',
                 image: 'https://storage.googleapis.com/qt2-image/file_00000000c750720887ecbfafb19c9641.png',
-                text: 'Какой этаж она сказала? Почему тут нужно ввести три цифры?',
+                text: lang === 'ru' ? 'Какой этаж она сказала? Почему тут нужно ввести три цифры?' : 'Which floor did she say? Why do I need to enter three numbers here?',
                 correctTarget: 'elevator_success'
             },
             // Замененный последний слайд
             'elevator_success': {
                 type: 'dialog',
                 image: 'https://storage.googleapis.com/qt2-image/lift.png',
-                text: 'Отлично, 69-ый этаж, поехали!',
+                text: lang === 'ru' ? 'Отлично, 69-ый этаж, поехали!' : 'Great, 69th floor, let\'s go!',
                 clickTarget: 'end_game'
             },
             // Сцена для вызова финального экрана
@@ -447,10 +454,10 @@
             else if (scene.type === 'question') {
                 const input = document.createElement('input');
                 input.type = 'text';
-                input.placeholder = 'Код...';
+                input.placeholder = lang === 'en' ? 'Code...' : 'Код...';
                 
                 const btn = document.createElement('button');
-                btn.textContent = 'ВВОД';
+                btn.textContent = lang === 'en' ? 'ENTER' : 'ВВОД';
                 
                 btn.onclick = () => {
                     if (input.value === scene.expected) {
@@ -485,7 +492,7 @@
                 }
                 
                 const btn = document.createElement('button');
-                btn.textContent = 'ВВОД';
+                btn.textContent = lang === 'en' ? 'ENTER' : 'ВВОД';
                 btn.style.marginTop = '20px';
                 
                 btn.onclick = () => {
@@ -494,7 +501,7 @@
                     const v3 = parseInt(inputs[2].value) || 0;
                     
                     if (v1 < 1 || v1 > 21 || v2 < 1 || v2 > 21 || v3 < 1 || v3 > 21) {
-                        alert('Введите числа от 1 до 21!');
+                        alert(lang === 'en' ? 'Enter numbers from 1 to 21!' : 'Введите числа от 1 до 21!');
                         return;
                     }
 
@@ -503,7 +510,7 @@
                     if (sum === 69) {
                         loadScene(scene.correctTarget);
                     } else {
-                        alert(sum + ' - неверно!');
+                        alert(sum + (lang === 'en' ? ' - wrong!' : ' - неверно!'));
                         inputs.forEach(i => i.value = ''); 
                     }
                 };
@@ -519,7 +526,7 @@
                 } else if (scene.clickTarget) {
                     const hint = document.createElement('div');
                     hint.className = 'click-indicator';
-                    hint.textContent = '▼ нажмите, чтобы продолжить ▼';
+                    hint.textContent = lang === 'en' ? '▼ click to continue ▼' : '▼ нажмите, чтобы продолжить ▼';
                     uiControls.appendChild(hint);
                     
                     const dialogBox = document.getElementById('scene-dialog');

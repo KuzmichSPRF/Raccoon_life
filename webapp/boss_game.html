@@ -164,7 +164,7 @@
     }
     .hp { background: var(--game-green); box-shadow: 0 0 5px var(--game-green); }
     .energy { background: var(--game-yellow); box-shadow: 0 0 5px var(--game-yellow); }
-    .chip {
+    .cap {
       width: 70px;
       height: 70px;
       border-radius: 50%;
@@ -178,12 +178,12 @@
       transition: all 0.3s ease;
       box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
     }
-    .chip.active {
+    .cap.active {
       border-color: var(--primary);
       transform: scale(1.1);
       box-shadow: 0 0 20px rgba(0,136,204,0.4);
     }
-    .chip.hit {
+    .cap.hit {
       animation: playerHit 0.3s ease-in-out;
     }
     @keyframes playerHit {
@@ -306,7 +306,7 @@
 
   <div class="arena">
     <div class="player-area">
-      <div id="player-chip" class="chip active">🦝</div>
+      <div id="player-cap" class="cap active">🦝</div>
       <div class="bars">
         <span class="bar-label">HP <span id="p-hp-text">100</span></span>
         <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
@@ -341,6 +341,40 @@
   <div class="log" id="log">Битва началась!</div>
 
   <script>
+    const lang = localStorage.getItem('rl_lang') || 'ru';
+    const t = {
+      ru: {
+        t1: "🔺 Секретная Организация Енотов 🔺", t2: "Все игроки против БОССА",
+        s1: "Ваш урон", s2: "Ударов", s3: "Критов", s4: "Вы", s5: "БОСС", s6: "Энергия",
+        msg: "Атакуй БОССА! Вместе мы сильнее!",
+        b1: "⚔️ Удар (+20 эн)", b2: "🔥 Сильный (40)", b3: "💥 Ульта (80)", b4: "💚 Лечение (50)", b5: "🍪 100 HP (100 Шишек)",
+        log: "Битва началась!"
+      },
+      en: {
+        t1: "🔺 Secret Raccoon Organization 🔺", t2: "All players against the BOSS",
+        s1: "Your Damage", s2: "Hits", s3: "Crits", s4: "You", s5: "BOSS", s6: "Energy",
+        msg: "Attack the BOSS! Together we are stronger!",
+        b1: "⚔️ Attack (+20 en)", b2: "🔥 Strong (40)", b3: "💥 Ult (80)", b4: "💚 Heal (50)", b5: "🍪 100 HP (100 Cones)",
+        log: "Battle started!"
+      }
+    }[lang];
+
+    document.querySelector('.boss-title').innerText = t.t1;
+    document.querySelector('.boss-subtitle').innerText = t.t2;
+    document.querySelectorAll('.label')[0].innerText = t.s1;
+    document.querySelectorAll('.label')[1].innerText = t.s2;
+    document.querySelectorAll('.label')[2].innerText = t.s3;
+    document.querySelector('.player-name').innerText = t.s4;
+    document.querySelector('.boss-name').innerText = t.s5;
+    document.getElementById('p-nrg-text').parentElement.childNodes[0].nodeValue = t.s6 + " ";
+    document.getElementById('msg').innerText = t.msg;
+    document.querySelectorAll('.btn-std')[0].innerText = t.b1;
+    document.getElementById('btn-sp1').innerText = t.b2;
+    document.getElementById('btn-sp2').innerText = t.b3;
+    document.getElementById('btn-sp3').innerText = t.b4;
+    document.getElementById('btn-cookie').innerText = t.b5;
+    document.getElementById('log').innerText = t.log;
+
     const API_URL = '/api/boss_hp';
     let bossHP = 1000000000;
     let bossMaxHP = 1000000000;
@@ -474,7 +508,7 @@
     }
 
     function showDamageNumber(damage, isCrit, isPlayer) {
-      const target = document.getElementById(isPlayer ? 'player-chip' : 'boss');
+      const target = document.getElementById(isPlayer ? 'player-cap' : 'boss');
       const rect = target.getBoundingClientRect();
       const el = document.createElement('div');
       el.className = 'damage-number';
@@ -497,7 +531,7 @@
       console.log('buyCookie: userId =', userId);
       
       if (!userId) {
-        document.getElementById('log').innerText = "❌ Ошибка: нет user_id. Перезапустите игру.";
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет user_id. Перезапустите игру." : "❌ Error: no user_id. Restart the game.";
         return;
       }
       
@@ -516,7 +550,7 @@
         const balance = tokenData.tokens?.balance || 0;
         
         if (balance < 100) {
-          document.getElementById('log').innerText = `❌ Недостаточно шишек! Баланс: ${balance} Шишек (нужно 100)`;
+          document.getElementById('log').innerText = lang === 'ru' ? `❌ Недостаточно шишек! Баланс: ${balance} Шишек (нужно 100)` : `❌ Not enough cones! Balance: ${balance} (need 100)`;
           const cookieBtn = document.getElementById('btn-cookie');
           setTimeout(() => { cookieBtn.disabled = false; }, 500);
           return;
@@ -526,7 +560,7 @@
         const cookieBtn = document.getElementById('btn-cookie');
         cookieBtn.disabled = true;
         
-        document.getElementById('log').innerText = "🍪 Покупка печеньки...";
+        document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
         
         // Списываем 100 шишек
         return fetch('/api/sync', {
@@ -551,7 +585,7 @@
           
           // Проверяем статус ответа
           if (result.status === 'error') {
-            const errorMsg = result.message || 'Ошибка сервера';
+            const errorMsg = result.message || (lang === 'ru' ? 'Ошибка сервера' : 'Server error');
             console.error('API Error:', errorMsg);
             document.getElementById('log').innerText = "❌ " + errorMsg;
             return;
@@ -565,7 +599,7 @@
             // Восстанавливаем 100% здоровья
             playerHP = playerMaxHP;
             updatePlayerHP();
-            document.getElementById('log').innerText = "🍪 100% HP восстановлено!";
+            document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
             // Логирование покупки
             if (typeof logGameAction === 'function') {
@@ -573,27 +607,27 @@
             }
 
             // Анимация лечения
-            const chip = document.getElementById('player-chip');
-            if (chip) {
-              chip.classList.add('heal-effect');
-              setTimeout(() => chip.classList.remove('heal-effect'), 400);
+            const cap = document.getElementById('player-cap');
+            if (cap) {
+              cap.classList.add('heal-effect');
+              setTimeout(() => cap.classList.remove('heal-effect'), 400);
             }
           } else if (result.status === 'error') {
             // Обработка ошибки
-            const errorMsg = result.message || 'Ошибка сервера';
+            const errorMsg = result.message || (lang === 'ru' ? 'Ошибка сервера' : 'Server error');
             document.getElementById('log').innerText = "❌ " + errorMsg;
             
             if (typeof logApiError === 'function') {
               logApiError('/api/sync', errorMsg, null);
             }
           } else {
-            document.getElementById('log').innerText = "❌ Неизвестная ошибка!";
+            document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
           }
         });
       })
       .catch(err => {
         console.error('❌ Network Error:', err);
-        document.getElementById('log').innerText = "❌ Ошибка сети!";
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
         
         if (typeof logApiError === 'function') {
           logApiError('/api/sync', err, null);
@@ -632,7 +666,7 @@
       // Блокируем кнопки на время атаки
       const buttons = document.querySelectorAll('.btn');
       buttons.forEach(btn => btn.disabled = true);
-      document.getElementById('msg').innerText = "Атакуем...";
+      document.getElementById('msg').innerText = lang === 'ru' ? "Атакуем..." : "Attacking...";
 
       try {
         console.log('📡 Sending attack request to /api/boss/attack');
@@ -656,9 +690,9 @@
         console.log('📦 Response data:', data);
 
         if (data.status === 'error') {
-            const errorMsg = data.message || 'Сбой API';
+            const errorMsg = data.message || (lang === 'ru' ? 'Сбой API' : 'API failure');
             console.error('❌ API Error:', errorMsg);
-            document.getElementById('msg').innerText = "❌ Ошибка: " + errorMsg;
+            document.getElementById('msg').innerText = (lang === 'ru' ? "❌ Ошибка: " : "❌ Error: ") + errorMsg;
             updateEnergy();
             // Разблокируем кнопки при ошибке
             buttons.forEach(btn => btn.disabled = false);
@@ -676,19 +710,19 @@
         playerEnergy = Math.max(0, Math.min(100, playerEnergy + energyChange));
         console.log('⚡ Energy change:', energyChange, '| New energy:', playerEnergy);
 
-        if (type === 'basic') message = 'Обычный удар! +20 эн';
-        else if (type === 'strong') message = 'Сильная атака! -40 эн';
-        else if (type === 'ultimate') message = '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн';
+        if (type === 'basic') message = lang === 'ru' ? 'Обычный удар! +20 эн' : 'Basic attack! +20 en';
+        else if (type === 'strong') message = lang === 'ru' ? 'Сильная атака! -40 эн' : 'Strong attack! -40 en';
+        else if (type === 'ultimate') message = lang === 'ru' ? '💥 УЛЬТИМАТИВНАЯ АТАКА! -80 эн' : '💥 ULTIMATE ATTACK! -80 en';
         else if (type === 'heal') {
             playerHP = Math.min(playerMaxHP, playerHP + heal);
-            message = '💚 Лечение +' + heal + ' HP! -50 эн';
+            message = (lang === 'ru' ? '💚 Лечение +' : '💚 Heal +') + heal + (lang === 'ru' ? ' HP! -50 эн' : ' HP! -50 en');
             updatePlayerHP();
         }
 
         if (type !== 'heal') {
           if (isCrit) {
             playerStats.crits++;
-            message = '💥 КРИТ! ' + message;
+            message = (lang === 'ru' ? '💥 КРИТ! ' : '💥 CRIT! ') + message;
           }
           bossHP = data.boss_hp;
           playerStats.totalDamage += damage;
@@ -700,21 +734,21 @@
           void boss.offsetWidth;
           boss.classList.add('hit');
 
-          const playerChip = document.getElementById('player-chip');
-          playerChip.classList.add('animate-attack');
-          setTimeout(() => playerChip.classList.remove('animate-attack'), 400);
+          const playerCap = document.getElementById('player-cap');
+          playerCap.classList.add('animate-attack');
+          setTimeout(() => playerCap.classList.remove('animate-attack'), 400);
         }
 
         // Ответ босса
         if (bossDamage > 0) {
           playerHP -= bossDamage;
           updatePlayerHP();
-          message += ' Босс ответил на ' + bossDamage + ' урона!';
+          message += (lang === 'ru' ? ' Босс ответил на ' : ' Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
           showDamageNumber(bossDamage, false, true);
 
-          const playerChip = document.getElementById('player-chip');
-          playerChip.classList.add('hit');
-          setTimeout(() => playerChip.classList.remove('hit'), 300);
+          const playerCap = document.getElementById('player-cap');
+          playerCap.classList.add('hit');
+          setTimeout(() => playerCap.classList.remove('hit'), 300);
 
           if (playerHP <= 0) {
             console.log('💀 Player died, game over');
@@ -726,12 +760,12 @@
         updateStatsUI();
         updateBossHP();
         document.getElementById('msg').innerText = message;
-        document.getElementById('log').innerText = 'Энергия: ' + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + ' | Урон: ' + (type === 'heal' ? '0' : damage);
+        document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
         console.log('✅ Attack completed, message:', message);
 
       } catch (err) {
         console.error('❌ Attack error:', err);
-        document.getElementById('msg').innerText = "❌ Ошибка соединения!";
+        document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
       }
 
       // Разблокируем кнопки после атаки
@@ -742,9 +776,9 @@
     function gameOver() {
       gameActive = false;
       
-      document.getElementById('msg').innerText = '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...';
+      document.getElementById('msg').innerText = lang === 'ru' ? '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...' : '💀 YOU LOST! The Boss was too strong...';
       document.getElementById('msg').style.color = 'var(--accent)';
-      document.getElementById('log').innerText = 'Возврат в меню игры...';
+      document.getElementById('log').innerText = lang === 'ru' ? 'Возврат в меню игры...' : 'Returning to menu...';
 
       // Блокируем кнопки
       document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
