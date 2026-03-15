@@ -168,19 +168,25 @@
   </div>
 
   <script>
+    const lang = localStorage.getItem('rl_lang') || 'ru';
+    const t = {
+      ru: { msgStart: "Выбери грейд фишки" },
+      en: { msgStart: "Choose cap grade" }
+    }[lang];
+
     const msg = document.getElementById('msg');
-    const pChip = document.getElementById('p-chip');
-    const vChip = document.getElementById('v-chip');
+    const pCap = document.getElementById('p-cap');
+    const vCap = document.getElementById('v-cap');
     const pScore = document.getElementById('p-score');
     const vScore = document.getElementById('v-score');
     const gradeSelection = document.getElementById('grade-selection');
 
-    const insults = [
-      "Не солидно...", 
-      "Ставка говно!", 
-      "Я играю только по-крупному.", 
-      "Смешно. Давай Diamond.", 
-      "У меня нет времени на мелочь."
+    msg.innerText = t.msgStart;
+
+    const insults = lang === 'ru' ? [
+      "Не солидно...", "Ставка говно!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
+    ] : [
+      "Not cool...", "Trash bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
     ];
 
     function tryPlay(grade) {
