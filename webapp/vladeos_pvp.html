@@ -252,7 +252,7 @@
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, window.location.origin);
           showPopupResult(true, 100);
         } else {
-          msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
+          msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "@curt3311 won! 🏆";
           msg.style.color = 'var(--accent)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, window.location.origin);
           showPopupResult(false, 0);
