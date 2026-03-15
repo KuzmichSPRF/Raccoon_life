@@ -219,12 +219,18 @@
         logGameAction('PLAYER_ACTION', { type: type, dmg: data.player_log?.dmg, heal: data.player_log?.heal });
       }
 
+      // Синхронизируем ВСЕ данные с ответом сервера
+      pHP = data.player_log.pHP;
+      bHP = data.player_log.bHP;
+      pNRG = data.player_log.pNRG;
+      bNRG = data.player_log.bNRG;
+
       let pTxt = type === 'attack' ? "Енот наносит четкий удар!" :
                  type === 'trash' ? "Енот закидал Клоуна мусором!" :
                  type === 'snack' ? "Енот съел сухарик и подлечился!" : "ПОЛНАЯ ЯРОСТЬ ЕНОТА!";
       if(data.player_log.is_crit) pTxt = "💥 КРИТ: " + pTxt;
 
-      executeAction('p1-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt, data.player_log);
+      executeAction('p1-chip', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt);
 
       if (data.game_over && data.win) {
           setTimeout(() => endGame("Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆", true), 1000);
@@ -236,7 +242,13 @@
                      data.bot_log.action === 'heal' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Клоун бьет резиновым молотком!";
           if(data.bot_log.is_crit) bTxt = "🎈 КРИТ: " + bTxt;
 
-          executeAction('bot-chip', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt, data.bot_log);
+          // Синхронизируем ВСЕ данные после хода клоуна
+          pHP = data.bot_log.pHP;
+          bHP = data.bot_log.bHP;
+          pNRG = data.bot_log.pNRG;
+          bNRG = data.bot_log.bNRG;
+
+          executeAction('bot-chip', data.bot_log.dmg, data.bot_log.heal, data.bot_log.is_crit, bTxt);
 
           if (data.game_over && !data.win) {
               setTimeout(() => endGame("Клоун оказался хитрее... Енот повержен 🤡", false), 1000);
@@ -371,27 +383,6 @@
       });
     }
 
-    function botTurn() {
-      if (!active) return;
-      let dmg = 0, heal = 0, isCrit = Math.random() < 0.15;
-      let text = "";
-
-      if (bNRG >= 70) {
-        dmg = 40; bNRG -= 70; text = "🤡 Клоун взрывает огромную петарду!";
-      } else if (bHP < 40 && bNRG >= 30) {
-        heal = 25; bNRG -= 30; text = "🤡 Клоун достал аптечку из шляпы!";
-      } else {
-        dmg = 12; bNRG = Math.min(100, bNRG + 25); text = "🤡 Клоун бьет резиновым молотком!";
-      }
-
-      if (isCrit && dmg > 0) { dmg = Math.floor(dmg * 1.5); text = "🎈 КРИТ: " + text; }
-      
-      executeAction('bot-chip', dmg, heal, isCrit, text);
-
-      if (pHP <= 0) return endGame("Клоун оказался хитрее... Енот повержен 🤡");
-      toggleBtns(false);
-    }
-
     function executeAction(attackerId, dmg, heal, crit, txt) {
       const chip = document.getElementById(attackerId);
       const log = document.getElementById('log');
@@ -400,17 +391,10 @@
       if (dmg > 0) {
         chip.classList.add(attackerId === 'p1-chip' ? 'animate-attack' : 'animate-bot-attack');
         if (crit) chip.classList.add('crit');
-        if (attackerId === 'p1-chip') bHP -= dmg; else pHP -= dmg;
       }
       
-      // ИСПРАВЛЕННАЯ ЛОГИКА ЛЕЧЕНИЯ: Лечим того, КТО атакует
       if (heal > 0) {
         chip.classList.add('heal-effect');
-        if (attackerId === 'p1-chip') {
-            pHP = Math.min(100, pHP + heal);
-        } else {
-            bHP = Math.min(100, bHP + heal);
-        }
       }
 
       setTimeout(() => {
