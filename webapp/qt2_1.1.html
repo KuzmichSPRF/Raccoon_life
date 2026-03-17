@@ -285,6 +285,10 @@
             document.getElementById('finish-btn').innerText = "STAGE CLEARED";
         }
 
+        function showAlert(msg) {
+            window.parent.postMessage({ type: 'show_alert', message: msg }, window.location.origin);
+        }
+
         // --- БАЗА ДАННЫХ СЦЕН (ЛОГИКА ИГРЫ) ---
         const SCENES = {
             'start': {
@@ -463,7 +467,7 @@
                     if (input.value === scene.expected) {
                         loadScene(scene.correctTarget);
                     } else {
-                        tg.showAlert(scene.errorMsg || 'Неверно');
+                        showAlert(scene.errorMsg || 'Неверно');
                         input.value = '';
                     }
                 };
@@ -501,7 +505,7 @@
                     const v3 = parseInt(inputs[2].value) || 0;
                     
                     if (v1 < 1 || v1 > 21 || v2 < 1 || v2 > 21 || v3 < 1 || v3 > 21) {
-                        tg.showAlert(lang === 'en' ? 'Enter numbers from 1 to 21!' : 'Введите числа от 1 до 21!');
+                        showAlert(lang === 'en' ? 'Enter numbers from 1 to 21!' : 'Введите числа от 1 до 21!');
                         return;
                     }
 
@@ -510,7 +514,7 @@
                     if (sum === 69) {
                         loadScene(scene.correctTarget);
                     } else {
-                        tg.showAlert(sum + (lang === 'en' ? ' - wrong!' : ' - неверно!'));
+                        showAlert(sum + (lang === 'en' ? ' - wrong!' : ' - неверно!'));
                         inputs.forEach(i => i.value = ''); 
                     }
                 };

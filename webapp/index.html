@@ -231,7 +231,7 @@
       <button id="back-btn" onclick="handleBack()">✕</button>
       <b id="reader-header-title" data-i18n="reader_title">Просмотр</b>
     </div>
-    <iframe id="reader-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
+    <iframe id="reader-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
   </div>
 </div>
 
@@ -907,6 +907,11 @@
     // Получаем user_id для проверки
     const userId = getUserId();
     console.log('👤 Current user_id:', userId);
+
+    // Уведомления из iframe
+    if (data.type === 'show_alert' && data.message) {
+      tg.showAlert(data.message);
+    }
 
     // Quest complete
     if (data.type === 'quest_complete' && data.id) {
