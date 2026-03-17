@@ -346,8 +346,9 @@
     
     // Fallback: пробуем из localStorage
     const storedId = localStorage.getItem('rl_user_id');
-    if (storedId) {
-      return parseInt(storedId);
+    if (storedId && storedId !== 'undefined' && storedId !== 'null') {
+      const parsed = parseInt(storedId, 10);
+      if (!isNaN(parsed)) return parsed;
     }
     
     return null;
@@ -619,8 +620,8 @@
       .catch(err => {
         console.error('❌ Ошибка загрузки баланса:', err);
         const balanceEl = document.getElementById('token-balance');
-        if (balanceEl) {
-          balanceEl.innerText = 'ERR';
+        if (balanceEl && balanceEl.innerText === '0') {
+          balanceEl.innerText = '?';
         }
       });
   }

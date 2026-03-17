@@ -386,7 +386,10 @@
 
     function getUserId() {
       let id = localStorage.getItem('rl_user_id');
-      if (id) return parseInt(id);
+      if (id && id !== 'undefined' && id !== 'null') {
+        const parsed = parseInt(id, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
       try {
         if (window.parent && window.parent.getUserId) {
           return window.parent.getUserId();
@@ -704,6 +707,7 @@
         let isCrit = data.is_crit;
         let bossDamage = data.boss_damage;
         let energyChange = data.energy_change;
+        let tokensEarned = data.tokens_earned || 0;
         let message = '';
 
         // Применяем серверные данные
@@ -737,6 +741,10 @@
           const playerCap = document.getElementById('player-cap');
           playerCap.classList.add('animate-attack');
           setTimeout(() => playerCap.classList.remove('animate-attack'), 400);
+        }
+
+        if (tokensEarned > 0) {
+          message += (lang === 'ru' ? ` (+${tokensEarned} Шишек!)` : ` (+${tokensEarned} Cones!)`);
         }
 
         // Ответ босса

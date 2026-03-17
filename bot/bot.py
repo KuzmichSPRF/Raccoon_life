@@ -1178,7 +1178,11 @@ def api_get_tokens():
             logger.warning("⚠️ userId не указан")
             return jsonify({'error': 'user_id required'}), 400
 
-        user_id = int(user_id)
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
         logger.info(f"🔍 Запрос шишек для user_id={user_id}")
         
         tokens = get_user_tokens(user_id)
@@ -1416,8 +1420,14 @@ def api_boss_attack():
 
         # Применяем урон по боссу в БД
         boss_info = None
+        tokens_earned = 0
         if damage > 0:
             boss_info = add_boss_damage(user_id, damage)
+
+            # Начисляем шишки за урон: 1 шишка за каждые 20 урона
+            tokens_earned = damage // 20
+            if tokens_earned > 0:
+                add_tokens(user_id, tokens_earned, f'boss_attack:{damage}')
 
         if not boss_info:
             boss_info = get_boss_hp()
@@ -1431,7 +1441,8 @@ def api_boss_attack():
             'heal': heal,
             'energy_change': energy_change,
             'boss_damage': boss_damage,
-            'boss_hp': boss_info['current_hp']
+            'boss_hp': boss_info['current_hp'],
+            'tokens_earned': tokens_earned
         })
 
     except Exception as e:
