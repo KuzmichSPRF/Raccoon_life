@@ -315,7 +315,13 @@
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     localStorage.setItem('rl_lang', currentLang);
     applyTranslations();
-    
+
+    // Send language change to iframe (game)
+    const iframe = document.getElementById('reader-iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'language_changed', lang: currentLang }, window.location.origin);
+    }
+
     if (currentCategory && document.getElementById('list-screen').classList.contains('active')) {
       renderCategory(currentCategory);
     } else if (document.getElementById('rating-screen').classList.contains('active')) {
@@ -745,10 +751,11 @@
         iframe.contentWindow.postMessage({
           type: 'init_game',
           balance: currentBalance,
-          userId: userId
+          userId: userId,
+          lang: currentLang
         }, window.location.origin);
 
-        console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId });
+        console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId, lang: currentLang });
       }, 500);
     } else if (item.type === 'link') {
       setTimeout(() => tg.openLink(item.url), 150);
@@ -879,7 +886,8 @@
           { title: currentLang === 'ru' ? "Башня 3.0" : "Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🎰 Енотная Рулетка" : "🎰 Raccoon Roulette", desc: currentLang === 'ru' ? "Казино на шишки" : "Casino for cones", url: "casino_roulette.html", type: "iframe" },
-          { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" }
+          { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "🎯 Найди Фишку" : "🎯 Find the Chip", desc: currentLang === 'ru' ? "1000 Шишек за победу" : "1000 Cones per win", url: "find_chip.html", type: "iframe" }
         ]
       },
       partners: {
@@ -947,6 +955,14 @@
     
     // Battleship game
     if (data.type === 'game_complete' && data.game === 'battleship') {
+      setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
+    }
+
+    // Find the Chip game
+    if (data.type === 'game_complete' && data.game === 'find_chip') {
+      if (data.win && data.reward) {
+        earnTokens(data.reward, 'find_chip_win');
+      }
       setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
     }
 

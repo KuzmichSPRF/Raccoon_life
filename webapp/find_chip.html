@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="title">Найди Фишку</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0088cc;
+      --accent: #ff0055;
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --text-main: #ffffff;
+      --text-sec: #a1a1aa;
+      --game-green: #00ff88;
+      --game-yellow: #ffcc00;
+      --chip-found: #ffd700;
+      --chip-miss: #ff4444;
+    }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      text-align: center;
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
+      margin: 0;
+      padding: 15px;
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .header-info {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 15px;
+    }
+
+    .target-display {
+      background: linear-gradient(135deg, var(--accent), #ff6688);
+      padding: 15px 25px;
+      border-radius: 25px;
+      font-weight: 800;
+      font-size: 1.3rem;
+      box-shadow: 0 0 20px rgba(255,0,85,0.5);
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .target-chip-preview {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--chip-found), #ffaa00);
+      color: #000;
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      box-shadow: 0 0 20px var(--chip-found);
+    }
+
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 1rem;
+      min-height: 50px;
+    }
+
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+      height: 320px;
+      background: linear-gradient(180deg, #1a1a20 0%, #0d0d10 100%);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.1);
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+    }
+
+    .chip-track {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      transition: transform 0.3s ease-out;
+    }
+
+    .chip-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 10px;
+      height: 70px;
+      box-sizing: border-box;
+    }
+
+    .chip {
+      width: 100%;
+      height: 100%;
+      min-width: 70px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      user-select: none;
+      border: 3px solid rgba(255,255,255,0.3);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+
+    .chip:active {
+      transform: scale(0.9);
+    }
+
+    .chip.normal-chip {
+      background: linear-gradient(135deg, #4a4a5a, #2a2a3a);
+      color: var(--text-main);
+    }
+
+    .chip.clicked {
+      animation: chipClick 0.3s ease forwards;
+    }
+
+    @keyframes chipClick {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    .controls-area {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .scroll-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .scroll-info {
+      font-size: 0.9rem;
+      color: var(--text-sec);
+      min-width: 80px;
+    }
+
+    .scroll-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.3);
+      background: linear-gradient(135deg, var(--primary), #006699);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 4px 15px rgba(0,136,204,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scroll-btn:active {
+      transform: scale(0.9);
+      box-shadow: 0 2px 8px rgba(0,136,204,0.4);
+    }
+
+    .scroll-btn:disabled {
+      background: #333;
+      color: #666;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .stats-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .stat-value.found { color: var(--game-green); }
+    .stat-value.missed { color: var(--chip-miss); }
+    .stat-value.attempts { color: var(--game-yellow); }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 14px 30px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      font-size: 1rem;
+      font-family: 'Montserrat', sans-serif;
+      text-transform: uppercase;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { background: #333 !important; color: #666; opacity: 0.5; cursor: not-allowed; }
+
+    .btn-start {
+      background: linear-gradient(135deg, var(--game-green), #00cc6a);
+      box-shadow: 0 0 20px rgba(0,255,136,0.4);
+      color: #000;
+    }
+
+    .btn-restart {
+      background: linear-gradient(135deg, var(--primary), #006699);
+      box-shadow: 0 0 20px rgba(0,136,204,0.4);
+      display: none;
+    }
+
+    .log {
+      font-size: 0.8rem;
+      margin-top: 15px;
+      color: var(--text-sec);
+      font-style: italic;
+      min-height: 1.2em;
+    }
+
+    /* Reward Popup */
+    .reward-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+
+    .reward-popup {
+      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      border-radius: 25px;
+      padding: 40px;
+      text-align: center;
+      border: 3px solid var(--chip-found);
+      box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
+      animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+      max-width: 85%;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0) rotate(-10deg); opacity: 0; }
+      to { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .reward-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      animation: bounce 1s ease infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .reward-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--chip-found);
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    .reward-stats {
+      background: rgba(0,0,0,0.3);
+      border-radius: 15px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .reward-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .reward-stat:last-child { border-bottom: none; }
+
+    .reward-stat-label {
+      color: var(--text-sec);
+      font-size: 0.9rem;
+    }
+
+    .reward-stat-value {
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .reward-amount {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--chip-found);
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+      margin: 15px 0;
+    }
+
+    .btn-continue {
+      padding: 16px 50px;
+      background: linear-gradient(135deg, var(--primary), #006699);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 0 25px rgba(0,136,204,0.5);
+      transition: all 0.2s;
+    }
+
+    .btn-continue:active { transform: scale(0.95); }
+    .btn-continue:hover { box-shadow: 0 0 35px rgba(0,136,204,0.7); }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--game-green));
+      transition: width 0.3s;
+      box-shadow: 0 0 10px rgba(0,136,204,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-info">
+    <div class="target-chip-preview" id="target-preview">?</div>
+    <div class="target-display"><span data-i18n="find">НАЙДИ</span> <span id="target-number">???</span></div>
+  </div>
+
+  <div class="status-box" id="msg" data-i18n="msgStart">Нажми "Старт" чтобы начать игру</div>
+
+  <div class="game-container" id="game-container">
+    <div class="chip-track" id="chip-track"></div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="controls-area">
+    <div class="scroll-controls">
+      <button class="scroll-btn" id="scroll-up" onclick="scrollTrack(-1)" disabled>▲</button>
+      <span class="scroll-info" id="scroll-info">0</span>
+      <button class="scroll-btn" id="scroll-down" onclick="scrollTrack(1)" disabled>▼</button>
+    </div>
+
+    <div class="stats-panel">
+      <div class="stat-card">
+        <div class="stat-label" data-i18n="found">Найдено</div>
+        <div class="stat-value found" id="found-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" data-i18n="missed">Промахов</div>
+        <div class="stat-value missed" id="missed-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" data-i18n="attempts">Попыток</div>
+        <div class="stat-value attempts" id="attempts-count">0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-start" id="start-btn" onclick="startGame()" data-i18n="start">▶ Старт</button>
+      <button class="btn btn-restart" id="restart-btn" onclick="restartGame()" data-i18n="restart">🔄 Заново</button>
+    </div>
+  </div>
+
+  <div class="log" id="log" data-i18n="logStart">Удачи в поиске!</div>
+
+  <!-- Reward Popup -->
+  <div class="reward-overlay" id="reward-overlay">
+    <div class="reward-popup" id="reward-popup">
+      <div class="reward-icon" id="popup-icon">🎉</div>
+      <div class="reward-title" id="popup-title" data-i18n="victory">Победа!</div>
+      <div class="reward-stats">
+        <div class="reward-stat">
+          <span class="reward-stat-label" data-i18n="time">Время:</span>
+          <span class="reward-stat-value" id="stat-time">0с</span>
+        </div>
+        <div class="reward-stat">
+          <span class="reward-stat-label" data-i18n="attempts">Попыток:</span>
+          <span class="reward-stat-value" id="stat-attempts">0</span>
+        </div>
+        <div class="reward-stat">
+          <span class="reward-stat-label" data-i18n="missed">Промахов:</span>
+          <span class="reward-stat-value" id="stat-missed">0</span>
+        </div>
+      </div>
+      <div class="reward-amount" id="popup-amount">+1000 Шишек</div>
+      <button class="btn-continue" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
+    </div>
+  </div>
+
+  <script>
+    let currentLang = localStorage.getItem('rl_lang') || 'ru';
+    const translations = {
+      ru: {
+        title: "Найди Фишку",
+        find: "НАЙДИ",
+        msgStart: "Найди целевую фишку! Скролль и кликни по ней!",
+        msgFound: "🎯 ПОПАДАНИЕ! Цель найдена!",
+        msgMiss: "❌ Мимо! Попробуй ещё раз!",
+        msgWin: "ПОБЕДА! Цель найдена!",
+        found: "Найдено",
+        missed: "Промахов",
+        attempts: "Попыток",
+        start: "▶ Старт",
+        restart: "🔄 Заново",
+        logStart: "Крути ▲/▼ и найди цель!",
+        logFound: "Цель найдена!",
+        logMiss: "Мимо...",
+        logMissWas: "Это была",
+        continue: "Продолжить",
+        playAgain: "Сыграть ещё",
+        victory: "Победа!",
+        defeat: "Поражение!",
+        cones: "Шишек",
+        time: "Время:",
+        sec: "с"
+      },
+      en: {
+        title: "Find the Chip",
+        find: "FIND",
+        msgStart: "Find the target chip! Scroll and click on it!",
+        msgFound: "🎯 HIT! Target found!",
+        msgMiss: "❌ Miss! Try again!",
+        msgWin: "VICTORY! Target found!",
+        found: "Found",
+        missed: "Missed",
+        attempts: "Attempts",
+        start: "▶ Start",
+        restart: "🔄 Restart",
+        logStart: "Scroll ▲/▼ and find the target!",
+        logFound: "Target found!",
+        logMiss: "Miss...",
+        logMissWas: "It was",
+        continue: "Continue",
+        playAgain: "Play Again",
+        victory: "Victory!",
+        defeat: "Defeat!",
+        cones: "Cones",
+        time: "Time:",
+        sec: "s"
+      }
+    };
+
+    function t(key) {
+      return translations[currentLang][key] || key;
+    }
+
+    const REWARD = 1000;
+    const CHIPS_PER_ROW = 2;
+    const VISIBLE_ROWS = 4;
+    const INITIAL_ROWS = 20;
+    const LOAD_MORE_ROWS = 10;
+
+    let gameState = {
+      active: false,
+      targetNumber: 0,
+      targetRow: 0,
+      targetCol: 0,
+      chips: [],
+      found: 0,
+      missed: 0,
+      attempts: 0,
+      startTime: 0,
+      currentRow: 0,
+      totalRows: 0
+    };
+
+    // Apply translations to HTML elements
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang] && translations[currentLang][key]) {
+          el.innerText = translations[currentLang][key];
+        }
+      });
+      
+      // Update page title
+      document.title = t('title');
+      
+      // Update dynamic elements if game is not active
+      if (!gameState.active) {
+        document.getElementById('msg').innerText = t('msgStart');
+        document.getElementById('log').innerText = t('logStart');
+      }
+    }
+
+    // Apply on load
+    applyTranslations();
+
+    // Listen for messages from parent
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'language_changed') {
+        currentLang = event.data.lang || 'ru';
+        localStorage.setItem('rl_lang', currentLang);
+        applyTranslations();
+      }
+      // Handle init_game message with language
+      if (event.data && event.data.type === 'init_game' && event.data.lang) {
+        currentLang = event.data.lang;
+        localStorage.setItem('rl_lang', currentLang);
+        applyTranslations();
+      }
+    });
+
+    function startGame() {
+      if (gameState.active) return;
+
+      gameState.active = true;
+      gameState.found = 0;
+      gameState.missed = 0;
+      gameState.attempts = 0;
+      gameState.chips = [];
+      gameState.startTime = Date.now();
+      gameState.currentRow = 0;
+      gameState.totalRows = INITIAL_ROWS;
+
+      // Generate target number (1-10000)
+      gameState.targetNumber = Math.floor(Math.random() * 10000) + 1;
+
+      // Целевая фишка генерируется случайным образом от 100 до 200 скроллов
+      gameState.targetRow = 100 + Math.floor(Math.random() * 101);
+      gameState.targetCol = Math.floor(Math.random() * CHIPS_PER_ROW);
+
+      // Update UI
+      document.getElementById('target-number').innerText = gameState.targetNumber;
+      document.getElementById('target-preview').innerText = gameState.targetNumber;
+      document.getElementById('msg').innerText = t('msgStart');
+      document.getElementById('log').innerText = t('logStart');
+      document.getElementById('start-btn').style.display = 'none';
+      document.getElementById('restart-btn').style.display = 'block';
+      document.getElementById('scroll-up').disabled = false;
+      document.getElementById('scroll-down').disabled = false;
+      updateStats();
+      updateScrollInfo();
+
+      // Generate initial chips
+      generateChips(0, INITIAL_ROWS);
+      updateScrollButtons();
+      updateProgressBar();
+    }
+
+    function generateChips(startRow, count) {
+      const track = document.getElementById('chip-track');
+
+      for (let row = startRow; row < startRow + count; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'chip-row';
+        rowDiv.dataset.row = row;
+
+        for (let col = 0; col < CHIPS_PER_ROW; col++) {
+          // Проверяем, является ли эта фишка целевой
+          const isTarget = (row === gameState.targetRow && col === gameState.targetCol);
+
+          // Если целевая - используем номер из таргета, иначе случайный
+          const chipNumber = isTarget ? gameState.targetNumber : Math.floor(Math.random() * 10000) + 1;
+
+          const chip = document.createElement('div');
+          chip.className = 'chip normal-chip';
+          chip.innerText = chipNumber;
+          chip.dataset.number = chipNumber;
+          chip.dataset.row = row;
+          chip.dataset.col = col;
+          chip.dataset.isTarget = isTarget;
+
+          chip.addEventListener('click', () => handleChipClick(chip, isTarget, chipNumber, row, col));
+
+          rowDiv.appendChild(chip);
+        }
+
+        track.appendChild(rowDiv);
+      }
+
+      gameState.totalRows = Math.max(gameState.totalRows, startRow + count);
+    }
+
+    function updateTrackPosition() {
+      const track = document.getElementById('chip-track');
+      const rowHeight = 90;
+      track.style.transform = `translateY(-${gameState.currentRow * rowHeight}px)`;
+      updateScrollInfo();
+      updateScrollButtons();
+      updateProgressBar();
+
+      // Load more chips when scrolling down near the end
+      const rowsUntilEnd = gameState.totalRows - gameState.currentRow - VISIBLE_ROWS;
+      if (rowsUntilEnd <= LOAD_MORE_ROWS + 2) {
+        generateChips(gameState.totalRows, LOAD_MORE_ROWS);
+      }
+    }
+
+    function scrollTrack(direction) {
+      if (!gameState.active) return;
+
+      const newRow = gameState.currentRow + direction;
+      const maxRow = Math.max(0, gameState.totalRows - VISIBLE_ROWS);
+
+      if (newRow < 0 || newRow > maxRow) return;
+
+      gameState.currentRow = newRow;
+      updateTrackPosition();
+    }
+
+    function updateScrollInfo() {
+      const info = document.getElementById('scroll-info');
+      info.innerText = `${gameState.currentRow + 1}`;
+    }
+
+    function updateScrollButtons() {
+      const upBtn = document.getElementById('scroll-up');
+      const downBtn = document.getElementById('scroll-down');
+      const maxRow = Math.max(0, gameState.totalRows - VISIBLE_ROWS);
+
+      upBtn.disabled = gameState.currentRow <= 0;
+      downBtn.disabled = gameState.currentRow >= maxRow;
+    }
+
+    function updateProgressBar() {
+      const fill = document.getElementById('progress-fill');
+      // Прогресс заполняется по мере приближения к целевому ряду
+      const progress = Math.min(100, (gameState.currentRow / Math.max(1, gameState.targetRow)) * 100);
+      fill.style.width = progress + '%';
+    }
+
+    function handleChipClick(chip, isTarget, number, row, col) {
+      if (!gameState.active || chip.classList.contains('clicked')) return;
+
+      gameState.attempts++;
+      chip.classList.add('clicked');
+
+      if (isTarget) {
+        gameState.found++;
+        document.getElementById('msg').innerText = t('msgFound');
+        document.getElementById('msg').style.color = 'var(--game-green)';
+        document.getElementById('log').innerText = `${t('logFound')} #${number}`;
+        updateStats();
+        endGame(true);
+      } else {
+        gameState.missed++;
+        document.getElementById('msg').innerText = t('msgMiss');
+        document.getElementById('msg').style.color = 'var(--chip-miss)';
+        document.getElementById('log').innerText = `${t('logMiss')} ${t('logMissWas')} #${number}`;
+        updateStats();
+
+        setTimeout(() => {
+          if (chip.parentElement) {
+            chip.remove();
+          }
+        }, 300);
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('found-count').innerText = gameState.found;
+      document.getElementById('missed-count').innerText = gameState.missed;
+      document.getElementById('attempts-count').innerText = gameState.attempts;
+    }
+
+    function endGame(win) {
+      gameState.active = false;
+      document.getElementById('scroll-up').disabled = true;
+      document.getElementById('scroll-down').disabled = true;
+
+      const elapsedTime = ((Date.now() - gameState.startTime) / 1000).toFixed(1);
+
+      window.parent.postMessage({ type: 'game_complete', game: 'find_chip', win: win, reward: REWARD }, window.location.origin);
+
+      showPopupResult(win, elapsedTime);
+    }
+
+    function showPopupResult(win, time) {
+      const overlay = document.getElementById('reward-overlay');
+      const popup = document.getElementById('reward-popup');
+      const icon = document.getElementById('popup-icon');
+      const title = document.getElementById('popup-title');
+      const amountEl = document.getElementById('popup-amount');
+      const btn = document.getElementById('popup-btn');
+
+      icon.innerText = win ? '🎉' : '💀';
+      title.innerText = win ? t('victory') : t('defeat');
+      title.style.color = win ? 'var(--chip-found)' : 'var(--accent)';
+      popup.style.borderColor = win ? 'var(--chip-found)' : 'var(--accent)';
+
+      document.getElementById('stat-time').innerText = time + t('sec');
+      document.getElementById('stat-attempts').innerText = gameState.attempts;
+      document.getElementById('stat-missed').innerText = gameState.missed;
+
+      if (win) {
+        amountEl.style.display = 'block';
+        amountEl.textContent = `+${REWARD} ${t('cones')}`;
+        btn.innerText = t('continue');
+      } else {
+        amountEl.style.display = 'none';
+        btn.innerText = t('playAgain');
+      }
+
+      overlay.style.display = 'flex';
+    }
+
+    function continueGame() {
+      document.getElementById('reward-overlay').style.display = 'none';
+      restartGame();
+    }
+
+    function restartGame() {
+      document.getElementById('chip-track').innerHTML = '';
+      document.getElementById('reward-overlay').style.display = 'none';
+      document.getElementById('progress-fill').style.width = '0%';
+
+      document.getElementById('msg').innerText = t('msgStart');
+      document.getElementById('msg').style.color = 'var(--text-main)';
+      document.getElementById('log').innerText = t('logStart');
+      document.getElementById('start-btn').style.display = 'block';
+      document.getElementById('restart-btn').style.display = 'none';
+      document.getElementById('target-number').innerText = '???';
+      document.getElementById('target-preview').innerText = '?';
+      document.getElementById('scroll-up').disabled = true;
+      document.getElementById('scroll-down').disabled = true;
+      document.getElementById('scroll-info').innerText = '0';
+
+      updateStats();
+    }
+  </script>
+</body>
+</html>
