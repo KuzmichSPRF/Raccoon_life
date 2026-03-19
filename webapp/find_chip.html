@@ -24,34 +24,37 @@
       background-color: var(--bg-color);
       background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0;
-      padding: 15px;
+      padding: 5px 10px;
       color: var(--text-main);
-      min-height: 100vh;
+      height: 100vh;
       overflow-x: hidden;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
 
     .header-info {
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-bottom: 15px;
-      gap: 15px;
+      margin-bottom: 10px;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
     .target-display {
       background: linear-gradient(135deg, var(--accent), #ff6688);
-      padding: 15px 25px;
-      border-radius: 25px;
+      padding: 10px 20px;
+      border-radius: 20px;
       font-weight: 800;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       box-shadow: 0 0 20px rgba(255,0,85,0.5);
       border: 2px solid rgba(255,255,255,0.2);
     }
 
     .target-chip-preview {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--chip-found), #ffaa00);
       color: #000;
@@ -67,8 +70,8 @@
     .status-box {
       background: var(--card-bg);
       border-radius: 15px;
-      padding: 15px;
-      margin-bottom: 20px;
+      padding: 10px;
+      margin-bottom: 10px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       display: flex;
       align-items: center;
@@ -76,8 +79,9 @@
       font-weight: bold;
       color: var(--text-main);
       border: 1px solid rgba(255,255,255,0.05);
-      font-size: 1rem;
-      min-height: 50px;
+      font-size: 0.9rem;
+      min-height: 40px;
+      flex-shrink: 0;
     }
 
     .game-container {
@@ -85,12 +89,13 @@
       width: 100%;
       max-width: 200px;
       margin: 0 auto;
-      height: 320px;
+      height: 240px;
       background: linear-gradient(180deg, #1a1a20 0%, #0d0d10 100%);
       border-radius: 20px;
       overflow: hidden;
       border: 2px solid rgba(255,255,255,0.1);
       box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+      flex-shrink: 0;
     }
 
     .chip-track {
@@ -104,21 +109,21 @@
     .chip-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 10px;
-      height: 70px;
+      gap: 5px;
+      padding: 5px;
+      height: 60px;
       box-sizing: border-box;
     }
 
     .chip {
       width: 100%;
       height: 100%;
-      min-width: 70px;
+      min-width: 50px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: 800;
       cursor: pointer;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -149,15 +154,17 @@
     .controls-area {
       display: flex;
       flex-direction: column;
-      gap: 15px;
-      margin-top: 20px;
+      gap: 10px;
+      margin-top: 10px;
+      flex-grow: 1;
+      justify-content: center;
     }
 
     .scroll-controls {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 20px;
+      gap: 15px;
     }
 
     .scroll-info {
@@ -167,13 +174,13 @@
     }
 
     .scroll-btn {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       border: 3px solid rgba(255,255,255,0.3);
       background: linear-gradient(135deg, var(--primary), #006699);
       color: white;
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       cursor: pointer;
       transition: all 0.15s;
       box-shadow: 0 4px 15px rgba(0,136,204,0.4);
@@ -197,26 +204,26 @@
     .stats-panel {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
     }
 
     .stat-card {
       background: var(--card-bg);
       border-radius: 12px;
-      padding: 12px;
+      padding: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       border: 1px solid rgba(255,255,255,0.05);
     }
 
     .stat-label {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: var(--text-sec);
       text-transform: uppercase;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .stat-value {
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: var(--text-main);
     }
@@ -228,17 +235,17 @@
     .controls {
       display: flex;
       justify-content: center;
-      gap: 15px;
+      gap: 10px;
     }
 
     .btn {
-      padding: 14px 30px;
+      padding: 12px 25px;
       border: none;
       border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
       color: white;
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-family: 'Montserrat', sans-serif;
       text-transform: uppercase;
       transition: transform 0.1s, box-shadow 0.1s;
@@ -260,11 +267,12 @@
     }
 
     .log {
-      font-size: 0.8rem;
-      margin-top: 15px;
+      font-size: 0.75rem;
+      margin-top: 5px;
       color: var(--text-sec);
       font-style: italic;
       min-height: 1.2em;
+      flex-shrink: 0;
     }
 
     /* Reward Popup */
@@ -376,6 +384,7 @@
       border-radius: 3px;
       overflow: hidden;
       margin-top: 10px;
+      flex-shrink: 0;
     }
 
     .progress-fill {
@@ -644,7 +653,7 @@
 
     function updateTrackPosition() {
       const track = document.getElementById('chip-track');
-      const rowHeight = 90;
+      const rowHeight = 60;
       track.style.transform = `translateY(-${gameState.currentRow * rowHeight}px)`;
       updateScrollInfo();
       updateScrollButtons();
