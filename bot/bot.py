@@ -2621,7 +2621,14 @@ def main():
     logger.info("🚀 Flask API server started on port 5000")
 
     # Настройка Telegram бота
-    telegram_app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    telegram_app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
+        .post_init(post_init)
+        .build()
+    )
 
     # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
