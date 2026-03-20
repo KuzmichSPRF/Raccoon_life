@@ -2401,15 +2401,25 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ У вас нет прав для этой команды!")
         return
 
-    # Проверка аргументов
-    if not context.args:
+    # Проверяем, есть ли текст или медиа
+    message = update.message
+    raw_text = message.text or message.caption or ""
+    parts = raw_text.split(maxsplit=1)
+    
+    # Проверка наличия контента (текста или медиафайла)
+    if len(parts) < 2 and not message.photo and not message.video:
         await update.message.reply_text(
             "❌ Использование: /broadcast <текст сообщения>\n"
-            "Пример: /broadcast 📢 Завтра стартует новый квест, не пропустите!"
+            "Пример: /broadcast 📢 Всем привет!\n"
+            "💡 Также можно прикрепить картинку или видео и написать команду в подписи!"
         )
         return
 
-    message_text = update.message.text.split(maxsplit=1)[1]
+    message_text = parts[1] if len(parts) > 1 else ""
+
+    # Извлекаем ID медиа, если оно есть
+    photo_id = message.photo[-1].file_id if message.photo else None
+    video_id = message.video.file_id if message.video else None
 
     conn = get_db_connection()
     cursor = conn.cursor()
