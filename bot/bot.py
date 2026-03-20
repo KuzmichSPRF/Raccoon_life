@@ -10,6 +10,7 @@ import json
 import hmac
 import hashlib
 import time
+import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
@@ -2388,6 +2389,61 @@ async def unban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
 
+async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /broadcast <сообщение>
+    Рассылает сообщение всем активным пользователям бота
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if not context.args:
+        await update.message.reply_text(
+            "❌ Использование: /broadcast <текст сообщения>\n"
+            "Пример: /broadcast 📢 Завтра стартует новый квест, не пропустите!"
+        )
+        return
+
+    message_text = update.message.text.split(maxsplit=1)[1]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Выбираем всех пользователей, которые не забанены
+        cursor.execute('SELECT user_id FROM users WHERE is_banned = 0')
+        users = cursor.fetchall()
+        
+        if not users:
+            await update.message.reply_text("⚠️ В базе нет активных пользователей для рассылки.")
+            return
+
+        await update.message.reply_text(f"⏳ Начинаю рассылку для {len(users)} пользователей. Пожалуйста, подождите...")
+
+        success_count = 0
+        fail_count = 0
+
+        for row in users:
+            try:
+                await context.bot.send_message(chat_id=row['user_id'], text=message_text, parse_mode=ParseMode.HTML)
+                success_count += 1
+            except Exception as e:
+                logger.warning(f"Не удалось отправить сообщение пользователю {row['user_id']}: {e}")
+                fail_count += 1
+            
+            # Небольшая пауза, чтобы не превысить лимиты Telegram API (около 30 сообщений в секунду)
+            await asyncio.sleep(0.05)
+
+        await update.message.reply_text(f"✅ <b>Рассылка завершена!</b>\n\n📤 Успешно отправлено: {success_count}\n❌ Ошибок (бот заблокирован и т.д.): {fail_count}", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Ошибка при рассылке: {e}")
+        await update.message.reply_text(f"❌ Произошла ошибка при рассылке: {e}")
+    finally:
+        conn.close()
+
+
 async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /delete <username|user_id>
@@ -2539,6 +2595,7 @@ async def post_init(application: Application):
         BotCommand('balance', '💳 Проверить баланс (админ)'),
         BotCommand('spend', '💸 Списать шишки (админ)'),
         BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
+        BotCommand('broadcast', '📢 Рассылка всем (админ)'),
         BotCommand('unban', '✅ Разбанить пользователя (админ)'),
         BotCommand('delete', '🗑️ Удалить пользователя (админ)')
     ]
@@ -2572,6 +2629,7 @@ def main():
     telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
     telegram_app.add_handler(CommandHandler("unban", unban_user_admin))
     telegram_app.add_handler(CommandHandler("delete", delete_user_admin))
+    telegram_app.add_handler(CommandHandler("broadcast", broadcast_admin))
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 

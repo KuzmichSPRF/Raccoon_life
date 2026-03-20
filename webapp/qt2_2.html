@@ -40,7 +40,7 @@
         .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
 
         .reset-btn {
-            margin-top: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
             background: transparent; color: var(--neon-pink); cursor: pointer;
             font-family: inherit; font-size: 0.8rem; text-transform: uppercase;
             transition: 0.3s; width: 100%; box-sizing: border-box;
@@ -120,11 +120,18 @@
 
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); flex-direction: row; flex-wrap: wrap; gap: 10px; padding: 10px; }
+            #sidebar { 
+                width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); 
+                display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; 
+            }
             .sidebar-title { display: none; }
-            .floor-btn { margin: 0; flex: 1; min-width: 100px; padding: 5px; font-size: 0.8rem; }
-            #inventory { width: 100%; border-top: none; padding-top: 0; display: flex; gap: 10px; justify-content: center; }
-            .reset-btn { margin-top: 0; width: auto; padding: 5px 10px; flex: 1; min-width: 120px; }
+            .floor-btn { 
+                margin: 0; padding: 5px 2px; font-size: 0.65rem; text-align: center; 
+                word-wrap: break-word; line-height: 1.2; display: flex; align-items: center; justify-content: center;
+            }
+            #inventory { grid-column: span 4; width: 100%; border-top: none; padding-top: 5px; display: flex; flex-direction: column; gap: 5px; align-items: center; }
+            .seal { margin-top: 0; }
+            .reset-btn { grid-column: span 4; margin-top: 0; margin-bottom: 5px; width: 100%; padding: 8px 10px; }
             .blind-form { grid-template-columns: 1fr; }
         }
     </style>
@@ -139,6 +146,7 @@
 
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
         <button class="floor-btn" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Отдел Кадров</button>
         <button class="floor-btn" id="btn-f68" onclick="loadFloor(68)">Этаж 68: Служба Безопасности</button>
         <button class="floor-btn" id="btn-f60" disabled>Этаж 60: ИТ-Отдел (Блок)</button>
@@ -149,7 +157,6 @@
             <div class="seal" id="seal-hr">📄 Форма 2026-Б</div>
             <div class="seal" id="seal-sb">👁️ Проверен СБ</div>
         </div>
-        <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
     </div>
 
     <div id="main-content">
