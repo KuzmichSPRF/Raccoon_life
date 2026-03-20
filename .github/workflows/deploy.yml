@@ -1,70 +1,50 @@
-name: Deploy Bot
+name: Deploy Raccoon Bot (Dual Server)
 
 on:
   push:
     branches:
-      - main  # Скрипт сработает только при пуше в ветку main
+      - main
+      - old-server
 
 jobs:
-  deploy:
+  # Деплой на НОВЫЙ сервер (ветка main)
+  deploy-new:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy to NEW Server
+        uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Переходим в папку проекта (используем переменную из секрета для пути)
-            cd /home/${{ secrets.SERVER_USER }}/my_bot || exit
-            
-            # 1. Останавливаем бота ПЕРЕД любыми манипуляциями (снимаем блокировку с БД)
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl stop my_bot
-            
-            # 0. СОХРАНЯЕМ БАЗУ ДАННЫХ (если она есть) во временный файл
-            # Используем users.db* чтобы захватить также -wal и -shm файлы если они есть
-            if [ -f "bot/users.db" ]; then
-                cp bot/users.db* bot/
-                # Переименовываем для бэкапа (грубо, но для GitHub Actions сойдет, или можно копировать в папку)
-                # Лучше скопировать во временную директорию
-                mkdir -p /tmp/bot_backup
-                cp bot/users.db* /tmp/bot_backup/
-                echo "Backup created."
-            fi
-
-            # 1. Обновляем код из GitHub (сбрасываем локальные изменения, если они были)
-            git fetch origin main
-            git reset --hard origin/main
-            
-            # 2. Настройка виртуального окружения
-            if [ ! -d "venv" ]; then
-                python3 -m venv venv
-            fi
+            cd ~/Raccoon_life
+            git pull origin main
             source venv/bin/activate
-            
-            # 3. Обновление библиотек
-            pip install --upgrade pip
-            if [ -f "requirements.txt" ]; then
-                pip install -r requirements.txt
-            fi
+            pip install -r requirements.txt
+            sudo systemctl restart raccoon_bot
 
-            # 4. ВОССТАНАВЛИВАЕМ БАЗУ ДАННЫХ
-            if [ -f "/tmp/bot_backup/users.db" ]; then
-                mv /tmp/bot_backup/users.db* bot/
-                # ВАЖНО: Даем права на запись всем пользователям (чтобы бот мог писать в файл)
-                chmod 666 bot/users.db*
-                echo "Database restored."
-                rm -rf /tmp/bot_backup
-            fi
-            
-            # 5. Перезапуск бота с передачей пароля в sudo
-            # Флаг -S заставляет sudo читать пароль из стандартного ввода (echo)
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl start my_bot
-            
-            # 5. Вывод финального статуса для отчета в Actions
-            echo "--- Бот перезапущен. Статус службы: ---"
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl status my_bot --no-pager
+  # Деплой на СТАРЫЙ сервер (ветка old-server)
+  deploy-old:
+    if: github.ref == 'refs/heads/old-server'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to OLD Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.OLD_SERVER_IP }}
+          username: ${{ secrets.OLD_SERVER_USER }}
+          key: ${{ secrets.OLD_SERVER_KEY }}
+          script: |
+            cd ~/Raccoon_life
+            git pull origin old-server
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart raccoon_bot
