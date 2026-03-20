@@ -1842,7 +1842,9 @@ def handle_earn_tokens(data: dict):
     elif reason.startswith('read_news:') or reason == 'welcome_bonus':
         max_allowed = 1000  # welcome_bonus = 1000
     elif reason.startswith('quest_complete:'):
-        max_allowed = 500
+        max_allowed = 10000
+    elif reason.startswith('find_chip_win'):
+        max_allowed = 100
 
     if amount > max_allowed:
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")

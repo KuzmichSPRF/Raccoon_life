@@ -403,7 +403,7 @@
       quests: {
         icon: '❓',
         title: currentLang === 'ru' ? '❓ Квесты' : '❓ Quests',
-        desc: currentLang === 'ru' ? 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 500 Шишек.' : 'Complete quests and earn cones! For the first completion of a quest you receive 500 Cones.'
+        desc: currentLang === 'ru' ? 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 10000 Шишек.' : 'Complete quests and earn cones! For the first completion of a quest you receive 10000 Cones.'
       },
       games: {
         icon: '🎮',
@@ -720,7 +720,7 @@
       
       // Начисляем шишки только за первое прохождение квестов (пропускаем газеты)
       if (!id.startsWith('news_')) {
-        earnTokens(500, 'quest_complete:' + id);
+        earnTokens(10000, 'quest_complete:' + id);
       }
       
       if (currentCategory) renderCategory(currentCategory);
@@ -882,7 +882,7 @@
       games: {
         title: t.menu_games,
         items: [
-          { title: currentLang === 'ru' ? "🎯 Найди Фишку" : "🎯 Find the Chip", desc: currentLang === 'ru' ? "1000 Шишек за победу" : "1000 Cones per win", url: "find_chip.html", type: "iframe" },
+          { title: currentLang === 'ru' ? "🎯 Найди Фишку" : "🎯 Find the Chip", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "find_chip.html", type: "iframe" },
           { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🎰 Енотная Рулетка" : "🎰 Raccoon Roulette", desc: currentLang === 'ru' ? "Казино на шишки" : "Casino for cones", url: "casino_roulette.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },

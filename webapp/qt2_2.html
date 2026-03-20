@@ -118,6 +118,26 @@
         }
         @keyframes blink { 50% { opacity: 0; } }
 
+        /* --- ФИНАЛЬНЫЙ ЭКРАН КАК В 1 ГЛАВЕ --- */
+        #end-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .glitch-title {
+            font-size: 3rem; text-transform: uppercase; text-shadow: 2px 2px var(--neon-pink);
+            animation: glitch 0.4s infinite; margin-bottom: 20px;
+            text-align: center; color: var(--neon-cyan); font-weight: bold;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            50% { transform: translate(-3px, 2px); }
+            100% { transform: translate(0); }
+        }
+        #finish-btn:hover {
+            background: var(--neon-cyan) !important; color: black !important;
+        }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #sidebar { 
@@ -133,6 +153,7 @@
             .seal { margin-top: 0; }
             .reset-btn { grid-column: span 4; margin-top: 0; margin-bottom: 5px; width: 100%; padding: 8px 10px; }
             .blind-form { grid-template-columns: 1fr; }
+            #end-screen .glitch-title { font-size: 2rem; }
         }
     </style>
 </head>
@@ -168,6 +189,11 @@
         <div class="action-area" id="action-area">
             <!-- Динамический контент миниигр -->
         </div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <div class="glitch-title">The Question Times 2</div>
+        <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
     </div>
 
     <script>
@@ -250,6 +276,17 @@
             if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
                 play8BitClick();
             }
+        });
+
+        // --- ФИНАЛЬНЫЙ ЭКРАН ---
+        const rl_lang = localStorage.getItem('rl_lang') || 'ru';
+        if (rl_lang === 'en') {
+            document.getElementById('finish-btn').innerText = "STAGE CLEARED";
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioBg.pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_2' }, window.location.origin);
         });
 
         function showDialog(text, callback) {
@@ -387,14 +424,13 @@
                 showDialog("— Копии нормальные. Но я не поставлю визу, пока Служба Безопасности (Этаж 68) не подтвердит твою лояльность. Иди к Михалычу.");
             }
             else {
-                showDialog("— СБ подтвердило? Отлично. Теперь нужен пропуск от ИТ и ключ от Завхоза... (Продолжение следует)");
-                const btn = document.createElement('button');
-                btn.className = 'action-btn'; btn.innerText = "ЗАВЕРШИТЬ ГЛАВУ 2";
-                btn.onclick = () => {
-                    try { audioBg.pause(); } catch(e){} // Выключаем музыку при выходе
-                    window.parent.postMessage({ type: 'quest_complete', id: 'qt2_2' }, window.location.origin);
-                };
-                actionArea.appendChild(btn);
+                showDialog("— СБ подтвердило? Отлично. Теперь нужен пропуск от ИТ и ключ от Завхоза... (Продолжение следует)", () => {
+                    setTimeout(() => {
+                        document.getElementById('main-content').classList.add('hidden');
+                        document.getElementById('sidebar').classList.add('hidden');
+                        document.getElementById('end-screen').classList.remove('hidden');
+                    }, 1000); // Экран победы появится через секунду после окончания текста
+                });
             }
         }
 
