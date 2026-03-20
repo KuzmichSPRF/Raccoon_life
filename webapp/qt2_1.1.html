@@ -229,10 +229,10 @@
 <body>
 
     <audio id="intro-music">
-        <source src="https://github.com/KuzmichSPRF/QT2/raw/refs/heads/main/intro.mp3" type="audio/mpeg">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg">
     </audio>
     <audio id="bg-music" loop>
-        <source src="https://github.com/KuzmichSPRF/QT2/raw/refs/heads/main/music.mp3" type="audio/mpeg">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/music.mp3" type="audio/mpeg">
     </audio>
 
     <div id="init-screen">
@@ -267,6 +267,7 @@
 
         const audioIntro = document.getElementById("intro-music");
         const audioBg = document.getElementById("bg-music");
+        audioBg.volume = 0.5; // Устанавливаем громкость фона 50%
         
         const uiContainer = document.getElementById("scene-container");
         const uiImage = document.getElementById("scene-image");
@@ -284,6 +285,38 @@
             document.getElementById('start-btn').innerText = "Start";
             document.getElementById('finish-btn').innerText = "STAGE CLEARED";
         }
+        
+        // Синтезатор 8-битного звука клика (работает моментально и без файлов)
+        let clickAudioCtx;
+        function play8BitClick() {
+            try {
+                if (!clickAudioCtx) clickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (clickAudioCtx.state === 'suspended') clickAudioCtx.resume();
+                
+                const osc = clickAudioCtx.createOscillator();
+                const gain = clickAudioCtx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, clickAudioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickAudioCtx.currentTime + 0.05);
+                
+                gain.gain.setValueAtTime(0.1, clickAudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickAudioCtx.currentTime + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(clickAudioCtx.destination);
+                
+                osc.start();
+                osc.stop(clickAudioCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        // Озвучка всех кнопок
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                play8BitClick();
+            }
+        });
 
         function showAlert(msg) {
             window.parent.postMessage({ type: 'show_alert', message: msg }, window.location.origin);
