@@ -2664,15 +2664,21 @@ def main():
     logger.info("🚀 Flask API server started on port 5000")
 
     # Настройка Telegram бота
-    telegram_app = (
+    builder = (
         Application.builder()
         .token(BOT_TOKEN)
         .connect_timeout(60.0)
         .read_timeout(60.0)
         .pool_timeout(60.0)
         .post_init(post_init)
-        .build()
     )
+    
+    proxy_url = os.getenv("PROXY_URL")
+    if proxy_url:
+        logger.info(f"🔌 Используется прокси: {proxy_url}")
+        builder = builder.proxy_url(proxy_url).get_updates_proxy_url(proxy_url)
+        
+    telegram_app = builder.build()
 
     # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
