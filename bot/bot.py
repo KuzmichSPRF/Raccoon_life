@@ -2441,12 +2441,32 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for row in users:
             try:
-                await context.bot.send_message(chat_id=row['user_id'], text=message_text, parse_mode=ParseMode.HTML)
+                # Отправляем медиа если есть, иначе текст
+                if photo_id:
+                    await context.bot.send_photo(
+                        chat_id=row['user_id'],
+                        photo=photo_id,
+                        caption=message_text,
+                        parse_mode=ParseMode.HTML
+                    )
+                elif video_id:
+                    await context.bot.send_video(
+                        chat_id=row['user_id'],
+                        video=video_id,
+                        caption=message_text,
+                        parse_mode=ParseMode.HTML
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=row['user_id'],
+                        text=message_text,
+                        parse_mode=ParseMode.HTML
+                    )
                 success_count += 1
             except Exception as e:
                 logger.warning(f"Не удалось отправить сообщение пользователю {row['user_id']}: {e}")
                 fail_count += 1
-            
+
             # Небольшая пауза, чтобы не превысить лимиты Telegram API (около 30 сообщений в секунду)
             await asyncio.sleep(0.05)
 
@@ -2596,25 +2616,31 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
-    # Устанавливаем кнопку меню
-    await application.bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
-    )
-    logger.info("✅ Menu button set")
-    
-    # Устанавливаем список команд для меню
-    commands = [
-        BotCommand('start', '🚀 Запустить бота'),
-        BotCommand('add', '💰 Начислить шишки (админ)'),
-        BotCommand('balance', '💳 Проверить баланс (админ)'),
-        BotCommand('spend', '💸 Списать шишки (админ)'),
-        BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
-        BotCommand('broadcast', '📢 Рассылка всем (админ)'),
-        BotCommand('unban', '✅ Разбанить пользователя (админ)'),
-        BotCommand('delete', '🗑️ Удалить пользователя (админ)')
-    ]
-    await application.bot.set_my_commands(commands)
-    logger.info("✅ Commands menu set")
+    try:
+        # Устанавливаем кнопку меню
+        await application.bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
+        )
+        logger.info("✅ Menu button set")
+    except Exception as e:
+        logger.error(f"⚠️ Ошибка установки кнопки меню: {e}")
+
+    try:
+        # Устанавливаем список команд для меню
+        commands = [
+            BotCommand('start', '🚀 Запустить бота'),
+            BotCommand('add', '💰 Начислить шишки (админ)'),
+            BotCommand('balance', '💳 Проверить баланс (админ)'),
+            BotCommand('spend', '💸 Списать шишки (админ)'),
+            BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
+            BotCommand('broadcast', '📢 Рассылка всем (админ)'),
+            BotCommand('unban', '✅ Разбанить пользователя (админ)'),
+            BotCommand('delete', '🗑️ Удалить пользователя (админ)')
+        ]
+        await application.bot.set_my_commands(commands)
+        logger.info("✅ Commands menu set")
+    except Exception as e:
+        logger.error(f"⚠️ Ошибка установки команд: {e}")
 
 
 async def debug_all_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2641,8 +2667,9 @@ def main():
     telegram_app = (
         Application.builder()
         .token(BOT_TOKEN)
-        .connect_timeout(30.0)
-        .read_timeout(30.0)
+        .connect_timeout(60.0)
+        .read_timeout(60.0)
+        .pool_timeout(60.0)
         .post_init(post_init)
         .build()
     )
