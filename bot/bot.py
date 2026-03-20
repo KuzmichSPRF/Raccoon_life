@@ -2617,6 +2617,11 @@ async def post_init(application: Application):
     logger.info("✅ Commands menu set")
 
 
+async def debug_all_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Шпион: записывает в лог всё, что видит бот (для отладки)"""
+    if update.effective_user:
+        logger.info(f"👀 Бот увидел от {update.effective_user.id}: {update.effective_message.text if update.effective_message else 'Не текст'}")
+
 def run_flask():
     """Запуск Flask сервера в отдельном потоке"""
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
@@ -2653,6 +2658,9 @@ def main():
     telegram_app.add_handler(CommandHandler("broadcast", broadcast_admin))
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
+
+    # Шпион работает в группе 1, чтобы читать сообщения параллельно командам
+    telegram_app.add_handler(MessageHandler(filters.ALL, debug_all_updates), group=1)
 
     # Запуск бота
     logger.info("🤖 Starting Telegram bot...")
