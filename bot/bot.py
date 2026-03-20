@@ -2396,19 +2396,21 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Команда для админа: /broadcast <сообщение>
     Рассылает сообщение всем активным пользователям бота
     """
+    logger.info(f"📢 [BROADCAST] Получена команда от ID: {update.effective_user.id}. Ожидаемый ADMIN_ID: {ADMIN_ID}")
+
     # Проверка прав администратора
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        await update.effective_message.reply_text("❌ У вас нет прав для этой команды!")
         return
 
     # Проверяем, есть ли текст или медиа
-    message = update.message
+    message = update.effective_message
     raw_text = message.text or message.caption or ""
     parts = raw_text.split(maxsplit=1)
     
     # Проверка наличия контента (текста или медиафайла)
     if len(parts) < 2 and not message.photo and not message.video:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ Использование: /broadcast <текст сообщения>\n"
             "Пример: /broadcast 📢 Всем привет!\n"
             "💡 Также можно прикрепить картинку или видео и написать команду в подписи!"
@@ -2429,10 +2431,10 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = cursor.fetchall()
         
         if not users:
-            await update.message.reply_text("⚠️ В базе нет активных пользователей для рассылки.")
+            await update.effective_message.reply_text("⚠️ В базе нет активных пользователей для рассылки.")
             return
 
-        await update.message.reply_text(f"⏳ Начинаю рассылку для {len(users)} пользователей. Пожалуйста, подождите...")
+        await update.effective_message.reply_text(f"⏳ Начинаю рассылку для {len(users)} пользователей. Пожалуйста, подождите...")
 
         success_count = 0
         fail_count = 0
@@ -2448,10 +2450,10 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Небольшая пауза, чтобы не превысить лимиты Telegram API (около 30 сообщений в секунду)
             await asyncio.sleep(0.05)
 
-        await update.message.reply_text(f"✅ <b>Рассылка завершена!</b>\n\n📤 Успешно отправлено: {success_count}\n❌ Ошибок (бот заблокирован и т.д.): {fail_count}", parse_mode=ParseMode.HTML)
+        await update.effective_message.reply_text(f"✅ <b>Рассылка завершена!</b>\n\n📤 Успешно отправлено: {success_count}\n❌ Ошибок (бот заблокирован и т.д.): {fail_count}", parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.error(f"Ошибка при рассылке: {e}")
-        await update.message.reply_text(f"❌ Произошла ошибка при рассылке: {e}")
+        await update.effective_message.reply_text(f"❌ Произошла ошибка при рассылке: {e}")
     finally:
         conn.close()
 
