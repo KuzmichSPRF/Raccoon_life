@@ -95,11 +95,18 @@
         #image-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000; cursor: zoom-out;
+            justify-content: center; align-items: center; z-index: 1000;
+            touch-action: none;
         }
         #image-modal img {
             max-width: 95%; max-height: 85%; object-fit: contain;
             border: 2px solid var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 255, 204, 0.4);
+            transform-origin: center center;
+        }
+        #modal-close {
+            position: absolute; top: 15px; right: 20px; font-size: 2.5rem;
+            color: var(--neon-pink); cursor: pointer; z-index: 1010;
+            text-shadow: 0 0 10px var(--neon-pink); padding: 10px;
         }
 
         .hidden { display: none !important; }
@@ -164,9 +171,10 @@
     </div>
 
     <!-- Окно увеличения картинки -->
-    <div id="image-modal" class="hidden" onclick="this.classList.add('hidden')">
+    <div id="image-modal" class="hidden">
+        <div id="modal-close" onclick="closeImageModal()">✖</div>
         <img id="modal-image" src="" alt="Увеличенное изображение">
-        <div style="color:var(--neon-pink); margin-top:20px; font-size:1.2rem; animation:blink 1.5s infinite; text-shadow:0 0 10px var(--neon-pink);">[ ТАПНИТЕ ЧТОБЫ ЗАКРЫТЬ ]</div>
+        <div style="position:absolute; bottom:25px; color:var(--neon-pink); font-size:1rem; animation:blink 1.5s infinite; text-shadow:0 0 10px var(--neon-pink); pointer-events:none; text-align:center;">[ ДВУМЯ ПАЛЬЦАМИ ДЛЯ ЗУМА ]</div>
     </div>
 
     <div id="end-screen" class="hidden">
@@ -221,8 +229,63 @@
                 document.getElementById('modal-image').src = this.src;
                 document.getElementById('image-modal').classList.remove('hidden');
                 tg.HapticFeedback.impactOccurred('light');
+                resetZoom();
             }
         });
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        document.getElementById('image-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeImageModal(); // Закрываем при клике на фон
+        });
+
+        const modalImg = document.getElementById('modal-image');
+        let mScale = 1, mPanning = false, mPointX = 0, mPointY = 0, mStartX = 0, mStartY = 0, mStartDist = 0, mInitScale = 1;
+
+        function setZoomTransform() {
+            modalImg.style.transform = `translate(${mPointX}px, ${mPointY}px) scale(${mScale})`;
+        }
+        function resetZoom() {
+            mScale = 1; mPointX = 0; mPointY = 0; setZoomTransform();
+        }
+
+        modalImg.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                mStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                mInitScale = mScale;
+            } else if (e.touches.length === 1) {
+                mPanning = true;
+                mStartX = e.touches[0].clientX - mPointX;
+                mStartY = e.touches[0].clientY - mPointY;
+            }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                mScale = Math.max(1, Math.min(mInitScale * (currentDist / mStartDist), 5)); // Максимум зум 5x
+                setZoomTransform();
+            } else if (e.touches.length === 1 && mPanning && mScale > 1) {
+                mPointX = e.touches[0].clientX - mStartX;
+                mPointY = e.touches[0].clientY - mStartY;
+                setZoomTransform();
+            }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) mStartDist = 0;
+            if (e.touches.length === 0) mPanning = false;
+        });
+
+        modalImg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            mScale = Math.max(1, Math.min(mScale + e.deltaY * -0.005, 5));
+            setZoomTransform();
+        }, { passive: false });
 
         function resetProgress() {
             if (confirm("Вы точно хотите сжечь документы и начать заново?")) {
@@ -427,44 +490,44 @@
             actionArea.innerHTML = `
                 <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer;">
                     <div id="flappy-bird" style="width:20px; height:20px; background:var(--neon-pink); border-radius:50%; position:absolute; left:50px; top:115px;"></div>
-                    <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/8</div>
+                    <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/6</div>
                 </div>
-                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 8 труб.</div>
+                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 6 труб.</div>
             `;
             let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop;
             const gameDiv = document.getElementById('flappy-game');
             const birdDiv = document.getElementById('flappy-bird');
             const scoreDiv = document.getElementById('flappy-score');
 
-            const jump = () => { if(!isGameOver) velocity = -5.5; };
+            const jump = () => { if(!isGameOver) velocity = -4.5; };
             gameDiv.onmousedown = jump; gameDiv.ontouchstart = (e) => { e.preventDefault(); jump(); };
 
             function createPipe() {
-                let topHeight = Math.floor(Math.random() * 110) + 30;
+                let topHeight = Math.floor(Math.random() * 90) + 30;
                 let topPipe = document.createElement('div');
                 topPipe.style.cssText = `position:absolute; top:0; left:350px; width:30px; height:${topHeight}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(topPipe);
                 let bottomPipe = document.createElement('div');
-                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 90}px; background:var(--neon-cyan);`;
+                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 110}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(bottomPipe);
                 pipes.push({ x: 350, top: topPipe, bottom: bottomPipe, passed: false });
             }
 
             function update() {
                 if (isGameOver) return;
-                velocity += 0.35; birdY += velocity; birdDiv.style.top = birdY + 'px';
+                velocity += 0.3; birdY += velocity; birdDiv.style.top = birdY + 'px';
                 if (birdY < 0 || birdY > 230) { endGame(false); return; }
-                if (++frame % 80 === 0) createPipe();
+                if (++frame % 90 === 0) createPipe();
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
-                    let p = pipes[i]; p.x -= 2.5; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
-                    let th = parseInt(p.top.style.height), bh = 250 - th - 90;
+                    let p = pipes[i]; p.x -= 2; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
+                    let th = parseInt(p.top.style.height), bh = 250 - th - 110;
                     if (50 + 20 > p.x && 50 < p.x + 30) {
                         if (birdY < th || birdY + 20 > 250 - bh) { endGame(false); return; }
                     }
                     if (!p.passed && p.x + 30 < 50) {
-                        p.passed = true; score++; scoreDiv.innerText = score + "/8";
-                        if (score >= 8) { endGame(true); return; }
+                        p.passed = true; score++; scoreDiv.innerText = score + "/6";
+                        if (score >= 6) { endGame(true); return; }
                     }
                     if (p.x < -30) { p.top.remove(); p.bottom.remove(); pipes.splice(i, 1); }
                 }
