@@ -747,22 +747,43 @@
           message += (lang === 'ru' ? ` (+${tokensEarned} Шишек!)` : ` (+${tokensEarned} Cones!)`);
         }
 
+        // Обновляем UI с нашим ударом сразу
+        updateStatsUI();
+        updateBossHP();
+        document.getElementById('msg').innerText = message;
+        document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
+
         // Ответ босса
         if (bossDamage > 0) {
           playerHP -= bossDamage;
           updatePlayerHP();
           message += (lang === 'ru' ? ' Босс ответил на ' : ' Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
           showDamageNumber(bossDamage, false, true);
+          setTimeout(() => {
+            playerHP -= bossDamage;
+            updatePlayerHP();
+            
+            let counterMsg = (lang === 'ru' ? '💥 Босс ответил на ' : '💥 Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
+            document.getElementById('msg').innerText = message + "\n" + counterMsg;
+            document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
+            showDamageNumber(bossDamage, false, true);
 
-          const playerCap = document.getElementById('player-cap');
-          playerCap.classList.add('hit');
-          setTimeout(() => playerCap.classList.remove('hit'), 300);
+            const playerCap = document.getElementById('player-cap');
+            playerCap.classList.add('hit');
+            setTimeout(() => playerCap.classList.remove('hit'), 300);
 
-          if (playerHP <= 0) {
-            console.log('💀 Player died, game over');
-            gameOver();
-            return;
-          }
+            if (playerHP <= 0) {
+              console.log('💀 Player died, game over');
+              gameOver();
+              return;
+            }
+            
+            // Разблокируем кнопки после ответа босса
+            updateEnergy();
+          }, 300); // Задержка 0.3 секунды
+        } else {
+          // Если ответа нет - разблокируем кнопки сразу
+          updateEnergy();
         }
 
         updateStatsUI();
@@ -774,6 +795,7 @@
       } catch (err) {
         console.error('❌ Attack error:', err);
         document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
+        updateEnergy();
       }
 
       // Разблокируем кнопки после атаки
