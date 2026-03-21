@@ -772,8 +772,19 @@
     syncStats();
 
     // Загрузка рейтинга из API
-    fetch('/api/leaderboard?limit=20')
-      .then(res => res.json())
+    fetch(`/api/leaderboard?limit=20&t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'X-Telegram-Init-Data': tg.initData || ''
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(data => {
         if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
           renderLeaderboard(data.leaderboard);
@@ -790,7 +801,7 @@
   }
 
   function escapeHTML(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
     return str.toString().replace(/[&<>'"]/g, 
       tag => ({
         '&': '&amp;',
