@@ -22,6 +22,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram import BotCommand
+from telegram.error import RetryAfter
 from dotenv import load_dotenv
 
 # Загрузка переменных окружения
@@ -2475,6 +2476,41 @@ async def broadcast_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         logger.warning(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
                         fail_count += 1
                         break  # Другая ошибка (заблокировал бота и т.д.), пропускаем
+            user_id = row['user_id']
+            retry_count = 0
+            while retry_count < 3:
+                try:
+                    # Отправляем медиа если есть, иначе текст
+                    if photo_id:
+                        await context.bot.send_photo(
+                            chat_id=user_id,
+                            photo=photo_id,
+                            caption=message_text,
+                            parse_mode=ParseMode.HTML
+                        )
+                    elif video_id:
+                        await context.bot.send_video(
+                            chat_id=user_id,
+                            video=video_id,
+                            caption=message_text,
+                            parse_mode=ParseMode.HTML
+                        )
+                    else:
+                        await context.bot.send_message(
+                            chat_id=user_id,
+                            text=message_text,
+                            parse_mode=ParseMode.HTML
+                        )
+                    success_count += 1
+                    break  # Успешно отправлено, выходим из цикла
+                except RetryAfter as e:
+                    retry_count += 1
+                    logger.warning(f"Лимит Telegram (FloodControl). Ждем {e.retry_after} сек...")
+                    await asyncio.sleep(e.retry_after + 1)
+                except Exception as e:
+                    logger.warning(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
+                    fail_count += 1
+                    break  # Другая ошибка (заблокировал бота и т.д.), пропускаем
 
             # Небольшая пауза, чтобы не превысить лимиты Telegram API (около 30 сообщений в секунду)
             await asyncio.sleep(0.05)
