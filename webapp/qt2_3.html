@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QT2: Материальная база</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; } 
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --bg-black: #050505;
+            --panel-bg: rgba(15, 15, 15, 0.95);
+        }
+        body {
+            margin: 0; background: var(--bg-black); color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        /* --- ЛЕВАЯ ПАНЕЛЬ: ЛИФТ И ИНВЕНТАРЬ --- */
+        #sidebar {
+            width: 250px; background: #0a0a0a; border-right: 2px solid var(--neon-cyan);
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+            box-shadow: 2px 0 15px rgba(0, 255, 204, 0.2); z-index: 10;
+        }
+        .sidebar-title { font-weight: bold; text-align: center; margin-bottom: 20px; color: var(--neon-pink); border-bottom: 1px dashed var(--neon-pink); padding-bottom: 10px;}
+        .floor-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 10px; margin-bottom: 10px; cursor: pointer; text-align: left;
+            transition: 0.2s; border-radius: 0; font-family: inherit; font-size: 0.9rem;
+        }
+        .floor-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; }
+        .floor-btn.active { background: var(--neon-cyan); color: black; box-shadow: 0 0 10px var(--neon-cyan); }
+        .floor-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+        
+        #inventory { margin-top: auto; border-top: 1px dashed var(--neon-cyan); padding-top: 10px; font-size: 0.8rem; }
+        .seal { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #555; }
+        .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+
+        .reset-btn {
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            background: transparent; color: var(--neon-pink); cursor: pointer;
+            font-family: inherit; font-size: 0.8rem; text-transform: uppercase;
+            transition: 0.3s; width: 100%; box-sizing: border-box;
+        }
+        .reset-btn:hover { background: var(--neon-pink); color: black; }
+
+        /* --- ГЛАВНЫЙ ЭКРАН --- */
+        #main-content {
+            flex: 1; display: flex; flex-direction: column; padding: 20px;
+            overflow-y: auto; position: relative;
+        }
+        .character-header {
+            font-size: 1.5rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink);
+            flex-shrink: 0; text-align: center;
+        }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 250px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block;
+            flex-shrink: 0;
+        }
+        .dialog-box {
+            background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
+            min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
+            overflow-wrap: break-word; flex-shrink: 0;
+        }
+        .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; }
+        
+        button.action-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 15px 30px; font-size: 1.1rem; cursor: pointer; margin: 10px;
+            font-family: inherit; text-transform: uppercase; transition: 0.3s;
+        }
+        button.action-btn:hover { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+        
+        .blind-input {
+            background: transparent; border: 1px solid var(--neon-cyan); color: white;
+            padding: 15px; font-family: inherit; text-align: center; outline: none; font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        .blind-input:focus { box-shadow: 0 0 10px var(--neon-cyan); border-color: var(--neon-pink); }
+
+        /* --- АНИМАЦИЯ И МОДАЛЬНОЕ ОКНО ДЛЯ УВЕЛИЧЕНИЯ КАРТИНКИ --- */
+        .scene-image.zoomable {
+            cursor: zoom-in; border-color: var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4); transition: transform 0.3s ease;
+        }
+        .scene-image.zoomable:active { transform: scale(0.98); }
+
+        #image-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000; cursor: zoom-out;
+        }
+        #image-modal img {
+            max-width: 95%; max-height: 85%; object-fit: contain;
+            border: 2px solid var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 255, 204, 0.4);
+        }
+
+        .hidden { display: none !important; }
+        .cursor {
+            border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite;
+            display: inline-block; height: 1.1em; vertical-align: text-bottom;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- ФИНАЛЬНЫЙ ЭКРАН --- */
+        #end-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        #finish-btn:hover { background: var(--neon-cyan) !important; color: black !important; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; }
+            .sidebar-title { display: none; }
+            .floor-btn { margin: 0; padding: 5px 2px; font-size: 0.65rem; text-align: center; }
+            #inventory { grid-column: span 3; border-top: none; padding-top: 5px; display: flex; flex-direction: column; gap: 5px; align-items: center; }
+            .seal { margin-top: 0; font-size: 0.75rem; }
+            .reset-btn { grid-column: span 3; margin-top: 0; margin-bottom: 5px; width: 100%; padding: 8px 10px; }
+        }
+    </style> 
+</head>
+<body>
+    <audio id="intro-music"><source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg"></audio>
+    <!-- <audio id="bg-music" loop><source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/music.mp3" type="audio/mpeg"></audio> -->
+
+    <div id="sidebar">
+        <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
+        <button class="floor-btn" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Кадры</button>
+        <button class="floor-btn" id="btn-f68" onclick="loadFloor(68)">Этаж 68: СБ</button>
+        <button class="floor-btn" id="btn-f41" onclick="loadFloor(41)">Этаж 41: IT-служба</button>
+        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО (Завхоз)</button>
+        <button class="floor-btn" id="btn-f30" disabled>Этаж 30: Бухгалтерия (Блок)</button>
+        
+        <div id="inventory">
+            <div style="color:var(--neon-cyan); margin-bottom:5px; text-align:center;">--- ИНВЕНТАРЬ ---</div>
+            <div class="seal active" id="inv-hr">📄 Форма 2026-Б</div>
+            <div class="seal active" id="inv-sb">👁️ Проверен СБ</div>
+            <div class="seal" id="inv-box">📦 Склад разобран</div>
+            <div class="seal" id="inv-card">💳 Магнитная карта</div>
+            <div class="seal" id="inv-it">💻 Доступ ИТ</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="character-header" id="char-name">ЛИФТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена">
+        <div class="dialog-box" id="dialog-container">
+            <span id="dialog-text">Двери лифта открываются с протяжным скрипом. Воздух становится более спертым.</span><span id="dialog-cursor" class="cursor hidden"></span>
+        </div>
+        <div class="action-area" id="action-area">
+            <button class="action-btn" onclick="loadFloor(40)">Выйти на 40 этаж (АХО)</button>
+            <button class="action-btn" onclick="loadFloor(41)">Выйти на 41 этаж (ИТ)</button>
+        </div>
+    </div>
+
+    <!-- Окно увеличения картинки -->
+    <div id="image-modal" class="hidden" onclick="this.classList.add('hidden')">
+        <img id="modal-image" src="" alt="Увеличенное изображение">
+        <div style="color:var(--neon-pink); margin-top:20px; font-size:1.2rem; animation:blink 1.5s infinite; text-shadow:0 0 10px var(--neon-pink);">[ ТАПНИТЕ ЧТОБЫ ЗАКРЫТЬ ]</div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        // --- СОСТОЯНИЕ И ЗВУК ---
+        let pState = JSON.parse(localStorage.getItem('qt2_3_progress')) || {
+            tetris_old_done: false, tetris_new_done: false,
+            inventory_done: false, flappy_done: false, code_fixed: false, current_floor: null
+        };
+
+        const charName = document.getElementById('char-name');
+        const actionArea = document.getElementById('action-area');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCursor = document.getElementById('dialog-cursor');
+        let typingTimeout;
+
+        // document.addEventListener('click', () => { document.getElementById('bg-music').play().catch(()=>{}); }, { once: true });
+        
+        let clickCtx;
+        function playClick() {
+            try {
+                if (!clickCtx) clickCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = clickCtx.createOscillator();
+                const gain = clickCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, clickCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, clickCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(clickCtx.destination);
+                osc.start(); osc.stop(clickCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
+
+        function saveState() {
+            localStorage.setItem('qt2_3_progress', JSON.stringify(pState));
+            if (pState.tetris_new_done) document.getElementById('inv-box').classList.add('active');
+            if (pState.inventory_done) document.getElementById('inv-card').classList.add('active');
+            if (pState.code_fixed) document.getElementById('inv-it').classList.add('active');
+        }
+        saveState();
+
+        // Обработчик нажатия на картинку для её увеличения
+        document.getElementById('floor-image').addEventListener('click', function() {
+            if (!this.classList.contains('hidden') && this.classList.contains('zoomable')) {
+                document.getElementById('modal-image').src = this.src;
+                document.getElementById('image-modal').classList.remove('hidden');
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        });
+
+        function resetProgress() {
+            if (confirm("Вы точно хотите сжечь документы и начать заново?")) {
+                localStorage.removeItem('qt2_3_progress'); location.reload();
+            }
+        }
+
+        function showDialog(text, callback) {
+            clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            
+            const audioIntro = document.getElementById('intro-music');
+            try {
+                audioIntro.currentTime = 0;
+                audioIntro.play().catch(e => console.log("Audio play error:", e));
+            } catch(e){}
+
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i); i++;
+                    typingTimeout = setTimeout(typeNext, 30);
+                } else {
+                    try { audioIntro.pause(); } catch(e){}
+                    dialogCursor.classList.add('hidden');
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function addBtn(text, onclick) {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn'; btn.innerText = text; btn.onclick = onclick;
+            actionArea.appendChild(btn);
+        }
+
+        function loadFloor(floor) {
+            document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-f${floor}`).classList.add('active');
+            actionArea.innerHTML = '';
+            
+            const img = document.getElementById('floor-image');
+            if(img) {
+                img.classList.remove('zoomable'); // Сбрасываем возможность зума при переходе на другой этаж
+                img.classList.add('hidden');
+            }
+            
+            pState.current_floor = floor; saveState();
+
+            if (floor === 69) initFloor69();
+            if (floor === 68) initFloor68();
+            if (floor === 40) initFloor40();
+            if (floor === 41) initFloor41();
+        }
+
+        // ================= ЭТАЖИ ИЗ ПРОШЛЫХ ЧАСТЕЙ =================
+        function initFloor69() {
+            charName.innerText = "Элеонора (Кадры)";
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
+            img.classList.remove('hidden');
+            showDialog("— Я все твои бумажки уже подписала. Иди на 40-й этаж к Завхозу, не мешай мне работать!");
+        }
+
+        function initFloor68() {
+            charName.innerText = "Михалыч (СБ)";
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/SB.png";
+            img.classList.remove('hidden');
+            showDialog("— О, это ты. Твою «пиццу» я уже съел. Твой хеш-код отправлен айтишникам на 41-й. Дуй к ним, пусть пропишут тебя в систему.");
+        }
+
+        // ================= ЭТАЖ 40: АХО =================
+        function initFloor40() {
+            charName.innerText = "Палыч (АХО)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
+            img.classList.remove('hidden');
+
+            if (!pState.tetris_new_done) {
+                if (!pState.tetris_old_done) {
+                    showDialog("— (Не вылезая из-под стола) Нету ключей. Последний отдал вчера айтишнику с 41-го. Хочешь карту-вездеход? Докажи, что не распиз... разгильдяй. Расставь коробки в логотип компании (собери по порядку)!");
+                    addBtn('НАЧАТЬ ТЕТРИС', () => startPuzzle(1));
+                } else {
+                    showDialog("— Это старый логотип, мы на ребрендинге! Собирай новый!");
+                    addBtn('НАЧАТЬ ТЕТРИС (РЕБРЕНДИНГ)', () => startPuzzle(2));
+                }
+            } else if (!pState.inventory_done) {
+                showDialog("— Коробки стоят. Но я не выдам карту, пока ты не назовешь мне серийный номер монитора из отдела ИТ (41 этаж). Введи его:");
+                const inp = document.createElement('input');
+                inp.className = 'blind-input'; inp.id = 'sn-input'; inp.placeholder = 'SN-...';
+                actionArea.appendChild(inp);
+                addBtn('НАЗВАТЬ НОМЕР', () => {
+                    if (document.getElementById('sn-input').value.trim().toUpperCase() === 'SN-2026-VOID') {
+                        pState.inventory_done = true; saveState(); initFloor40();
+                    } else {
+                        tg.HapticFeedback.notificationOccurred('error');
+                        showDialog("— Че ты мне суешь? Это не тот серийник! Иди ищи лучше.");
+                    }
+                });
+            } else {
+                showDialog("— Держи «нулевую» магнитную карту. Но она пустая. Иди на 41-й к Админу Зеро, пусть пропишет твою биометрию.");
+            }
+        }
+
+        // Игра: Пятнашки 3х3 (Тетрис)
+        function startPuzzle(stage) {
+            actionArea.innerHTML = '';
+            const grid = document.createElement('div');
+            grid.style.display = 'grid'; grid.style.gridTemplateColumns = 'repeat(3, 70px)';
+            grid.style.gap = '5px'; grid.style.marginBottom = '20px';
+            
+            let tiles = [1,2,3,4,5,6,7,8,0];
+            do { tiles.sort(() => Math.random() - 0.5); } while (!isSolvable(tiles) || isSolved(tiles));
+
+            function isSolved(arr) { for(let i=0;i<8;i++) if(arr[i] !== i+1) return false; return true; }
+            function isSolvable(arr) {
+                let inv = 0;
+                for(let i=0;i<8;i++) for(let j=i+1;j<9;j++) if(arr[i] && arr[j] && arr[i] > arr[j]) inv++;
+                return inv % 2 === 0;
+            }
+
+            function render() {
+                grid.innerHTML = '';
+                tiles.forEach((t, i) => {
+                    const tile = document.createElement('div');
+                    tile.style.width = '70px'; tile.style.height = '70px';
+                    tile.style.display = 'flex'; tile.style.alignItems = 'center'; tile.style.justifyContent = 'center';
+                    tile.style.fontSize = '24px'; tile.style.fontWeight = 'bold';
+                    tile.style.background = t === 0 ? 'transparent' : 'var(--panel-bg)';
+                    tile.style.border = t === 0 ? 'none' : '2px solid var(--neon-cyan)';
+                    tile.style.cursor = t === 0 ? 'default' : 'pointer';
+                    
+                    if (t !== 0) {
+                        const idx = t - 1;
+                        const bgX = -(idx % 3) * 70;
+                        const bgY = -Math.floor(idx / 3) * 70;
+                        
+                        const bgUrl1 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 210'%3E%3Cpolygon points='105,20 190,190 20,190' fill='none' stroke='%2300ffcc' stroke-width='10' stroke-linejoin='round'/%3E%3C/svg%3E";
+                        const bgUrl2 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 210'%3E%3Cpolygon points='105,20 190,190 20,190' fill='none' stroke='%2300ffcc' stroke-width='10' stroke-linejoin='round'/%3E%3Ctext x='105' y='155' font-size='60' text-anchor='middle'%3E🦝%3C/text%3E%3C/svg%3E";
+                        
+                        tile.style.backgroundImage = `url("${stage === 1 ? bgUrl1 : bgUrl2}")`;
+                        tile.style.backgroundPosition = `${bgX}px ${bgY}px`;
+                        tile.style.backgroundSize = "210px 210px";
+                        tile.style.backgroundRepeat = "no-repeat";
+                        tile.style.backgroundOrigin = "border-box";
+                    }
+                    
+                    tile.onclick = () => {
+                        if (t === 0) return;
+                        const zeroIdx = tiles.indexOf(0);
+                        const isAdjacent = [1, -1, 3, -3].includes(zeroIdx - i) && !(zeroIdx%3 === 0 && i%3 === 2) && !(zeroIdx%3 === 2 && i%3 === 0);
+                        if (isAdjacent) {
+                            tiles[zeroIdx] = t; tiles[i] = 0;
+                            tg.HapticFeedback.impactOccurred('light'); render();
+                            if (isSolved(tiles)) {
+                                if (stage === 1) { pState.tetris_old_done = true; saveState(); initFloor40(); }
+                                else { pState.tetris_new_done = true; saveState(); initFloor40(); }
+                            }
+                        }
+                    };
+                    grid.appendChild(tile);
+                });
+            }
+            render(); actionArea.appendChild(grid);
+        }
+
+        // ================= ЭТАЖ 41: ИТ =================
+        function initFloor41() {
+            charName.innerText = "Админ Зеро (ИТ)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/otdel_it.png";
+            img.classList.remove('hidden');
+            
+            if (!pState.inventory_done) {
+                showDialog("— О, свежее мясо. СБ прислало твой хеш, но он битый. Мне нужен пропуск, чтобы я прописал твою биометрию. Иди на 40-й к Палычу за картой.");
+                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => {
+                    showDialog("В темноте светятся синие светодиоды.\n\n(Картинка комнаты стала доступна для увеличения! Нажмите на неё)");
+                    document.getElementById('floor-image').classList.add('zoomable');
+                    tg.HapticFeedback.notificationOccurred('success');
+                });
+            } else if (!pState.flappy_done) {
+                showDialog("— Пропуск принес? Ок. Но чтобы прописать тебя в облако, мне нужен твой физический файл из Кадров (69 этаж). Я уже запросил пневмопочту. Капсула в трубе, не дай ей разбиться о засоры!");
+                addBtn('ПРИНЯТЬ КАПСУЛУ', () => startFlappy());
+            } else if (!pState.code_fixed) {
+                showDialog("— Файл у меня. Но в консоли ошибка: Error: User_Brain_Not_Found. Найди в логах строку 'Access Denied' и замени на 'Granted' кликом. У тебя 15 секунд, поторопись!");
+                addBtn('ОТКРЫТЬ КОНСОЛЬ', () => startDebug());
+            } else {
+                showDialog("— Эй, куда? Пропуск я тебе выдал, но он «нулевой». Чистый пластик. Пока Бухгалтерия (30 этаж) не оплатит лицензию, ты для турникета — просто кусок углерода.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)");
+                addBtn('ЗАВЕРШИТЬ ЭТАП', () => {
+                    document.getElementById('main-content').classList.add('hidden');
+                    document.getElementById('sidebar').classList.add('hidden');
+                    document.getElementById('end-screen').classList.remove('hidden');
+                });
+            }
+        }
+
+        // Игра: Flappy Bird (Пневмопочта)
+        function startFlappy() {
+            actionArea.innerHTML = `
+                <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer;">
+                    <div id="flappy-bird" style="width:20px; height:20px; background:var(--neon-pink); border-radius:50%; position:absolute; left:50px; top:115px;"></div>
+                    <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/8</div>
+                </div>
+                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 8 труб.</div>
+            `;
+            let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop;
+            const gameDiv = document.getElementById('flappy-game');
+            const birdDiv = document.getElementById('flappy-bird');
+            const scoreDiv = document.getElementById('flappy-score');
+
+            const jump = () => { if(!isGameOver) velocity = -5.5; };
+            gameDiv.onmousedown = jump; gameDiv.ontouchstart = (e) => { e.preventDefault(); jump(); };
+
+            function createPipe() {
+                let topHeight = Math.floor(Math.random() * 110) + 30;
+                let topPipe = document.createElement('div');
+                topPipe.style.cssText = `position:absolute; top:0; left:350px; width:30px; height:${topHeight}px; background:var(--neon-cyan);`;
+                gameDiv.appendChild(topPipe);
+                let bottomPipe = document.createElement('div');
+                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 90}px; background:var(--neon-cyan);`;
+                gameDiv.appendChild(bottomPipe);
+                pipes.push({ x: 350, top: topPipe, bottom: bottomPipe, passed: false });
+            }
+
+            function update() {
+                if (isGameOver) return;
+                velocity += 0.35; birdY += velocity; birdDiv.style.top = birdY + 'px';
+                if (birdY < 0 || birdY > 230) { endGame(false); return; }
+                if (++frame % 80 === 0) createPipe();
+
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    let p = pipes[i]; p.x -= 2.5; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
+                    let th = parseInt(p.top.style.height), bh = 250 - th - 90;
+                    if (50 + 20 > p.x && 50 < p.x + 30) {
+                        if (birdY < th || birdY + 20 > 250 - bh) { endGame(false); return; }
+                    }
+                    if (!p.passed && p.x + 30 < 50) {
+                        p.passed = true; score++; scoreDiv.innerText = score + "/8";
+                        if (score >= 8) { endGame(true); return; }
+                    }
+                    if (p.x < -30) { p.top.remove(); p.bottom.remove(); pipes.splice(i, 1); }
+                }
+                gameLoop = requestAnimationFrame(update);
+            }
+            function endGame(win) {
+                isGameOver = true; cancelAnimationFrame(gameLoop);
+                if (win) { pState.flappy_done = true; saveState(); showDialog("— Капсула прилетела! Документы целы."); initFloor41(); } 
+                else { tg.HapticFeedback.notificationOccurred('error'); showDialog("— Капсула разбилась в трубе! Документы разлетелись! Запускаем дубликат."); addBtn('ПОВТОРИТЬ', () => startFlappy()); }
+            }
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        // Игра: Дебаггинг
+        function startDebug() {
+            actionArea.innerHTML = `
+                <div id="debug-container" style="width:100%; max-width:400px; height:240px; background:#000; border:1px solid var(--neon-cyan); position:relative; overflow:hidden; font-family:monospace; padding:10px; font-size:0.9rem;"></div>
+                <div id="debug-timer" style="margin-top:10px; color:var(--neon-pink); font-size:1.2rem; font-weight:bold;">15 с</div>
+            `;
+            let time = 15;
+            let timerInt = setInterval(() => {
+                time--; document.getElementById('debug-timer').innerText = time + ' с';
+                if (time <= 0) {
+                    clearInterval(timerInt); clearInterval(scrambleInt);
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showDialog("— Время вышло! Логи стерты. Пробуем еще раз.");
+                    addBtn('ПЕРЕЗАГРУЗИТЬ КОНСОЛЬ', () => startDebug());
+                }
+            }, 1000);
+
+            const cont = document.getElementById('debug-container');
+            const lines = ["System.init();", "Loading kernel...", "Checking bio-hashes...", "User_Brain_Not_Found", "Stack trace 0x00FF88", "Bypassing firewall...", "Error 404", "Auth.verify(null);", "Exception in thread 'main'", "Memory leak detected", "SIGSEGV at 0x00000000", "console.log('Access Denied')"];
+            
+            let scrambleInt = setInterval(() => {
+                cont.innerHTML = '';
+                [...lines].sort(() => Math.random() - 0.5).forEach(text => {
+                    let div = document.createElement('div'); div.style.marginBottom = '3px'; div.style.color = '#0f0';
+                    if (text === "console.log('Access Denied')") {
+                        div.innerHTML = "console.log('<span id='target-word' style='color:var(--neon-pink); cursor:pointer; font-weight:bold; background:#200; padding:2px;'>Access Denied</span>')";
+                        setTimeout(() => {
+                            let tw = document.getElementById('target-word');
+                            if (tw) tw.onclick = () => {
+                                clearInterval(timerInt); clearInterval(scrambleInt);
+                                tw.innerText = 'Access Granted'; tw.style.color = 'var(--neon-cyan)'; tw.style.background = '#020';
+                                tg.HapticFeedback.notificationOccurred('success');
+                                setTimeout(() => { pState.code_fixed = true; saveState(); showDialog("— Доступ получен! Система тебя признала."); initFloor41(); }, 1000);
+                            };
+                        }, 0);
+                    } else { div.innerText = text; }
+                    cont.appendChild(div);
+                });
+            }, 400);
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { document.getElementById('bg-music').pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_3' }, window.location.origin);
+        });
+    </script>
+</body>
+</html>
