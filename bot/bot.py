@@ -779,6 +779,7 @@ def get_leaderboard(limit: int = 10) -> list:
         cursor.execute('''
             SELECT
                 u.user_id,
+                ut.user_id,
                 u.username,
                 u.first_name,
                 u.last_name,
@@ -789,6 +790,9 @@ def get_leaderboard(limit: int = 10) -> list:
             JOIN users u ON ut.user_id = u.user_id
             WHERE ut.balance > 0
             ORDER BY ut.balance DESC
+            LEFT JOIN users u ON ut.user_id = u.user_id
+            WHERE ut.balance > 0 OR ut.total_earned > 0
+            ORDER BY ut.balance DESC, ut.total_earned DESC
             LIMIT ?
         ''', (limit,))
 
@@ -798,6 +802,13 @@ def get_leaderboard(limit: int = 10) -> list:
         for i, row in enumerate(rows):
             # Формируем имя: username или first_name last_name
             name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            # Формируем имя
+            name = ''
+            if row['username']:
+                name = row['username']
+            elif row['first_name'] or row['last_name']:
+                name = f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+                
             if not name:
                 name = f"Игрок #{row['user_id']}"
 
@@ -838,6 +849,7 @@ def get_boss_leaderboard(limit: int = 10) -> list:
         cursor.execute('''
             SELECT
                 u.user_id,
+                bd.user_id,
                 u.username,
                 u.first_name,
                 u.last_name,
@@ -846,6 +858,7 @@ def get_boss_leaderboard(limit: int = 10) -> list:
                 bd.last_hit
             FROM boss_damage bd
             JOIN users u ON bd.user_id = u.user_id
+            LEFT JOIN users u ON bd.user_id = u.user_id
             WHERE bd.total_damage > 0
             ORDER BY bd.total_damage DESC
             LIMIT ?
@@ -857,6 +870,13 @@ def get_boss_leaderboard(limit: int = 10) -> list:
         for i, row in enumerate(rows):
             # Формируем имя: username или first_name last_name
             name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            # Формируем имя
+            name = ''
+            if row['username']:
+                name = row['username']
+            elif row['first_name'] or row['last_name']:
+                name = f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+                
             if not name:
                 name = f"Игрок #{row['user_id']}"
 
