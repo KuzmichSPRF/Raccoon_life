@@ -512,7 +512,7 @@
             const birdDiv = document.getElementById('flappy-bird');
             const scoreDiv = document.getElementById('flappy-score');
 
-            const jump = () => { if(!isGameOver) velocity = -4.5; };
+            const jump = () => { if(!isGameOver) velocity = -4.8; };
             gameDiv.onmousedown = jump; gameDiv.ontouchstart = (e) => { e.preventDefault(); jump(); };
 
             function createPipe() {
@@ -521,7 +521,7 @@
                 topPipe.style.cssText = `position:absolute; top:0; left:350px; width:30px; height:${topHeight}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(topPipe);
                 let bottomPipe = document.createElement('div');
-                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 110}px; background:var(--neon-cyan);`;
+                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 100}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(bottomPipe);
                 pipes.push({ x: 350, top: topPipe, bottom: bottomPipe, passed: false });
             }
@@ -533,15 +533,15 @@
                 if (dt > 3) dt = 1;
                 lastTime = time;
 
-                velocity += 0.28 * dt; birdY += velocity * dt; birdDiv.style.top = birdY + 'px';
+                velocity += 0.3 * dt; birdY += velocity * dt; birdDiv.style.top = birdY + 'px';
                 if (birdY < 0 || birdY > 230) { endGame(false); return; }
                 
                 frame += dt;
-                if (frame >= 95) { createPipe(); frame = 0; }
+                if (frame >= 85) { createPipe(); frame = 0; }
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
-                    let p = pipes[i]; p.x -= 2.0 * dt; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
-                    let th = parseInt(p.top.style.height), bh = 250 - th - 110;
+                    let p = pipes[i]; p.x -= 2.2 * dt; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
+                    let th = parseInt(p.top.style.height), bh = 250 - th - 100;
                     if (50 + 15 > p.x && 50 + 5 < p.x + 30) { // Мягкий хитбокс
                         if (birdY + 5 < th || birdY + 15 > 250 - bh) { endGame(false); return; }
                     }
