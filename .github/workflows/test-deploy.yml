@@ -1,35 +1,33 @@
-name: Deploy Test Bot
+name: Deploy Old Server Bot
 
 on:
   push:
     branches:
-      - old-server  # Сработает только при пуше в ветку old-server, которая предназначена для тестирования на новом сервере без влияния на основной бот в ветке main
+      - old-server
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # Обновили с v3 на v4
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy to VPS via SSH
+        # Рекомендую также проверить наличие v3 или выше для ssh-action
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
           script: |
-            # Переходим в папку тестового бота
             cd ~/Raccoon_life_test
-            
-            # Скачиваем свежий код из ветки old-server
             git fetch origin old-server
             git reset --hard origin/old-server
             
-            # Обновляем зависимости внутри venv
+            # Активируем venv и обновляем зависимости
             source venv/bin/activate
-            # Укажи здесь все нужные библиотеки, чтобы они ставились сами
-            pip install python-telegram-bot python-dotenv requests 
+            pip install python-telegram-bot python-dotenv requests
             
-            # Перезапускаем сервис (используем пароль из секретов для sudo)
+            # Перезапуск сервиса
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
