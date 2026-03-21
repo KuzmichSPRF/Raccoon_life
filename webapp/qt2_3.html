@@ -56,6 +56,14 @@
             font-size: 1.5rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink);
             flex-shrink: 0; text-align: center;
         }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 250px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block;
+            flex-shrink: 0;
+        }
         .dialog-box {
             background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
             min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
@@ -90,12 +98,6 @@
             background: var(--bg-black); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 100;
         }
-        .glitch-title {
-            font-size: 3rem; text-transform: uppercase; text-shadow: 2px 2px var(--neon-pink);
-            animation: glitch 0.4s infinite; margin-bottom: 20px;
-            text-align: center; color: var(--neon-cyan); font-weight: bold;
-        }
-        @keyframes glitch { 0% { transform: translate(0); } 50% { transform: translate(-3px, 2px); } 100% { transform: translate(0); } }
         #finish-btn:hover { background: var(--neon-cyan) !important; color: black !important; }
 
         @media (max-width: 768px) {
@@ -106,7 +108,6 @@
             #inventory { grid-column: span 3; border-top: none; padding-top: 5px; display: flex; flex-direction: column; gap: 5px; align-items: center; }
             .seal { margin-top: 0; font-size: 0.75rem; }
             .reset-btn { grid-column: span 3; margin-top: 0; margin-bottom: 5px; width: 100%; padding: 8px 10px; }
-            #end-screen .glitch-title { font-size: 2rem; }
         }
     </style> 
 </head>
@@ -117,6 +118,8 @@
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
+        <button class="floor-btn" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Кадры</button>
+        <button class="floor-btn" id="btn-f68" onclick="loadFloor(68)">Этаж 68: СБ</button>
         <button class="floor-btn" id="btn-f41" onclick="loadFloor(41)">Этаж 41: IT-служба</button>
         <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО (Завхоз)</button>
         <button class="floor-btn" id="btn-f30" disabled>Этаж 30: Бухгалтерия (Блок)</button>
@@ -133,6 +136,7 @@
 
     <div id="main-content">
         <div class="character-header" id="char-name">ЛИФТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена">
         <div class="dialog-box" id="dialog-container">
             <span id="dialog-text">Двери лифта открываются с протяжным скрипом. Воздух становится более спертым.</span><span id="dialog-cursor" class="cursor hidden"></span>
         </div>
@@ -143,7 +147,6 @@
     </div>
 
     <div id="end-screen" class="hidden">
-        <div class="glitch-title">The Question Times 2</div>
         <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
     </div>
 
@@ -197,12 +200,20 @@
 
         function showDialog(text, callback) {
             clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            
+            const audioIntro = document.getElementById('intro-music');
+            try {
+                audioIntro.currentTime = 0;
+                audioIntro.play().catch(e => console.log("Audio play error:", e));
+            } catch(e){}
+
             let i = 0;
             function typeNext() {
                 if (i < text.length) {
                     dialogText.textContent += text.charAt(i); i++;
-                    typingTimeout = setTimeout(typeNext, 25);
+                    typingTimeout = setTimeout(typeNext, 30);
                 } else {
+                    try { audioIntro.pause(); } catch(e){}
                     dialogCursor.classList.add('hidden');
                     if (callback) callback();
                 }
@@ -220,15 +231,43 @@
             document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-f${floor}`).classList.add('active');
             actionArea.innerHTML = '';
+            
+            const img = document.getElementById('floor-image');
+            if(img) img.classList.add('hidden');
+            
             pState.current_floor = floor; saveState();
 
+            if (floor === 69) initFloor69();
+            if (floor === 68) initFloor68();
             if (floor === 40) initFloor40();
             if (floor === 41) initFloor41();
+        }
+
+        // ================= ЭТАЖИ ИЗ ПРОШЛЫХ ЧАСТЕЙ =================
+        function initFloor69() {
+            charName.innerText = "Элеонора (Кадры)";
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
+            img.classList.remove('hidden');
+            showDialog("— Я все твои бумажки уже подписала. Иди на 40-й этаж к Завхозу, не мешай мне работать!");
+        }
+
+        function initFloor68() {
+            charName.innerText = "Михалыч (СБ)";
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/SB.png";
+            img.classList.remove('hidden');
+            showDialog("— О, это ты. Твою «пиццу» я уже съел. Твой хеш-код отправлен айтишникам на 41-й. Дуй к ним, пусть пропишут тебя в систему.");
         }
 
         // ================= ЭТАЖ 40: АХО =================
         function initFloor40() {
             charName.innerText = "Палыч (АХО)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
+            img.classList.remove('hidden');
+
             if (!pState.tetris_new_done) {
                 if (!pState.tetris_old_done) {
                     showDialog("— (Не вылезая из-под стола) Нету ключей. Последний отдал вчера айтишнику с 41-го. Хочешь карту-вездеход? Докажи, что не распиз... разгильдяй. Расставь коробки в логотип компании (собери по порядку)!");
@@ -282,7 +321,21 @@
                     tile.style.background = t === 0 ? 'transparent' : 'var(--panel-bg)';
                     tile.style.border = t === 0 ? 'none' : '2px solid var(--neon-cyan)';
                     tile.style.cursor = t === 0 ? 'default' : 'pointer';
-                    if (t !== 0) tile.innerText = t;
+                    
+                    if (t !== 0) {
+                        const idx = t - 1;
+                        const bgX = -(idx % 3) * 70;
+                        const bgY = -Math.floor(idx / 3) * 70;
+                        
+                        const bgUrl1 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 210'%3E%3Cpolygon points='105,20 190,190 20,190' fill='none' stroke='%2300ffcc' stroke-width='10' stroke-linejoin='round'/%3E%3C/svg%3E";
+                        const bgUrl2 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 210'%3E%3Cpolygon points='105,20 190,190 20,190' fill='none' stroke='%2300ffcc' stroke-width='10' stroke-linejoin='round'/%3E%3Ctext x='105' y='155' font-size='60' text-anchor='middle'%3E🦝%3C/text%3E%3C/svg%3E";
+                        
+                        tile.style.backgroundImage = `url("${stage === 1 ? bgUrl1 : bgUrl2}")`;
+                        tile.style.backgroundPosition = `${bgX}px ${bgY}px`;
+                        tile.style.backgroundSize = "210px 210px";
+                        tile.style.backgroundRepeat = "no-repeat";
+                        tile.style.backgroundOrigin = "border-box";
+                    }
                     
                     tile.onclick = () => {
                         if (t === 0) return;
