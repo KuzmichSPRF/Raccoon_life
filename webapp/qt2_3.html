@@ -401,7 +401,7 @@
             
             if (!pState.inventory_done) {
                 showDialog("— О, свежее мясо. СБ прислало твой хеш, но он битый. Мне нужен пропуск, чтобы я прописал твою биометрию. Иди на 40-й к Палычу за картой.");
-                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => {
+                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => { 
                     showDialog("В темноте светятся синие светодиоды.\n\n(Картинка комнаты стала доступна для увеличения! Нажмите на неё)");
                     document.getElementById('floor-image').classList.add('zoomable');
                     tg.HapticFeedback.notificationOccurred('success');
