@@ -521,15 +521,28 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         else:
             ensure_user_exists(user_id)
         
+        # Получаем текущие квесты, чтобы предотвратить их удаление при сбросе кэша клиента
+        cursor.execute('SELECT quests FROM user_stats WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        existing_quests = []
+        if row and row['quests']:
+            try:
+                existing_quests = json.loads(row['quests'])
+            except json.JSONDecodeError:
+                pass
+                
+        incoming_quests = stats_data.get('quests', [])
+        merged_quests = list(set(existing_quests + incoming_quests))
+
         # Обновляем статистику
         cursor.execute('''
             UPDATE user_stats SET
-                clown_games = ?,
-                clown_wins = ?,
-                vladeos_games = ?,
-                vladeos_wins = ?,
-                tower_max_level = ?,
-                tower_total_levels = ?,
+                clown_games = MAX(clown_games, ?),
+                clown_wins = MAX(clown_wins, ?),
+                vladeos_games = MAX(vladeos_games, ?),
+                vladeos_wins = MAX(vladeos_wins, ?),
+                tower_max_level = MAX(tower_max_level, ?),
+                tower_total_levels = MAX(tower_total_levels, ?),
                 quests = ?
             WHERE user_id = ?
         ''', (
@@ -539,7 +552,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('vladeos_wins', 0)),
             int(stats_data.get('tower_max_level', 0)),
             int(stats_data.get('tower_total_levels', 0)),
-            json.dumps(stats_data.get('quests', [])),
+            json.dumps(merged_quests),
             user_id
         ))
         
@@ -1850,6 +1863,34 @@ def handle_earn_tokens(data: dict):
     if amount > max_allowed:
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")
         amount = max_allowed
+        
+    # АНТИЧИТ: Проверка на повторное получение награды за квесты (защита от сброса кэша)
+    if reason.startswith('quest_complete:'):
+        quest_id = reason.split(':', 1)[1] if ':' in reason else reason
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT quests FROM user_stats WHERE user_id = ?', (user_id,))
+            row = cursor.fetchone()
+            existing_quests = []
+            if row and row['quests']:
+                try:
+                    existing_quests = json.loads(row['quests'])
+                except:
+                    pass
+            
+            if quest_id in existing_quests:
+                logger.warning(f"🚨 АНТИЧИТ: Игрок {user_id} пытается повторно получить награду за квест {quest_id}!")
+                return jsonify({'status': 'error', 'message': 'Quest already completed'}), 400
+            
+            # Сразу помечаем квест как выполненный, чтобы заблокировать параллельные абуз-запросы
+            existing_quests.append(quest_id)
+            cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Ошибка проверки квеста: {e}")
+        finally:
+            conn.close()
 
     logger.info(f"💰 earn_tokens: user_id={user_id}, amount={amount}, reason={reason}")
 
