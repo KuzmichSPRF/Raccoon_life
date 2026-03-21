@@ -31,3 +31,11 @@ jobs:
             
             # Перезапуск сервиса
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
+script: |
+            cd ~/Raccoon_life_test
+            git fetch origin old-server
+            git reset --hard origin/old-server
+            source venv/bin/activate
+            # Добавляем flask-limiter в список
+            pip install flask flask-cors flask-limiter python-telegram-bot python-dotenv requests
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
