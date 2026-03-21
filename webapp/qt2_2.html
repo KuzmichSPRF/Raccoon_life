@@ -139,9 +139,9 @@
         }
 
         @media (max-width: 768px) {
-            body { display: block; overflow-y: auto; }
+            body { flex-direction: column; display: flex; }
             #sidebar { 
-                position: sticky; top: 0; z-index: 100; background: #0a0a0a;
+                position: relative; z-index: 100; flex-shrink: 0; background: #0a0a0a;
                 width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); 
                 display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; 
             }
@@ -161,7 +161,7 @@
             }
             #inventory > div:first-child { display: none; }
             .seal { margin: 0; font-size: 0.75rem; }
-            #main-content { overflow-y: visible; padding-bottom: 80px; }
+            #main-content { padding-bottom: 80px; }
             .blind-form { grid-template-columns: 1fr; }
             #end-screen .glitch-title { font-size: 2rem; }
         }
