@@ -260,6 +260,7 @@
     .history-red { background: #ff4444; }
     .history-black { background: #333; }
     .history-green { background: #00ff88; color: #000; }
+    .history-jackpot { background: #ffd700; color: #000; }
     
     .stats {
       display: grid;
@@ -351,6 +352,14 @@
       <div class="stat-value" id="total-spent">0</div>
       <div class="stat-label">Всего ставок</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-cones-won" style="color: var(--win);">0</div>
+      <div class="stat-label">Выиграно 🌲</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="total-cones-lost" style="color: var(--lose);">0</div>
+      <div class="stat-label">Проиграно 🌲</div>
+    </div>
   </div>
 
   <div class="history">
@@ -359,7 +368,8 @@
   </div>
 
   <div class="info-box">
-    🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)
+    🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>
+    💎 Шанс <strong>0.1%</strong> на Джекпот <strong>x100</strong>!
   </div>
 
   <script>
@@ -368,16 +378,16 @@
       ru: {
         t1: "🎰 Енотная Рулетка", t2: " Шишек", r: "Сделайте ставку и крутите колесо!",
         l1: "Ставка:", b1: "🔴 Красное (x2)", b2: "🟢 Зеро (x14)", b3: "⚫ Чёрное (x2)",
-        c: "Выбор: ", s: "🎲 Крутить!", st1: "Побед", st2: "Всего ставок", h: "📊 История",
-        info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)",
+        c: "Выбор: ", s: "🎲 Крутить!", st1: "Побед", st2: "Всего ставок", st3: "Выиграно 🌲", st4: "Проиграно 🌲", h: "📊 История",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 🟢 0, 🔴 1-7, ⚫ 8-14<br>💎 Шанс <strong>0.1%</strong> на Джекпот <strong>x100</strong>!",
         red: "🔴 Красное", black: "⚫ Чёрное", green: "🟢 Зеро",
         noCones: "❌ Недостаточно шишек!", win: "🎉 Победа! +", lose: "😢 Проигрыш -"
       },
       en: {
         t1: "🎰 Raccoon Roulette", t2: " Cones", r: "Place your bet and spin the wheel!",
         l1: "Bet:", b1: "🔴 Red (x2)", b2: "🟢 Zero (x14)", b3: "⚫ Black (x2)",
-        c: "Choice: ", s: "🎲 Spin!", st1: "Wins", st2: "Total Bet", h: "📊 History",
-        info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)",
+        c: "Choice: ", s: "🎲 Spin!", st1: "Wins", st2: "Total Bet", st3: "Won 🌲", st4: "Lost 🌲", h: "📊 History",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 🟢 0, 🔴 1-7, ⚫ 8-14<br>💎 <strong>0.1%</strong> chance for <strong>x100</strong> Jackpot!",
         red: "🔴 Red", black: "⚫ Black", green: "🟢 Zero",
         noCones: "❌ Not enough cones!", win: "🎉 Victory! +", lose: "😢 Defeat -"
       }
@@ -388,11 +398,10 @@
     let currentBet = null;
     let betAmount = 10;
     let isSpinning = false;
-    let stats = { wins: 0, totalBet: 0 };
+    let stats = { wins: 0, totalBet: 0, conesWon: 0, conesLost: 0 };
     let history = [];
     
-    // Конфигурация рулетки (15 секторов: 1 зелёный, 7 красных, 7 чёрных)
-    // RTP 95% достигается за счёт множителей
+    // Конфигурация рулетки (16 секторов: 1 зелёный, 1 джекпот, 7 красных, 7 чёрных)
     const segments = [
       { type: 'green', value: 0 },  // 0 - зелёный
       { type: 'red', value: 1 },
@@ -402,6 +411,7 @@
       { type: 'red', value: 5 },
       { type: 'black', value: 6 },
       { type: 'red', value: 7 },
+      { type: 'jackpot', value: 777 },
       { type: 'black', value: 8 },
       { type: 'red', value: 9 },
       { type: 'black', value: 10 },
@@ -463,6 +473,26 @@
       }
     }
 
+    // Загрузка статистики с сервера
+    async function loadServerStats() {
+      if (!tgUserId) return;
+      try {
+        const res = await fetch(`/api/player_stats?userId=${tgUserId}`);
+        const data = await res.json();
+        if (data.status === 'ok' && data.stats) {
+          stats.wins = data.stats.roulette_wins || stats.wins;
+          stats.conesWon = data.stats.roulette_cones_won || stats.conesWon;
+          stats.conesLost = data.stats.roulette_cones_lost || stats.conesLost;
+          
+          document.getElementById('total-wins').innerText = stats.wins.toLocaleString('ru-RU');
+          document.getElementById('total-cones-won').innerText = stats.conesWon.toLocaleString('ru-RU');
+          document.getElementById('total-cones-lost').innerText = stats.conesLost.toLocaleString('ru-RU');
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки серверной статистики:', e);
+      }
+    }
+
     // Обновление баланса UI (используется при изменении в игре)
     function updateBalanceUI(newBalance) {
       balance = newBalance;
@@ -474,16 +504,44 @@
     // Отрисовка колеса
     function renderWheel() {
       const wheel = document.getElementById('wheel');
+      wheel.innerHTML = ''; // Очищаем старые элементы перед отрисовкой
       const segmentAngle = 360 / segments.length;
       
       // Создаём conic-gradient для фона
       const gradientParts = segments.map((seg, i) => {
-        const color = seg.type === 'green' ? '#00ff88' : (seg.type === 'red' ? '#ff4444' : '#333');
+        const color = seg.type === 'green' ? '#00ff88' : 
+                     (seg.type === 'red' ? '#ff4444' : 
+                     (seg.type === 'jackpot' ? '#ffd700' : '#333'));
         const start = i * segmentAngle;
         const end = (i + 1) * segmentAngle;
         return `${color} ${start}deg ${end}deg`;
       });
       wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+
+      // Добавляем иконки на зелёный сектор и джекпот
+      segments.forEach((seg, i) => {
+        if (seg.type === 'green' || seg.type === 'jackpot') {
+          const iconEl = document.createElement('div');
+          iconEl.style.position = 'absolute';
+          iconEl.style.top = '0';
+          iconEl.style.left = '50%';
+          iconEl.style.width = '30px';
+          iconEl.style.height = '50%';
+          iconEl.style.marginLeft = '-15px';
+          iconEl.style.transformOrigin = 'bottom center';
+          iconEl.style.transform = `rotate(${i * segmentAngle + segmentAngle / 2}deg)`;
+          iconEl.style.display = 'flex';
+          iconEl.style.flexDirection = 'column';
+          iconEl.style.alignItems = 'center';
+          iconEl.style.paddingTop = '8px';
+          if (seg.type === 'green') {
+            iconEl.innerHTML = '<span style="color:#000; font-weight:800; font-size:18px;">0</span>';
+          } else {
+            iconEl.innerHTML = '<span style="font-size:14px; margin-bottom:1px;">💎</span><span style="color:#000; font-weight:900; font-size:8px; line-height:1;">x100</span>';
+          }
+          wheel.appendChild(iconEl);
+        }
+      });
     }
 
     // Выбор ставки
@@ -564,6 +622,21 @@
       wheel.style.transition = 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
       wheel.style.transform = `rotate(${totalRotation}deg)`;
       
+      // Анимация центра колеса при джекпоте
+      const centerEl = document.querySelector('.wheel-center');
+      centerEl.style.transition = 'all 0.3s';
+      if (result.isJackpot) {
+        centerEl.innerHTML = '💎';
+        centerEl.style.background = 'linear-gradient(145deg, #ffd700, #ffaa00)';
+        centerEl.style.boxShadow = '0 0 40px #ffd700';
+        centerEl.style.fontSize = '2rem';
+      } else {
+        centerEl.innerHTML = '🦝';
+        centerEl.style.background = 'linear-gradient(145deg, #2a2a35, #1f1f28)';
+        centerEl.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
+        centerEl.style.fontSize = '1.5rem';
+      }
+      
       // Запускаем музыку при вращении
       if (rouletteMusic) {
         rouletteMusic.volume = 0.3;
@@ -583,13 +656,21 @@
       
         if (result.win) {
           stats.wins++;
-          document.getElementById('total-wins').innerText = stats.wins;
-          showResult(`${t.win}${result.winAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'win');
+          stats.conesWon += result.winAmount;
+          document.getElementById('total-wins').innerText = stats.wins.toLocaleString('ru-RU');
+          document.getElementById('total-cones-won').innerText = stats.conesWon.toLocaleString('ru-RU');
+          if (result.isJackpot) {
+            showResult(`💎 ДЖЕКПОТ! x100! +${result.winAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'win');
+          } else {
+            showResult(`${t.win}${result.winAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'win');
+          }
           addToHistory(result.number, result.type, true);
           // Начисляем выигрыш
           balance += result.winAmount;
           updateBalanceUI(balance);
         } else {
+          stats.conesLost += betAmount;
+          document.getElementById('total-cones-lost').innerText = stats.conesLost.toLocaleString('ru-RU');
           showResult(`${t.lose}${betAmount} ${lang === 'ru' ? 'Шишек' : 'Cones'}`, 'lose');
           addToHistory(result.number, result.type, false);
         }
@@ -626,7 +707,8 @@
             number: data.result.number,
             type: data.result.type,
             win: data.win,
-            winAmount: data.winAmount || 0
+            winAmount: data.winAmount || 0,
+            isJackpot: data.isJackpot || false
           };
         }
       } catch (e) {
@@ -639,19 +721,29 @@
 
     // Локальная генерация результата (если API недоступно)
     function generateLocalResult(betType, amount) {
-      const randIndex = Math.floor(Math.random() * segments.length);
-      const segment = segments[randIndex];
+      const normalSegments = segments.filter(s => s.type !== 'jackpot');
+      const randIndex = Math.floor(Math.random() * normalSegments.length);
+      let segment = normalSegments[randIndex];
 
       let win = false;
-      if (betType === 'red' && segment.type === 'red') win = true;
-      else if (betType === 'black' && segment.type === 'black') win = true;
-      else if (betType === 'green' && segment.type === 'green') win = true;
+      let isJackpot = false;
+      
+      if (Math.random() < 0.001) {
+        isJackpot = true;
+        win = true;
+        segment = segments.find(s => s.type === 'jackpot');
+      } else {
+        if (betType === 'red' && segment.type === 'red') win = true;
+        else if (betType === 'black' && segment.type === 'black') win = true;
+        else if (betType === 'green' && segment.type === 'green') win = true;
+      }
 
       return {
         number: segment.value,
         type: segment.type,
         win: win,
-        winAmount: win ? Math.floor(amount * multipliers[betType]) : 0
+        winAmount: win ? (isJackpot ? amount * 100 : Math.floor(amount * multipliers[betType])) : 0,
+        isJackpot: isJackpot
       };
     }
 
@@ -672,7 +764,7 @@
       history.forEach(item => {
         const el = document.createElement('div');
         el.className = `history-item history-${item.type}`;
-        el.innerText = item.number;
+        el.innerText = item.type === 'jackpot' ? '💎' : item.number;
         if (item.win) {
           el.style.boxShadow = '0 0 10px var(--win)';
           el.style.border = '2px solid var(--win)';
@@ -694,18 +786,21 @@
       document.getElementById('spin-btn').innerText = t.s;
       document.querySelectorAll('.stat-label')[0].innerText = t.st1;
       document.querySelectorAll('.stat-label')[1].innerText = t.st2;
+      document.querySelectorAll('.stat-label')[2].innerText = t.st3;
+      document.querySelectorAll('.stat-label')[3].innerText = t.st4;
       document.querySelector('.history-title').innerText = t.h;
       document.querySelector('.info-box').innerHTML = t.info;
 
       renderWheel();
-      // Не загружаем баланс с сервера - получим от родителя
       
-      // Загрузка статистики из localStorage
+      // Загрузка статистики из localStorage (как временное решение до загрузки с сервера)
       const savedStats = localStorage.getItem('roulette_stats');
       if (savedStats) {
-        stats = JSON.parse(savedStats);
-        document.getElementById('total-wins').innerText = stats.wins;
-        document.getElementById('total-spent').innerText = stats.totalBet;
+        stats = Object.assign({ wins: 0, totalBet: 0, conesWon: 0, conesLost: 0 }, JSON.parse(savedStats));
+        document.getElementById('total-wins').innerText = stats.wins.toLocaleString('ru-RU');
+        document.getElementById('total-spent').innerText = stats.totalBet.toLocaleString('ru-RU');
+        document.getElementById('total-cones-won').innerText = stats.conesWon.toLocaleString('ru-RU');
+        document.getElementById('total-cones-lost').innerText = stats.conesLost.toLocaleString('ru-RU');
       }
     });
 
@@ -734,7 +829,10 @@
         console.log('💰 Получили баланс от родителя:', initBalance);
 
         // Дополнительно загружаем с сервера для синхронизации
-        setTimeout(() => loadBalance(), 100);
+        setTimeout(() => {
+          loadBalance();
+          loadServerStats();
+        }, 100);
         return;
       }
     });

@@ -157,6 +157,10 @@ def init_db():
                 vladeos_wins INTEGER DEFAULT 0,
                 tower_max_level INTEGER DEFAULT 0,
                 tower_total_levels INTEGER DEFAULT 0,
+                roulette_games INTEGER DEFAULT 0,
+                roulette_wins INTEGER DEFAULT 0,
+                roulette_cones_won INTEGER DEFAULT 0,
+                roulette_cones_lost INTEGER DEFAULT 0,
                 quests TEXT DEFAULT '[]',
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
@@ -291,6 +295,25 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: создана таблица user_tokens")
         except Exception as e:
             logger.error(f"Ошибка миграции user_tokens: {e}")
+
+    # Проверка наличия колонок рулетки в user_stats
+    cursor.execute("PRAGMA table_info(user_stats)")
+    user_stats_cols = {row[1] for row in cursor.fetchall()}
+    if 'roulette_games' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN roulette_games INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN roulette_wins INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлены колонки рулетки в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats roulette: {e}")
+
+    if 'roulette_cones_won' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN roulette_cones_won INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN roulette_cones_lost INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлены колонки roulette_cones в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats roulette_cones: {e}")
 
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
@@ -543,6 +566,10 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 vladeos_wins = MAX(vladeos_wins, ?),
                 tower_max_level = MAX(tower_max_level, ?),
                 tower_total_levels = MAX(tower_total_levels, ?),
+                roulette_games = MAX(roulette_games, ?),
+                roulette_wins = MAX(roulette_wins, ?),
+                roulette_cones_won = MAX(roulette_cones_won, ?),
+                roulette_cones_lost = MAX(roulette_cones_lost, ?),
                 quests = ?
             WHERE user_id = ?
         ''', (
@@ -552,6 +579,10 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('vladeos_wins', 0)),
             int(stats_data.get('tower_max_level', 0)),
             int(stats_data.get('tower_total_levels', 0)),
+            int(stats_data.get('roulette_games', 0)),
+            int(stats_data.get('roulette_wins', 0)),
+            int(stats_data.get('roulette_cones_won', 0)),
+            int(stats_data.get('roulette_cones_lost', 0)),
             json.dumps(merged_quests),
             user_id
         ))
@@ -676,7 +707,9 @@ def get_player_stats(user_id: int) -> dict:
     try:
         cursor.execute('''
             SELECT clown_games, clown_wins, vladeos_games, vladeos_wins,
-                   tower_max_level, tower_total_levels, quests
+                   tower_max_level, tower_total_levels, quests,
+                   roulette_games, roulette_wins,
+                   roulette_cones_won, roulette_cones_lost
             FROM user_stats WHERE user_id = ?
         ''', (user_id,))
         row = cursor.fetchone()
@@ -689,6 +722,10 @@ def get_player_stats(user_id: int) -> dict:
                 'vladeos_wins': row['vladeos_wins'],
                 'tower_max_level': row['tower_max_level'],
                 'tower_total_levels': row['tower_total_levels'],
+                'roulette_games': row['roulette_games'],
+                'roulette_wins': row['roulette_wins'],
+                'roulette_cones_won': row['roulette_cones_won'],
+                'roulette_cones_lost': row['roulette_cones_lost'],
                 'quests': json.loads(row['quests']) if row['quests'] else []
             }
         return {}
@@ -1328,7 +1365,8 @@ def api_casino_roulette():
 
         # Генерация случайного результата
         import random
-        result_segment = random.choice(segments)
+        normal_segments = [s for s in segments if s['type'] != 'jackpot']
+        result_segment = random.choice(normal_segments)
 
         # Проверка выигрыша
         win = False
@@ -1339,14 +1377,47 @@ def api_casino_roulette():
         elif bet_type == 'green' and result_segment['type'] == 'green':
             win = True
 
+        # ДЖЕКПОТ 0.1% (1 из 1000)
+        is_jackpot = False
+        if random.random() < 0.001:
+            is_jackpot = True
+            win = True
+            # При джекпоте колесо останавливается на специальном секторе
+            result_segment = {'type': 'jackpot', 'value': 777}
+
         win_amount = 0
         if win:
-            win_amount = int(bet_amount * multipliers.get(bet_type, 2))
-            # Начисляем выигрыш
-            add_tokens(user_id, win_amount, f'roulette_win:{bet_type}')
-            logger.info(f"🎰 Roulette WIN: user_id={user_id}, bet={bet_amount}, win={win_amount}")
+            if is_jackpot:
+                win_amount = bet_amount * 100
+                add_tokens(user_id, win_amount, f'roulette_jackpot:{bet_type}')
+                logger.info(f"💎 Roulette JACKPOT: user_id={user_id}, bet={bet_amount}, win={win_amount}")
+            else:
+                win_amount = int(bet_amount * multipliers.get(bet_type, 2))
+                add_tokens(user_id, win_amount, f'roulette_win:{bet_type}')
+                logger.info(f"🎰 Roulette WIN: user_id={user_id}, bet={bet_amount}, win={win_amount}")
         else:
             logger.info(f"🎰 Roulette LOSE: user_id={user_id}, bet={bet_amount}")
+
+        # Обновляем статистику рулетки
+        cones_won = win_amount if win else 0
+        cones_lost = bet_amount if not win else 0
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE user_stats SET 
+                    roulette_games = roulette_games + 1,
+                    roulette_wins = roulette_wins + ?,
+                    roulette_cones_won = roulette_cones_won + ?,
+                    roulette_cones_lost = roulette_cones_lost + ?
+                WHERE user_id = ?
+            ''', (1 if win else 0, cones_won, cones_lost, user_id))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Ошибка обновления статистики рулетки: {e}")
+        finally:
+            conn.close()
 
         return jsonify({
             'status': 'ok',
@@ -1355,7 +1426,8 @@ def api_casino_roulette():
                 'type': result_segment['type']
             },
             'win': win,
-            'winAmount': win_amount
+            'winAmount': win_amount,
+            'isJackpot': is_jackpot
         })
 
     except Exception as e:
@@ -1751,6 +1823,10 @@ def handle_sync_stats(data: dict):
         'vladeos_wins': validate_integer(data.get('vladeos_wins', 0), min_val=0, max_val=100000),
         'tower_max_level': validate_integer(data.get('tower_max_level', 0), min_val=0, max_val=10000),
         'tower_total_levels': validate_integer(data.get('tower_total_levels', 0), min_val=0, max_val=1000000),
+        'roulette_games': validate_integer(data.get('roulette_games', 0), min_val=0, max_val=1000000),
+        'roulette_wins': validate_integer(data.get('roulette_wins', 0), min_val=0, max_val=1000000),
+        'roulette_cones_won': validate_integer(data.get('roulette_cones_won', 0), min_val=0, max_val=1000000000),
+        'roulette_cones_lost': validate_integer(data.get('roulette_cones_lost', 0), min_val=0, max_val=1000000000),
         'quests': validate_list(data.get('quests', []), default=[])
     }
 
