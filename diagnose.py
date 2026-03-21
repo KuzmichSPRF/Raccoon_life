@@ -136,7 +136,7 @@ def check_dependencies():
     
     return all_installed
 
-def check_database_structure():
+def check_database_structure(): 
     """Проверка структуры базы данных"""
     print_subheader("Структура базы данных")
     
