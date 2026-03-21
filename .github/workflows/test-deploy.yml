@@ -9,33 +9,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # Обновили с v3 на v4
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Deploy to VPS via SSH
-        # Рекомендую также проверить наличие v3 или выше для ssh-action
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
+          # ВАЖНО: script должен быть сдвинут вправо (внутри with)
           script: |
             cd ~/Raccoon_life_test
             git fetch origin old-server
             git reset --hard origin/old-server
             
-            # Активируем venv и обновляем зависимости
             source venv/bin/activate
-            pip install python-telegram-bot python-dotenv requests
+            # Устанавливаем все найденные нами библиотеки
+            pip install python-telegram-bot python-dotenv requests flask flask-cors flask-limiter
             
             # Перезапуск сервиса
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
-script: |
-            cd ~/Raccoon_life_test
-            git fetch origin old-server
-            git reset --hard origin/old-server
-            source venv/bin/activate
-            # Добавляем flask-limiter в список
-            pip install flask flask-cors flask-limiter python-telegram-bot python-dotenv requests
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
