@@ -202,6 +202,13 @@
     .animate-attack {
       transform: translateX(50px) scale(1.2) !important;
     }
+    .boss-triangle.animate-boss-attack {
+      animation: bossAttackAnim 0.3s ease-in-out !important;
+    }
+    @keyframes bossAttackAnim {
+      0%, 100% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(-50px) scale(1.1); filter: drop-shadow(0 0 40px rgba(255, 0, 85, 0.9)); }
+    }
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -755,10 +762,6 @@
 
         // Ответ босса
         if (bossDamage > 0) {
-          playerHP -= bossDamage;
-          updatePlayerHP();
-          message += (lang === 'ru' ? ' Босс ответил на ' : ' Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
-          showDamageNumber(bossDamage, false, true);
           setTimeout(() => {
             playerHP -= bossDamage;
             updatePlayerHP();
@@ -767,6 +770,10 @@
             document.getElementById('msg').innerText = message + "\n" + counterMsg;
             document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
             showDamageNumber(bossDamage, false, true);
+
+            const bossEl = document.getElementById('boss');
+            bossEl.classList.add('animate-boss-attack');
+            setTimeout(() => bossEl.classList.remove('animate-boss-attack'), 300);
 
             const playerCap = document.getElementById('player-cap');
             playerCap.classList.add('hit');
