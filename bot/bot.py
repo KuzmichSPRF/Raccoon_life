@@ -49,7 +49,7 @@ except NameError:
 
 BOT_DIR = Path(_current_file).parent
 PROJECT_DIR = BOT_DIR.parent
-DB_PATH = str(BOT_DIR / "users.db")
+DB_PATH = str(BOT_DIR / "raccoon_main.db")
 WEBAPP_DIR = PROJECT_DIR / "webapp"
 
 logger.info(f"Database: {DB_PATH}")
