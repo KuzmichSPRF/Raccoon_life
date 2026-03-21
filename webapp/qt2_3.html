@@ -501,46 +501,53 @@
         // Игра: Flappy Bird (Пневмопочта)
         function startFlappy() {
             actionArea.innerHTML = `
-                <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer;">
+                <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer; touch-action:none;">
                     <div id="flappy-bird" style="width:20px; height:20px; background:var(--neon-pink); border-radius:50%; position:absolute; left:50px; top:115px;"></div>
-                    <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/6</div>
+                    <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/5</div>
                 </div>
-                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 6 труб.</div>
+                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 5 труб.</div>
             `;
-            let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop;
+            let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop, lastTime = 0;
             const gameDiv = document.getElementById('flappy-game');
             const birdDiv = document.getElementById('flappy-bird');
             const scoreDiv = document.getElementById('flappy-score');
 
-            const jump = () => { if(!isGameOver) velocity = -4.5; };
+            const jump = () => { if(!isGameOver) velocity = -4.0; };
             gameDiv.onmousedown = jump; gameDiv.ontouchstart = (e) => { e.preventDefault(); jump(); };
 
             function createPipe() {
-                let topHeight = Math.floor(Math.random() * 90) + 30;
+                let topHeight = Math.floor(Math.random() * 70) + 30; // Оставляем больше места
                 let topPipe = document.createElement('div');
                 topPipe.style.cssText = `position:absolute; top:0; left:350px; width:30px; height:${topHeight}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(topPipe);
                 let bottomPipe = document.createElement('div');
-                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 110}px; background:var(--neon-cyan);`;
+                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 130}px; background:var(--neon-cyan);`; // Увеличенный просвет
                 gameDiv.appendChild(bottomPipe);
                 pipes.push({ x: 350, top: topPipe, bottom: bottomPipe, passed: false });
             }
 
-            function update() {
+            function update(time) {
                 if (isGameOver) return;
-                velocity += 0.3; birdY += velocity; birdDiv.style.top = birdY + 'px';
+                if (!lastTime) lastTime = time;
+                let dt = (time - lastTime) / 16.666; // Стабилизация для 120Hz/90Hz экранов
+                if (dt > 3) dt = 1;
+                lastTime = time;
+
+                velocity += 0.22 * dt; birdY += velocity * dt; birdDiv.style.top = birdY + 'px';
                 if (birdY < 0 || birdY > 230) { endGame(false); return; }
-                if (++frame % 90 === 0) createPipe();
+                
+                frame += dt;
+                if (frame >= 110) { createPipe(); frame = 0; }
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
-                    let p = pipes[i]; p.x -= 2; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
-                    let th = parseInt(p.top.style.height), bh = 250 - th - 110;
-                    if (50 + 20 > p.x && 50 < p.x + 30) {
-                        if (birdY < th || birdY + 20 > 250 - bh) { endGame(false); return; }
+                    let p = pipes[i]; p.x -= 1.5 * dt; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
+                    let th = parseInt(p.top.style.height), bh = 250 - th - 130;
+                    if (50 + 15 > p.x && 50 + 5 < p.x + 30) { // Мягкий хитбокс
+                        if (birdY + 5 < th || birdY + 15 > 250 - bh) { endGame(false); return; }
                     }
                     if (!p.passed && p.x + 30 < 50) {
-                        p.passed = true; score++; scoreDiv.innerText = score + "/6";
-                        if (score >= 6) { endGame(true); return; }
+                        p.passed = true; score++; scoreDiv.innerText = score + "/5";
+                        if (score >= 5) { endGame(true); return; }
                     }
                     if (p.x < -30) { p.top.remove(); p.bottom.remove(); pipes.splice(i, 1); }
                 }
