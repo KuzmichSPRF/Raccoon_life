@@ -794,7 +794,7 @@
       })
       .catch(err => {
         console.error('Ошибка загрузки рейтинга:', err);
-        list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}</div>`;
+        list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
       });
 
     navigateTo('rating-screen');
