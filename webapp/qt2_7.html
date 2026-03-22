@@ -96,9 +96,11 @@
             .sidebar-title { display: none; }
             .floor-btn { margin: 0; padding: 5px; font-size: 0.75rem; text-align: center; }
             .reset-btn { grid-column: span 2; margin: 0; width: 100%; padding: 8px; }
-            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; z-index: 50; }
+            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); padding: 8px; z-index: 50; }
             #inventory > div:first-child { display: none; }
-            #main-content { padding-bottom: 80px; }
+            #inv-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+            .seal { font-size: 0.65rem; margin: 0; }
+            #main-content { padding-bottom: 140px; }
             button.action-btn { font-size: 0.9rem; padding: 12px; }
             .hiring-title { font-size: 1.8rem; }
         }
@@ -271,7 +273,7 @@
                 
                 runJumps++;
                 let maxX = actionArea.clientWidth - 180; // ширина кнопки
-                let maxY = 200; // высота зоны
+                let maxY = window.innerWidth <= 768 ? 100 : 200; // ограничиваем по высоте на мобилках
                 btn.style.left = Math.max(0, Math.random() * maxX) + 'px';
                 btn.style.top = Math.max(0, Math.random() * maxY) + 'px';
                 
@@ -309,7 +311,7 @@
 
             const jump = () => {
                 let maxX = actionArea.clientWidth - 180;
-                let maxY = 200;
+                let maxY = window.innerWidth <= 768 ? 100 : 200; // ограничиваем по высоте на мобилках
                 btn.style.left = Math.max(0, Math.random() * maxX) + 'px';
                 btn.style.top = Math.max(0, Math.random() * maxY) + 'px';
             };

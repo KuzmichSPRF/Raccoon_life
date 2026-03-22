@@ -349,12 +349,18 @@
                 btn.style.fontSize = '0.85rem'; btn.style.textTransform = 'none';
                 btn.style.padding = '12px 15px'; btn.style.margin = '6px';
                 btn.innerText = ans.text;
+                btn.disabled = true; // Защита от мгновенного прокликивания
+                
                 btn.onclick = () => {
                     scores[ans.t]++;
                     qIndex++;
                     startTest();
                 };
                 ansArea.appendChild(btn);
+                
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 3000); // Кнопки разблокируются через 1 секунду
             });
         }
 
