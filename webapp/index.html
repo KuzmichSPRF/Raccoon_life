@@ -171,6 +171,16 @@
     </div>
   </div>
 
+  <!-- Season Complete Modal -->
+  <div id="season-complete-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal" style="border-color: var(--game-green); box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);">
+      <span class="tutorial-icon">🏆</span>
+      <h3 class="tutorial-title" data-i18n="season_complete_title">Сезон Завершен!</h3>
+      <p class="tutorial-desc" data-i18n="season_complete_desc">Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Raccoon Times!</p>
+      <button class="tutorial-btn" style="background: var(--game-green); color: black;" onclick="closeSeasonComplete()" data-i18n="btn_hooray">Ура!</button>
+    </div>
+  </div>
+
   <div id="cover-screen" class="screen active">
     <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
       <button class="lang-switcher" onclick="toggleLanguage()" id="lang-btn">RU</button>
@@ -270,7 +280,10 @@
       empty_rating: "Пока нет игроков в рейтинге. Стань первым! 🏆",
       error_rating: "Ошибка загрузки рейтинга",
       total_earned: "всего заработано",
-      balance_text: "Баланс"
+      balance_text: "Баланс",
+      season_complete_title: "Сезон Завершен!",
+      season_complete_desc: "Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Raccoon Times!",
+      btn_hooray: "Ура!"
     },
     en: {
       lang_btn: "EN",
@@ -294,7 +307,10 @@
       empty_rating: "No players in the rating yet. Be the first! 🏆",
       error_rating: "Error loading rating",
       total_earned: "total earned",
-      balance_text: "Balance"
+      balance_text: "Balance",
+      season_complete_title: "Season Completed!",
+      season_complete_desc: "You have successfully passed all circles of bureaucratic hell and completed the 2nd season of The Raccoon Times!",
+      btn_hooray: "Hooray!"
     }
   };
 
@@ -480,6 +496,15 @@
   function closeTokenBonus() {
     document.getElementById('token-bonus-overlay').classList.remove('active');
     localStorage.setItem('rl_welcome_bonus_shown', 'true');
+  }
+
+  function showSeasonCompletePopup() {
+    document.getElementById('season-complete-overlay').classList.add('active');
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  }
+
+  function closeSeasonComplete() {
+    document.getElementById('season-complete-overlay').classList.remove('active');
   }
 
   // ==================== API ====================
@@ -712,7 +737,18 @@
     let previousCompleted = true;
 
     cat.items.forEach((item, index) => {
-      const isCompleted = item.id && completed.includes(item.id);
+      let isCompleted = item.id && completed.includes(item.id);
+      
+      if (item.type === 'folder' && item.target) {
+        const targetCat = DATA[item.target];
+        if (targetCat && targetCat.items) {
+          const reqIds = targetCat.items.map(i => i.id).filter(i => i);
+          if (reqIds.length > 0 && reqIds.every(id => completed.includes(id))) {
+            isCompleted = true;
+          }
+        }
+      }
+
       const isQuestCategory = catKey === 'qt_2'; // Блокировка по порядку только для квестов
       const isLocked = isQuestCategory && index > 0 && !previousCompleted;
 

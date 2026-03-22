@@ -2006,6 +2006,8 @@ def handle_earn_tokens(data: dict):
         max_allowed = 1000  # welcome_bonus = 1000
     elif reason.startswith('quest_complete:'):
         max_allowed = 10000
+    elif reason == 'season_2_complete':
+        max_allowed = 50000
     elif reason.startswith('find_chip_win'):
         max_allowed = 100
 
@@ -2013,8 +2015,8 @@ def handle_earn_tokens(data: dict):
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")
         amount = max_allowed
         
-    # АНТИЧИТ: Проверка на повторное получение награды за квесты (защита от сброса кэша)
-    if reason.startswith('quest_complete:'):
+    # АНТИЧИТ: Проверка на повторное получение награды за квесты и сезон (защита от сброса кэша)
+    if reason.startswith('quest_complete:') or reason == 'season_2_complete':
         quest_id = reason.split(':', 1)[1] if ':' in reason else reason
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2029,10 +2031,10 @@ def handle_earn_tokens(data: dict):
                     pass
             
             if quest_id in existing_quests:
-                logger.warning(f"🚨 АНТИЧИТ: Игрок {user_id} пытается повторно получить награду за квест {quest_id}!")
-                return jsonify({'status': 'error', 'message': 'Quest already completed'}), 400
+                logger.warning(f"🚨 АНТИЧИТ: Игрок {user_id} пытается повторно получить награду за {quest_id}!")
+                return jsonify({'status': 'error', 'message': 'Reward already claimed'}), 400
             
-            # Сразу помечаем квест как выполненный, чтобы заблокировать параллельные абуз-запросы
+            # Сразу помечаем квест (или сезон) как выполненный, чтобы заблокировать абуз
             existing_quests.append(quest_id)
             cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
             conn.commit()
