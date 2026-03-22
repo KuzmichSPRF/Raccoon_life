@@ -100,6 +100,23 @@
     .lang-switcher { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
     .lang-switcher:active { transform: scale(0.95); }
     
+    /* Рейтинг Tabs */
+    .rating-tabs {
+      display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
+    }
+    .rating-tab {
+      flex: 1; padding: 12px; background: var(--card-bg); color: var(--text-sec);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer;
+      font-family: 'Montserrat', sans-serif; font-weight: 700; text-transform: uppercase;
+      font-size: 0.9rem; transition: 0.2s; text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .rating-tab.active {
+      background: var(--primary); color: white;
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    }
+
     /* Tutorial Modal Styles */
     .tutorial-overlay {
       position: fixed;
@@ -233,7 +250,11 @@
   </div>
 
   <div id="rating-screen" class="screen">
-    <h2 class="section-title" data-i18n="top_rich">🏆 Топ Богачей</h2>
+    <h2 class="section-title" style="text-align: center;" data-i18n="menu_rating">Рейтинг</h2>
+    <div class="rating-tabs">
+      <button class="rating-tab active" id="tab-tokens" onclick="loadLeaderboard('tokens')" data-i18n="tab_tokens">Богачи</button>
+      <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests')" data-i18n="tab_quests">Квесты</button>
+    </div>
     <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
@@ -270,7 +291,6 @@
       menu_partners: "Партнеры",
       menu_rating: "Рейтинг",
       menu_support: "Поддержать",
-      top_rich: "🏆 Топ Богачей",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
@@ -281,6 +301,9 @@
       error_rating: "Ошибка загрузки рейтинга",
       total_earned: "всего заработано",
       balance_text: "Баланс",
+      tab_tokens: "Богачи",
+      tab_quests: "Квесты",
+      completed_quests: "квестов пройдено",
       season_complete_title: "Сезон Завершен!",
       season_complete_desc: "Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Raccoon Times!",
       btn_hooray: "Ура!"
@@ -297,7 +320,6 @@
       menu_partners: "Partners",
       menu_rating: "Rating",
       menu_support: "Support",
-      top_rich: "🏆 Top Richest",
       reader_title: "Viewer",
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
@@ -308,6 +330,9 @@
       error_rating: "Error loading rating",
       total_earned: "total earned",
       balance_text: "Balance",
+      tab_tokens: "Richest",
+      tab_quests: "Quests",
+      completed_quests: "quests completed",
       season_complete_title: "Season Completed!",
       season_complete_desc: "You have successfully passed all circles of bureaucratic hell and completed the 2nd season of The Raccoon Times!",
       btn_hooray: "Hooray!"
@@ -467,6 +492,14 @@
 
     const userId = getUserId();
     if (!userId) return;
+    
+    // Проверяем флаг в локальных квестах
+    let completed = [];
+    try { completed = JSON.parse(localStorage.getItem('completed_items') || '[]'); } catch(e){}
+    if (completed.includes('welcome_bonus')) {
+        localStorage.setItem('rl_welcome_bonus_shown', 'true');
+        return;
+    }
 
     // Загружаем баланс и проверяем, есть ли 1000 шишек
     fetch(`/api/tokens?userId=${userId}`, {
@@ -479,10 +512,16 @@
     .then(res => res.json())
     .then(data => {
       if (data.status === 'ok' && data.tokens) {
-        // Показываем уведомление если баланс >= 1000 и ещё не показывали
-        if (data.tokens.balance >= 1000 && data.tokens.total_earned >= 1000) {
+        // Показываем уведомление (проверяем только total_earned, т.к. игрок мог уже потратить часть)
+        if (data.tokens.total_earned >= 1000) {
           showTokenBonus();
           localStorage.setItem('rl_welcome_bonus_shown', 'true');
+          
+          if (!completed.includes('welcome_bonus')) {
+             completed.push('welcome_bonus');
+             localStorage.setItem('completed_items', JSON.stringify(completed));
+             stats.quests = completed;
+          }
         }
       }
     })
@@ -512,7 +551,7 @@
     const userId = getUserId();
     if (!userId) {
       console.log('⚠️ No user_id, skipping API call');
-      return;
+      return Promise.resolve();
     }
 
     // Добавляем userId если нет в data
@@ -522,7 +561,7 @@
 
     console.log('📡 Sending to API:', data);
 
-    fetch('/api/sync', {
+    return fetch('/api/sync', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -539,6 +578,7 @@
       } else {
         console.error('❌ API error:', result.message);
       }
+      return result;
     })
     .catch(err => {
       console.error('❌ Network error:', err);
@@ -597,10 +637,10 @@
     };
 
     console.log('🌲 Earning tokens:', data);
-    sendToAPI(data);
-    
-    // Обновляем баланс в UI
-    loadTokenBalance();
+    sendToAPI(data).then(() => {
+      // Обновляем баланс в UI только после того, как сервер подтвердил зачисление
+      loadTokenBalance();
+    });
   }
 
   function loadTokenBalance() {
@@ -804,6 +844,21 @@
         earnTokens(10000, 'quest_complete:' + id);
       }
       
+      // Проверка на прохождение всего сезона 2
+      const qt2_quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7'];
+      if (qt2_quests.includes(id)) {
+          const isAllQt2Done = qt2_quests.every(q => completed.includes(q));
+          if (isAllQt2Done && !completed.includes('season_2_complete')) {
+              completed.push('season_2_complete');
+              localStorage.setItem('completed_items', JSON.stringify(completed));
+              stats.quests = completed;
+              
+              earnTokens(50000, 'season_2_complete');
+              setTimeout(() => showSeasonCompletePopup(), 800);
+              syncStats();
+          }
+      }
+      
       if (currentCategory) renderCategory(currentCategory);
     }
   }
@@ -846,14 +901,24 @@
   }
 
   function showLeaderboard() {
+    navigateTo('rating-screen');
+    loadLeaderboard('tokens');
+  }
+
+  function loadLeaderboard(type) {
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].loading_rating}</div>`;
 
-    // Sync stats when opening leaderboard
-    syncStats();
+    document.querySelectorAll('.rating-tab').forEach(t => t.classList.remove('active'));
+    const tabBtn = document.getElementById('tab-' + type);
+    if (tabBtn) tabBtn.classList.add('active');
+
+    if (type === 'tokens') {
+      syncStats(); // Синхронизируем статистику если открываем вкладку по умолчанию
+    }
 
     // Загрузка рейтинга из API
-    fetch(`/api/leaderboard?limit=20&t=${Date.now()}`, {
+    fetch(`/api/leaderboard?limit=20&type=${type}&t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -868,7 +933,7 @@
       })
       .then(data => {
         if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
-          renderLeaderboard(data.leaderboard);
+          renderLeaderboard(data.leaderboard, type);
         } else {
           list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].empty_rating}</div>`;
         }
@@ -877,8 +942,6 @@
         console.error('Ошибка загрузки рейтинга:', err);
         list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
       });
-
-    navigateTo('rating-screen');
   }
 
   function escapeHTML(str) {
@@ -894,7 +957,7 @@
     );
   }
 
-  function renderLeaderboard(players) {
+  function renderLeaderboard(players, type) {
     const list = document.getElementById('leaderboard-list');
     list.innerHTML = '';
 
@@ -909,24 +972,31 @@
       else if (p.rank === 2) { rankColor = '#c0c0c0'; rankIcon = '🥈'; }
       else if (p.rank === 3) { rankColor = '#cd7f32'; rankIcon = '🥉'; }
 
-      // Форматирование баланса токенов
-      const formattedBalance = p.balance.toLocaleString('ru-RU');
-      const earnedLabel = p.total_earned ? `(${i18n[currentLang].total_earned}: ${p.total_earned.toLocaleString('ru-RU')})` : '';
-      
       // Полное экранирование HTML для предотвращения XSS
       const safeName = escapeHTML(p.name);
-      const safeFormattedBalance = escapeHTML(formattedBalance);
-      const safeEarnedLabel = escapeHTML(earnedLabel);
       const safeRankIcon = escapeHTML(rankIcon);
 
-      div.innerHTML = `
-        <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
-        <div style="flex: 1;">
-          <div style="font-weight: 700;">${safeName}</div>
-        <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${safeFormattedBalance} ${i18n[currentLang].cones_plural} ${safeEarnedLabel}</div>
-        </div>
-        <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${safeFormattedBalance}</div>
-      `;
+      if (type === 'tokens') {
+          const formattedBalance = p.balance.toLocaleString('ru-RU');
+          const earnedLabel = p.total_earned ? `(${i18n[currentLang].total_earned}: ${p.total_earned.toLocaleString('ru-RU')})` : '';
+          div.innerHTML = `
+            <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 700;">${safeName}</div>
+            <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
+          `;
+      } else if (type === 'quests') {
+          div.innerHTML = `
+            <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 700;">${safeName}</div>
+              <div style="font-size: 0.75rem; color: var(--text-sec);">✅ ${i18n[currentLang].completed_quests}: ${p.quests_completed}</div>
+            </div>
+            <div style="font-size: 1.2rem; font-weight: 800; color: var(--game-green); text-align:right;">${p.quests_completed}</div>
+          `;
+      }
       list.appendChild(div);
     });
   }
@@ -1065,7 +1135,7 @@
       if (data.win && data.reward) {
         earnTokens(data.reward, 'find_chip_win');
       }
-      setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
+      // Баланс будет обновлен автоматически внутри earnTokens после ответа API
     }
 
     // Tower progress

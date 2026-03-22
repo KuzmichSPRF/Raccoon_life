@@ -316,6 +316,22 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats roulette_cones: {e}")
 
+    # Проверка наличия колонок квестов в user_stats
+    if 'quests_completed' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN quests_completed INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN last_quest_time TIMESTAMP")
+            
+            # Пытаемся автоматически посчитать количество квестов для старых игроков
+            try:
+                cursor.execute("UPDATE user_stats SET quests_completed = json_array_length(quests) WHERE quests IS NOT NULL AND quests != '[]'")
+            except Exception:
+                pass
+                
+            logger.info("Миграция: добавлены колонки quests_completed и last_quest_time в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats quests: {e}")
+
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -557,9 +573,13 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 
         incoming_quests = stats_data.get('quests', [])
         merged_quests = list(set(existing_quests + incoming_quests))
+        
+        # Если квестов стало больше, обновляем время
+        quests_updated = len(merged_quests) > len(existing_quests)
+        time_update_sql = ", last_quest_time = CURRENT_TIMESTAMP" if quests_updated else ""
 
         # Обновляем статистику
-        cursor.execute('''
+        cursor.execute(f'''
             UPDATE user_stats SET
                 clown_games = MAX(clown_games, ?),
                 clown_wins = MAX(clown_wins, ?),
@@ -571,7 +591,9 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 roulette_wins = MAX(roulette_wins, ?),
                 roulette_cones_won = MAX(roulette_cones_won, ?),
                 roulette_cones_lost = MAX(roulette_cones_lost, ?),
-                quests = ?
+                quests = ?,
+                quests_completed = ?
+                {time_update_sql}
             WHERE user_id = ?
         ''', (
             int(stats_data.get('clown_games', 0)),
@@ -585,6 +607,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('roulette_cones_won', 0)),
             int(stats_data.get('roulette_cones_lost', 0)),
             json.dumps(merged_quests),
+            len(merged_quests),
             user_id
         ))
         
@@ -875,6 +898,51 @@ def get_boss_leaderboard(limit: int = 10) -> list:
 
     except Exception as e:
         logger.error(f"Ошибка get_boss_leaderboard: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def get_quests_leaderboard(limit: int = 10) -> list:
+    """Получает топ игроков по количеству пройденных квестов"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Сортировка: сначала по количеству (убывание), затем по времени (возрастание - кто быстрее тот выше)
+        cursor.execute('''
+            SELECT
+                u.user_id,
+                u.username,
+                u.first_name,
+                u.last_name,
+                us.quests_completed,
+                us.last_quest_time
+            FROM user_stats us
+            JOIN users u ON us.user_id = u.user_id
+            WHERE us.quests_completed > 0
+            ORDER BY us.quests_completed DESC, us.last_quest_time ASC
+            LIMIT ?
+        ''', (limit,))
+
+        rows = cursor.fetchall()
+        leaderboard = []
+
+        for i, row in enumerate(rows):
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': row['user_id'],
+                'name': name,
+                'quests_completed': row['quests_completed']
+            })
+
+        return leaderboard
+    except Exception as e:
+        logger.error(f"Ошибка get_quests_leaderboard: {e}")
         return []
     finally:
         conn.close()
@@ -1202,12 +1270,18 @@ def api_get_leaderboard():
         limit = request.args.get('limit', 10)
         limit = int(limit) if limit else 10
         limit = min(limit, 100)  # Максимум 100 игроков
+        
+        lb_type = request.args.get('type', 'tokens')
 
-        leaderboard = get_leaderboard(limit)
+        if lb_type == 'quests':
+            leaderboard = get_quests_leaderboard(limit)
+        else:
+            leaderboard = get_leaderboard(limit)
 
         response = jsonify({
             'status': 'ok',
-            'leaderboard': leaderboard
+            'leaderboard': leaderboard,
+            'type': lb_type
         })
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
@@ -2015,8 +2089,8 @@ def handle_earn_tokens(data: dict):
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")
         amount = max_allowed
         
-    # АНТИЧИТ: Проверка на повторное получение награды за квесты и сезон (защита от сброса кэша)
-    if reason.startswith('quest_complete:') or reason == 'season_2_complete':
+    # АНТИЧИТ: Строгая проверка через БД на одноразовые награды
+    if reason.startswith('quest_complete:') or reason in ['season_2_complete', 'welcome_bonus']:
         quest_id = reason.split(':', 1)[1] if ':' in reason else reason
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -2034,9 +2108,24 @@ def handle_earn_tokens(data: dict):
                 logger.warning(f"🚨 АНТИЧИТ: Игрок {user_id} пытается повторно получить награду за {quest_id}!")
                 return jsonify({'status': 'error', 'message': 'Reward already claimed'}), 400
             
-            # Сразу помечаем квест (или сезон) как выполненный, чтобы заблокировать абуз
+            # Обратная совместимость для старых игроков (welcome_bonus)
+            if quest_id == 'welcome_bonus':
+                cursor.execute('SELECT total_earned FROM user_tokens WHERE user_id = ?', (user_id,))
+                t_row = cursor.fetchone()
+                if t_row and t_row[0] >= 1000:
+                    existing_quests.append(quest_id)
+                    cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
+                    conn.commit()
+                    return jsonify({'status': 'error', 'message': 'Reward already claimed (legacy)'}), 400
+
+            # Сразу помечаем квест (или бонус) как выполненный, чтобы заблокировать абуз
             existing_quests.append(quest_id)
-            cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
+            
+            if quest_id == 'welcome_bonus':
+                cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
+            else:
+                cursor.execute('''UPDATE user_stats SET quests = ?, quests_completed = ?, last_quest_time = CURRENT_TIMESTAMP WHERE user_id = ?''', 
+                               (json.dumps(existing_quests), len(existing_quests), user_id))
             conn.commit()
         except Exception as e:
             logger.error(f"Ошибка проверки квеста: {e}")
@@ -2093,25 +2182,25 @@ def handle_spend_tokens(data: dict):
 
 # ==================== TELEGRAM BOT ====================
 
-# Флаг для отслеживания начисления приветственных шишек (в памяти)
-WELCOME_BONUS_GRANTED = {}  # user_id -> True
-
 def has_received_welcome_bonus(user_id: int) -> bool:
-    """Проверяет получал ли пользователь приветственные шишки"""
-    # Проверяем в памяти
-    if user_id in WELCOME_BONUS_GRANTED:
-        return True
-    
-    # Проверяем в БД - ищем начисление welcome_bonus
+    """Проверяет получал ли пользователь приветственные шишки через БД"""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Проверяем есть ли запись о начислении welcome_bonus в total_earned
+        # 1. Проверяем наличие флага 'welcome_bonus' в массиве квестов
+        cursor.execute('SELECT quests FROM user_stats WHERE user_id = ?', (user_id,))
+        row_stats = cursor.fetchone()
+        if row_stats and row_stats['quests']:
+            try:
+                if 'welcome_bonus' in json.loads(row_stats['quests']):
+                    return True
+            except:
+                pass
+                
+        # 2. Обратная совместимость: если игрок уже заработал >= 1000 шишек
         cursor.execute('SELECT total_earned FROM user_tokens WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()
         if row and row[0] >= 1000:
-            # Если пользователь заработал >= 1000 шишек, считаем что он уже получил бонус
-            WELCOME_BONUS_GRANTED[user_id] = True
             return True
         return False
     except Exception as e:
@@ -2161,7 +2250,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Начисляем 1000 приветственных шишек
                 result = add_tokens(user.id, 1000, 'welcome_bonus')
                 if result:
-                    WELCOME_BONUS_GRANTED[user.id] = True
+                    # Записываем флаг в БД, чтобы больше не выдавать
+                    conn2 = get_db_connection()
+                    cursor2 = conn2.cursor()
+                    try:
+                        cursor2.execute('SELECT quests FROM user_stats WHERE user_id = ?', (user.id,))
+                        row_q = cursor2.fetchone()
+                        quests = json.loads(row_q['quests']) if row_q and row_q['quests'] else []
+                        if 'welcome_bonus' not in quests:
+                            quests.append('welcome_bonus')
+                            cursor2.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(quests), user.id))
+                            conn2.commit()
+                    except Exception as e:
+                        logger.error(f"Ошибка сохранения флага welcome_bonus: {e}")
+                    finally:
+                        conn2.close()
+
                     logger.info(f"🎁 Приветственные шишки начислены: user_id={user.id}, balance={result['balance']}")
 
                     # Отправляем приветственное сообщение
