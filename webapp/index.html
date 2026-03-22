@@ -633,6 +633,33 @@
       });
   }
 
+  function loadStatsFromServer() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    fetch(`/api/player_stats?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'X-Telegram-Init-Data': tg.initData || ''
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok' && data.stats) {
+        const serverQuests = data.stats.quests || [];
+        let localQuests = JSON.parse(localStorage.getItem('completed_items') || '[]');
+        
+        // Объединяем локальные и серверные квесты
+        const mergedQuests = Array.from(new Set([...localQuests, ...serverQuests]));
+        localStorage.setItem('completed_items', JSON.stringify(mergedQuests));
+        stats.quests = mergedQuests;
+      }
+    })
+    .catch(err => console.error('Ошибка загрузки статистики с сервера:', err));
+  }
+
   // ==================== NAVIGATION ====================
   function handleBack() {
     const current = document.querySelector('.screen.active').id;
@@ -1058,6 +1085,7 @@
     // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
     setTimeout(() => {
       loadTokenBalance();
+        loadStatsFromServer(); // Загружаем прогресс квестов с сервера
       checkWelcomeBonus(); // Проверяем и показываем уведомление о 1000 токенах
       console.log('🦝 Raccoon Life WebApp ready!');
       console.log('👤 User ID:', getUserId());
