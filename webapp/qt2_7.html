@@ -365,10 +365,10 @@
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
             
             showDialog("— Снова вы? Уже увольняетесь? Ну я же говорила... Ладно, вот ваш обходной лист для увольняющихся. Тут всего 100 инстанций... Начнем сначала?", () => {
-                addBtn('ПОЙТИ ПЛАКАТЬ (КОНЕЦ СЕЗОНА)', () => {
-                    document.getElementById('main-content').classList.add('hidden');
-                    document.getElementById('sidebar').classList.add('hidden');
-                    document.getElementById('end-screen').classList.remove('hidden');
+                addBtn('ПОЙТИ В БАР (ЗАВЕРШИТЬ)', () => {
+                    try { audioIntro.pause(); } catch(e){}
+                    try { audioBg.pause(); } catch(e){}
+                    window.parent.postMessage({ type: 'quest_complete', id: 'qt2_7' }, window.location.origin);
                 });
             });
         }
