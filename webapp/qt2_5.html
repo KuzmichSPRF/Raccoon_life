@@ -95,7 +95,7 @@
         /* --- ИГРА 4: СТЕЛС БИБЛИОТЕКА --- */
         #stealth-game { width: 100%; max-width: 400px; display: none; flex-direction: column; align-items: center; position: relative; }
         #stealth-bar { width: 100%; height: 40px; border: 2px solid var(--neon-cyan); position: relative; margin-bottom: 20px; background: #111; }
-        #stealth-zone { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(0, 255, 136, 0.4); border-left: 2px solid #0f8; border-right: 2px solid #0f8; }
+        #stealth-zone { position: absolute; left: 40%; width: 15%; height: 100%; background: rgba(0, 255, 136, 0.4); border-left: 2px solid #0f8; border-right: 2px solid #0f8; }
         #stealth-cursor { position: absolute; left: 0; top: -5px; width: 10px; height: 50px; background: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
         #fake-tg { position: absolute; top: 20%; left: 5%; width: 90%; background: #2b5278; color: white; padding: 20px; border-radius: 10px; z-index: 30; display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-family: sans-serif; }
         #fake-tg button { background: #4ca6ff; border: none; color: white; padding: 10px 20px; margin-top: 15px; border-radius: 5px; font-weight: bold; }
@@ -631,7 +631,7 @@
                 </div>
             `;
             
-            let pos = 0, dir = 4, score = 0, stealthInt, tgInt; // Скорость курсора еще выше (dir = 4)
+            let pos = 0, dir = 4, score = 0, stealthInt, tgInt; // Скорость курсора снижена (dir = 2)
             let isGameOver = false;
             const cursor = document.getElementById('stealth-cursor');
             const tgDiv = document.getElementById('fake-tg');
@@ -643,18 +643,18 @@
             }, 30);
 
             tgInt = setInterval(() => {
-                if(Math.random() < 0.5) {
+                if(Math.random() < 0.4) { // Уведомления появляются реже
                     tgDiv.style.display = 'block';
-                    setTimeout(() => { tgDiv.style.display = 'none'; }, 1200);
+                    setTimeout(() => { tgDiv.style.display = 'none'; }, 1200); // Висят чуть дольше
                 }
-            }, 1500); // Спам еще чаще
+            }, 2500);
 
             window.makeStep = function() {
                 if (isGameOver) return;
                 if (tgDiv.style.display === 'block') { failStealth('Вы отвлеклись на телефон!'); return; }
-                // Зеленая зона строго 45-55% (совпадает с визуалом)
-                if (pos >= 45 && pos <= 55) {
-                    score += 10; document.getElementById('st-score').innerText = score;
+                // Зеленая зона 40-60% (совпадает с визуалом)
+                if (pos >= 40 && pos <= 60) {
+                    score += 20; document.getElementById('st-score').innerText = score; // Очков за клик больше
                     tg.HapticFeedback.impactOccurred('light');
                     if(score >= 100) {
                         isGameOver = true;
