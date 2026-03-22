@@ -60,6 +60,7 @@
         .dialog-box {
             background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
             min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
+            overflow-wrap: break-word; word-wrap: break-word; flex-shrink: 0;
         }
         .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; position: relative;}
         
@@ -67,6 +68,7 @@
             background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
             padding: 15px 30px; font-size: 1.1rem; cursor: pointer; margin: 10px;
             font-family: inherit; text-transform: uppercase; transition: 0.3s;
+            width: 90%; max-width: 400px; box-sizing: border-box; white-space: normal; overflow-wrap: break-word;
         }
         button.action-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
         button.action-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
@@ -75,6 +77,7 @@
             background: transparent; border: 1px solid var(--neon-cyan); color: white;
             padding: 15px; font-family: inherit; text-align: center; outline: none; font-size: 1.2rem;
             margin-bottom: 15px;
+            width: 90%; max-width: 300px; box-sizing: border-box;
         }
 
         /* --- МИНИИГРА 1: ПАДАЮЩИЕ ЦИФРЫ --- */
@@ -97,15 +100,16 @@
             width: 100%; max-width: 500px; height: 250px; border: 1px solid var(--neon-pink);
             overflow-y: scroll; padding: 15px; background: #050505; color: #777; font-size: 0.8rem;
             display: none; position: relative;
+            overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden;
         }
         .eula-checkbox-container {
-            margin: 200px 0; color: var(--neon-cyan); font-size: 1rem; padding: 10px; border: 1px dashed #333;
+            width: 90%; left: 5%; background: rgba(10, 10, 10, 0.95); color: var(--neon-cyan); font-size: 0.9rem; padding: 10px; border: 1px dashed #333; box-sizing: border-box;
         }
 
         /* --- МИНИИГРА 3: ЧАЕПИТИЕ --- */
         #tea-timer-container {
-            width: 100%; max-width: 400px; height: 30px; border: 2px solid var(--neon-pink);
-            margin-top: 20px; position: relative; display: none;
+            width: 90%; max-width: 400px; height: 30px; border: 2px solid var(--neon-pink);
+            margin-top: 20px; position: relative; display: none; box-sizing: border-box;
         }
         #tea-timer-fill {
             height: 100%; background: var(--neon-pink); width: 0%; transition: width 0.1s linear;
@@ -434,9 +438,9 @@
         
         function startBalanceGame() {
             actionArea.innerHTML = `
-                <div style="font-size:1.5rem; color:var(--neon-yellow); margin-bottom:10px;">БАЛАНС: <span id="b-score">0</span> / 2026</div>
+                <div style="font-size:1.5rem; color:var(--neon-yellow); margin-bottom:10px; text-align:center;">БАЛАНС: <span id="b-score">0</span> / 2026</div>
                 <div id="balance-game" style="display:block;"></div>
-                <div style="font-size:0.8rem; margin-top:10px;">Ловите ТОЛЬКО четные суммы!</div>
+                <div style="font-size:0.8rem; margin-top:10px; text-align:center;">Ловите ТОЛЬКО четные суммы!</div>
             `;
             balanceScore = 0;
             const gameDiv = document.getElementById('balance-game');
@@ -449,20 +453,25 @@
             gameDiv.appendChild(coffee);
 
             coffeeInterval = setInterval(() => {
+                if(!gameDiv) return;
                 coffee.style.opacity = '1';
-                coffee.style.left = Math.random() * 150 + 'px';
-                coffee.style.top = Math.random() * 150 + 'px';
+                let maxX = gameDiv.clientWidth - 250; if(maxX < 0) maxX = 0;
+                let maxY = gameDiv.clientHeight - 150; if(maxY < 0) maxY = 0;
+                coffee.style.left = (Math.random() * maxX) + 'px';
+                coffee.style.top = (Math.random() * maxY) + 'px';
                 setTimeout(() => coffee.style.opacity = '0', 3000);
             }, 8000);
 
             const vals = [1000, 500, 200, 100, 50, 20, 6, 2, 7, 13, 99]; // четные и нечетные
             
             balanceInterval = setInterval(() => {
+                if(!gameDiv) return;
                 const num = document.createElement('div');
                 num.className = 'falling-number';
                 const val = vals[Math.floor(Math.random() * vals.length)];
                 num.innerText = '+' + val;
-                num.style.left = Math.random() * 300 + 'px';
+                let nMaxX = gameDiv.clientWidth - 60; if(nMaxX < 10) nMaxX = 250;
+                num.style.left = (Math.random() * nMaxX) + 'px';
                 num.style.top = '-30px';
                 
                 let y = -30;
@@ -512,7 +521,7 @@
                 <div id="tea-timer-container" style="display:block;">
                     <div id="tea-timer-fill"></div>
                 </div>
-                <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-pink); animation:blink 1s infinite;">НЕ ТРОГАЙТЕ ЭКРАН!</div>
+                <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-pink); animation:blink 1s infinite; text-align:center;">НЕ ТРОГАЙТЕ ЭКРАН!</div>
             `;
             
             let progress = 0;
