@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QT2: Финальное тестирование</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --bg-black: #050505;
+            --panel-bg: rgba(15, 15, 15, 0.95);
+        }
+        body {
+            margin: 0; background: var(--bg-black); color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        #sidebar {
+            width: 250px; background: #0a0a0a; border-right: 2px solid var(--neon-cyan);
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+            box-shadow: 2px 0 15px rgba(0, 255, 204, 0.2); z-index: 10;
+        }
+        .sidebar-title { font-weight: bold; text-align: center; margin-bottom: 20px; color: var(--neon-pink); border-bottom: 1px dashed var(--neon-pink); padding-bottom: 10px;}
+        .floor-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 10px; margin-bottom: 10px; cursor: pointer; text-align: left;
+            transition: 0.2s; border-radius: 0; font-family: inherit; font-size: 0.9rem;
+        }
+        .floor-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; }
+        .floor-btn.active { background: var(--neon-cyan); color: black; box-shadow: 0 0 10px var(--neon-cyan); }
+        .floor-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+        
+        #inventory { margin-top: auto; border-top: 1px dashed var(--neon-cyan); padding-top: 10px; font-size: 0.8rem; }
+        .seal { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #555; }
+        .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+
+        .reset-btn {
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            background: transparent; color: var(--neon-pink); cursor: pointer;
+            font-family: inherit; font-size: 0.8rem; text-transform: uppercase; width: 100%;
+        }
+
+        #main-content {
+            flex: 1; display: flex; flex-direction: column; padding: 20px;
+            overflow-y: auto; position: relative;
+        }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 250px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block;
+            flex-shrink: 0;
+        }
+        .character-header { font-size: 1.5rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink); text-align: center;}
+        .dialog-box {
+            background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
+            min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
+            overflow-wrap: break-word; word-wrap: break-word; flex-shrink: 0;
+        }
+        .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; position: relative;}
+        
+        button.action-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 15px; font-size: 1rem; cursor: pointer; margin: 8px;
+            font-family: inherit; text-transform: uppercase; transition: 0.3s;
+            width: 100%; max-width: 500px; box-sizing: border-box; white-space: normal;
+        }
+        button.action-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+        button.action-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+
+        .test-container {
+            width: 100%; max-width: 600px; border: 1px solid var(--neon-yellow);
+            padding: 15px; background: #0a0a0a; margin-bottom: 20px;
+        }
+        .test-question {
+            font-size: 1.2rem; color: var(--neon-yellow); margin-bottom: 15px;
+            text-align: center; border-bottom: 1px dashed var(--neon-yellow); padding-bottom: 10px;
+        }
+        .test-progress { font-size: 0.8rem; color: #777; text-align: right; margin-bottom: 5px; }
+
+        .cursor { border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite; display: inline-block; height: 1.1em; vertical-align: text-bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .hidden { display: none !important; }
+
+        #end-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; display: flex; }
+            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding: 10px; flex-shrink: 0;}
+            .sidebar-title { display: none; }
+            .floor-btn { margin: 0; padding: 5px; font-size: 0.75rem; text-align: center; }
+            .reset-btn { grid-column: span 2; margin: 0; width: 100%; padding: 8px; }
+            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; z-index: 50; }
+            #inventory > div:first-child { display: none; }
+            #main-content { padding-bottom: 80px; }
+            button.action-btn { font-size: 0.9rem; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="intro-music">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="sidebar">
+        <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
+        <button class="floor-btn" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Отдел Кадров</button>
+        <button class="floor-btn hidden" id="btn-f100" onclick="loadFloor(100)">Черные Двери (Босс)</button>
+        
+        <div id="inventory">
+            <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- СТАТУС ДОКУМЕНТОВ ---</div>
+            <div class="seal active" id="inv-obhod">✅ Обходной лист закрыт</div>
+            <div class="seal" id="inv-test">📊 Профиль DISC: Ожидание</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="character-header" id="char-name">ЛИФТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена" onerror="this.onerror=null; this.src='https://via.placeholder.com/500x250/0a0a0a/ff00ff?text=IMAGE+404';">
+        <div class="dialog-box" id="dialog-container">
+            <span id="dialog-text">Поднимаемся обратно на 69-й этаж. Время финальных проверок.</span><span id="dialog-cursor" class="cursor hidden"></span>
+        </div>
+        <div class="action-area" id="action-area">
+            <button class="action-btn" onclick="loadFloor(69)">Войти в Отдел Кадров</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        // --- АУДИО (ФОН) ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/8%20-%20Stage%202%20Sunken%20Ship.mp3');
+        audioBg.volume = 0.4;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() { audioBg.play().catch(()=>{}); }, { once: true });
+
+        const audioIntro = document.getElementById('intro-music');
+        let clickCtx;
+        function playClick() {
+            try {
+                if (!clickCtx) clickCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = clickCtx.createOscillator();
+                const gain = clickCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, clickCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, clickCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(clickCtx.destination);
+                osc.start(); osc.stop(clickCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
+
+        // --- STATE MANAGEMENT ---
+        let pState = JSON.parse(localStorage.getItem('qt2_6_progress')) || {
+            test_passed: false, test_result: null, current_floor: null
+        };
+
+        function updateFloorLocks() {
+            const btn100 = document.getElementById('btn-f100');
+            if (btn100) btn100.classList.toggle('hidden', !pState.test_passed);
+        }
+
+        const charName = document.getElementById('char-name');
+        const actionArea = document.getElementById('action-area');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCursor = document.getElementById('dialog-cursor');
+        let typingTimeout;
+
+        function saveState() {
+            localStorage.setItem('qt2_6_progress', JSON.stringify(pState));
+            if (pState.test_passed) {
+                document.getElementById('inv-test').classList.add('active');
+                document.getElementById('inv-test').innerText = `📊 Профиль: ${pState.test_result.type}`;
+            }
+            updateFloorLocks();
+        }
+        saveState();
+
+        function resetProgress() {
+            if (confirm("Удалить результаты тестирования и начать заново?")) {
+                localStorage.removeItem('qt2_6_progress'); location.reload();
+            }
+        }
+
+        function showDialog(text, callback) {
+            clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            try { audioIntro.currentTime = 0; audioIntro.play().catch(()=>{}); } catch(e){}
+
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i); i++;
+                    typingTimeout = setTimeout(typeNext, 20);
+                } else {
+                    try { audioIntro.pause(); } catch(e){}
+                    dialogCursor.classList.add('hidden');
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function addBtn(text, onclick) {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn'; btn.innerText = text; btn.onclick = onclick;
+            actionArea.appendChild(btn); return btn;
+        }
+
+        function loadFloor(floor) {
+            document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-f${floor}`).classList.add('active');
+            actionArea.innerHTML = '';
+            const img = document.getElementById('floor-image');
+            img.classList.remove('hidden');
+            pState.current_floor = floor; saveState();
+
+            if (floor === 69) initFloor69();
+            if (floor === 100) initFloor100();
+        }
+
+        // ================= ЭТАЖ 69: ОТДЕЛ КАДРОВ =================
+        const testQuestions = [
+            {q: "В конфликтной ситуации с коллегами вы обычно:", a: [{t:"D",text:"Жестко настаиваю на своем решении."},{t:"I",text:"Пытаюсь разрядить обстановку шуткой."},{t:"S",text:"Ищу компромисс и уступаю."},{t:"C",text:"Обращаюсь к должностным инструкциям."}]},
+            {q: "Получив новую сложную задачу, вы в первую очередь:", a: [{t:"D",text:"Сразу берусь за дело, разберемся по ходу."},{t:"I",text:"Собираю команду на мозговой штурм."},{t:"S",text:"Прошу четкие инструкции и время на подготовку."},{t:"C",text:"Анализирую риски и составляю подробный план."}]},
+            {q: "В работе для вас важнее всего:", a: [{t:"D",text:"Достижение амбициозных целей и власть."},{t:"I",text:"Признание, похвала и общение с людьми."},{t:"S",text:"Стабильность и надежная команда."},{t:"C",text:"Высокое качество и отсутствие ошибок."}]},
+            {q: "Кто-то из отдела снова не помыл кружку на кухне:", a: [{t:"D",text:"Громко выясню, чья это кружка, и заставлю вымыть."},{t:"I",text:"Напишу забавный стикер-мем и приклею на раковину."},{t:"S",text:"Молча помою сам, чтобы не раздувать скандал."},{t:"C",text:"Напишу жалобу завхозу на нарушение регламента."}]},
+            {q: "На совещании кто-то предлагает абсурдную идею:", a: [{t:"D",text:"Сразу обрываю и говорю, что это бред."},{t:"I",text:"Громко смеюсь и предлагаю идею еще безумнее."},{t:"S",text:"Молчу, чтобы не обидеть человека."},{t:"C",text:"Прошу предоставить расчеты окупаемости этой идеи."}]},
+            {q: "До дедлайна 1 час, а проект готов на 50%:", a: [{t:"D",text:"Беру всё в свои руки, заставляю всех пахать быстрее."},{t:"I",text:"Паникую, бегаю по офису, подбадриваю коллег."},{t:"S",text:"Спокойно продолжаю делать свою часть работы."},{t:"C",text:"Пишу письмо руководству с анализом причин провала."}]},
+            {q: "Как выглядит ваш рабочий стол?", a: [{t:"D",text:"Только то, что нужно для достижения текущей цели."},{t:"I",text:"Кружки, стикеры, игрушки, полный хаос."},{t:"S",text:"Фото семьи, цветок, привычный порядок годами."},{t:"C",text:"Идеальная чистота, всё разложено по папкам."}]},
+            {q: "Вы обнаружили ошибку в работе Босса:", a: [{t:"D",text:"Прямо скажу ему об этом в лицо."},{t:"I",text:"Расскажу всем коллегам в курилке."},{t:"S",text:"Попробую незаметно исправить сам."},{t:"C",text:"Составлю отчет об ошибке с доказательствами."}]},
+            {q: "На ваш компьютер установили новую ОС:", a: [{t:"D",text:"Требую вернуть старую, она работала быстрее!"},{t:"I",text:"Ого, какие красивые новые иконки!"},{t:"S",text:"Главное, чтобы мои старые файлы не пропали."},{t:"C",text:"Изучаю мануал и настройки приватности."}]},
+            {q: "В офисе сломалась кофемашина:", a: [{t:"D",text:"Звоню в сервис и требую починить за час."},{t:"I",text:"Предлагаю всем пойти в кофейню на улице!"},{t:"S",text:"Пью чай, ничего страшного."},{t:"C",text:"Пытаюсь починить сам по инструкции из интернета."}]},
+            {q: "Ваш стиль общения в рабочих чатах:", a: [{t:"D",text:"Коротко: 'Сделай', 'Сроки?', 'Ок'."},{t:"I",text:"Голосовые сообщения по 3 минуты и куча эмодзи."},{t:"S",text:"Вежливые просьбы: 'Коллеги, не могли бы вы...'."},{t:"C",text:"Развернутые тексты со списками и пунктами."}]},
+            {q: "Как вы планируете свой отпуск?", a: [{t:"D",text:"Решаю за день до вылета, еду туда, где престижно."},{t:"I",text:"Спонтанно, главное чтобы была крутая компания!"},{t:"S",text:"Езжу в одно и то же проверенное место годами."},{t:"C",text:"Планирую за полгода, составляю Excel-таблицу."}]},
+            {q: "В компании вводят жесткий дресс-код:", a: [{t:"D",text:"Игнорирую. Мои результаты важнее костюма."},{t:"I",text:"Начну носить яркие галстуки или нестандартные носки."},{t:"S",text:"Смирюсь, правила есть правила."},{t:"C",text:"Изучу регламент, чтобы знать точную длину рукава."}]},
+            {q: "При найме нового сотрудника вы обращаете внимание на:", a: [{t:"D",text:"Его амбиции и готовность пахать."},{t:"I",text:"Его харизму и чувство юмора."},{t:"S",text:"Его стабильность и лояльность."},{t:"C",text:"Его диплом, сертификаты и точные навыки."}]},
+            {q: "Завтра важная презентация, а слайды не готовы:", a: [{t:"D",text:"Набросаю 3 слайда и вытяну всё на уверенности."},{t:"I",text:"Сымпровизирую, главное красиво говорить!"},{t:"S",text:"Буду сидеть всю ночь, чтобы не подвести команду."},{t:"C",text:"Отменю встречу, так как данные не верифицированы."}]},
+            {q: "Ваше отношение к переработкам:", a: [{t:"D",text:"Готов ночевать в офисе ради повышения."},{t:"I",text:"Останусь, если мы закажем пиццу на всех!"},{t:"S",text:"Я не люблю переработки, но не могу отказать."},{t:"C",text:"Я работаю строго с 9 до 18 по ТК РФ."}]},
+            {q: "Вы получили премию больше, чем ожидали:", a: [{t:"D",text:"Я это заслужил. Потребую еще больше."},{t:"I",text:"Ура! Угощаю весь отдел кофе!"},{t:"S",text:"Отложу на черный день или в копилку."},{t:"C",text:"Напишу в бухгалтерию, возможно, ошибка в расчетах."}]},
+            {q: "Новый клиент оказался очень токсичным:", a: [{t:"D",text:"Ставлю его на место или отказываюсь работать."},{t:"I",text:"Пытаюсь его заболтать и подружиться."},{t:"S",text:"Терплю и вежливо отвечаю на все выпады."},{t:"C",text:"Общаюсь исключительно через официальные письма."}]},
+            {q: "Вы узнали, что коллега получает больше вас:", a: [{t:"D",text:"Иду к Боссу и требую повышения с цифрами в руках."},{t:"I",text:"Громко возмущаюсь при всех в кабинете."},{t:"S",text:"Расстраиваюсь, но продолжаю тихо работать."},{t:"C",text:"Собираю статистику по рынку труда для аргументации."}]},
+            {q: "Как вы относитесь к сплетням в офисе?", a: [{t:"D",text:"Использую их для получения рычагов влияния."},{t:"I",text:"Обожаю! Я главный источник всех новостей."},{t:"S",text:"Стараюсь не участвовать, это вредит коллективу."},{t:"C",text:"Это неэффективный обмен непроверенной информацией."}]},
+            {q: "Как вы принимаете критику от руководства?", a: [{t:"D",text:"Спорю и доказываю свою правоту."},{t:"I",text:"Обижаюсь, но быстро забываю."},{t:"S",text:"Молча выслушиваю и переживаю в себе."},{t:"C",text:"Записываю пункты и требую конкретных примеров."}]},
+            {q: "Отношение к бюрократии:", a: [{t:"D",text:"Терпеть не могу, она тормозит бизнес."},{t:"I",text:"Постоянно забываю заполнять формы и теряю их."},{t:"S",text:"Заполняю, потому что так принято в компании."},{t:"C",text:"Бюрократия — это основа порядка и контроля."}]},
+            {q: "В лифте вы оказались наедине с гендиректором:", a: [{t:"D",text:"Предлагаю ему свою идею реорганизации отдела."},{t:"I",text:"Делаю комплимент его часам и болтаю о погоде."},{t:"S",text:"Смотрю в телефон, здороваюсь и молчу."},{t:"C",text:"Кратко докладываю статус текущих метрик."}]},
+            {q: "Ваш любимый способ обмена информацией:", a: [{t:"D",text:"Звонок. Решаем вопрос за 1 минуту."},{t:"I",text:"Личная встреча с кофе и бурными обсуждениями."},{t:"S",text:"Общий чат, где все всё видят и никто не забыт."},{t:"C",text:"Детальное электронное письмо с вложениями."}]},
+            {q: "Идеальное завершение рабочей недели:", a: [{t:"D",text:"Выполнил план на 150%, обошел конкурентов."},{t:"I",text:"Шумный поход в бар с коллегами."},{t:"S",text:"Тихий вечер дома с пледом и сериалом."},{t:"C",text:"Все отчеты сданы, во входящих ноль писем."}]},
+            {q: "Вам дали подчиненного, который постоянно тупит:", a: [{t:"D",text:"Увольняю в тот же день. Нет времени возиться."},{t:"I",text:"Пытаюсь его мотивировать и воодушевить."},{t:"S",text:"Вздыхаю и беру часть его работы на себя."},{t:"C",text:"Отправляю его на курсы и пишу подробные инструкции."}]},
+            {q: "Вы случайно удалили важную базу данных:", a: [{t:"D",text:"Быстро найду виноватого сисадмина."},{t:"I",text:"Сделаю вид, что так и было, отвлеку всех шуткой."},{t:"S",text:"Впаду в панику и пойду извиняться перед всеми."},{t:"C",text:"Подниму логи, найду бэкап и восстановлю систему."}]},
+            {q: "Компания переходит на удаленку:", a: [{t:"D",text:"Отлично, никто не будет мешать мне достигать целей."},{t:"I",text:"Ужас! А как же живое общение у кулера?!"},{t:"S",text:"Хорошо, дома спокойнее и уютнее."},{t:"C",text:"Нужно настроить VPN и прописать правила связи."}]},
+            {q: "На корпоративном тренинге вас просят разбиться на пары:", a: [{t:"D",text:"Беру самого сильного, чтобы победить в заданиях."},{t:"I",text:"Бегу к тому, с кем можно весело поболтать."},{t:"S",text:"Жду, пока кто-нибудь сам выберет меня."},{t:"C",text:"Выбираю того, чьи навыки дополняют мои."}]},
+            {q: "Руководство просит оценить работу коллег:", a: [{t:"D",text:"Оценю жестко. Выживает сильнейший."},{t:"I",text:"Поставлю всем пятерки, мы же команда!"},{t:"S",text:"Постараюсь никого не обидеть средними баллами."},{t:"C",text:"Проведу объективный анализ по каждому KPI."}]},
+            {q: "Вы нашли открытую банку с краской. Что с ней сделать?", a: [{t:"D",text:"Опрокинуть и оставить отпечатки лап по всему двору."},{t:"I",text:"Разрисовать себя боевым окрасом и пугать соседских собак."},{t:"S",text:"Осторожно понюхать и пойти мыть лапки."},{t:"C",text:"Проверить состав на токсичность, прежде чем наступать."}]},
+            {q: "Вам нужно пересечь оживленную дорогу ночью:", a: [{t:"D",text:"Перебегу напрямик, пусть машины тормозят!"},{t:"I",text:"Дождусь других енотов, вместе веселее перебегать."},{t:"S",text:"Найду безопасную водопропускную трубу под дорогой."},{t:"C",text:"Изучу интервалы между машинами и вычислю оптимальное окно."}]},
+            {q: "В чужом гараже вы наткнулись на запасы кошачьей мяты:", a: [{t:"D",text:"Съем всё сам прямо сейчас, пока не пришли коты."},{t:"I",text:"Начну валяться в ней и громко мурчать от удовольствия."},{t:"S",text:"Спрячу часть про запас в дупло, остальное оставлю."},{t:"C",text:"Рассортирую по пакетикам для удобной транспортировки."}]},
+            {q: "На дереве висит кормушка для птиц. Как достать семечки?", a: [{t:"D",text:"Просто оторву ее и скину на землю."},{t:"I",text:"Буду висеть на ней вниз головой, как акробат."},{t:"S",text:"Дождусь, пока птицы сами просыплют часть на землю."},{t:"C",text:"Осторожно откручу крышку, чтобы не повредить механизм."}]},
+            {q: "Как вы относитесь к стирке печенек в луже?", a: [{t:"D",text:"Стирка для слабаков. Ем сухими и хрустящими!"},{t:"I",text:"Обожаю булькать ими в воде, это так забавно!"},{t:"S",text:"Тщательно мою каждую печеньку, традиция есть традиция."},{t:"C",text:"Стирка размягчает текстуру на 45%, предпочитаю сухой паек."}]},
+            {q: "Собака загнала вас на дерево. Ваши действия?", a: [{t:"D",text:"Буду кидать в нее шишками, пока не отстанет."},{t:"I",text:"Буду строить ей смешные рожицы сверху."},{t:"S",text:"Просто усну на ветке, рано или поздно она уйдет."},{t:"C",text:"Оценю расстояние до соседнего дерева для перепрыгивания."}]},
+            {q: "Вы нашли забытую палатку туристов. Что будете делать?", a: [{t:"D",text:"Прогрызу дыру и захвачу все их запасы еды."},{t:"I",text:"Устрою батут из спального мешка!"},{t:"S",text:"Тихонько заберусь внутрь погреться, пока их нет."},{t:"C",text:"Тщательно исследую все карманы рюкзаков на предмет заначек."}]},
+            {q: "Если другой енот нашел пиццу быстрее вас:", a: [{t:"D",text:"Нападу и отберу самую вкусную часть."},{t:"I",text:"Начну выпрашивать кусочек, делая милые глазки."},{t:"S",text:"Найду себе что-нибудь другое на соседней помойке."},{t:"C",text:"Предложу ему обмен на половину найденного мной яблока."}]},
+            {q: "Люди оставили на крыльце обувь. Ваши действия?", a: [{t:"D",text:"Утащу один ботинок в лес, просто из вредности."},{t:"I",text:"Примерю на себя и попробую в них походить!"},{t:"S",text:"Аккуратно обойду, чтобы не привлекать внимание."},{t:"C",text:"Осмотрю шнурки на предмет их использования в качестве веревки."}]},
+            {q: "Как вы реагируете на свет фонарика в темноте?", a: [{t:"D",text:"Смело смотрю прямо на свет, чтобы напугать человека."},{t:"I",text:"Начинаю смешно перебирать лапками в луче света."},{t:"S",text:"Замираю как статуя в надежде, что меня не заметят."},{t:"C",text:"Ретируюсь в слепую зону за ближайший куст."}]},
+            {q: "Какой мусорный бак для вас идеален?", a: [{t:"D",text:"Самый большой и закрытый, чтобы показать всем свою силу взлома."},{t:"I",text:"Тот, возле которого тусуется много других животных."},{t:"S",text:"Знакомый бак за рестораном, который всегда открыт в 10 вечера."},{t:"C",text:"Бак с раздельным сбором мусора, где еда лежит отдельно."}]},
+            {q: "Вы проникли в дом. С чего начнете?", a: [{t:"D",text:"С кухни! Холодильник сам себя не опустошит."},{t:"I",text:"С гостиной! Там много мягких подушек и блестящих штук."},{t:"S",text:"Найду тихое место под диваном и буду наблюдать."},{t:"C",text:"Изучу планировку комнат и пути отхода через форточку."}]},
+            {q: "На вас надели ошейник с колокольчиком. Как быть?", a: [{t:"D",text:"Сорву его любыми доступными способами и растопчу."},{t:"I",text:"Буду бегать и звенеть им на всю улицу, привлекая внимание!"},{t:"S",text:"Привыкну, зато люди будут знать, что я иду и давать еду."},{t:"C",text:"Изучу механизм застежки и аккуратно сниму его когтями."}]},
+            {q: "Вы нашли арбуз, но он на другой стороне реки:", a: [{t:"D",text:"Прыгну в воду и поплыву напрямик."},{t:"I",text:"Буду махать лапами, чтобы люди с лодки меня перевезли."},{t:"S",text:"Подожду, пока течение не прибьет его к моему берегу."},{t:"C",text:"Найду поваленное дерево или построю мост из веток."}]},
+            {q: "Ваш идеальный выходной:", a: [{t:"D",text:"Драка с котами за контроль над мусорным контейнером."},{t:"I",text:"Шумная вечеринка с другими енотами на крыше гаража."},{t:"S",text:"Спокойный сон в уютном теплом дупле."},{t:"C",text:"Инвентаризация спрятанных блестяшек и сухариков."}]},
+            {q: "Если вас поймали с поличным на кухне:", a: [{t:"D",text:"Зашиплю, схвачу кусок колбасы и убегу в окно."},{t:"I",text:"Притворюсь ручным и дам почесать себе пузико за еду."},{t:"S",text:"Замру и тихо попячусь обратно в темноту."},{t:"C",text:"Брошу тарелку, чтобы отвлечь внимание, и отступлю."}]},
+            {q: "Как вы готовитесь к зиме?", a: [{t:"D",text:"Отбираю лучшие дупла у белок и других енотов."},{t:"I",text:"Наедаю пузико на барбекю у людей, пока они не уехали."},{t:"S",text:"Спокойно обрастаю густой шерстью и сплю больше обычного."},{t:"C",text:"Составляю карту незамерзающих водоемов и теплых подвалов."}]},
+            {q: "Что вы сделаете с найденным блестящим ключом?", a: [{t:"D",text:"Оставлю на самом видном месте, чтобы показать, что я тут был."},{t:"I",text:"Буду носить его в зубах и хвастаться перед друзьями."},{t:"S",text:"Спрячу в свою тайную сокровищницу и буду иногда им любоваться."},{t:"C",text:"Попытаюсь вставить его во все замочные скважины в округе."}]},
+            {q: "Ваша реакция на поливалку для газона:", a: [{t:"D",text:"Атакую струю воды, показывая свою доминантность!"},{t:"I",text:"Устрою водные процедуры с прыжками и кувырками."},{t:"S",text:"Буду обходить ее стороной, не люблю внезапный душ."},{t:"C",text:"Вычислю радиус и интервал вращения, чтобы пройти сухим."}]},
+            {q: "Вы нашли целый пакет маршмэллоу:", a: [{t:"D",text:"Съем все сам, пока никто не видит. Никакой дележки."},{t:"I",text:"Потащу пакет к друзьям, чтобы устроить сладкую вечеринку."},{t:"S",text:"Буду есть по одной штучке в день, чтобы растянуть удовольствие."},{t:"C",text:"Обязательно помою каждую зефирку в луже... ой, они растворились."}]},
+            {q: "Вы нашли закрытый мусорный бак с кодовым замком. Ваши действия?", a: [{t:"D",text:"Оторву крышку вместе с петлями."},{t:"I",text:"Начну громко пищать, пока люди сами не откроют."},{t:"S",text:"Буду терпеливо ждать, пока кто-нибудь не выбросит мусор."},{t:"C",text:"Проанализирую механизм защелки и аккуратно взломаю его."}]},
+            {q: "Соседний кот пытается отобрать вашу сосиску. Как поступите?", a: [{t:"D",text:"Нападу первым и отберу у него еще и его корм!"},{t:"I",text:"Сделаю умилительную мордочку, пусть мне дадут вторую."},{t:"S",text:"Поделюсь половиной, чтобы избежать конфликта."},{t:"C",text:"Залезу на дерево по оптимальной траектории вне досягаемости."}]},
+            {q: "Вы проникли в дом через форточку. Какова ваша главная цель?", a: [{t:"D",text:"Захватить кухню и стать новым хозяином дома."},{t:"I",text:"Устроить вечеринку с катанием на шторах."},{t:"S",text:"Найти тихое теплое место под диваном и уснуть."},{t:"C",text:"Провести полную инвентаризацию холодильника."}]},
+            {q: "Как вы предпочитаете мыть свою еду?", a: [{t:"D",text:"Не мою. Время — деньги, а грязь — приправа."},{t:"I",text:"Полощу в фонтане, собирая вокруг толпу зрителей."},{t:"S",text:"Строго в своей любимой луже, как учили деды."},{t:"C",text:"Полощу ровно 40 секунд до гибели бактерий."}]},
+            {q: "Что вы сделаете с найденным блестящим фантиком?", a: [{t:"D",text:"Прицеплю на грудь как медаль за превосходство."},{t:"I",text:"Буду бегать с ним, привлекая внимание енотих."},{t:"S",text:"Спрячу в свою надежную коллекцию в дупле."},{t:"C",text:"Изучу его светоотражающие свойства и состав."}]},
+            {q: "На дороге лежит печенька, но рядом стоит злая собака:", a: [{t:"D",text:"Иду напролом. Печенька моя, собака будет скулить."},{t:"I",text:"Устрою цирковое представление, чтобы отвлечь пса."},{t:"S",text:"Подожду до ночи, когда собака уснет."},{t:"C",text:"Вычислю слепую зону собаки и подкрадусь сзади."}]},
+            {q: "Вы застряли головой в банке из-под арахисовой пасты:", a: [{t:"D",text:"Пробью банкой стену, чтобы освободиться."},{t:"I",text:"Выйду к людям — это же уморительно, дадут еще!"},{t:"S",text:"Буду сидеть смирно и ждать спасателей."},{t:"C",text:"Вычислю угол трения пластика и плавно выкручусь."}]},
+            {q: "Ваша любимая тактика воровства кошачьего корма?", a: [{t:"D",text:"Наглый грабеж средь бела дня с шипением."},{t:"I",text:"Притвориться котенком, чтобы насыпали мне."},{t:"S",text:"Каждую ночь брать по чуть-чуть, чтобы не заметили."},{t:"C",text:"Разработать схему подкопа с чертежами."}]},
+            {q: "Перед вами огромная лужа грязи:", a: [{t:"D",text:"Перепрыгну ее одним прыжком!"},{t:"I",text:"Нырну в нее с разбега, обожаю грязь!"},{t:"S",text:"Обойду по краешку, чтобы не испачкать лапки."},{t:"C",text:"Измерю глубину палочкой, прежде чем наступить."}]},
+            {q: "Как вы относитесь к другим енотам на вашей территории?", a: [{t:"D",text:"Выгоню всех конкурентов с позором."},{t:"I",text:"Отлично! Чем больше нас, тем веселее потрошить мусорки!"},{t:"S",text:"Если не трогают мои коробки, можем жить в мире."},{t:"C",text:"Составлю график посещения баков для оптимизации."}]}
+        ];
+
+        let scores = { D: 0, I: 0, S: 0, C: 0 };
+        let qIndex = 0;
+        let currentTestQueue = [];
+
+        function initFloor69() {
+            charName.innerText = "Элеонора Витальевна (Кадры)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
+
+            if (!pState.test_passed) {
+                showDialog("— А, обходной лист собран. Похвально. Но прежде чем я допущу вас к Боссу, по регламенту положено пройти тест DISC. Там ровно 1000 вопросов. Садитесь за терминал и отвечайте честно. Посмотрим, какой вы винтик в нашем корпоративном механизме.");
+                addBtn('СЕСТЬ ЗА ТЕРМИНАЛ (НАЧАТЬ ТЕСТ)', () => {
+                    // Идеальное перемешивание вопросов (алгоритм Фишера-Йетса)
+                    currentTestQueue = [...testQuestions];
+                    for (let i = currentTestQueue.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [currentTestQueue[i], currentTestQueue[j]] = [currentTestQueue[j], currentTestQueue[i]];
+                    }
+                    qIndex = 0;
+                    scores = { D: 0, I: 0, S: 0, C: 0 };
+                    startTest();
+                });
+            } else {
+                showDialog(`— СТОП! Достаточно. 60 вопросов вполне хватит, чтобы всё про вас понять. Ваш профиль зафиксирован в деле. Тип: ${pState.test_result.type}. ${pState.test_result.desc} Черные двери на 100-й этаж разблокированы. Босс не любит, когда опаздывают.`);
+            }
+        }
+
+        function startTest() {
+            if(qIndex >= currentTestQueue.length) { finishTest(); return; }
+            
+            const q = currentTestQueue[qIndex];
+            actionArea.innerHTML = `
+                <div class="test-container">
+                    <div class="test-progress">Вопрос ${qIndex + 1} из 1000</div>
+                    <div class="test-question">${q.q}</div>
+                    <div id="answers-area"></div>
+                </div>
+            `;
+            
+            const ansArea = document.getElementById('answers-area');
+            // Перемешиваем ответы (алгоритм Фишера-Йетса)
+            const shuffled = [...q.a];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            shuffled.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.style.fontSize = '0.85rem'; btn.style.textTransform = 'none';
+                btn.style.padding = '12px 15px'; btn.style.margin = '6px';
+                btn.innerText = ans.text;
+                btn.onclick = () => {
+                    scores[ans.t]++;
+                    qIndex++;
+                    startTest();
+                };
+                ansArea.appendChild(btn);
+            });
+        }
+
+        function finishTest() {
+            let maxScore = -1; let maxType = '';
+            for (let t in scores) { if (scores[t] > maxScore) { maxScore = scores[t]; maxType = t; } }
+
+            let res = { type: '', desc: '' };
+            if (maxType === 'D') {
+                res.type = "D (Доминант)";
+                res.desc = "Вы прете напролом, игнорируя правила. Босс любит таких... или съедает первыми.";
+            } else if (maxType === 'I') {
+                res.type = "I (Влияющий)";
+                res.desc = "Вы много болтаете, но умеете убеждать. Посмотрим, сможете ли вы заболтать Босса.";
+            } else if (maxType === 'S') {
+                res.type = "S (Стабильный)";
+                res.desc = "Вы тихий, исполнительный планктон. Идеальный сотрудник, чтобы вечно тянуть лямку.";
+            } else {
+                res.type = "C (Аналитик)";
+                res.desc = "Вы душный бюрократ. Вы даже этот тест читали дважды в поисках подвоха. Отличный кадр.";
+            }
+
+            pState.test_result = res;
+            pState.test_passed = true;
+            saveState();
+            
+            actionArea.innerHTML = '';
+            initFloor69(); // Перезагружаем диалог с результатами
+        }
+
+        // ================= ЭТАЖ 100: БОСС =================
+        function initFloor100() {
+            charName.innerText = "ЧЕРНЫЕ ДВЕРИ";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/vorota.png";
+            
+            showDialog("— Огромные черные двери со скрежетом открываются, пропуская вас внутрь. Путь назад отрезан. Впереди — только кабинет Босса...", () => {
+                addBtn('ВОЙТИ К БОССУ (ЗАВЕРШИТЬ)', () => {
+                    document.getElementById('main-content').classList.add('hidden');
+                    document.getElementById('sidebar').classList.add('hidden');
+                    document.getElementById('end-screen').classList.remove('hidden');
+                });
+            });
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioIntro.pause(); } catch(e){}
+            try { audioBg.pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_6' }, window.location.origin);
+        });
+
+    </script>
+</body>
+</html>
