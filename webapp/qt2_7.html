@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QT2: Седьмой круг</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --bg-black: #050505;
+            --panel-bg: rgba(15, 15, 15, 0.95);
+        }
+        body {
+            margin: 0; background: var(--bg-black); color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        #sidebar {
+            width: 250px; background: #0a0a0a; border-right: 2px solid var(--neon-cyan);
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+            box-shadow: 2px 0 15px rgba(0, 255, 204, 0.2); z-index: 10;
+        }
+        .sidebar-title { font-weight: bold; text-align: center; margin-bottom: 20px; color: var(--neon-pink); border-bottom: 1px dashed var(--neon-pink); padding-bottom: 10px;}
+        .floor-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 10px; margin-bottom: 10px; cursor: pointer; text-align: left;
+            transition: 0.2s; border-radius: 0; font-family: inherit; font-size: 0.9rem;
+        }
+        .floor-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; }
+        .floor-btn.active { background: var(--neon-cyan); color: black; box-shadow: 0 0 10px var(--neon-cyan); }
+        .floor-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+        
+        #inventory { margin-top: auto; border-top: 1px dashed var(--neon-cyan); padding-top: 10px; font-size: 0.8rem; }
+        .seal { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #555; }
+        .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+        .seal.fired { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+
+        .reset-btn {
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            background: transparent; color: var(--neon-pink); cursor: pointer;
+            font-family: inherit; font-size: 0.8rem; text-transform: uppercase; width: 100%;
+        }
+
+        #main-content {
+            flex: 1; display: flex; flex-direction: column; padding: 20px;
+            overflow-y: auto; position: relative;
+        }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 250px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block;
+            flex-shrink: 0;
+        }
+        .character-header { font-size: 1.5rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink); text-align: center;}
+        .dialog-box {
+            background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
+            min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
+            overflow-wrap: break-word; word-wrap: break-word; flex-shrink: 0;
+        }
+        .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; position: relative;}
+        
+        button.action-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 15px; font-size: 1rem; cursor: pointer; margin: 8px;
+            font-family: inherit; text-transform: uppercase; transition: 0.3s;
+            width: 100%; max-width: 500px; box-sizing: border-box; white-space: normal;
+        }
+        button.action-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+        button.action-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+
+        /* Для убегающей кнопки */
+        .runaway-btn { position: absolute; width: 180px; z-index: 10; transition: left 0.1s, top 0.1s; }
+
+        .cursor { border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite; display: inline-block; height: 1.1em; vertical-align: text-bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .hidden { display: none !important; }
+
+        /* Оверлей концовки */
+        #hiring-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: white; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200; padding: 20px; text-align: center;
+        }
+        .hiring-title { font-size: 2.5rem; color: #00ff88; text-shadow: 0 0 20px #00ff88; margin-bottom: 30px; text-transform: uppercase; }
+        .firing-text { font-size: 1.2rem; color: #ff4444; max-width: 600px; line-height: 1.6; opacity: 0; transition: opacity 1s; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; display: flex; }
+            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding: 10px; flex-shrink: 0;}
+            .sidebar-title { display: none; }
+            .floor-btn { margin: 0; padding: 5px; font-size: 0.75rem; text-align: center; }
+            .reset-btn { grid-column: span 2; margin: 0; width: 100%; padding: 8px; }
+            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; z-index: 50; }
+            #inventory > div:first-child { display: none; }
+            #main-content { padding-bottom: 80px; }
+            button.action-btn { font-size: 0.9rem; padding: 12px; }
+            .hiring-title { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="intro-music">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="sidebar">
+        <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
+        <button class="floor-btn" id="btn-f100" onclick="loadFloor(100)">Этаж 100: Кабинет Босса</button>
+        <button class="floor-btn hidden" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Отдел Кадров</button>
+        
+        <div id="inventory">
+            <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- СТАТУС ---</div>
+            <div id="inv-list">
+                <div class="seal active">✅ Форма 2026-Б</div>
+                <div class="seal active">✅ Проверка СБ</div>
+                <div class="seal active">✅ Доступ ИТ</div>
+                <div class="seal active">✅ Подпись Завхоза</div>
+                <div class="seal active">✅ Финансовый штамп</div>
+                <div class="seal active">✅ Юридическая виза</div>
+                <div class="seal active">✅ Медосмотр</div>
+                <div class="seal active">✅ Охрана Труда</div>
+                <div class="seal active">✅ Профиль DISC</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="character-header" id="char-name">КАБИНЕТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена" onerror="this.onerror=null; this.src='https://via.placeholder.com/500x250/0a0a0a/00ffcc?text=BOSS+OFFICE';">
+        <div class="dialog-box" id="dialog-container">
+            <span id="dialog-text">Последний рывок.</span><span id="dialog-cursor" class="cursor hidden"></span>
+        </div>
+        <div class="action-area" id="action-area">
+            <button class="action-btn" onclick="loadFloor(100)">Подойти к столу</button>
+        </div>
+    </div>
+
+    <!-- Финальный оверлей увольнения -->
+    <div id="hiring-overlay" class="hidden">
+        <div class="hiring-title" id="h-title">ПОЗДРАВЛЯЕМ! ВЫ ПРИНЯТЫ!</div>
+        <div class="firing-text" id="f-text">
+            Однако, согласно внутреннему распоряжению №666 от сегодняшнего утра, должность, на которую вы претендовали, была сокращена в ходе оптимизации.<br><br>
+            Пожалуйста, пройдите на 69-й этаж в Отдел Кадров для оформления Обходного Листа при увольнении.
+        </div>
+        <button class="action-btn hidden" id="f-btn" style="margin-top: 40px; border-color: #ff4444; color: #ff4444;" onclick="acceptFiring()">Понять и простить</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        const audioIntro = document.getElementById('intro-music');
+        let clickCtx;
+        function playClick() {
+            try {
+                if (!clickCtx) clickCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = clickCtx.createOscillator();
+                const gain = clickCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, clickCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, clickCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(clickCtx.destination);
+                osc.start(); osc.stop(clickCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
+
+        // --- STATE MANAGEMENT ---
+        let pState = JSON.parse(localStorage.getItem('qt2_7_progress')) || {
+            phase: 0 // 0=start, 1=running_btn, 2=soul_clicker, 3=fired
+        };
+
+        const charName = document.getElementById('char-name');
+        const actionArea = document.getElementById('action-area');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCursor = document.getElementById('dialog-cursor');
+        let typingTimeout;
+
+        function saveState() {
+            localStorage.setItem('qt2_7_progress', JSON.stringify(pState));
+        }
+
+        function resetProgress() {
+            if (confirm("Вы уверены? Это сбросит прогресс финальной главы.")) {
+                localStorage.removeItem('qt2_7_progress'); location.reload();
+            }
+        }
+
+        function showDialog(text, callback) {
+            clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            try { audioIntro.currentTime = 0; audioIntro.play().catch(()=>{}); } catch(e){}
+
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i); i++;
+                    typingTimeout = setTimeout(typeNext, 30);
+                } else {
+                    try { audioIntro.pause(); } catch(e){}
+                    dialogCursor.classList.add('hidden');
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function addBtn(text, onclick, className="action-btn") {
+            const btn = document.createElement('button');
+            btn.className = className; btn.innerText = text; btn.onclick = onclick;
+            actionArea.appendChild(btn); return btn;
+        }
+
+        function loadFloor(floor) {
+            document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-f${floor}`).classList.add('active');
+            actionArea.innerHTML = '';
+            const img = document.getElementById('floor-image');
+            img.classList.remove('hidden');
+
+            if (floor === 100) initFloor100();
+            if (floor === 69) initFloor69();
+        }
+
+        // ================= ЭТАЖ 100: БОСС =================
+        function initFloor100() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Верховный Полоскун (Начальник всех енотов)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/boss_office.png"; // Fallback to via.placeholder if 404
+            
+            if (pState.phase === 0) {
+                showDialog("— (Кресло медленно поворачивается. За панорамным окном почему-то идет дождь, хотя на улице солнце) Значит, вы тот самый... выживший. Прошли Элеонору, не сошли с ума у Палыча и даже пережили чай Тамары Степановны. Впечатляет.", () => {
+                    addBtn('ПРОТЯНУТЬ ОБХОДНОЙ ЛИСТ', () => { pState.phase = 1; saveState(); initFloor100(); });
+                });
+            } else if (pState.phase === 1) {
+                showDialog("— Обходной лист заполнен? Почти. Не хватает самой важной подписи. Моей. Но я подписываю документы только тем, кто понимает истинную философию нашей компании. Попробуйте получить мою подпись.", startRunningButton);
+            } else if (pState.phase === 2) {
+                startSoulSelling();
+            } else if (pState.phase === 3) {
+                showDialog("— Охрана! Выведите уволенного сотрудника из моего кабинета!");
+            }
+        }
+
+        let runJumps = 0;
+        function startRunningButton() {
+            actionArea.innerHTML = '';
+            actionArea.style.minHeight = '250px';
+            
+            const btn = document.createElement('button');
+            btn.className = 'action-btn runaway-btn';
+            btn.innerText = 'ПОДПИСАТЬ';
+            btn.style.left = (actionArea.clientWidth / 2 - 90) + 'px';
+            btn.style.top = '20px';
+            
+            const jump = (e) => {
+                if (runJumps > 12) return;
+                if (e && e.type === 'touchstart') e.preventDefault(); // чтобы не кликалось на мобилках сразу
+                
+                runJumps++;
+                let maxX = actionArea.clientWidth - 180; // ширина кнопки
+                let maxY = 200; // высота зоны
+                btn.style.left = Math.max(0, Math.random() * maxX) + 'px';
+                btn.style.top = Math.max(0, Math.random() * maxY) + 'px';
+                
+                if (runJumps > 12) {
+                    btn.innerText = "ЛАДНО, ЖМИ";
+                    btn.style.boxShadow = "0 0 20px var(--neon-pink)";
+                    btn.style.color = "var(--neon-pink)";
+                }
+            };
+
+            btn.addEventListener('mouseover', jump);
+            btn.addEventListener('touchstart', jump, {passive: false});
+            btn.addEventListener('click', () => {
+                if (runJumps > 12) {
+                    pState.phase = 2; saveState();
+                    startSoulSelling();
+                }
+            });
+            actionArea.appendChild(btn);
+        }
+
+        let soulClicks = 0;
+        function startSoulSelling() {
+            showDialog("— Вы действительно хотите продать свою душу... ой, то есть, приступить к работе?");
+            actionArea.innerHTML = '';
+            actionArea.style.minHeight = '250px';
+
+            const btn = document.createElement('button');
+            btn.className = 'action-btn runaway-btn';
+            btn.style.color = "var(--neon-yellow)";
+            btn.style.borderColor = "var(--neon-yellow)";
+            btn.innerText = 'ДА (0/10)';
+            btn.style.left = (actionArea.clientWidth / 2 - 90) + 'px';
+            btn.style.top = '20px';
+
+            const jump = () => {
+                let maxX = actionArea.clientWidth - 180;
+                let maxY = 200;
+                btn.style.left = Math.max(0, Math.random() * maxX) + 'px';
+                btn.style.top = Math.max(0, Math.random() * maxY) + 'px';
+            };
+
+            btn.addEventListener('mouseover', jump);
+
+            btn.onclick = () => {
+                soulClicks++;
+                tg.HapticFeedback.impactOccurred('light');
+                if (soulClicks >= 10) {
+                    triggerEnding();
+                    return;
+                }
+                btn.innerText = `ДА (${soulClicks}/10)`;
+                jump();
+            };
+            actionArea.appendChild(btn);
+        }
+
+        function triggerEnding() {
+            pState.phase = 3; saveState();
+            document.getElementById('hiring-overlay').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('f-text').style.opacity = '1';
+            }, 3000);
+
+            setTimeout(() => {
+                document.getElementById('f-btn').classList.remove('hidden');
+            }, 6000);
+        }
+
+        function acceptFiring() {
+            document.getElementById('hiring-overlay').classList.add('hidden');
+            
+            // Меняем инвентарь
+            document.getElementById('inv-list').innerHTML = '<div class="seal fired">❌ Обходной лист (Увольнение)</div>';
+            
+            // Блокируем босса, открываем кадры
+            document.getElementById('btn-f100').disabled = true;
+            document.getElementById('btn-f100').classList.add('hidden');
+            document.getElementById('btn-f69').classList.remove('hidden');
+            
+            loadFloor(69);
+        }
+
+        // ================= ЭТАЖ 69: ОТДЕЛ КАДРОВ =================
+        function initFloor69() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Элеонора Витальевна (Кадры)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
+            
+            showDialog("— Снова вы? Уже увольняетесь? Ну я же говорила... Ладно, вот ваш обходной лист для увольняющихся. Тут всего 100 инстанций... Начнем сначала?", () => {
+                addBtn('ПОЙТИ ПЛАКАТЬ (КОНЕЦ СЕЗОНА)', () => {
+                    document.getElementById('main-content').classList.add('hidden');
+                    document.getElementById('sidebar').classList.add('hidden');
+                    document.getElementById('end-screen').classList.remove('hidden');
+                });
+            });
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioIntro.pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_7' }, window.location.origin);
+        });
+
+        // Если страница перезагружена после увольнения
+        if (pState.phase === 3) {
+            document.getElementById('inv-list').innerHTML = '<div class="seal fired">❌ Обходной лист (Увольнение)</div>';
+            document.getElementById('btn-f100').classList.add('hidden');
+            document.getElementById('btn-f69').classList.remove('hidden');
+            loadFloor(69);
+        }
+
+    </script>
+</body>
+</html>
