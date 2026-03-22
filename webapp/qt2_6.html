@@ -143,6 +143,12 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        // --- АУДИО (ФОН) ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/8%20-%20Stage%202%20Sunken%20Ship.mp3');
+        audioBg.volume = 0.4;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() { audioBg.play().catch(()=>{}); }, { once: true });
+
         const audioIntro = document.getElementById('intro-music');
         let clickCtx;
         function playClick() {
@@ -395,6 +401,7 @@
 
         document.getElementById("finish-btn").addEventListener("click", function() {
             try { audioIntro.pause(); } catch(e){}
+            try { audioBg.pause(); } catch(e){}
             window.parent.postMessage({ type: 'quest_complete', id: 'qt2_6' }, window.location.origin);
         });
 
