@@ -176,6 +176,14 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        // --- АУДИО ---
+        const audioBg = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/01_-title-screen.mp3');
+        audioBg.volume = 0.5;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() {
+            audioBg.play().catch(e => console.log("Audio play error:", e));
+        }, { once: true });
+
         // --- STATE MANAGEMENT ---
         let pState = JSON.parse(localStorage.getItem('qt2_4_progress')) || {
             balance_done: false,
