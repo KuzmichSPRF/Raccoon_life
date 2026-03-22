@@ -156,6 +156,12 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        // --- АУДИО (ФОН) ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/Korol_i_SHut_-_Durak_i_molniya_8_bit_(SkySound.cc).mp3');
+        audioBg.volume = 0.5;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() { audioBg.play().catch(()=>{}); }, { once: true });
+
         const audioIntro = document.getElementById('intro-music');
         let clickCtx;
         function playClick() {
@@ -367,6 +373,7 @@
 
         document.getElementById("finish-btn").addEventListener("click", function() {
             try { audioIntro.pause(); } catch(e){}
+            try { audioBg.pause(); } catch(e){}
             window.parent.postMessage({ type: 'quest_complete', id: 'qt2_7' }, window.location.origin);
         });
 
