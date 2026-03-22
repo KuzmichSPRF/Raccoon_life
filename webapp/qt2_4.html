@@ -610,7 +610,7 @@
                 if (e) e.preventDefault();
                 if (!centrifugeActive) return;
                 
-                centrifugeProgress += 6; // Около 17 нажатий до победы (но полоса постоянно падает)
+                centrifugeProgress += 4; // Дает меньше процентов, нужно больше кликов
                 if(centrifugeProgress > 100) centrifugeProgress = 100;
                 
                 bar.style.width = centrifugeProgress + '%';
@@ -636,7 +636,7 @@
             centrifugeInt = setInterval(() => {
                 if(!centrifugeActive) return;
                 centrifugeTime -= 0.1;
-                centrifugeProgress -= 0.8; // Шкала постоянно падает
+                centrifugeProgress -= 1.5; // Шкала падает почти в 2 раза быстрее
                 if(centrifugeProgress < 0) centrifugeProgress = 0;
 
                 bar.style.width = centrifugeProgress + '%';
