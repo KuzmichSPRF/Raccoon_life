@@ -1737,6 +1737,78 @@ def api_game_tower():
         return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'bot_log': bot_log, 'game_over': game_over, 'win': False})
     except Exception as e: return jsonify({'error': str(e)}), 500
 
+@app.route('/api/game/archive', methods=['POST'])
+@limiter.limit("60 per minute")
+def api_game_archive():
+    """Логика Этажа 11: Главный Архив (Сортировка Хаоса)"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId'))
+        action = data.get('action')
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        
+        if action == 'start':
+            state = {'score': 0, 'required': 20, 'status': 'playing'}
+            save_game_session(user_id, 'archive', state)
+            return jsonify({'status': 'ok', 'state': state})
+            
+        state = get_game_session(user_id, 'archive')
+        if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
+        
+        if action == 'sort_success':
+            state['score'] += 1
+            if state['score'] >= state['required']:
+                add_tokens(user_id, 150, 'archive_win')
+                clear_game_session(user_id, 'archive')
+                return jsonify({'status': 'ok', 'win': True, 'item_found': '666-G-ОШ-А'})
+            
+            save_game_session(user_id, 'archive', state)
+            return jsonify({'status': 'ok', 'state': state, 'win': False})
+            
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
+@app.route('/api/game/library', methods=['POST'])
+@limiter.limit("60 per minute")
+def api_game_library():
+    """Логика Этажа 10: Библиотека (Стелс-режим офисного планктона)"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId'))
+        action = data.get('action')
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        
+        if action == 'start':
+            state = {'progress': 0, 'required': 100, 'suspicion': 0, 'max_suspicion': 3}
+            save_game_session(user_id, 'library', state)
+            return jsonify({'status': 'ok', 'state': state})
+            
+        state = get_game_session(user_id, 'library')
+        if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
+        
+        if action == 'step_success':
+            state['progress'] += 10
+            if state['progress'] >= state['required']:
+                add_tokens(user_id, 200, 'library_win')
+                clear_game_session(user_id, 'library')
+                return jsonify({'status': 'ok', 'win': True, 'stamp_received': True})
+                
+            save_game_session(user_id, 'library', state)
+            return jsonify({'status': 'ok', 'state': state, 'win': False})
+            
+        elif action == 'step_fail':
+            state['suspicion'] += 1
+            if state['suspicion'] >= state['max_suspicion']:
+                clear_game_session(user_id, 'library')
+                return jsonify({'status': 'ok', 'game_over': True, 'reason': 'Маргарита Эдуардовна вас услышала!'})
+            save_game_session(user_id, 'library', state)
+            return jsonify({'status': 'ok', 'state': state, 'game_over': False})
+            
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
 @app.route('/api/sync', methods=['POST'])
 @limiter.limit("30 per minute")
 def api_sync():

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QT2: Бюрократический Ад</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --bg-black: #050505;
+            --panel-bg: rgba(15, 15, 15, 0.95);
+        }
+        body {
+            margin: 0; background: var(--bg-black); color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        #sidebar {
+            width: 250px; background: #0a0a0a; border-right: 2px solid var(--neon-cyan);
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+            box-shadow: 2px 0 15px rgba(0, 255, 204, 0.2); z-index: 10;
+        }
+        .sidebar-title { font-weight: bold; text-align: center; margin-bottom: 20px; color: var(--neon-pink); border-bottom: 1px dashed var(--neon-pink); padding-bottom: 10px;}
+        .floor-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 8px; margin-bottom: 8px; cursor: pointer; text-align: left;
+            transition: 0.2s; border-radius: 0; font-family: inherit; font-size: 0.85rem;
+        }
+        .floor-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; }
+        .floor-btn.active { background: var(--neon-cyan); color: black; box-shadow: 0 0 10px var(--neon-cyan); }
+        .floor-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+        
+        #inventory { margin-top: auto; border-top: 1px dashed var(--neon-cyan); padding-top: 10px; font-size: 0.75rem; }
+        .seal { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #555; }
+        .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+
+        .reset-btn {
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            background: transparent; color: var(--neon-pink); cursor: pointer;
+            font-family: inherit; font-size: 0.8rem; text-transform: uppercase; width: 100%;
+        }
+
+        #main-content {
+            flex: 1; display: flex; flex-direction: column; padding: 20px;
+            overflow-y: auto; position: relative;
+        }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 200px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block; flex-shrink: 0;
+        }
+        .character-header { font-size: 1.4rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink); text-align: center;}
+        .dialog-box {
+            background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 15px;
+            min-height: 80px; margin-bottom: 15px; font-size: 1rem; line-height: 1.4;
+            overflow-wrap: break-word; word-wrap: break-word; flex-shrink: 0;
+        }
+        .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; position: relative;}
+        
+        button.action-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 12px 20px; font-size: 1rem; cursor: pointer; margin: 8px;
+            font-family: inherit; text-transform: uppercase; transition: 0.3s;
+            width: 90%; max-width: 400px; box-sizing: border-box;
+        }
+        button.action-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+        button.action-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+
+        /* --- ИГРА 1: МЕДИК --- */
+        #medic-game { width: 100%; max-width: 350px; height: 250px; border: 2px solid var(--neon-cyan); position: relative; overflow: hidden; background: #111; transition: background 0.3s; display: none; }
+        .floating-letter { position: absolute; font-size: 2rem; font-weight: bold; color: white; cursor: pointer; padding: 10px; user-select: none; }
+        #eye-btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--neon-pink); color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit; z-index: 10; display: none; }
+
+        /* --- ИГРА 2: ТБ ЛАБИРИНТ --- */
+        #maze-game { display: none; flex-direction: column; align-items: center; gap: 10px; }
+        .maze-grid { display: grid; grid-template-columns: repeat(6, 40px); grid-template-rows: repeat(6, 40px); gap: 2px; background: #333; border: 2px solid var(--neon-cyan); padding: 2px; }
+        .maze-cell { width: 40px; height: 40px; background: #111; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .maze-controls { display: grid; grid-template-columns: 60px 60px 60px; gap: 5px; margin-top: 10px; }
+        .maze-btn { background: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink); font-size: 1.5rem; padding: 10px; cursor: pointer; text-align: center; }
+        .maze-btn:active { background: var(--neon-pink); color: black; }
+
+        /* --- ИГРА 3: СОРТИРОВКА ПАПОК --- */
+        #archive-game { width: 100%; max-width: 400px; display: none; flex-direction: column; align-items: center; position: relative; }
+        #active-folder { width: 200px; height: 120px; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 20px; border-radius: 5px 20px 5px 5px; border: 2px solid #555; text-align: center; padding: 10px; transition: transform 0.2s; font-family: sans-serif; box-shadow: 2px 2px 10px rgba(255,255,255,0.2);}
+        .bin-row { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        .bin-btn { flex: 1; padding: 15px 5px; font-weight: bold; border: none; cursor: pointer; color: white; text-transform: uppercase; font-size: 0.8rem; }
+        #dust-cloud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(100, 100, 100, 0.95); z-index: 20; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold; opacity: 0; pointer-events: none; text-shadow: 2px 2px 0 #000; touch-action: none;}
+
+        /* --- ИГРА 4: СТЕЛС БИБЛИОТЕКА --- */
+        #stealth-game { width: 100%; max-width: 400px; display: none; flex-direction: column; align-items: center; position: relative; }
+        #stealth-bar { width: 100%; height: 40px; border: 2px solid var(--neon-cyan); position: relative; margin-bottom: 20px; background: #111; }
+        #stealth-zone { position: absolute; left: 45%; width: 10%; height: 100%; background: rgba(0, 255, 136, 0.4); border-left: 2px solid #0f8; border-right: 2px solid #0f8; }
+        #stealth-cursor { position: absolute; left: 0; top: -5px; width: 10px; height: 50px; background: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+        #fake-tg { position: absolute; top: 20%; left: 5%; width: 90%; background: #2b5278; color: white; padding: 20px; border-radius: 10px; z-index: 30; display: none; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-family: sans-serif; }
+        #fake-tg button { background: #4ca6ff; border: none; color: white; padding: 10px 20px; margin-top: 15px; border-radius: 5px; font-weight: bold; }
+
+        .cursor { border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite; display: inline-block; height: 1.1em; vertical-align: text-bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .hidden { display: none !important; }
+
+        #end-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-black); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        #finish-btn:hover { background: var(--neon-cyan) !important; color: black !important; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; display: flex; }
+            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; flex-shrink: 0;}
+            .sidebar-title { display: none; }
+            .floor-btn { margin: 0; padding: 5px 2px; font-size: 0.6rem; text-align: center; }
+            .reset-btn { grid-column: span 3; margin: 0; width: 100%; padding: 8px 10px; }
+            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 8px; z-index: 50; }
+            #inventory > div:first-child { display: none; }
+            .seal { font-size: 0.65rem; margin: 0; }
+            #main-content { padding-bottom: 80px; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="intro-music"><source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg"></audio>
+
+    <div id="sidebar">
+        <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
+        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: Завхоз</button>
+        <button class="floor-btn" id="btn-f21" onclick="loadFloor(21)">Этаж 21: Охрана Труда</button>
+        <button class="floor-btn" id="btn-f20" onclick="loadFloor(20)">Этаж 20: Медкабинет</button>
+        <button class="floor-btn" id="btn-f11" onclick="loadFloor(11)">Этаж 11: Архив</button>
+        <button class="floor-btn" id="btn-f10" onclick="loadFloor(10)">Этаж 10: Библиотека</button>
+        
+        <div id="inventory">
+            <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- ОБХОДНОЙ ЛИСТ ---</div>
+            <div class="seal" id="inv-med">🩺 Осмотр пройден</div>
+            <div class="seal" id="inv-tb">🦺 ТБ сдана</div>
+            <div class="seal" id="inv-lib">🤫 Тишина соблюдена</div>
+            <div class="seal" id="inv-lamp">🔦 УФ-Лампа</div>
+            <div class="seal" id="inv-book">📘 Книга</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="character-header" id="char-name">ЛИФТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена" onerror="this.onerror=null; this.src='https://via.placeholder.com/500x200/0a0a0a/ff00ff?text=IMAGE+404';">
+        <div class="dialog-box" id="dialog-container">
+            <span id="dialog-text">Мы погружаемся в нижние уровни. Здесь пахнет старой бумагой и корвалолом. Куда пойдем?</span><span id="dialog-cursor" class="cursor hidden"></span>
+        </div>
+        <div class="action-area" id="action-area">
+            <button class="action-btn" onclick="loadFloor(21)">Выйти на 21 этаж</button>
+            <button class="action-btn" onclick="loadFloor(20)">Выйти на 20 этаж</button>
+            <button class="action-btn" onclick="loadFloor(11)">Спуститься на 11 этаж</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        // --- АУДИО ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/03-main-theme.mp3');
+        audioBg.volume = 0.4; audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() { audioBg.play().catch(()=>{}); }, { once: true });
+        const audioIntro = document.getElementById('intro-music');
+        function playClick() { tg.HapticFeedback.impactOccurred('light'); }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
+
+        // --- STATE ---
+        let pState = JSON.parse(localStorage.getItem('qt2_5_progress')) || {
+            medic_tested: false, tb_maze_done: false, archive_sorted: false, stealth_passed: false,
+            has_uv_lamp: false, has_faded_folder: false, gosha_revealed: false, gosha_passed: false,
+            has_book: false, got_blank: false, current_floor: null
+        };
+
+        const charName = document.getElementById('char-name');
+        const actionArea = document.getElementById('action-area');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCursor = document.getElementById('dialog-cursor');
+        let typingTimeout;
+
+        function saveState() {
+            localStorage.setItem('qt2_5_progress', JSON.stringify(pState));
+            document.getElementById('inv-med').className = `seal ${pState.medic_tested ? 'active' : ''}`;
+            document.getElementById('inv-tb').className = `seal ${pState.gosha_passed ? 'active' : ''}`;
+            document.getElementById('inv-lib').className = `seal ${pState.got_blank ? 'active' : ''}`;
+            document.getElementById('inv-lamp').className = `seal ${pState.has_uv_lamp ? 'active' : ''}`;
+            document.getElementById('inv-book').className = `seal ${pState.has_book ? 'active' : ''}`;
+        }
+        saveState();
+
+        function resetProgress() {
+            if (confirm("Вы точно хотите стереть память об этих этажах?")) {
+                localStorage.removeItem('qt2_5_progress'); location.reload();
+            }
+        }
+
+        function showDialog(text, callback) {
+            clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            try { audioIntro.currentTime = 0; audioIntro.play().catch(()=>{}); } catch(e){}
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i); i++;
+                    typingTimeout = setTimeout(typeNext, 20);
+                } else {
+                    try { audioIntro.pause(); } catch(e){}
+                    dialogCursor.classList.add('hidden');
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function addBtn(text, onclick, id="") {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn'; btn.innerText = text; btn.onclick = onclick;
+            if (id) btn.id = id;
+            actionArea.appendChild(btn); return btn;
+        }
+
+        function loadFloor(floor) {
+            document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-f${floor}`).classList.add('active');
+            actionArea.innerHTML = '';
+            document.getElementById('floor-image').classList.add('hidden');
+            pState.current_floor = floor; saveState();
+
+            if (floor === 40) initFloor40();
+            if (floor === 21) initFloor21();
+            if (floor === 20) initFloor20();
+            if (floor === 11) initFloor11();
+            if (floor === 10) initFloor10();
+            checkGlobalWin();
+        }
+
+        function checkGlobalWin() {
+            if (pState.medic_tested && pState.gosha_passed && pState.got_blank) {
+                actionArea.innerHTML = '';
+                showDialog("— ВСЕ ШТАМПЫ ПОЛУЧЕНЫ! Обходной лист закрыт. Огромные черные двери в конце коридора со скрежетом открываются. За ними — финальное собеседование...", () => {
+                    addBtn('ИДТИ К БОССУ (ЗАВЕРШИТЬ)', () => {
+                        document.getElementById('main-content').classList.add('hidden');
+                        document.getElementById('sidebar').classList.add('hidden');
+                        document.getElementById('end-screen').classList.remove('hidden');
+                    });
+                });
+            }
+        }
+
+        // ================= ЭТАЖ 20: МЕДИК =================
+        function initFloor20() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Зинаида Петровна (Медик)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/med.png";
+            document.getElementById('floor-image').classList.remove('hidden');
+
+            if (!pState.medic_tested) {
+                showDialog("— Так, голубчик. Пульс как у зайца под обстрелом. Сдайте тест на рефлексы. Ловите нужную букву, но если экран станет КРАСНЫМ (скачок давления) — жмите 'ЗАКРЫТЬ ГЛАЗА' и ничего больше не трогайте!");
+                addBtn('НАЧАТЬ ТЕСТ ЗРЕНИЯ', startMedicGame);
+            } else if (pState.has_faded_folder && !pState.has_uv_lamp) {
+                showDialog("— У вас в руках какая-то пыльная гадость! Быстро под кварцевую лампу! О... это же скрытые чернила. Забирайте свою папку и проваливайте, пока я вас не продезинфицировала!");
+                addBtn('ПРОСВЕТИТЬ ПАПКУ', () => {
+                    pState.has_uv_lamp = true; pState.gosha_revealed = true; saveState();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    showDialog("— (Ультрафиолет проявил скрытый номер: 666-G-ОШ-А). Отлично, теперь можно нести это безопаснику на 21-й этаж.");
+                    actionArea.innerHTML = ''; addBtn('СПУСТИТЬСЯ НА 21 ЭТАЖ', ()=>loadFloor(21));
+                });
+            } else {
+                showDialog("— Я вам уже всё подписала. Идите, не нервируйте меня, у меня кварцевание!");
+            }
+        }
+
+        function startMedicGame() {
+            actionArea.innerHTML = `
+                <div style="color:var(--neon-yellow); margin-bottom:5px;">НАЙДИТЕ БУКВУ: <span id="target-letter" style="font-size:1.5rem; font-weight:bold;">Ш</span></div>
+                <div style="font-size:0.8rem; margin-bottom:10px;">Счет: <span id="medic-score">0</span>/7</div>
+                <div id="medic-game" style="display:block;">
+                    <button id="eye-btn" onclick="closeEyes()">ЗАКРЫТЬ ГЛАЗА</button>
+                </div>
+            `;
+            let score = 0, isRed = false, gameInt, letterInt;
+            let isGameOver = false;
+            const gameDiv = document.getElementById('medic-game');
+            const eyeBtn = document.getElementById('eye-btn');
+            const letters = ['Ш', 'Б', 'М', 'Н', 'К', 'Ы', 'И'];
+            let currentTarget = 'Ш';
+
+            function spawnLetter() {
+                if(score >= 7) return;
+                if(isGameOver) return;
+                const l = document.createElement('div'); l.className = 'floating-letter';
+                const isTargetObj = Math.random() > 0.5;
+                l.innerText = isTargetObj ? currentTarget : letters[Math.floor(Math.random()*letters.length)];
+                l.style.left = Math.random() * (350 - 40) + 'px'; l.style.top = Math.random() * (250 - 40) + 'px';
+                
+                l.onclick = () => {
+                    if (isGameOver) return;
+                    if (isRed) { failMedic("ВЫ ОСЛЕПЛИ ОТ ДАВЛЕНИЯ!"); return; }
+                    if (l.innerText === currentTarget) {
+                        score++; document.getElementById('medic-score').innerText = score;
+                        tg.HapticFeedback.impactOccurred('light');
+                        currentTarget = letters[Math.floor(Math.random()*letters.length)];
+                        document.getElementById('target-letter').innerText = currentTarget;
+                        if(score >= 7) winMedic();
+                    } else {
+                        failMedic("НЕ ТА БУКВА!");
+                    }
+                    l.remove();
+                };
+                gameDiv.appendChild(l);
+                setTimeout(() => { if(l.parentElement) l.remove(); }, 1500);
+            }
+
+            letterInt = setInterval(spawnLetter, 600); // Было 800
+            gameInt = setInterval(() => {
+                isRed = !isRed;
+                if (isRed) {
+                    gameDiv.style.background = '#800000'; eyeBtn.style.display = 'block';
+                    setTimeout(() => {
+                        if (isRed) failMedic("ВЫ НЕ ЗАКРЫЛИ ГЛАЗА ПРИ СКАЧКЕ ДАВЛЕНИЯ!");
+                    }, 1200); // Даем всего 1.2с на реакцию! Было 2000
+                } else {
+                    gameDiv.style.background = '#111'; eyeBtn.style.display = 'none';
+                }
+            }, 2500);
+
+            window.closeEyes = function() {
+                if (isGameOver) return;
+                if(!isRed) { failMedic("ЗАЧЕМ ЗАКРЫЛИ ГЛАЗА ПРОСТО ТАК?!"); return; }
+                isRed = false; gameDiv.style.background = '#111'; eyeBtn.style.display = 'none';
+                tg.HapticFeedback.impactOccurred('medium');
+            };
+
+            function failMedic(msg) {
+                if (isGameOver) return;
+                isGameOver = true;
+                clearInterval(letterInt); clearInterval(gameInt);
+                tg.HapticFeedback.notificationOccurred('error');
+                showDialog(`— ${msg} Начинайте заново!`);
+                setTimeout(initFloor20, 2000);
+            }
+            function winMedic() {
+                if (isGameOver) return;
+                isGameOver = true;
+                clearInterval(letterInt); clearInterval(gameInt); gameDiv.innerHTML = '';
+                pState.medic_tested = true; saveState();
+                tg.HapticFeedback.notificationOccurred('success');
+                showDialog("— Глаз дергается, но рефлексы в норме. Штамп о годности поставлен.");
+                setTimeout(initFloor20, 2000);
+            }
+        }
+
+        // ================= ЭТАЖ 21: ТЕХНИКА БЕЗОПАСНОСТИ =================
+        function initFloor21() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Игорь Борисович (Охрана Труда)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/tb.png";
+            document.getElementById('floor-image').classList.remove('hidden');
+
+            if (!pState.tb_maze_done) {
+                showDialog("— Вы почему без жилета? Сдайте эвакуацию! Дойдите до зеленой двери. Помните: в задымлении управление инвертировано (жмете ВЛЕВО — идете ВПРАВО)!");
+                addBtn('СИМУЛЯТОР ЭВАКУАЦИИ', startMazeGame);
+            } else if (!pState.gosha_revealed) {
+                showDialog("— Выжили? Хорошо. Но я не поставлю печать, пока вы не принесете мне инвентарный номер списанного манекена Гоши. Ищите в Архиве на 11-м этаже.");
+                addBtn('СПУСТИТЬСЯ В АРХИВ (11)', () => loadFloor(11));
+            } else if (!pState.gosha_passed) {
+                showDialog("— Нашли номер Гоши? 666-G-ОШ-А? Отлично, бюрократия соблюдена. Штамп ТБ поставлен!");
+                pState.gosha_passed = true; saveState();
+                addBtn('ОТЛИЧНО', () => loadFloor(21));
+            } else {
+                showDialog("— Штамп ТБ у вас есть. Не нарушайте правила.");
+            }
+        }
+
+        function startMazeGame() {
+            clearInterval(window.mazeTimerInt);
+            actionArea.innerHTML = `
+                <div id="maze-game" style="display:flex;">
+                    <div style="font-size:1.2rem; margin-bottom:5px; text-align:center;">Время: <span id="maze-timer" style="color:var(--neon-yellow);">20</span>с</div>
+                    <div class="maze-grid" id="maze-grid"></div>
+                    <div class="maze-controls">
+                        <div></div><button class="maze-btn" onclick="moveMaze(0,1)">⬆️</button><div></div>
+                        <button class="maze-btn" onclick="moveMaze(1,0)">⬅️</button>
+                        <button class="maze-btn" onclick="moveMaze(0,-1)">⬇️</button>
+                        <button class="maze-btn" onclick="moveMaze(-1,0)">➡️</button>
+                    </div>
+                    <div style="font-size:0.7rem; margin-top:5px; color:var(--neon-pink);">ВНИМАНИЕ: УПРАВЛЕНИЕ ИНВЕРТИРОВАНО!</div>
+                </div>
+            `;
+            let px = 0, py = 0; const ex = 5, ey = 5;
+            const fires = ['1,0', '1,1', '3,1', '4,1', '1,2', '4,2', '1,3', '2,3', '4,3', '4,4', '0,5', '1,5', '2,5', '3,5', '4,5'];
+            
+            let timeLeft = 20;
+            let isGameOver = false;
+            window.mazeTimerInt = setInterval(() => {
+                timeLeft--;
+                const timerEl = document.getElementById('maze-timer');
+                if (timerEl) timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    isGameOver = true;
+                    clearInterval(window.mazeTimerInt);
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showDialog("— ВРЕМЯ ВЫШЛО! ВЫ ЗАДОХНУЛИСЬ В ДЫМУ! Заново!");
+                    document.getElementById('maze-game').style.display = 'none';
+                    setTimeout(startMazeGame, 2000);
+                }
+            }, 1000);
+            
+            function draw() {
+                const grid = document.getElementById('maze-grid');
+                if(!grid) return; grid.innerHTML = '';
+                for(let y=0; y<6; y++) {
+                    for(let x=0; x<6; x++) {
+                        let cell = document.createElement('div'); cell.className = 'maze-cell';
+                        let pos = `${x},${y}`;
+                        if (x===px && y===py) cell.innerText = '🦝';
+                        else if (x===ex && y===ey) cell.innerText = '🚪';
+                        else if (fires.includes(pos)) cell.innerText = '🔥';
+                        grid.appendChild(cell);
+                    }
+                }
+            }
+            
+            window.moveMaze = function(dx, dy) {
+                if (isGameOver) return;
+                px += dx; py += dy;
+                if (px<0) px=0; if(px>5) px=5;
+                if (py<0) py=0; if(py>5) py=5;
+                
+                tg.HapticFeedback.impactOccurred('light');
+                let pos = `${px},${py}`;
+                if (fires.includes(pos)) {
+                    isGameOver = true;
+                    clearInterval(window.mazeTimerInt);
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showDialog("— ВЫ СГОРЕЛИ В СИМУЛЯТОРЕ! Заново!");
+                    document.getElementById('maze-game').style.display = 'none';
+                    setTimeout(startMazeGame, 1500);
+                } else if (px===ex && py===ey) {
+                    isGameOver = true;
+                    tg.HapticFeedback.notificationOccurred('success');
+                    clearInterval(window.mazeTimerInt);
+                    pState.tb_maze_done = true; saveState();
+                    document.getElementById('maze-game').style.display = 'none';
+                    initFloor21();
+                } else {
+                    draw();
+                }
+            };
+            draw();
+        }
+
+        // ================= ЭТАЖ 11: АРХИВ =================
+        function initFloor11() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Авеларий (Архивариус)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/archive.png";
+            document.getElementById('floor-image').classList.remove('hidden');
+
+            if (!pState.archive_sorted) {
+                showDialog("— Тс-с-с! Не топайте! Ищете дело Гоши? Оно в секции Г-8. Но чтобы я туда пустил, рассортируйте эту корзину! Смахните папки в нужные лотки. И протирайте пыль с экрана, я тут давно не убирал.");
+                addBtn('СОРТИРОВКА ХАОСА', startArchiveGame);
+            } else if (!pState.has_faded_folder) {
+                pState.has_faded_folder = true; saveState();
+                showDialog("— Спасибо за помощь. Вот папка Гоши... Но чернила совсем выцвели. Я ничего не вижу. Возможно, у Медика (20 этаж) есть УФ-лампа?");
+                addBtn('ПОДНЯТЬСЯ К МЕДИКУ (20)', () => loadFloor(20));
+            } else {
+                showDialog("— Тихо... Налоговые отчеты за 2007 спят...");
+            }
+        }
+
+        function startArchiveGame() {
+            actionArea.innerHTML = `
+                <div id="archive-game" style="display:flex;">
+                    <div style="margin-bottom:10px;">Осталось: <span id="arch-score" style="color:var(--neon-yellow);">15</span></div>
+                    <div id="active-folder">Папка</div>
+                    <div class="bin-row">
+                        <button class="bin-btn" style="background:#b30000;" onclick="sortFolder('red')">ШРЕДЕР</button>
+                        <button class="bin-btn" style="background:#004080;" onclick="sortFolder('blue')">ДИРЕКТОРУ</button>
+                        <button class="bin-btn" style="background:#006600;" onclick="sortFolder('green')">В ДОЛГИЙ ЯЩИК</button>
+                    </div>
+                    <div id="dust-cloud">ПЫЛЬ! ТРИТЕ ЭКРАН!</div>
+                </div>
+            `;
+            
+            let left = 15, currentType = ''; // Было 10
+            const types = [
+                {t: 'red', txt: "Мемы с котами", c: "#eaeaea"},
+                {t: 'red', txt: "Апдейт тасков\nпо синергии", c: "#eaeaea"},
+                {t: 'blue', txt: "Годовой отчет", c: "#eaeaea"},
+                {t: 'blue', txt: "Заявление\nна премию", c: "#eaeaea"},
+                {t: 'green', txt: "Жалобы курьеров", c: "#eaeaea"},
+                {t: 'green', txt: "Резюме джунов", c: "#eaeaea"}
+            ];
+            let isGameOver = false;
+
+            function nextFolder() {
+                if(left <= 0) {
+                    isGameOver = true;
+                    clearInterval(dustInt);
+                    pState.archive_sorted = true; saveState();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    initFloor11(); return;
+                }
+                document.getElementById('arch-score').innerText = left;
+                let type = types[Math.floor(Math.random()*types.length)];
+                currentType = type.t;
+                const f = document.getElementById('active-folder');
+                f.innerText = type.txt; f.style.background = type.c;
+            }
+
+            window.sortFolder = function(choice) {
+                if (isGameOver) return;
+                if (document.getElementById('dust-cloud').style.pointerEvents === 'auto') return; // Cannot click through dust
+                if (choice === currentType) {
+                    tg.HapticFeedback.impactOccurred('light');
+                    left--; nextFolder();
+                } else {
+                    isGameOver = true;
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showDialog("— НЕ ТУДА! ВЕСЬ АРХИВ ПОСЫПАЛСЯ! ЗАНОВО!");
+                    clearInterval(dustInt); setTimeout(initFloor11, 2000);
+                }
+            };
+
+            // ПЫЛЬ
+            let dustOp = 0; const dust = document.getElementById('dust-cloud');
+            let isWiping = false;
+            
+            function wipe(e) {
+                if(e) e.preventDefault();
+                dustOp -= 0.05; if(dustOp < 0) dustOp = 0;
+                dust.style.opacity = dustOp;
+                dust.style.pointerEvents = dustOp > 0.3 ? 'auto' : 'none';
+            }
+            
+            // Логика протирания экрана (зажать и водить для ПК + тапы для телефона)
+            dust.addEventListener('mousedown', (e) => { isWiping = true; wipe(e); });
+            dust.addEventListener('mousemove', (e) => { if(isWiping) wipe(e); });
+            window.addEventListener('mouseup', () => { isWiping = false; });
+            dust.addEventListener('touchmove', wipe, { passive: false });
+            
+            let dustInt = setInterval(() => {
+                if(Math.random() < 0.45 && dustOp < 0.2) { // Пыль появляется чаще
+                    dustOp = 1; dust.style.opacity = dustOp; dust.style.pointerEvents = 'auto';
+                }
+            }, 2000); // Было 2500
+
+            nextFolder();
+        }
+
+        // ================= ЭТАЖ 40: ЗАВХОЗ =================
+        function initFloor40() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Палыч (Завхоз)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
+            document.getElementById('floor-image').classList.remove('hidden');
+
+            if (pState.stealth_passed && !pState.has_book) {
+                showDialog("— Что? Маргарита просит книгу «Основы вайбкодинга»? Да я ею стол подпирал! Забирай, только не нуди. Из-за ее штрафов за шум у нас пол-отдела без премии.");
+                addBtn('ВЗЯТЬ КНИГУ', () => {
+                    pState.has_book = true; saveState();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    initFloor40();
+                });
+            } else {
+                showDialog("— Иди работай. Коробок нет.");
+            }
+        }
+
+        // ================= ЭТАЖ 10: БИБЛИОТЕКА =================
+        function initFloor10() {
+            actionArea.innerHTML = '';
+            charName.innerText = "Маргарита (Библиотекарь)";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/library.png";
+            document.getElementById('floor-image').classList.remove('hidden');
+
+            if (!pState.stealth_passed) {
+                showDialog("— Ти-ши-на. Вы находитесь в зоне ментальной концентрации. Докажите, что умеете сливаться с интерьером. Пройдите незаметно, делая шаги только когда зеленая зона активна. И не отвлекайтесь на мемы!");
+                addBtn('СИМУЛЯТОР ПЛАНКТОНА', startStealthGame);
+            } else if (!pState.has_book) {
+                showDialog("— Изумительно тихо. Вам нужен финальный бланк обходного? Я отдала его Завхозу (40 этаж) как закладку в книге «Основы вайбкодинга». Верните книгу — получите бланк.");
+                addBtn('ПОДНЯТЬСЯ К ЗАВХОЗУ (40)', () => loadFloor(40));
+            } else if (!pState.got_blank) {
+                showDialog("— Вы принесли мою книгу! Моя прелесть... Вот ваш бланк, с моим финальным штампом. Вы готовы.");
+                pState.got_blank = true; saveState();
+                addBtn('ОТЛИЧНО', () => { tg.HapticFeedback.notificationOccurred('success'); initFloor10(); });
+            } else {
+                showDialog("— Вы нарушаете тишину. Идите к черным дверям.");
+            }
+        }
+
+        function startStealthGame() {
+            actionArea.innerHTML = `
+                <div id="stealth-game" style="display:flex;">
+                    <div style="margin-bottom:10px;">Прогресс: <span id="st-score" style="color:var(--game-green);">0</span>%</div>
+                    <div id="stealth-bar">
+                        <div id="stealth-zone"></div>
+                        <div id="stealth-cursor"></div>
+                    </div>
+                    <button class="action-btn" id="btn-step" onclick="makeStep()">СДЕЛАТЬ ШАГ</button>
+                    <div id="fake-tg">
+                        <div>📩 Коллега прислал смешной мем!</div>
+                        <button onclick="failStealth('ВЫ ЗАСМЕЯЛИСЬ В ГОЛОС!')">ПОСМОТРЕТЬ</button>
+                    </div>
+                </div>
+            `;
+            
+            let pos = 0, dir = 4, score = 0, stealthInt, tgInt; // Скорость курсора еще выше (dir = 4)
+            let isGameOver = false;
+            const cursor = document.getElementById('stealth-cursor');
+            const tgDiv = document.getElementById('fake-tg');
+
+            stealthInt = setInterval(() => {
+                pos += dir;
+                if(pos > 95 || pos < 0) dir *= -1;
+                cursor.style.left = pos + '%';
+            }, 30);
+
+            tgInt = setInterval(() => {
+                if(Math.random() < 0.5) {
+                    tgDiv.style.display = 'block';
+                    setTimeout(() => { tgDiv.style.display = 'none'; }, 1200);
+                }
+            }, 1500); // Спам еще чаще
+
+            window.makeStep = function() {
+                if (isGameOver) return;
+                if (tgDiv.style.display === 'block') { failStealth('Вы отвлеклись на телефон!'); return; }
+                // Зеленая зона строго 45-55% (совпадает с визуалом)
+                if (pos >= 45 && pos <= 55) {
+                    score += 10; document.getElementById('st-score').innerText = score;
+                    tg.HapticFeedback.impactOccurred('light');
+                    if(score >= 100) {
+                        isGameOver = true;
+                        clearInterval(stealthInt); clearInterval(tgInt);
+                        pState.stealth_passed = true; saveState();
+                        tg.HapticFeedback.notificationOccurred('success');
+                        initFloor10();
+                    }
+                } else {
+                    failStealth('ВЫ СКРИПНУЛИ БОТИНКОМ МИМО РИТМА!');
+                }
+            };
+
+            window.failStealth = function(msg) {
+                if (isGameOver) return;
+                isGameOver = true;
+                clearInterval(stealthInt); clearInterval(tgInt);
+                tg.HapticFeedback.notificationOccurred('error');
+                showDialog(`— ТИШИНА!! ${msg} Заново!`);
+                setTimeout(startStealthGame, 2000);
+            };
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioIntro.pause(); audioBg.pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_5' }, window.location.origin);
+        });
+
+    </script>
+</body>
+</html>
