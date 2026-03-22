@@ -177,12 +177,15 @@
         tg.ready(); tg.expand();
 
         // --- АУДИО ---
-        const audioBg = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/01_-title-screen.mp3');
+        const audioBg = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/02-and-you-play-against.mp3');
         audioBg.volume = 0.5;
         audioBg.loop = true;
         document.body.addEventListener('click', function startAudio() {
             audioBg.play().catch(e => console.log("Audio play error:", e));
         }, { once: true });
+
+        // Звук печати текста
+        const typeSound = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/type.mp3');
 
         // --- STATE MANAGEMENT ---
         let pState = JSON.parse(localStorage.getItem('qt2_4_progress')) || {
@@ -221,6 +224,11 @@
             function typeNext() {
                 if (i < text.length) {
                     dialogText.textContent += text.charAt(i); i++;
+                    if (i % 2 === 0) { // Воспроизводим звук через символ, чтобы не перегружать аудиоканал
+                        const t = typeSound.cloneNode();
+                        t.volume = 0.15;
+                        t.play().catch(()=>{});
+                    }
                     typingTimeout = setTimeout(typeNext, 20);
                 } else {
                     dialogCursor.classList.add('hidden');
