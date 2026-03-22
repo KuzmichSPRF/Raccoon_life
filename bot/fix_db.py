@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 # Путь к базе данных
-DB_PATH = Path(__file__).parent / "users.db"
+DB_PATH = Path(__file__).parent / "raccoon_main.db"
 
 def fix_user_tokens():
     conn = sqlite3.connect(DB_PATH)

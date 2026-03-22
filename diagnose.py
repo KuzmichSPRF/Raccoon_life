@@ -136,11 +136,11 @@ def check_dependencies():
     
     return all_installed
 
-def check_database_structure():
+def check_database_structure(): 
     """Проверка структуры базы данных"""
     print_subheader("Структура базы данных")
     
-    db_path = Path("bot/users.db")
+    db_path = Path("bot/raccoon_main.db")
     print_info(f"Путь к БД: {db_path.absolute()}")
     
     if not db_path.exists():
@@ -405,7 +405,7 @@ def generate_report():
     if not os.getenv("WEBAPP_URL"):
         issues.append("⚠️ Установите WEBAPP_URL для работы WebApp")
     
-    if not Path("bot/users.db").exists():
+    if not Path("bot/raccoon_main.db").exists():
         issues.append("ℹ️ База данных будет создана при первом запуске бота")
     
     if issues:

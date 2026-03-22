@@ -472,7 +472,7 @@
     .catch(err => console.error('Ошибка проверки бонуса:', err));
   }
 
-  function showTokenBonus() { 
+  function showTokenBonus() {
     document.getElementById('token-bonus-overlay').classList.add('active');
   }
 
@@ -772,8 +772,19 @@
     syncStats();
 
     // Загрузка рейтинга из API
-    fetch('/api/leaderboard?limit=20')
-      .then(res => res.json())
+    fetch(`/api/leaderboard?limit=20&t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'X-Telegram-Init-Data': tg.initData || ''
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(data => {
         if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
           renderLeaderboard(data.leaderboard);
@@ -783,14 +794,14 @@
       })
       .catch(err => {
         console.error('Ошибка загрузки рейтинга:', err);
-        list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}</div>`;
+        list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
       });
 
     navigateTo('rating-screen');
   }
 
   function escapeHTML(str) {
-    if (!str) return '';
+    if (str === null || str === undefined) return '';
     return str.toString().replace(/[&<>'"]/g, 
       tag => ({
         '&': '&amp;',
@@ -846,7 +857,9 @@
       newspapers: {
         title: t.menu_news,
         items: [
+
           { id: "news_17", title: currentLang === 'ru' ? "Выпуск #17" : "Issue #17", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-March-202628-17-RU-03-03", type: "link" },
+          { id: "caps_news_1", title: currentLang === 'ru' ? "CapsGame Times №1: Февраль 2026" : "CapsGame Times #1: February 2026", desc: "CapsGame Times", url: "https://telegra.ph/Caps-Game-Times---Fevral-2026-02-14", type: "link" },
           { id: "news_16", title: currentLang === 'ru' ? "Выпуск #16" : "Issue #16", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-February-2026-228-16-RU-02-08", type: "link" },
           { id: "news_15", title: currentLang === 'ru' ? "Выпуск #15" : "Issue #15", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-December-1488-2025-15-RU-12-07", type: "link" },
           { id: "news_14", title: currentLang === 'ru' ? "Выпуск #14" : "Issue #14", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-0210-SEPTEMBER-2025-14-10-02", type: "link" },
@@ -877,7 +890,7 @@
         items: [
           { id: "qt2_1", title: currentLang === 'ru' ? "Глава 1: Встреча в баре" : "Chapter 1: Meeting at the bar", desc: currentLang === 'ru' ? "Начало" : "Beginning", url: "qt2_1.1.html", type: "iframe" },
           { id: "qt2_2", title: currentLang === 'ru' ? "Глава 2: Первые шаги к успеху" : "Chapter 2: First steps to success", desc: currentLang === 'ru' ? "Начало оформления" : "Beginning of paperwork", url: "qt2_2.html", type: "iframe" },
-          { id: "qt2_3", title: currentLang === 'ru' ? "Глава 3: Материальная база" : "Chapter 3: Material Base", desc: currentLang === 'ru' ? "Этажи 40 и 41" : "Floors 40 and 41", url: "qt2_3.html", type: "iframe" }
+          { id: "qt2_3", title: currentLang === 'ru' ? "Глава 3: Материальная база" : "Chapter 3: Material base", desc: currentLang === 'ru' ? "Завхоз и сисадмин" : "Supply manager and sysadmin", url: "qt2_3.html", type: "iframe" }
         ]
       },
       games: {
@@ -895,7 +908,9 @@
       partners: {
         title: t.menu_partners,
         items: [
-          { title: "CapsGame", desc: currentLang === 'ru' ? "Игра про фишки" : "Game about caps", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" }
+          { title: "CapsGame", desc: currentLang === 'ru' ? "Игра про фишки" : "Game about caps", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" },
+          { title: currentLang === 'ru' ? "Клёмпус" : "Kljompus", desc: currentLang === 'ru' ? "Братство, питоны, мотоциклы" : "Brotherhood, pythons, motorcycles", url: "https://www.youtube.com/@Kljompus", type: "link" },
+          { title: "Telemitz", desc: currentLang === 'ru' ? "Лучшее приложение для связи" : "Best communication app", url: "https://t.me/telemitzbot", type: "external" }
         ]
       }
     };

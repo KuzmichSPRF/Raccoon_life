@@ -91,7 +91,7 @@ def get_user_identifier():
 limiter = Limiter(
     key_func=get_user_identifier,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["10000 per day", "1000 per hour"],
     storage_uri="memory://"
 )
 
@@ -787,8 +787,8 @@ def get_leaderboard(limit: int = 10) -> list:
                 ut.total_spent
             FROM user_tokens ut
             JOIN users u ON ut.user_id = u.user_id
-            WHERE ut.balance > 0
-            ORDER BY ut.balance DESC
+            WHERE ut.balance > 0 OR ut.total_earned > 0
+            ORDER BY ut.balance DESC, ut.total_earned DESC
             LIMIT ?
         ''', (limit,))
 

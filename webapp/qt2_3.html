@@ -85,6 +85,30 @@
         }
         .blind-input:focus { box-shadow: 0 0 10px var(--neon-cyan); border-color: var(--neon-pink); }
 
+        /* --- АНИМАЦИЯ И МОДАЛЬНОЕ ОКНО ДЛЯ УВЕЛИЧЕНИЯ КАРТИНКИ --- */
+        .scene-image.zoomable {
+            cursor: zoom-in; border-color: var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4); transition: transform 0.3s ease;
+        }
+        .scene-image.zoomable:active { transform: scale(0.98); }
+
+        #image-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000;
+            touch-action: none;
+        }
+        #image-modal img {
+            max-width: 95%; max-height: 85%; object-fit: contain;
+            border: 2px solid var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 255, 204, 0.4);
+            transform-origin: center center;
+        }
+        #modal-close {
+            position: absolute; top: 15px; right: 20px; font-size: 2.5rem;
+            color: var(--neon-pink); cursor: pointer; z-index: 1010;
+            text-shadow: 0 0 10px var(--neon-pink); padding: 10px;
+        }
+
         .hidden { display: none !important; }
         .cursor {
             border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite;
@@ -101,13 +125,26 @@
         #finish-btn:hover { background: var(--neon-cyan) !important; color: black !important; }
 
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; }
+            body { flex-direction: column; display: flex; }
+            #sidebar { 
+                position: relative; z-index: 100; flex-shrink: 0; background: #0a0a0a;
+                width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); 
+                display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; 
+            }
             .sidebar-title { display: none; }
             .floor-btn { margin: 0; padding: 5px 2px; font-size: 0.65rem; text-align: center; }
-            #inventory { grid-column: span 3; border-top: none; padding-top: 5px; display: flex; flex-direction: column; gap: 5px; align-items: center; }
-            .seal { margin-top: 0; font-size: 0.75rem; }
-            .reset-btn { grid-column: span 3; margin-top: 0; margin-bottom: 5px; width: 100%; padding: 8px 10px; }
+            .reset-btn { grid-column: span 3; margin: 0; width: 100%; padding: 8px 10px; }
+            
+            #inventory { 
+                position: fixed; bottom: 0; left: 0; width: 100%;
+                background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan);
+                display: flex; flex-direction: row; flex-wrap: wrap;
+                justify-content: center; align-items: center; gap: 10px;
+                padding: 10px; z-index: 50; box-shadow: 0 -2px 10px rgba(0,255,204,0.2);
+            }
+            #inventory > div:first-child { display: none; }
+            .seal { margin: 0; font-size: 0.75rem; }
+            #main-content { padding-bottom: 80px; }
         }
     </style> 
 </head>
@@ -144,6 +181,13 @@
             <button class="action-btn" onclick="loadFloor(40)">Выйти на 40 этаж (АХО)</button>
             <button class="action-btn" onclick="loadFloor(41)">Выйти на 41 этаж (ИТ)</button>
         </div>
+    </div>
+
+    <!-- Окно увеличения картинки -->
+    <div id="image-modal" class="hidden">
+        <div id="modal-close" onclick="closeImageModal()">✖</div>
+        <img id="modal-image" src="" alt="Увеличенное изображение">
+        <div style="position:absolute; bottom:25px; color:var(--neon-pink); font-size:1rem; animation:blink 1.5s infinite; text-shadow:0 0 10px var(--neon-pink); pointer-events:none; text-align:center;">[ ДВУМЯ ПАЛЬЦАМИ ДЛЯ ЗУМА ]</div>
     </div>
 
     <div id="end-screen" class="hidden">
@@ -192,6 +236,70 @@
         }
         saveState();
 
+        // Обработчик нажатия на картинку для её увеличения
+        document.getElementById('floor-image').addEventListener('click', function() {
+            if (!this.classList.contains('hidden') && this.classList.contains('zoomable')) {
+                document.getElementById('modal-image').src = this.src;
+                document.getElementById('image-modal').classList.remove('hidden');
+                tg.HapticFeedback.impactOccurred('light');
+                resetZoom();
+            }
+        });
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        document.getElementById('image-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeImageModal(); // Закрываем при клике на фон
+        });
+
+        const modalImg = document.getElementById('modal-image');
+        let mScale = 1, mPanning = false, mPointX = 0, mPointY = 0, mStartX = 0, mStartY = 0, mStartDist = 0, mInitScale = 1;
+
+        function setZoomTransform() {
+            modalImg.style.transform = `translate(${mPointX}px, ${mPointY}px) scale(${mScale})`;
+        }
+        function resetZoom() {
+            mScale = 1; mPointX = 0; mPointY = 0; setZoomTransform();
+        }
+
+        modalImg.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                mStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                mInitScale = mScale;
+            } else if (e.touches.length === 1) {
+                mPanning = true;
+                mStartX = e.touches[0].clientX - mPointX;
+                mStartY = e.touches[0].clientY - mPointY;
+            }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                mScale = Math.max(1, Math.min(mInitScale * (currentDist / mStartDist), 5)); // Максимум зум 5x
+                setZoomTransform();
+            } else if (e.touches.length === 1 && mPanning && mScale > 1) {
+                mPointX = e.touches[0].clientX - mStartX;
+                mPointY = e.touches[0].clientY - mStartY;
+                setZoomTransform();
+            }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) mStartDist = 0;
+            if (e.touches.length === 0) mPanning = false;
+        });
+
+        modalImg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            mScale = Math.max(1, Math.min(mScale + e.deltaY * -0.005, 5));
+            setZoomTransform();
+        }, { passive: false });
+
         function resetProgress() {
             if (confirm("Вы точно хотите сжечь документы и начать заново?")) {
                 localStorage.removeItem('qt2_3_progress'); location.reload();
@@ -233,7 +341,10 @@
             actionArea.innerHTML = '';
             
             const img = document.getElementById('floor-image');
-            if(img) img.classList.add('hidden');
+            if(img) {
+                img.classList.remove('zoomable'); // Сбрасываем возможность зума при переходе на другой этаж
+                img.classList.add('hidden');
+            }
             
             pState.current_floor = floor; saveState();
 
@@ -357,19 +468,25 @@
         }
 
         // ================= ЭТАЖ 41: ИТ =================
-        function initFloor41() {
+        function initFloor41() { 
             charName.innerText = "Админ Зеро (ИТ)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/otdel_it.png";
+            img.classList.remove('hidden');
             
             if (!pState.inventory_done) {
                 showDialog("— О, свежее мясо. СБ прислало твой хеш, но он битый. Мне нужен пропуск, чтобы я прописал твою биометрию. Иди на 40-й к Палычу за картой.");
-                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => {
-                    showDialog("В темноте светятся синие светодиоды. На одном из ЭЛТ-мониторов наклеена бумажка:\n\nS/N: SN-2026-VOID");
+                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => { 
+                    showDialog("В темноте светятся синие светодиоды.\n\n(Картинка комнаты стала доступна для увеличения! Нажмите на неё)");
+                    document.getElementById('floor-image').classList.add('zoomable');
+                    tg.HapticFeedback.notificationOccurred('success');
                 });
             } else if (!pState.flappy_done) {
                 showDialog("— Пропуск принес? Ок. Но чтобы прописать тебя в облако, мне нужен твой физический файл из Кадров (69 этаж). Я уже запросил пневмопочту. Капсула в трубе, не дай ей разбиться о засоры!");
                 addBtn('ПРИНЯТЬ КАПСУЛУ', () => startFlappy());
             } else if (!pState.code_fixed) {
-                showDialog("— Файл у меня. Но в консоли ошибка: Error: User_Brain_Not_Found. Найди в логах строку 'Access Denied' и замени на 'Granted' кликом. У тебя 30 секунд!");
+                showDialog("— Файл у меня. Но в консоли ошибка: Error: User_Brain_Not_Found. Найди в логах строку 'Access Denied' и замени на 'Granted' кликом. У тебя 15 секунд, поторопись!");
                 addBtn('ОТКРЫТЬ КОНСОЛЬ', () => startDebug());
             } else {
                 showDialog("— Эй, куда? Пропуск я тебе выдал, но он «нулевой». Чистый пластик. Пока Бухгалтерия (30 этаж) не оплатит лицензию, ты для турникета — просто кусок углерода.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)");
@@ -384,42 +501,49 @@
         // Игра: Flappy Bird (Пневмопочта)
         function startFlappy() {
             actionArea.innerHTML = `
-                <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer;">
+                <div id="flappy-game" style="width:100%; max-width:350px; height:250px; background:#111; position:relative; overflow:hidden; border:2px solid var(--neon-cyan); cursor:pointer; touch-action:none;">
                     <div id="flappy-bird" style="width:20px; height:20px; background:var(--neon-pink); border-radius:50%; position:absolute; left:50px; top:115px;"></div>
                     <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/8</div>
                 </div>
                 <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 8 труб.</div>
             `;
-            let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop;
+            let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop, lastTime = 0;
             const gameDiv = document.getElementById('flappy-game');
             const birdDiv = document.getElementById('flappy-bird');
             const scoreDiv = document.getElementById('flappy-score');
 
-            const jump = () => { if(!isGameOver) velocity = -5.5; };
+            const jump = () => { if(!isGameOver) velocity = -4.8; };
             gameDiv.onmousedown = jump; gameDiv.ontouchstart = (e) => { e.preventDefault(); jump(); };
 
             function createPipe() {
-                let topHeight = Math.floor(Math.random() * 110) + 30;
+                let topHeight = Math.floor(Math.random() * 80) + 20; 
                 let topPipe = document.createElement('div');
                 topPipe.style.cssText = `position:absolute; top:0; left:350px; width:30px; height:${topHeight}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(topPipe);
                 let bottomPipe = document.createElement('div');
-                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 90}px; background:var(--neon-cyan);`;
+                bottomPipe.style.cssText = `position:absolute; bottom:0; left:350px; width:30px; height:${250 - topHeight - 100}px; background:var(--neon-cyan);`;
                 gameDiv.appendChild(bottomPipe);
                 pipes.push({ x: 350, top: topPipe, bottom: bottomPipe, passed: false });
             }
 
-            function update() {
+            function update(time) {
                 if (isGameOver) return;
-                velocity += 0.35; birdY += velocity; birdDiv.style.top = birdY + 'px';
+                if (!lastTime) lastTime = time;
+                let dt = (time - lastTime) / 16.666; // Стабилизация для 120Hz/90Hz экранов
+                if (dt > 3) dt = 1;
+                lastTime = time;
+
+                velocity += 0.3 * dt; birdY += velocity * dt; birdDiv.style.top = birdY + 'px';
                 if (birdY < 0 || birdY > 230) { endGame(false); return; }
-                if (++frame % 80 === 0) createPipe();
+                
+                frame += dt;
+                if (frame >= 85) { createPipe(); frame = 0; }
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
-                    let p = pipes[i]; p.x -= 2.5; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
-                    let th = parseInt(p.top.style.height), bh = 250 - th - 90;
-                    if (50 + 20 > p.x && 50 < p.x + 30) {
-                        if (birdY < th || birdY + 20 > 250 - bh) { endGame(false); return; }
+                    let p = pipes[i]; p.x -= 2.2 * dt; p.top.style.left = p.x + 'px'; p.bottom.style.left = p.x + 'px';
+                    let th = parseInt(p.top.style.height), bh = 250 - th - 100;
+                    if (50 + 15 > p.x && 50 + 5 < p.x + 30) { // Мягкий хитбокс
+                        if (birdY + 5 < th || birdY + 15 > 250 - bh) { endGame(false); return; }
                     }
                     if (!p.passed && p.x + 30 < 50) {
                         p.passed = true; score++; scoreDiv.innerText = score + "/8";
@@ -440,27 +564,27 @@
         // Игра: Дебаггинг
         function startDebug() {
             actionArea.innerHTML = `
-                <div id="debug-container" style="width:100%; max-width:400px; height:220px; background:#000; border:1px solid var(--neon-cyan); position:relative; overflow:hidden; font-family:monospace; padding:10px;"></div>
-                <div id="debug-timer" style="margin-top:10px; color:var(--neon-pink); font-size:1.2rem; font-weight:bold;">30 с</div>
+                <div id="debug-container" style="width:100%; max-width:400px; height:240px; background:#000; border:1px solid var(--neon-cyan); position:relative; overflow:hidden; font-family:monospace; padding:10px; font-size:0.9rem;"></div>
+                <div id="debug-timer" style="margin-top:10px; color:var(--neon-pink); font-size:1.2rem; font-weight:bold;">15 с</div>
             `;
-            let time = 30;
+            let time = 15;
             let timerInt = setInterval(() => {
                 time--; document.getElementById('debug-timer').innerText = time + ' с';
                 if (time <= 0) {
                     clearInterval(timerInt); clearInterval(scrambleInt);
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— Время вышло! Система заблокирована. Пробуем еще раз.");
+                    showDialog("— Время вышло! Логи стерты. Пробуем еще раз.");
                     addBtn('ПЕРЕЗАГРУЗИТЬ КОНСОЛЬ', () => startDebug());
                 }
             }, 1000);
 
             const cont = document.getElementById('debug-container');
-            const lines = ["System.init();", "Loading kernel...", "Checking bio-hashes...", "User_Brain_Not_Found", "Stack trace 0x00FF88", "Bypassing firewall...", "Error 404", "console.log('Access Denied')"];
+            const lines = ["System.init();", "Loading kernel...", "Checking bio-hashes...", "User_Brain_Not_Found", "Stack trace 0x00FF88", "Bypassing firewall...", "Error 404", "Auth.verify(null);", "Exception in thread 'main'", "Memory leak detected", "SIGSEGV at 0x00000000", "console.log('Access Denied')"];
             
             let scrambleInt = setInterval(() => {
                 cont.innerHTML = '';
                 [...lines].sort(() => Math.random() - 0.5).forEach(text => {
-                    let div = document.createElement('div'); div.style.marginBottom = '5px'; div.style.color = '#0f0';
+                    let div = document.createElement('div'); div.style.marginBottom = '3px'; div.style.color = '#0f0';
                     if (text === "console.log('Access Denied')") {
                         div.innerHTML = "console.log('<span id='target-word' style='color:var(--neon-pink); cursor:pointer; font-weight:bold; background:#200; padding:2px;'>Access Denied</span>')";
                         setTimeout(() => {
@@ -475,7 +599,7 @@
                     } else { div.innerText = text; }
                     cont.appendChild(div);
                 });
-            }, 700);
+            }, 200);
         }
 
         document.getElementById("finish-btn").addEventListener("click", function() {
