@@ -126,11 +126,11 @@
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
-        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)" disabled>Этаж 40: Завхоз</button>
+        <button class="floor-btn hidden" id="btn-f40" onclick="loadFloor(40)">Этаж 40: Завхоз</button>
         <button class="floor-btn" id="btn-f21" onclick="loadFloor(21)">Этаж 21: Охрана Труда</button>
-        <button class="floor-btn" id="btn-f20" onclick="loadFloor(20)" disabled>Этаж 20: Медкабинет</button>
-        <button class="floor-btn" id="btn-f11" onclick="loadFloor(11)" disabled>Этаж 11: Архив</button>
-        <button class="floor-btn" id="btn-f10" onclick="loadFloor(10)" disabled>Этаж 10: Библиотека</button>
+        <button class="floor-btn hidden" id="btn-f20" onclick="loadFloor(20)">Этаж 20: Медкабинет</button>
+        <button class="floor-btn hidden" id="btn-f11" onclick="loadFloor(11)">Этаж 11: Архив</button>
+        <button class="floor-btn hidden" id="btn-f10" onclick="loadFloor(10)">Этаж 10: Библиотека</button>
         
         <div id="inventory">
             <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- ОБХОДНОЙ ЛИСТ ---</div>
@@ -184,11 +184,11 @@
             const btn10 = document.getElementById('btn-f10');
             
             if (!btn40) return;
-            btn40.disabled = !pState.stealth_passed;
-            btn21.disabled = false; // Всегда доступен для старта
-            btn20.disabled = !pState.has_faded_folder; 
-            btn11.disabled = !pState.tb_maze_done;
-            btn10.disabled = !pState.gosha_passed;
+            btn40.classList.toggle('hidden', !pState.stealth_passed);
+            btn21.classList.remove('hidden'); // Всегда доступен для старта
+            btn20.classList.toggle('hidden', !pState.has_faded_folder); 
+            btn11.classList.toggle('hidden', !pState.tb_maze_done);
+            btn10.classList.toggle('hidden', !pState.gosha_passed);
         }
 
         const charName = document.getElementById('char-name');
@@ -256,8 +256,8 @@
         function checkGlobalWin() {
             if (pState.medic_tested && pState.gosha_passed && pState.got_blank) {
                 actionArea.innerHTML = '';
-                showDialog("— ВСЕ ШТАМПЫ ПОЛУЧЕНЫ! Обходной лист закрыт. Огромные черные двери в конце коридора со скрежетом открываются. За ними — финальное собеседование...", () => {
-                    addBtn('ИДТИ К БОССУ (ЗАВЕРШИТЬ)', () => {
+                showDialog("— ВСЕ ШТАМПЫ ПОЛУЧЕНЫ! Обходной лист закрыт. Теперь со всеми печатями вам нужно вернуться на 69-й этаж в Отдел Кадров для прохождения итогового тестирования...", () => {
+                    addBtn('В ОТДЕЛ КАДРОВ (ЗАВЕРШИТЬ)', () => {
                         document.getElementById('main-content').classList.add('hidden');
                         document.getElementById('sidebar').classList.add('hidden');
                         document.getElementById('end-screen').classList.remove('hidden');
@@ -611,7 +611,7 @@
                 pState.got_blank = true; saveState();
                 addBtn('ОТЛИЧНО', () => { tg.HapticFeedback.notificationOccurred('success'); initFloor10(); });
             } else {
-                showDialog("— Еще раз спасибо за возвращенную книгу. А теперь соблюдайте тишину и идите к черным дверям, Босс не любит ждать.");
+                showDialog("— Еще раз спасибо за возвращенную книгу. А теперь соблюдайте тишину и возвращайтесь в Отдел Кадров, Элеонора Витальевна не любит ждать.");
             }
         }
 

@@ -145,10 +145,10 @@
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
-        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО</button>
+        <button class="floor-btn hidden" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО</button>
         <button class="floor-btn" id="btn-f31" onclick="loadFloor(31)">Этаж 31: Юристы</button>
         <button class="floor-btn" id="btn-f30" onclick="loadFloor(30)">Этаж 30: Бухгалтерия</button>
-        <button class="floor-btn" id="btn-f20" disabled>Этаж 20: Медицина (Блок)</button>
+        <button class="floor-btn hidden" id="btn-f20" disabled>Этаж 20: Медицина (Блок)</button>
         
         <div id="inventory">
             <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- СТАТУС ---</div>
@@ -215,6 +215,18 @@
             current_floor: null
         };
 
+        function updateFloorLocks() {
+            const btn40 = document.getElementById('btn-f40');
+            const btn31 = document.getElementById('btn-f31');
+            const btn30 = document.getElementById('btn-f30');
+            const btn20 = document.getElementById('btn-f20');
+
+            if (btn40) btn40.classList.toggle('hidden', pState.quest_state < 3);
+            if (btn31) btn31.classList.remove('hidden');
+            if (btn30) btn30.classList.remove('hidden');
+            if (btn20) btn20.classList.add('hidden'); // Блок
+        }
+
         const charName = document.getElementById('char-name');
         const actionArea = document.getElementById('action-area');
         const dialogText = document.getElementById('dialog-text');
@@ -228,6 +240,7 @@
             document.getElementById('inv-inv').className = `seal ${pState.quest_state >= 2 ? 'active' : ''}`;
             document.getElementById('inv-ink').className = `seal ${pState.quest_state >= 4 ? 'active' : ''}`;
             document.getElementById('inv-tea').className = `seal ${pState.tea_done ? 'active' : ''}`;
+            updateFloorLocks();
         }
         saveState();
 

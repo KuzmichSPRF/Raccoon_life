@@ -158,7 +158,7 @@
         <button class="floor-btn" id="btn-f68" onclick="loadFloor(68)">Этаж 68: СБ</button>
         <button class="floor-btn" id="btn-f41" onclick="loadFloor(41)">Этаж 41: IT-служба</button>
         <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО (Завхоз)</button>
-        <button class="floor-btn" id="btn-f30" disabled>Этаж 30: Бухгалтерия (Блок)</button>
+        <button class="floor-btn hidden" id="btn-f30" disabled>Этаж 30: Бухгалтерия (Блок)</button>
         
         <div id="inventory">
             <div style="color:var(--neon-cyan); margin-bottom:5px; text-align:center;">--- ИНВЕНТАРЬ ---</div>
@@ -203,6 +203,20 @@
             inventory_done: false, flappy_done: false, code_fixed: false, current_floor: null
         };
 
+        function updateFloorLocks() {
+            const btn69 = document.getElementById('btn-f69');
+            const btn68 = document.getElementById('btn-f68');
+            const btn41 = document.getElementById('btn-f41');
+            const btn40 = document.getElementById('btn-f40');
+            const btn30 = document.getElementById('btn-f30');
+
+            if (btn69) btn69.classList.toggle('hidden', pState.tetris_new_done);
+            if (btn68) btn68.classList.toggle('hidden', pState.tetris_new_done);
+            if (btn41) btn41.classList.remove('hidden');
+            if (btn40) btn40.classList.remove('hidden');
+            if (btn30) btn30.classList.add('hidden'); // Блок
+        }
+
         const charName = document.getElementById('char-name');
         const actionArea = document.getElementById('action-area');
         const dialogText = document.getElementById('dialog-text');
@@ -238,6 +252,7 @@
             if (pState.tetris_new_done) document.getElementById('inv-box').classList.add('active');
             if (pState.inventory_done) document.getElementById('inv-card').classList.add('active');
             if (pState.code_fixed) document.getElementById('inv-it').classList.add('active');
+            updateFloorLocks();
         }
         saveState();
 

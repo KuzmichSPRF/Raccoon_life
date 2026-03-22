@@ -179,9 +179,9 @@
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Начать заново ]</button>
         <button class="floor-btn" id="btn-f69" onclick="loadFloor(69)">Этаж 69: Отдел Кадров</button>
-        <button class="floor-btn" id="btn-f68" onclick="loadFloor(68)">Этаж 68: Служба Безопасности</button>
-        <button class="floor-btn" id="btn-f60" disabled>Этаж 60: ИТ-Отдел (Блок)</button>
-        <button class="floor-btn" id="btn-f13" disabled>Этаж 13: Завхоз (Блок)</button>
+        <button class="floor-btn hidden" id="btn-f68" onclick="loadFloor(68)">Этаж 68: Служба Безопасности</button>
+        <button class="floor-btn hidden" id="btn-f41" disabled>Этаж 41: ИТ-Отдел (Блок)</button>
+        <button class="floor-btn hidden" id="btn-f40" disabled>Этаж 40: Завхоз (Блок)</button>
         
         <div id="inventory">
             <div style="color:var(--neon-cyan); margin-bottom:5px; text-align:center;">--- ПЕЧАТИ ---</div>
@@ -217,9 +217,22 @@
             current_floor: null
         };
 
+        function updateFloorLocks() {
+            const btn69 = document.getElementById('btn-f69');
+            const btn68 = document.getElementById('btn-f68');
+            const btn41 = document.getElementById('btn-f41');
+            const btn40 = document.getElementById('btn-f40');
+
+            if (btn69) btn69.classList.remove('hidden');
+            if (btn68) btn68.classList.toggle('hidden', !(pState.hr_form_done && pState.xerox_done));
+            if (btn41) btn41.classList.add('hidden'); // Блок
+            if (btn40) btn40.classList.add('hidden'); // Блок
+        }
+
         function saveState() {
             localStorage.setItem('qt2_progress', JSON.stringify(pState));
             updateInventoryUI();
+            updateFloorLocks();
         }
 
         function updateInventoryUI() {
