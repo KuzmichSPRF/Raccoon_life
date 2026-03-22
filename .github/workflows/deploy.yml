@@ -3,8 +3,7 @@ name: Deploy Raccoon Bot (Dual Server)
 on:
   push:
     branches:
-      - main
-      - old-server
+      - main  # Сработает при пуше в ветку main
 
 jobs:
   # Деплой на НОВЫЙ сервер (ветка main)
@@ -24,27 +23,6 @@ jobs:
           script: |
             cd ~/Raccoon_life
             git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            sudo systemctl restart raccoon_bot
-
-  # Деплой на СТАРЫЙ сервер (ветка old-server)
-  deploy-old:
-    if: github.ref == 'refs/heads/old-server'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Deploy to OLD Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.OLD_SERVER_IP }}
-          username: ${{ secrets.OLD_SERVER_USER }}
-          key: ${{ secrets.OLD_SERVER_KEY }}
-          script: |
-            cd ~/Raccoon_life
-            git pull origin old-server
             source venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl restart raccoon_bot

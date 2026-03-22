@@ -73,6 +73,7 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
     .list-item.completed { border: 1px solid var(--game-green); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+    .list-item.locked { opacity: 0.6; filter: grayscale(100%); cursor: not-allowed; border-color: #333; }
     .list-item-title { font-size: 1.1rem; font-weight: 700; }
     .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
     .list-item.completed .list-item-title::after { content: ' ✅'; }
@@ -681,22 +682,39 @@
 
     const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
 
-    cat.items.forEach(item => {
+    let previousCompleted = true;
+
+    cat.items.forEach((item, index) => {
+      const isCompleted = item.id && completed.includes(item.id);
+      const isQuestCategory = catKey === 'qt_2'; // Блокировка по порядку только для квестов
+      const isLocked = isQuestCategory && index > 0 && !previousCompleted;
+
+      // Обновляем статус для следующей итерации
+      if (isQuestCategory) {
+        previousCompleted = isCompleted;
+      }
+
       const div = document.createElement('div');
-      div.className = 'list-item' + (item.id && completed.includes(item.id) ? ' completed' : '');
       
-      // Экранирование HTML для предотвращения XSS
       const safeTitle = escapeHTML(item.title);
       const safeDesc = escapeHTML(item.desc);
+      const rightIcon = isLocked ? '🔒' : '›';
       
+      div.className = 'list-item' + (isCompleted ? ' completed' : '') + (isLocked ? ' locked' : '');
+
       div.innerHTML = `
-        <div class="list-item-info">
+        <div class="list-item-info" style="flex: 1;">
           <div class="list-item-title">${safeTitle}</div>
           <div class="list-item-desc">${safeDesc}</div>
         </div>
-        <div style="color: #ccc">›</div>
+        <div style="color: #ccc; font-size: ${isLocked ? '1.2rem' : '1.5rem'};">${rightIcon}</div>
       `;
-      div.onclick = () => handleItemClick(item);
+      
+      if (isLocked) {
+        div.onclick = () => tg.showAlert(currentLang === 'ru' ? "Сначала пройдите предыдущий этап!" : "Complete the previous stage first!");
+      } else {
+        div.onclick = () => handleItemClick(item);
+      }
       list.appendChild(div);
     });
 
@@ -890,7 +908,8 @@
         items: [
           { id: "qt2_1", title: currentLang === 'ru' ? "Глава 1: Встреча в баре" : "Chapter 1: Meeting at the bar", desc: currentLang === 'ru' ? "Начало" : "Beginning", url: "qt2_1.1.html", type: "iframe" },
           { id: "qt2_2", title: currentLang === 'ru' ? "Глава 2: Первые шаги к успеху" : "Chapter 2: First steps to success", desc: currentLang === 'ru' ? "Начало оформления" : "Beginning of paperwork", url: "qt2_2.html", type: "iframe" },
-          { id: "qt2_3", title: currentLang === 'ru' ? "Глава 3: Материальная база" : "Chapter 3: Material base", desc: currentLang === 'ru' ? "Завхоз и сисадмин" : "Supply manager and sysadmin", url: "qt2_3.html", type: "iframe" }
+          { id: "qt2_3", title: currentLang === 'ru' ? "Глава 3: Материальная база" : "Chapter 3: Material base", desc: currentLang === 'ru' ? "Завхоз и сисадмин" : "Supply manager and sysadmin", url: "qt2_3.html", type: "iframe" },
+          { id: "qt2_4", title: currentLang === 'ru' ? "Глава 4: Финансовая петля" : "Chapter 4: Financial loop", desc: currentLang === 'ru' ? "Юристы и бухгалтерия" : "Lawyers and accounting", url: "qt2_4.html", type: "iframe" }
         ]
       },
       games: {

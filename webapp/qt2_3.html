@@ -150,7 +150,6 @@
 </head>
 <body>
     <audio id="intro-music"><source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg"></audio>
-    <!-- <audio id="bg-music" loop><source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/music.mp3" type="audio/mpeg"></audio> -->
 
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
@@ -210,7 +209,13 @@
         const dialogCursor = document.getElementById('dialog-cursor');
         let typingTimeout;
 
-        // document.addEventListener('click', () => { document.getElementById('bg-music').play().catch(()=>{}); }, { once: true });
+        // --- АУДИО (ФОН) ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/01_-title-screen.mp3');
+        audioBg.volume = 0.5;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() {
+            audioBg.play().catch(e => console.log("Audio play error:", e));
+        }, { once: true });
         
         let clickCtx;
         function playClick() {
@@ -603,7 +608,7 @@
         }
 
         document.getElementById("finish-btn").addEventListener("click", function() {
-            try { document.getElementById('bg-music').pause(); } catch(e){}
+            try { audioBg.pause(); } catch(e){}
             window.parent.postMessage({ type: 'quest_complete', id: 'qt2_3' }, window.location.origin);
         });
     </script>

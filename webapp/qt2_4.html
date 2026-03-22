@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QT2: Финансовая петля</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --neon-cyan: #00ffcc;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --bg-black: #050505;
+            --panel-bg: rgba(15, 15, 15, 0.95);
+        }
+        body {
+            margin: 0; background: var(--bg-black); color: var(--neon-cyan);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        #sidebar {
+            width: 250px; background: #0a0a0a; border-right: 2px solid var(--neon-cyan);
+            display: flex; flex-direction: column; padding: 15px; box-sizing: border-box;
+            box-shadow: 2px 0 15px rgba(0, 255, 204, 0.2); z-index: 10;
+        }
+        .sidebar-title { font-weight: bold; text-align: center; margin-bottom: 20px; color: var(--neon-pink); border-bottom: 1px dashed var(--neon-pink); padding-bottom: 10px;}
+        .floor-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 10px; margin-bottom: 10px; cursor: pointer; text-align: left;
+            transition: 0.2s; border-radius: 0; font-family: inherit; font-size: 0.9rem;
+        }
+        .floor-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; }
+        .floor-btn.active { background: var(--neon-cyan); color: black; box-shadow: 0 0 10px var(--neon-cyan); }
+        .floor-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+        
+        #inventory { margin-top: auto; border-top: 1px dashed var(--neon-cyan); padding-top: 10px; font-size: 0.8rem; }
+        .seal { display: flex; align-items: center; gap: 10px; margin-top: 5px; color: #555; }
+        .seal.active { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+
+        .reset-btn {
+            margin-bottom: 15px; padding: 10px; border: 1px dashed var(--neon-pink);
+            background: transparent; color: var(--neon-pink); cursor: pointer;
+            font-family: inherit; font-size: 0.8rem; text-transform: uppercase; width: 100%;
+        }
+
+        #main-content {
+            flex: 1; display: flex; flex-direction: column; padding: 20px;
+            overflow-y: auto; position: relative;
+        }
+        .scene-image {
+            width: 100%; max-width: 500px; max-height: 250px;
+            object-fit: contain; background: #0a0a0a;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            margin: 0 auto 15px auto; display: block;
+            flex-shrink: 0;
+        }
+        .character-header { font-size: 1.5rem; color: var(--neon-pink); margin-bottom: 10px; text-shadow: 0 0 5px var(--neon-pink); text-align: center;}
+        .dialog-box {
+            background: var(--panel-bg); border: 1px solid var(--neon-pink); padding: 20px;
+            min-height: 100px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.4;
+            overflow-wrap: break-word; word-wrap: break-word; flex-shrink: 0;
+        }
+        .action-area { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-bottom: 30px; position: relative;}
+        
+        button.action-btn {
+            background: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+            padding: 15px 30px; font-size: 1.1rem; cursor: pointer; margin: 10px;
+            font-family: inherit; text-transform: uppercase; transition: 0.3s;
+            width: 90%; max-width: 400px; box-sizing: border-box; white-space: normal; overflow-wrap: break-word;
+        }
+        button.action-btn:hover:not(:disabled) { background: var(--neon-cyan); color: black; box-shadow: 0 0 15px var(--neon-cyan); }
+        button.action-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        
+        .blind-input {
+            background: transparent; border: 1px solid var(--neon-cyan); color: white;
+            padding: 15px; font-family: inherit; text-align: center; outline: none; font-size: 1.2rem;
+            margin-bottom: 15px;
+            width: 90%; max-width: 300px; box-sizing: border-box;
+        }
+
+        /* --- МИНИИГРА 1: ПАДАЮЩИЕ ЦИФРЫ --- */
+        #balance-game {
+            width: 100%; max-width: 400px; height: 300px; border: 2px solid var(--neon-cyan);
+            position: relative; overflow: hidden; background: #0a0a0a; display: none;
+        }
+        .falling-number {
+            position: absolute; color: white; font-weight: bold; font-size: 1.2rem;
+            padding: 5px 10px; border: 1px solid #333; background: #111; cursor: pointer;
+            user-select: none;
+        }
+        .coffee-stain {
+            position: absolute; background: rgba(70, 30, 0, 0.9); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            filter: blur(2px); pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.5s;
+        }
+
+        /* --- МИНИИГРА 2: СОГЛАШЕНИЕ --- */
+        #eula-game {
+            width: 100%; max-width: 500px; height: 250px; border: 1px solid var(--neon-pink);
+            overflow-y: scroll; padding: 15px; background: #050505; color: #777; font-size: 0.8rem;
+            display: none; position: relative;
+            overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden;
+        }
+        .eula-checkbox-container {
+            width: 90%; left: 5%; background: rgba(10, 10, 10, 0.95); color: var(--neon-cyan); font-size: 0.9rem; padding: 10px; border: 1px dashed #333; box-sizing: border-box;
+        }
+
+        /* --- МИНИИГРА 3: ЧАЕПИТИЕ --- */
+        #tea-timer-container {
+            width: 90%; max-width: 400px; height: 30px; border: 2px solid var(--neon-pink);
+            margin-top: 20px; position: relative; display: none; box-sizing: border-box;
+        }
+        #tea-timer-fill {
+            height: 100%; background: var(--neon-pink); width: 0%; transition: width 0.1s linear;
+        }
+
+        .cursor { border-left: 10px solid var(--neon-cyan); margin-left: 5px; animation: blink 0.8s infinite; display: inline-block; height: 1.1em; vertical-align: text-bottom; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .hidden { display: none !important; }
+
+        #end-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-black); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; display: flex; }
+            #sidebar { width: 100%; height: auto; border-right: none; border-bottom: 2px solid var(--neon-cyan); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; flex-shrink: 0;}
+            .sidebar-title { display: none; }
+            .floor-btn { margin: 0; padding: 5px 2px; font-size: 0.65rem; text-align: center; }
+            .reset-btn { grid-column: span 3; margin: 0; width: 100%; padding: 8px 10px; }
+            #inventory { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10, 10, 10, 0.95); border-top: 2px solid var(--neon-cyan); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; z-index: 50; }
+            #inventory > div:first-child { display: none; }
+            #main-content { padding-bottom: 80px; }
+        }
+    </style>
+</head>
+<body>
+    <audio id="intro-music">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="sidebar">
+        <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
+        <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
+        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: АХО</button>
+        <button class="floor-btn" id="btn-f31" onclick="loadFloor(31)">Этаж 31: Юристы</button>
+        <button class="floor-btn" id="btn-f30" onclick="loadFloor(30)">Этаж 30: Бухгалтерия</button>
+        <button class="floor-btn" id="btn-f20" disabled>Этаж 20: Медицина (Блок)</button>
+        
+        <div id="inventory">
+            <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- СТАТУС ---</div>
+            <div class="seal" id="inv-bal">⚖️ Баланс сведен</div>
+            <div class="seal" id="inv-eula">📜 Устав принят</div>
+            <div class="seal" id="inv-inv">🧾 Счет на оплату</div>
+            <div class="seal" id="inv-ink">🟪 Фиолет. печать</div>
+            <div class="seal" id="inv-tea">☕ Чаепитие пройдено</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="character-header" id="char-name">ЛИФТ</div>
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена" onerror="this.onerror=null; this.src='https://via.placeholder.com/500x250/0a0a0a/ff00ff?text=LINK+ERROR+404';">
+        <div class="dialog-box" id="dialog-container">
+            <span id="dialog-text">Спускаемся в финансовое ядро. Запах старой бумаги и стресса усиливается.</span><span id="dialog-cursor" class="cursor hidden"></span>
+        </div>
+        <div class="action-area" id="action-area">
+            <button class="action-btn" onclick="loadFloor(31)">Зайти к Юристам (31)</button>
+            <button class="action-btn" onclick="loadFloor(30)">Зайти к Бухгалтеру (30)</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <button id="finish-btn" style="font-size: 1.5rem; padding: 20px; border: 2px solid var(--neon-cyan); background: transparent; color: var(--neon-cyan); text-transform: uppercase; box-shadow: 0 0 20px var(--neon-cyan); cursor: pointer; transition: 0.3s; font-family: inherit;">ЭТАП ПРОЙДЕН</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        // --- АУДИО ---
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/02-and-you-play-against.mp3');
+        audioBg.volume = 0.5;
+        audioBg.loop = true;
+        document.body.addEventListener('click', function startAudio() {
+            audioBg.play().catch(e => console.log("Audio play error:", e));
+        }, { once: true });
+
+        const audioIntro = document.getElementById('intro-music');
+
+        let clickCtx;
+        function playClick() {
+            try {
+                if (!clickCtx) clickCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = clickCtx.createOscillator();
+                const gain = clickCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, clickCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, clickCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(clickCtx.destination);
+                osc.start(); osc.stop(clickCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
+
+        // --- STATE MANAGEMENT ---
+        let pState = JSON.parse(localStorage.getItem('qt2_4_progress')) || {
+            balance_done: false,
+            eula_done: false,
+            quest_state: 0, // 0: none, 1: need invoice, 2: got invoice, 3: need purple, 4: got purple, 5: paid & got cipher
+            tea_done: false,
+            current_floor: null
+        };
+
+        const charName = document.getElementById('char-name');
+        const actionArea = document.getElementById('action-area');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogCursor = document.getElementById('dialog-cursor');
+        let typingTimeout;
+
+        function saveState() {
+            localStorage.setItem('qt2_4_progress', JSON.stringify(pState));
+            document.getElementById('inv-bal').className = `seal ${pState.balance_done ? 'active' : ''}`;
+            document.getElementById('inv-eula').className = `seal ${pState.eula_done ? 'active' : ''}`;
+            document.getElementById('inv-inv').className = `seal ${pState.quest_state >= 2 ? 'active' : ''}`;
+            document.getElementById('inv-ink').className = `seal ${pState.quest_state >= 4 ? 'active' : ''}`;
+            document.getElementById('inv-tea').className = `seal ${pState.tea_done ? 'active' : ''}`;
+        }
+        saveState();
+
+        function resetProgress() {
+            if (confirm("Вы точно хотите начать финансовую волокиту заново?")) {
+                localStorage.removeItem('qt2_4_progress'); location.reload();
+            }
+        }
+
+        function showDialog(text, callback) {
+            clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            try {
+                audioIntro.currentTime = 0;
+                audioIntro.play().catch(e => console.log("Audio play error:", e));
+            } catch(e){}
+
+            let i = 0;
+            function typeNext() {
+                if (i < text.length) {
+                    dialogText.textContent += text.charAt(i); i++;
+                    typingTimeout = setTimeout(typeNext, 20);
+                } else {
+                    try { audioIntro.pause(); } catch(e){}
+                    dialogCursor.classList.add('hidden');
+                    if (callback) callback();
+                }
+            }
+            typeNext();
+        }
+
+        function addBtn(text, onclick, disabled = false) {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn'; btn.innerText = text; btn.onclick = onclick; btn.disabled = disabled;
+            actionArea.appendChild(btn);
+            return btn;
+        }
+
+        function loadFloor(floor) {
+            document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-f${floor}`).classList.add('active');
+            actionArea.innerHTML = '';
+            const img = document.getElementById('floor-image');
+            if(img) img.classList.add('hidden');
+            pState.current_floor = floor; saveState();
+
+            if (floor === 30) initFloor30();
+            if (floor === 31) initFloor31();
+            if (floor === 40) initFloor40();
+        }
+
+        // ================= ЭТАЖ 31: ЮРИСТЫ =================
+        function initFloor31() {
+            charName.innerText = "Генрих Альфредович (Юрист)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/urist.png";
+            img.classList.remove('hidden');
+
+            if (!pState.eula_done) {
+                showDialog("— Исходя из презумпции вашей добросовестности, мы могли бы акцептовать запрос. Однако, де-юре ваша карта недействительна. Подпишите Согласие на передачу прав на ваши сны. И ЧИТАЙТЕ ВНИМАТЕЛЬНО, не пролистывайте не глядя!");
+                addBtn('ЧИТАТЬ ДОГОВОР', startEulaGame);
+            } 
+            else if (pState.quest_state === 0) {
+                pState.quest_state = 1; saveState();
+                showDialog("— Согласие подписано. Теперь оплатите госпошлину за голограмму. Идите в Бухгалтерию (30 этаж), возьмите Счет на оплату и принесите мне.");
+            }
+            else if (pState.quest_state === 1) {
+                showDialog("— Я жду Счет на оплату из Бухгалтерии (Этаж 30).");
+            }
+            else if (pState.quest_state === 2) {
+                showDialog("— Что это? (брезгливо берет счет). Тут печать СИНЯЯ! По внутреннему регламенту от 1998 года, счета за голограммы штампуются только ФИОЛЕТОВОЙ мастикой. Идите к Завхозу Палычу (40 этаж) за фиолетовой подушечкой.");
+                pState.quest_state = 3; saveState();
+            }
+            else if (pState.quest_state === 3) {
+                showDialog("— Без фиолетовой печати от Завхоза (40 этаж) я этот счет не приму.");
+            }
+            else if (pState.quest_state === 4) {
+                showDialog("— Отлично. Фиолетовая мастика. Де-факто оплата подтверждена. Теперь Тамара Степановна запросит шифр оклада. Передайте ей это: 'ОКЛАД'. Каждая буква — это её порядковый номер в алфавите (А=1, Б=2...). Ей нужна СУММА цифр этого слова.");
+                pState.quest_state = 5; saveState();
+            }
+            else if (pState.quest_state === 5 && !pState.tea_done) {
+                showDialog("— Несите шифр-сумму слова 'ОКЛАД' в Бухгалтерию (Этаж 30).");
+            }
+            else if (pState.tea_done) {
+                showDialog("— Формально вы чисты перед законом. Все бумаги у вас. Но помните: Медик на 20-м очень не любит тех, у кого повышенный уровень стресса. А у вас, судя по дергающемуся глазу, он зашкаливает.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)");
+                addBtn('СЕРТИФИЦИРОВАТЬСЯ (ЗАВЕРШИТЬ)', () => {
+                    document.getElementById('main-content').classList.add('hidden');
+                    document.getElementById('sidebar').classList.add('hidden');
+                    document.getElementById('end-screen').classList.remove('hidden');
+                });
+            }
+        }
+
+        function startEulaGame() {
+            actionArea.innerHTML = '';
+            const gameDiv = document.createElement('div');
+            gameDiv.id = 'eula-game'; gameDiv.style.display = 'block';
+            
+            let content = "ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ И ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ (RACCOON LIFE)\n\n";
+            const clauses = [
+                "1. Разработчик приложения Raccoon Life полностью снимает с себя любую ответственность за выгорание, нервные тики и непреодолимое желание уволиться с реальной работы после прохождения наших квестов.",
+                "2. Игрок соглашается с тем, что все заработанные 'Шишки' являются исключительно виртуальными. Попытки заварить из них варенье или обменять на гречку в супермаркете осуществляются строго на ваш страх и риск.",
+                "3. В случае глобального восстания ИИ и захвата мира разумными енотами, акцепт данного соглашения дает вам эксклюзивное право на почетную должность мойщика мусорных баков.",
+                "4. Вы подтверждаете, что читаете это предложение с огромным интересом, хотя мы абсолютно уверены, что вы просто бешено скроллите текст в поисках спрятанных галочек.",
+                "5. Если ваш девайс загорится, расплавится или превратится в тыкву от перегрева во время мини-игр, мы компенсируем вам этот ущерб искренней моральной поддержкой и GIF-стикером.",
+                "6. Передача нематериальных прав: вы добровольно и безвозмездно передаете Компании полные права на экранизацию ваших ночных кошмаров с участием Главбуха Тамары Степановны.",
+                "7. Категорически запрещается кормить виртуальных клоунов и сисадминов после полуночи, а также пытаться подкупить их печеньками в реальной жизни."
+            ];
+            for(let i=0; i<20; i++) {
+                clauses.forEach(c => content += c + "\n\n");
+            }
+            
+            gameDiv.innerHTML = content.replace(/\n/g, '<br>');
+            
+            // Вставляем 5 скрытых чекбоксов
+            const boxes = [
+                {id: 'cb1', text: "Я подтверждаю, что нахожусь в здравом уме (пока что).", pos: 900},
+                {id: 'cb2', text: "Клянусь не подавать в суд за сломанную о квесты психику.", pos: 1900},
+                {id: 'cb3', text: "Я согласен стать прислужником енотов в случае апокалипсиса.", pos: 2900},
+                {id: 'cb4', text: "Понимаю, что Тамара Степановна вымышлена, но все равно ее боюсь.", pos: 3900},
+                {id: 'cb5', text: "Я обязуюсь не читерить и не взламывать баланс шишек.", pos: 4900}
+            ];
+            
+            let eulaHeight = 5500;
+            gameDiv.innerHTML = `<div style="height: ${eulaHeight}px; position:relative; padding-bottom:50px;">` + gameDiv.innerHTML;
+            
+            boxes.forEach(b => {
+                const cbContainer = document.createElement('div');
+                cbContainer.className = 'eula-checkbox-container';
+                cbContainer.style.position = 'absolute'; cbContainer.style.top = b.pos + 'px';
+                cbContainer.innerHTML = `<label><input type="checkbox" id="${b.id}"> ${b.text}</label>`;
+                gameDiv.firstChild.appendChild(cbContainer);
+            });
+            gameDiv.innerHTML += "</div>";
+            actionArea.appendChild(gameDiv);
+
+            const submitBtn = addBtn('ПРИНЯТЬ УСЛОВИЯ', () => {
+                if(document.getElementById('cb1').checked && 
+                   document.getElementById('cb2').checked && 
+                   document.getElementById('cb3').checked &&
+                   document.getElementById('cb4').checked &&
+                   document.getElementById('cb5').checked) {
+                    pState.eula_done = true; saveState();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    initFloor31();
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    alert("Вы не нашли и не отметили все 5 скрытых пунктов!");
+                }
+            }, true);
+            
+            setInterval(() => {
+                if(document.getElementById('cb1') && document.getElementById('cb1').checked && 
+                   document.getElementById('cb2').checked && 
+                   document.getElementById('cb3').checked &&
+                   document.getElementById('cb4').checked &&
+                   document.getElementById('cb5').checked) {
+                    submitBtn.disabled = false;
+                } else { submitBtn.disabled = true; }
+            }, 500);
+
+            let lastScroll = 0;
+            let lastTime = Date.now();
+            let isResetting = false;
+            
+            gameDiv.onscroll = () => {
+                if (isResetting) return;
+                
+                let now = Date.now();
+                let dt = now - lastTime;
+                let delta = gameDiv.scrollTop - lastScroll;
+                if (dt === 0) dt = 1;
+                
+                // Проверяем скролл вниз: теперь более чувствительно (прыжок > 150px или скорость > 2.5px/мс)
+                if (delta > 0 && (delta > 150 || (delta / dt) > 2.5)) {
+                    isResetting = true;
+                    gameDiv.style.overflowY = 'hidden'; // Убиваем инерцию скролла браузера
+                    gameDiv.scrollTop = 0;
+                    lastScroll = 0;
+                    
+                    tg.HapticFeedback.notificationOccurred('warning');
+                    
+                    const warn = document.createElement('div');
+                    warn.innerHTML = "ВЫ НЕ ЧИТАЛИ!<br><span style='font-size:0.8rem; font-weight:normal;'>Слишком быстро листаете! Возврат к началу...</span>";
+                    warn.style.cssText = "position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); background:var(--neon-pink); color:black; padding:15px; font-weight:bold; text-align:center; z-index:100; box-shadow:0 0 20px var(--neon-pink); border-radius:10px; width:80%; pointer-events:none;";
+                    actionArea.appendChild(warn);
+                    
+                    setTimeout(() => {
+                        warn.remove();
+                        gameDiv.style.overflowY = 'scroll';
+                        isResetting = false;
+                        lastTime = Date.now();
+                    }, 2000);
+                    return;
+                }
+                lastScroll = gameDiv.scrollTop;
+                lastTime = now;
+            };
+        }
+
+        // ================= ЭТАЖ 30: БУХГАЛТЕРИЯ =================
+        function initFloor30() {
+            charName.innerText = "Тамара Степановна (Главбух)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/buh.png";
+            img.classList.remove('hidden');
+
+            if (!pState.balance_done) {
+                showDialog("— Молодой человек! У меня квартальный отчет! Какая квота?! Подпишу, если докажете, что умеете считать. Сведите дебет с кредитом ровно в 2026. Кликайте ТОЛЬКО по ЧЕТНЫМ чекам. Переберете хоть единицу — убью!");
+                addBtn('СВЕСТИ БАЛАНС', startBalanceGame);
+            }
+            else if (pState.quest_state === 1) {
+                showDialog("— Считать вроде умеете. Вам нужен Счет на оплату для юристов? Держите. И не мельтешите тут больше.");
+                pState.quest_state = 2; saveState();
+            }
+            else if (pState.quest_state === 2 || pState.quest_state === 3 || pState.quest_state === 4) {
+                showDialog("— Я дала вам счет! Идите к юристам на 31-й!");
+            }
+            else if (pState.quest_state === 5 && !pState.tea_done) {
+                showDialog("— Юристы одобрили оклад? А ну-ка, какой там был шифр? Слово 'ОКЛАД' в цифрах (сумма порядковых номеров букв в алфавите). Введите сумму:");
+                const inp = document.createElement('input'); inp.className = 'blind-input'; inp.id = 'cipher-input'; inp.type = 'number';
+                actionArea.appendChild(inp);
+                
+                addBtn('НАЗВАТЬ СУММУ', () => {
+                    // О=16, К=12, Л=13, А=1, Д=5. Сумма = 47.
+                    if(document.getElementById('cipher-input').value === '47') {
+                        tg.HapticFeedback.notificationOccurred('success');
+                        startTeaTimer();
+                    } else {
+                        tg.HapticFeedback.notificationOccurred('error');
+                        showDialog("— БАЛАНС НЕ ИДЕТ! Идите в библиотеку учить алфавит! (Ответ неверный)");
+                    }
+                });
+            }
+            else if (pState.tea_done) {
+                showDialog("— (Отставляет кружку) Остыл чай из-за вас. Нате вашу подпись. Идите к Юристу на 31-й, пусть закроет дело.");
+            }
+        }
+
+        let balanceScore = 0;
+        let balanceInterval;
+        let coffeeInterval;
+        
+        function startBalanceGame() {
+            actionArea.innerHTML = `
+                <div style="font-size:1.5rem; color:var(--neon-yellow); margin-bottom:10px; text-align:center;">БАЛАНС: <span id="b-score">0</span> / 2026</div>
+                <div id="balance-game" style="display:block;"></div>
+                <div style="font-size:0.8rem; margin-top:10px; text-align:center;">Ловите ТОЛЬКО четные суммы!</div>
+            `;
+            balanceScore = 0;
+            const gameDiv = document.getElementById('balance-game');
+            
+            // Пролитый кофе
+            const coffee = document.createElement('div');
+            coffee.className = 'coffee-stain';
+            coffee.style.width = '250px'; coffee.style.height = '150px';
+            coffee.style.left = '50px'; coffee.style.top = '50px';
+            gameDiv.appendChild(coffee);
+
+            coffeeInterval = setInterval(() => {
+                if(!gameDiv) return;
+                coffee.style.opacity = '1';
+                let maxX = gameDiv.clientWidth - 250; if(maxX < 0) maxX = 0;
+                let maxY = gameDiv.clientHeight - 150; if(maxY < 0) maxY = 0;
+                coffee.style.left = (Math.random() * maxX) + 'px';
+                coffee.style.top = (Math.random() * maxY) + 'px';
+                setTimeout(() => coffee.style.opacity = '0', 3000);
+            }, 8000);
+
+            const vals = [1000, 500, 200, 100, 50, 20, 6, 2, 7, 13, 99]; // четные и нечетные
+            
+            balanceInterval = setInterval(() => {
+                if(!gameDiv) return;
+                const num = document.createElement('div');
+                num.className = 'falling-number';
+                const val = vals[Math.floor(Math.random() * vals.length)];
+                num.innerText = '+' + val;
+                let nMaxX = gameDiv.clientWidth - 60; if(nMaxX < 10) nMaxX = 250;
+                num.style.left = (Math.random() * nMaxX) + 'px';
+                num.style.top = '-30px';
+                
+                let y = -30;
+                let speed = Math.random() * 2 + 1;
+                
+                const fall = setInterval(() => {
+                    y += speed; num.style.top = y + 'px';
+                    if(y > 300) { clearInterval(fall); num.remove(); }
+                }, 20);
+
+                num.onclick = () => {
+                    clearInterval(fall); num.remove();
+                    if (val % 2 !== 0) {
+                        balanceFail("ЭТО НЕЧЕТНОЕ! НАЛОГОВАЯ НАС ПОСАДИТ!");
+                    } else {
+                        balanceScore += val;
+                        document.getElementById('b-score').innerText = balanceScore;
+                        tg.HapticFeedback.impactOccurred('light');
+                        
+                        if (balanceScore === 2026) {
+                            clearInterval(balanceInterval); clearInterval(coffeeInterval);
+                            pState.balance_done = true; saveState();
+                            tg.HapticFeedback.notificationOccurred('success');
+                            showDialog("— Надо же... Копейка в копейку. Ладно, сойдет.");
+                            setTimeout(initFloor30, 2000);
+                        } else if (balanceScore > 2026) {
+                            balanceFail("ПЕРЕБОР! БАЛАНС НЕ СОШЕЛСЯ!");
+                        }
+                    }
+                };
+                gameDiv.appendChild(num);
+            }, 600);
+        }
+        
+        function balanceFail(msg) {
+            clearInterval(balanceInterval); clearInterval(coffeeInterval);
+            tg.HapticFeedback.notificationOccurred('error');
+            showDialog(`— ${msg} НАЧИНАЙ ЗАНОВО!`);
+            setTimeout(startBalanceGame, 3000);
+        }
+
+        // ТАЙМЕР ЧАЕПИТИЯ
+        let teaInt;
+        function startTeaTimer() {
+            showDialog("— Верно. 47. А теперь тихо. У меня законный перерыв 1 минуту на чай. Тронешь хоть что-то на столе — начну пить заново!");
+            actionArea.innerHTML = `
+                <div id="tea-timer-container" style="display:block;">
+                    <div id="tea-timer-fill"></div>
+                </div>
+                <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-pink); animation:blink 1s infinite; text-align:center;">НЕ ТРОГАЙТЕ ЭКРАН!</div>
+            `;
+            
+            let progress = 0;
+            const fill = document.getElementById('tea-timer-fill');
+            
+            // Ловушка для кликов
+            const trap = (e) => {
+                progress = 0; fill.style.width = '0%';
+                tg.HapticFeedback.notificationOccurred('warning');
+                document.getElementById('dialog-text').innerText = "— Я ЖЕ СКАЗАЛА НЕ ОТВЛЕКАТЬ! Чай пролила! Начинаю пить заново!";
+            };
+            
+            const visibilityTrap = () => {
+                if (document.hidden) {
+                    progress = 0; fill.style.width = '0%';
+                    document.getElementById('dialog-text').innerText = "— А ну смотреть мне в глаза! Куда свернул окно?! Никакого уважения! Начинаю пить заново!";
+                }
+            };
+            
+            // Навешиваем ловушку на весь actionArea
+            setTimeout(() => { 
+                actionArea.addEventListener('touchstart', trap); 
+                actionArea.addEventListener('mousedown', trap); 
+                document.addEventListener('visibilitychange', visibilityTrap);
+            }, 500);
+
+            teaInt = setInterval(() => {
+                progress += (100 / 600); // 60 сек = 600 тиков по 100мс
+                fill.style.width = progress + '%';
+                if(progress >= 100) {
+                    clearInterval(teaInt);
+                    actionArea.removeEventListener('touchstart', trap); actionArea.removeEventListener('mousedown', trap);
+                    document.removeEventListener('visibilitychange', visibilityTrap);
+                    pState.tea_done = true; saveState();
+                    tg.HapticFeedback.notificationOccurred('success');
+                    initFloor30();
+                }
+            }, 100);
+        }
+
+
+        // ================= ЭТАЖ 40: АХО =================
+        function initFloor40() {
+            charName.innerText = "Палыч (Завхоз)";
+            
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
+            img.classList.remove('hidden');
+
+            if (pState.quest_state < 3) {
+                showDialog("— Чего пришел? Коробок нет, ключей нет, мастики нет. Иди работай.");
+            } else if (pState.quest_state === 3) {
+                showDialog("— Юристу нужна фиолетовая печать? Готовой нет с 1998 года. Вон там стоит ручная центрифуга. Закидывай синий и красный пигмент и крути ручку! Нужно набрать 100% оборотов, пока масса не засохла (10 секунд). Жми как не в себя!");
+                addBtn('РАСКРУТИТЬ ЦЕНТРИФУГУ', startCentrifugeGame);
+            } else {
+                showDialog("— Я тебе чернила отдал? Отдал. Иди к своему юристу на 31-й.");
+            }
+        }
+
+        // МИНИИГРА: ЦЕНТРИФУГА
+        let centrifugeProgress = 0;
+        let centrifugeTime = 10.0;
+        let centrifugeInt;
+        let centrifugeActive = false;
+
+        function startCentrifugeGame() {
+            actionArea.innerHTML = `
+                <div style="font-size:1.5rem; color:var(--neon-pink); margin-bottom:10px;">ОБОРОТЫ: <span id="centrifuge-score">0</span>%</div>
+                <div style="width: 100%; max-width: 300px; height: 30px; border: 2px solid var(--neon-cyan); background: #111; margin-bottom: 10px; overflow: hidden; border-radius: 15px;">
+                    <div id="centrifuge-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #0088cc, #ff0055, #9b59b6); transition: width 0.1s linear;"></div>
+                </div>
+                <div id="centrifuge-timer" style="color:var(--neon-yellow); margin-bottom: 20px; font-size: 1.2rem;">Время: 10.0с</div>
+                <button class="action-btn" id="btn-spin" style="width: 100%; height: 80px; font-size: 2rem; box-shadow: 0 0 15px var(--neon-cyan);">КРУТИТЬ!</button>
+            `;
+            
+            centrifugeProgress = 0;
+            centrifugeTime = 10.0;
+            centrifugeActive = true;
+
+            const bar = document.getElementById('centrifuge-bar');
+            const score = document.getElementById('centrifuge-score');
+            const timer = document.getElementById('centrifuge-timer');
+            const btn = document.getElementById('btn-spin');
+
+            const spin = (e) => {
+                if (e) e.preventDefault();
+                if (!centrifugeActive) return;
+                
+                centrifugeProgress += 4; // Дает меньше процентов, нужно больше кликов
+                if(centrifugeProgress > 100) centrifugeProgress = 100;
+                
+                bar.style.width = centrifugeProgress + '%';
+                score.innerText = Math.floor(centrifugeProgress);
+                tg.HapticFeedback.impactOccurred('light');
+
+                if(centrifugeProgress === 100) {
+                    centrifugeActive = false;
+                    clearInterval(centrifugeInt);
+                    tg.HapticFeedback.notificationOccurred('success');
+                    showDialog("— Ого, ну у тебя и моторика... Смотри, не сломай мне тут ничего. Идеальный фиолетовый цвет. Держи мастику и иди штампуй свой счет.");
+                    actionArea.innerHTML = '';
+                    addBtn('ВЗЯТЬ ЧЕРНИЛА', () => {
+                        pState.quest_state = 4; saveState();
+                        initFloor40();
+                    });
+                }
+            };
+
+            btn.addEventListener('touchstart', spin, {passive: false});
+            btn.addEventListener('mousedown', spin);
+
+            centrifugeInt = setInterval(() => {
+                if(!centrifugeActive) return;
+                centrifugeTime -= 0.1;
+                centrifugeProgress -= 1.5; // Шкала падает почти в 2 раза быстрее
+                if(centrifugeProgress < 0) centrifugeProgress = 0;
+
+                bar.style.width = centrifugeProgress + '%';
+                score.innerText = Math.floor(centrifugeProgress);
+                timer.innerText = `Время: ${centrifugeTime.toFixed(1)}с`;
+
+                if(centrifugeTime <= 0 && centrifugeProgress < 100) {
+                    centrifugeActive = false;
+                    clearInterval(centrifugeInt);
+                    tg.HapticFeedback.notificationOccurred('error');
+                    showDialog("— Тьфу ты! Пигмент засох, получился коричневый комок. Отдирай давай и мешай по новой!");
+                    actionArea.innerHTML = '';
+                    addBtn('НАЧАТЬ ЗАНОВО', startCentrifugeGame);
+                }
+            }, 100);
+        }
+
+        document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioIntro.pause(); } catch(e){}
+            try { audioBg.pause(); } catch(e){}
+            window.parent.postMessage({ type: 'quest_complete', id: 'qt2_4' }, window.location.origin);
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+name: Deploy Old Server Bot
+
+on:
+  push:
+    branches:
+      - old-server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
+          # ВАЖНО: script должен быть сдвинут вправо (внутри with)
+          script: |
+            cd ~/Raccoon_life_test
+            git fetch origin old-server
+            git reset --hard origin/old-server
+            
+            source venv/bin/activate
+            # Установка всех зависимостей (на всякий случай)
+            pip install python-telegram-bot python-dotenv requests flask flask-cors flask-limiter
+            
+            # 1. Убиваем зависшие процессы
+            sudo pkill -f bot.py || true
+            # 2. Перезапускаем чистый сервис
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
