@@ -161,7 +161,11 @@
                 document.getElementById('btn-f100').innerText = "Black Doors (Boss)";
                 document.querySelector('#inventory > div:first-child').innerText = "--- DOCUMENTS STATUS ---";
                 document.getElementById('inv-obhod').innerText = "✅ Bypass sheet closed";
-                document.getElementById('inv-test').innerText = "📊 DISC Profile: Waiting";
+                if (!pState.test_passed) {
+                    document.getElementById('inv-test').innerText = "📊 DISC Profile: Waiting";
+                } else {
+                    document.getElementById('inv-test').innerText = `📊 Profile: ${pState.test_result.type}`;
+                }
                 document.getElementById('char-name').innerText = "ELEVATOR";
                 document.getElementById('dialog-text').innerText = "Going back up to the 69th floor. Time for final checks.";
                 const actionBtns = document.querySelectorAll('.action-btn');
@@ -330,7 +334,7 @@
         let currentTestQueue = [];
 
         function initFloor69() {
-            charName.innerText = "Элеонора Витальевна (Кадры)";
+            charName.innerText = T("Элеонора Витальевна (Кадры)", "Eleonora (HR)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
 
             if (!pState.test_passed) {
