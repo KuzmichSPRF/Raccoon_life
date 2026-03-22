@@ -154,7 +154,7 @@
 
     <div id="main-content">
         <div class="character-header" id="char-name">ЛИФТ</div>
-        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена">
+        <img id="floor-image" class="scene-image hidden" src="" alt="Сцена" onerror="this.onerror=null; this.src='https://via.placeholder.com/500x250/0a0a0a/ff00ff?text=LINK+ERROR+404';">
         <div class="dialog-box" id="dialog-container">
             <span id="dialog-text">Спускаемся в финансовое ядро. Запах старой бумаги и стресса усиливается.</span><span id="dialog-cursor" class="cursor hidden"></span>
         </div>
@@ -242,6 +242,10 @@
         function initFloor31() {
             charName.innerText = "Генрих Альфредович (Юрист)";
             
+            const img = document.getElementById('floor-image');
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/LAW.png"; // Замените ссылку Юриста, если она другая!
+            img.classList.remove('hidden');
+
             if (!pState.eula_done) {
                 showDialog("— Исходя из презумпции вашей добросовестности, мы могли бы акцептовать запрос. Однако, де-юре ваша карта недействительна. Подпишите Согласие на передачу прав на ваши сны. И ЧИТАЙТЕ ВНИМАТЕЛЬНО, не пролистывайте не глядя!");
                 addBtn('ЧИТАТЬ ДОГОВОР', startEulaGame);
@@ -389,7 +393,7 @@
             charName.innerText = "Тамара Степановна (Главбух)";
             
             const img = document.getElementById('floor-image');
-            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/BUH.png"; // Замените ссылку, если она другая
+            img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/old-server/image/buh.png";
             img.classList.remove('hidden');
 
             if (!pState.balance_done) {
