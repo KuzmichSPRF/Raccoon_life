@@ -138,6 +138,10 @@
     </style>
 </head>
 <body>
+    <audio id="intro-music">
+        <source src="https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/intro.mp3" type="audio/mpeg">
+    </audio>
+
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
@@ -177,15 +181,30 @@
         tg.ready(); tg.expand();
 
         // --- АУДИО ---
-        const audioBg = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/02-and-you-play-against.mp3');
+        const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/02-and-you-play-against.mp3');
         audioBg.volume = 0.5;
         audioBg.loop = true;
         document.body.addEventListener('click', function startAudio() {
             audioBg.play().catch(e => console.log("Audio play error:", e));
         }, { once: true });
 
-        // Звук печати текста
-        const typeSound = new Audio('https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/sound/type.mp3');
+        const audioIntro = document.getElementById('intro-music');
+
+        let clickCtx;
+        function playClick() {
+            try {
+                if (!clickCtx) clickCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = clickCtx.createOscillator();
+                const gain = clickCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, clickCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, clickCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, clickCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, clickCtx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(clickCtx.destination);
+                osc.start(); osc.stop(clickCtx.currentTime + 0.1);
+            } catch (e) {}
+        }
+        document.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') playClick(); });
 
         // --- STATE MANAGEMENT ---
         let pState = JSON.parse(localStorage.getItem('qt2_4_progress')) || {
@@ -220,17 +239,18 @@
 
         function showDialog(text, callback) {
             clearTimeout(typingTimeout); dialogText.textContent = ""; dialogCursor.classList.remove('hidden');
+            try {
+                audioIntro.currentTime = 0;
+                audioIntro.play().catch(e => console.log("Audio play error:", e));
+            } catch(e){}
+
             let i = 0;
             function typeNext() {
                 if (i < text.length) {
                     dialogText.textContent += text.charAt(i); i++;
-                    if (i % 2 === 0) { // Воспроизводим звук через символ, чтобы не перегружать аудиоканал
-                        const t = typeSound.cloneNode();
-                        t.volume = 0.15;
-                        t.play().catch(()=>{});
-                    }
                     typingTimeout = setTimeout(typeNext, 20);
                 } else {
+                    try { audioIntro.pause(); } catch(e){}
                     dialogCursor.classList.add('hidden');
                     if (callback) callback();
                 }
@@ -671,6 +691,7 @@
         }
 
         document.getElementById("finish-btn").addEventListener("click", function() {
+            try { audioIntro.pause(); } catch(e){}
             try { audioBg.pause(); } catch(e){}
             window.parent.postMessage({ type: 'quest_complete', id: 'qt2_4' }, window.location.origin);
         });
