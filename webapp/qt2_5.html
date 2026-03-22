@@ -75,7 +75,7 @@
         /* --- ИГРА 1: МЕДИК --- */
         #medic-game { width: 100%; max-width: 350px; height: 250px; border: 2px solid var(--neon-cyan); position: relative; overflow: hidden; background: #111; transition: background 0.3s; display: none; }
         .floating-letter { position: absolute; font-size: 2rem; font-weight: bold; color: white; cursor: pointer; padding: 10px; user-select: none; }
-        #eye-btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--neon-pink); color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit; z-index: 10; display: none; }
+        #eye-btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--neon-pink); color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; font-family: inherit; z-index: 10; display: none; touch-action: none; }
 
         /* --- ИГРА 2: ТБ ЛАБИРИНТ --- */
         #maze-game { display: none; flex-direction: column; align-items: center; gap: 10px; }
@@ -126,11 +126,11 @@
     <div id="sidebar">
         <div class="sidebar-title">ЛИФТ СИСТЕМЫ</div>
         <button class="reset-btn" onclick="resetProgress()">[ Сбросить цикл ]</button>
-        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)">Этаж 40: Завхоз</button>
+        <button class="floor-btn" id="btn-f40" onclick="loadFloor(40)" disabled>Этаж 40: Завхоз</button>
         <button class="floor-btn" id="btn-f21" onclick="loadFloor(21)">Этаж 21: Охрана Труда</button>
-        <button class="floor-btn" id="btn-f20" onclick="loadFloor(20)">Этаж 20: Медкабинет</button>
-        <button class="floor-btn" id="btn-f11" onclick="loadFloor(11)">Этаж 11: Архив</button>
-        <button class="floor-btn" id="btn-f10" onclick="loadFloor(10)">Этаж 10: Библиотека</button>
+        <button class="floor-btn" id="btn-f20" onclick="loadFloor(20)" disabled>Этаж 20: Медкабинет</button>
+        <button class="floor-btn" id="btn-f11" onclick="loadFloor(11)" disabled>Этаж 11: Архив</button>
+        <button class="floor-btn" id="btn-f10" onclick="loadFloor(10)" disabled>Этаж 10: Библиотека</button>
         
         <div id="inventory">
             <div style="color:var(--neon-cyan); margin-bottom:5px; width:100%; text-align:center;">--- ОБХОДНОЙ ЛИСТ ---</div>
@@ -149,9 +149,7 @@
             <span id="dialog-text">Мы погружаемся в нижние уровни. Здесь пахнет старой бумагой и корвалолом. Куда пойдем?</span><span id="dialog-cursor" class="cursor hidden"></span>
         </div>
         <div class="action-area" id="action-area">
-            <button class="action-btn" onclick="loadFloor(21)">Выйти на 21 этаж</button>
-            <button class="action-btn" onclick="loadFloor(20)">Выйти на 20 этаж</button>
-            <button class="action-btn" onclick="loadFloor(11)">Спуститься на 11 этаж</button>
+            <button class="action-btn" onclick="loadFloor(21)">Начать с 21 этажа</button>
         </div>
     </div>
 
@@ -178,6 +176,21 @@
             has_book: false, got_blank: false, current_floor: null
         };
 
+        function updateFloorLocks() {
+            const btn40 = document.getElementById('btn-f40');
+            const btn21 = document.getElementById('btn-f21');
+            const btn20 = document.getElementById('btn-f20');
+            const btn11 = document.getElementById('btn-f11');
+            const btn10 = document.getElementById('btn-f10');
+            
+            if (!btn40) return;
+            btn40.disabled = !pState.stealth_passed;
+            btn21.disabled = false; // Всегда доступен для старта
+            btn20.disabled = !pState.has_faded_folder; 
+            btn11.disabled = !pState.tb_maze_done;
+            btn10.disabled = !pState.gosha_passed;
+        }
+
         const charName = document.getElementById('char-name');
         const actionArea = document.getElementById('action-area');
         const dialogText = document.getElementById('dialog-text');
@@ -191,6 +204,7 @@
             document.getElementById('inv-lib').className = `seal ${pState.got_blank ? 'active' : ''}`;
             document.getElementById('inv-lamp').className = `seal ${pState.has_uv_lamp ? 'active' : ''}`;
             document.getElementById('inv-book').className = `seal ${pState.has_book ? 'active' : ''}`;
+            updateFloorLocks();
         }
         saveState();
 
@@ -280,7 +294,7 @@
                 <div style="color:var(--neon-yellow); margin-bottom:5px;">НАЙДИТЕ БУКВУ: <span id="target-letter" style="font-size:1.5rem; font-weight:bold;">Ш</span></div>
                 <div style="font-size:0.8rem; margin-bottom:10px;">Счет: <span id="medic-score">0</span>/7</div>
                 <div id="medic-game" style="display:block;">
-                    <button id="eye-btn" onclick="closeEyes()">ЗАКРЫТЬ ГЛАЗА</button>
+                    <button id="eye-btn" onpointerdown="closeEyes(event)">ЗАКРЫТЬ ГЛАЗА</button>
                 </div>
             `;
             let score = 0, isRed = false, gameInt, letterInt;
@@ -298,7 +312,8 @@
                 l.innerText = isTargetObj ? currentTarget : letters[Math.floor(Math.random()*letters.length)];
                 l.style.left = Math.random() * (350 - 40) + 'px'; l.style.top = Math.random() * (250 - 40) + 'px';
                 
-                l.onclick = () => {
+                l.onpointerdown = (e) => {
+                    if (e) e.preventDefault();
                     if (isGameOver) return;
                     if (isRed) { failMedic("ВЫ ОСЛЕПЛИ ОТ ДАВЛЕНИЯ!"); return; }
                     if (l.innerText === currentTarget) {
@@ -329,7 +344,8 @@
                 }
             }, 2500);
 
-            window.closeEyes = function() {
+            window.closeEyes = function(e) {
+                if (e) e.preventDefault();
                 if (isGameOver) return;
                 if(!isRed) { failMedic("ЗАЧЕМ ЗАКРЫЛИ ГЛАЗА ПРОСТО ТАК?!"); return; }
                 isRed = false; gameDiv.style.background = '#111'; eyeBtn.style.display = 'none';
@@ -369,11 +385,12 @@
                 showDialog("— Выжили? Хорошо. Но я не поставлю печать, пока вы не принесете мне инвентарный номер списанного манекена Гоши. Ищите в Архиве на 11-м этаже.");
                 addBtn('СПУСТИТЬСЯ В АРХИВ (11)', () => loadFloor(11));
             } else if (!pState.gosha_passed) {
-                showDialog("— Нашли номер Гоши? 666-G-ОШ-А? Отлично, бюрократия соблюдена. Штамп ТБ поставлен!");
+                showDialog("— Нашли номер Гоши? 666-G-ОШ-А? Отлично, бюрократия соблюдена. Штамп ТБ поставлен! Теперь спускайтесь в Библиотеку на 10-й этаж.");
                 pState.gosha_passed = true; saveState();
-                addBtn('ОТЛИЧНО', () => loadFloor(21));
+                addBtn('ИДТИ НА 10 ЭТАЖ', () => loadFloor(10));
             } else {
-                showDialog("— Штамп ТБ у вас есть. Не нарушайте правила.");
+                showDialog("— Штамп ТБ у вас есть. Не нарушайте правила. Библиотека на 10-м этаже ждет.");
+                addBtn('ИДТИ НА 10 ЭТАЖ', () => loadFloor(10));
             }
         }
 
@@ -568,6 +585,9 @@
                     tg.HapticFeedback.notificationOccurred('success');
                     initFloor40();
                 });
+            } else if (pState.has_book) {
+                showDialog("— Ты еще здесь? Неси книгу Маргарите на 10-й этаж, пока она нас всех не оштрафовала.");
+                addBtn('СПУСТИТЬСЯ НА 10 ЭТАЖ', () => loadFloor(10));
             } else {
                 showDialog("— Иди работай. Коробок нет.");
             }
