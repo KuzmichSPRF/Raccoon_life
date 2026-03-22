@@ -209,6 +209,32 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        const T = (ru, en) => lang === 'en' ? en : ru;
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (lang === 'en') {
+                document.querySelector('.sidebar-title').innerText = "SYSTEM ELEVATOR";
+                document.querySelector('.reset-btn').innerText = "[ Restart ]";
+                document.getElementById('btn-f69').innerText = "Floor 69: HR Dept";
+                document.getElementById('btn-f68').innerText = "Floor 68: Security";
+                document.getElementById('btn-f41').innerText = "Floor 41: IT Dept (Block)";
+                document.getElementById('btn-f40').innerText = "Floor 40: Supply (Block)";
+                document.querySelector('#inventory > div:first-child').innerText = "--- SEALS ---";
+                document.getElementById('seal-hr').innerText = "📄 Form 2026-B";
+                document.getElementById('seal-sb').innerText = "👁️ Security Checked";
+                document.getElementById('char-name').innerText = "ELEVATOR";
+                document.getElementById('dialog-text').innerText = "Select floor to proceed.";
+            }
+        });
+
         // --- СИСТЕМА СОСТОЯНИЙ ---
         let pState = JSON.parse(localStorage.getItem('qt2_progress')) || {
             hr_form_done: false,
@@ -243,7 +269,7 @@
 
         // --- СБРОС ПРОГРЕССА ---
         function resetProgress() {
-            if (confirm("Вы точно хотите сжечь все документы и начать этот бюрократический ад заново?")) {
+            if (confirm(T("Вы точно хотите сжечь все документы и начать этот бюрократический ад заново?", "Are you sure you want to burn all documents and start this bureaucratic hell over?"))) {
                 localStorage.removeItem('qt2_progress');
                 location.reload();
             }
@@ -301,8 +327,7 @@
         });
 
         // --- ФИНАЛЬНЫЙ ЭКРАН ---
-        const rl_lang = localStorage.getItem('rl_lang') || 'ru';
-        if (rl_lang === 'en') {
+        if (lang === 'en') {
             document.getElementById('finish-btn').innerText = "STAGE CLEARED";
         }
 
@@ -350,18 +375,18 @@
 
         // ================= ЭТАЖ 69: ОТДЕЛ КАДРОВ =================
         function initFloor69() {
-            charName.innerText = "Элеонора Витальевна (HR)";
+            charName.innerText = T("Элеонора Витальевна (HR)", "Eleonora (HR)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
             img.classList.remove('hidden');
             
             if (!pState.hr_form_done) {
-                showDialog("— Молодой человек, вы по какому вопросу? На работу? У нас обед через 40 минут, а вы без папки. Держите Обходной Лист (модель 2026-Б). Заполняйте по памяти и СТРОГО по ГОСТу. Подсказки исчезнут через 5 секунд!");
+                showDialog(T("— Молодой человек, вы по какому вопросу? На работу? У нас обед через 40 минут, а вы без папки. Держите Обходной Лист (модель 2026-Б). Заполняйте по памяти и СТРОГО по ГОСТу. Подсказки исчезнут через 5 секунд!", "— Young man, what's the matter? Applying for a job? We have lunch in 40 mins and you have no folder. Take the Bypass Sheet (2026-B). Fill it from memory and STRICTLY by standard. Hints will disappear in 5 seconds!"));
                 
                 const startBtn = document.createElement('button');
                 startBtn.className = 'action-btn';
-                startBtn.innerText = 'НАЧАТЬ ЗАПОЛНЕНИЕ';
+                startBtn.innerText = T('НАЧАТЬ ЗАПОЛНЕНИЕ', 'START FILLING');
                 
                 startBtn.onclick = () => {
                     actionArea.innerHTML = ''; // Убираем кнопку старта
@@ -371,13 +396,13 @@
                     
                     // Правила бюрократии по ГОСТу
                     const formRules = [
-                        { ph: "ФИО", check: (v) => { const w = v.trim().split(/\s+/); return w.length === 3 && w.every(word => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(word)); } },
-                        { ph: "ИНН", check: (v) => /^(\d{10}|\d{12})$/.test(v.replace(/\s/g, '')) },
-                        { ph: "СНИЛС", check: (v) => /^\d{11}$/.test(v.replace(/[\s-]/g, '')) },
-                        { ph: "Девичья фамилия матери", check: (v) => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(v.trim()) },
-                        { ph: "Любимый цвет", check: (v) => v.trim().length > 0 },
-                        { ph: "Цель визита", check: (v) => v.trim().split(/\s+/).length >= 2 }, // Любое словосочетание (минимум 2 слова)
-                        { ph: "Кличка питомца", check: (v) => /^[А-ЯЁA-Z][а-яёa-z]+/.test(v.trim()) }
+                        { ph: T("ФИО", "Full Name"), check: (v) => { const w = v.trim().split(/\s+/); return w.length === 3 && w.every(word => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(word)); } },
+                        { ph: T("ИНН", "Tax ID"), check: (v) => /^(\d{10}|\d{12})$/.test(v.replace(/\s/g, '')) },
+                        { ph: T("СНИЛС", "Insurance ID"), check: (v) => /^\d{11}$/.test(v.replace(/[\s-]/g, '')) },
+                        { ph: T("Девичья фамилия матери", "Mother's maiden name"), check: (v) => /^[А-ЯЁA-Z][а-яёa-z]+$/.test(v.trim()) },
+                        { ph: T("Любимый цвет", "Favorite color"), check: (v) => v.trim().length > 0 },
+                        { ph: T("Цель визита", "Purpose of visit"), check: (v) => v.trim().split(/\s+/).length >= 2 },
+                        { ph: T("Кличка питомца", "Pet's name"), check: (v) => /^[А-ЯЁA-Z][а-яёa-z]+/.test(v.trim()) }
                     ];
                     
                     formRules.forEach((rule, i) => {
@@ -389,7 +414,7 @@
                     });
 
                     const btn = document.createElement('button');
-                    btn.className = 'action-btn'; btn.innerText = "СДАТЬ АНКЕТУ";
+                    btn.className = 'action-btn'; btn.innerText = T("СДАТЬ АНКЕТУ", "SUBMIT FORM");
                     btn.onclick = () => {
                         let valid = true;
                         formRules.forEach((rule, i) => { 
@@ -399,11 +424,11 @@
                         
                         if (valid) {
                             pState.hr_form_done = true; saveState();
-                            showDialog("— Удивительно. Ни одной ошибки, всё по форме. Ладно, теперь сделайте 3 копии паспорта. Вон там стоит ксерокс. Главное - вовремя нажимать старт!");
+                            showDialog(T("— Удивительно. Ни одной ошибки, всё по форме. Ладно, теперь сделайте 3 копии паспорта. Вон там стоит ксерокс. Главное - вовремя нажимать старт!", "— Amazing. Not a single error. Okay, now make 3 copies of your passport. The copier is over there. The main thing is to press start on time!"));
                             initFloor69(); // перезагрузка стейта
                         } else {
                             tg.HapticFeedback.impactOccurred('heavy');
-                            showDialog("— Вы издеваетесь?! Не по ГОСТу! Имена с заглавной (3 слова), ИНН/СНИЛС настоящие, цель визита - словосочетание! *звук рвущейся бумаги* Пишите заново!");
+                            showDialog(T("— Вы издеваетесь?! Не по ГОСТу! Имена с заглавной (3 слова), ИНН/СНИЛС настоящие, цель визита - словосочетание! *звук рвущейся бумаги* Пишите заново!", "— Are you kidding?! Not by standard! Names capitalized (3 words), IDs real, purpose is a phrase! *tearing paper* Write again!"));
                             
                             document.querySelectorAll('.blind-input').forEach(el => {
                                 el.classList.add('shake');
@@ -430,23 +455,23 @@
                 actionArea.appendChild(startBtn);
             } 
             else if (!pState.xerox_done) {
-                showDialog("— Я жду 3 идеальных копии паспорта. Идите к ксероксу.");
+                showDialog(T("— Я жду 3 идеальных копии паспорта. Идите к ксероксу.", "— I am waiting for 3 perfect passport copies. Go to the copier."));
                 
                 actionArea.innerHTML = `
-                    <div style="text-align:center;">Успешных копий: <span id="x-count" style="color:var(--neon-yellow)">0</span> / 3</div>
+                    <div style="text-align:center;">${T("Успешных копий:", "Successful copies:")} <span id="x-count" style="color:var(--neon-yellow)">0</span> / 3</div>
                     <div id="xerox-container">
                         <div id="xerox-target"></div>
                         <div id="xerox-bar"></div>
                     </div>
-                    <button class="action-btn" id="x-btn" onclick="stopXerox()">СКАНИРОВАТЬ</button>
+                    <button class="action-btn" id="x-btn" onclick="stopXerox()">${T("СКАНИРОВАТЬ", "SCAN")}</button>
                 `;
                 startXeroxGame();
             }
             else if (!pState.sb_verified) {
-                showDialog("— Копии нормальные. Но я не поставлю визу, пока Служба Безопасности (Этаж 68) не подтвердит твою лояльность. Иди к Михалычу.");
+                showDialog(T("— Копии нормальные. Но я не поставлю визу, пока Служба Безопасности (Этаж 68) не подтвердит твою лояльность. Иди к Михалычу.", "— Copies are fine. But I won't stamp it until Security (Floor 68) confirms your loyalty. Go to Mikhalych."));
             }
             else {
-                showDialog("— СБ подтвердило? Отлично. Теперь нужен пропуск от ИТ и ключ от Завхоза... (Продолжение следует)", () => {
+                showDialog(T("— СБ подтвердило? Отлично. Теперь нужен пропуск от ИТ и ключ от Завхоза... (Продолжение следует)", "— Security confirmed? Great. Now you need an IT pass and a key from Supply... (To be continued)"), () => {
                     setTimeout(() => {
                         document.getElementById('main-content').classList.add('hidden');
                         document.getElementById('sidebar').classList.add('hidden');
@@ -486,7 +511,7 @@
                 xCount = 0;
                 document.getElementById('x-count').innerText = xCount;
                 tg.HapticFeedback.notificationOccurred('error');
-                showDialog("— Зажевало бумагу! Всё сначала!");
+                showDialog(T("— Зажевало бумагу! Всё сначала!", "— Paper jammed! Start over!"));
             }
             setTimeout(startXeroxGame, 500);
         }
@@ -496,35 +521,35 @@
         let stroopInterval, stroopScore = 0, stroopFails = 0, isPunished = false;
         
         function initFloor68() {
-            charName.innerText = "Михалыч (СБ)";
+            charName.innerText = T("Михалыч (СБ)", "Mikhalych (Security)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/SB.png";
             img.classList.remove('hidden');
 
             if (!pState.hr_form_done || !pState.xerox_done) {
-                showDialog("— Ты кто такой? У тебя даже анкеты из HR нет. Иди на 69 этаж и не отвлекай от косынки.");
+                showDialog(T("— Ты кто такой? У тебя даже анкеты из HR нет. Иди на 69 этаж и не отвлекай от косынки.", "— Who are you? You don't even have a form from HR. Go to floor 69 and don't distract me."));
                 return;
             }
 
             if (pState.sb_verified) {
-                showDialog("— Я тебе уже всё подписал. Иди отсюда.");
+                showDialog(T("— Я тебе уже всё подписал. Иди отсюда.", "— I already signed everything for you. Get out."));
                 return;
             }
 
-            showDialog("— А, от Элеоноры... Садись. Пройдем тест на детекторе лжи. Жми 'ПРАВДА' на ЗЕЛЕНЫЙ цвет, и 'ЛОЖЬ' на КРАСНЫЙ. Смысл текста не важен! Не ошибись 3 раза.");
+            showDialog(T("— А, от Элеоноры... Садись. Пройдем тест на детекторе лжи. Жми 'ПРАВДА' на ЗЕЛЕНЫЙ цвет, и 'ЛОЖЬ' на КРАСНЫЙ. Смысл текста не важен! Не ошибись 3 раза.", "— Ah, from Eleonora... Sit. We'll do a lie detector test. Press 'TRUE' on GREEN, and 'FALSE' on RED. Meaning is irrelevant! 3 mistakes = fail."));
             
             const startBtn = document.createElement('button');
             startBtn.className = 'action-btn';
-            startBtn.innerText = 'НАЧАТЬ ТЕСТ';
+            startBtn.innerText = T('НАЧАТЬ ТЕСТ', 'START TEST');
             startBtn.onclick = () => {
                 actionArea.innerHTML = `
-                    <div id="stroop-word">ТЕСТ</div>
-                    <div>Счет: <span id="s-score">0</span>/10 | Ошибки: <span id="s-fails" style="color:var(--neon-pink)">0</span>/3</div>
-                    <div id="stroop-timer" class="hidden">ОЖИДАНИЕ: 10с</div>
+                    <div id="stroop-word">${T("ТЕСТ", "TEST")}</div>
+                    <div>${T("Счет:", "Score:")} <span id="s-score">0</span>/10 | ${T("Ошибки:", "Fails:")} <span id="s-fails" style="color:var(--neon-pink)">0</span>/3</div>
+                    <div id="stroop-timer" class="hidden">${T("ОЖИДАНИЕ:", "WAITING:")} 10с</div>
                     <div style="display:flex; gap: 20px; margin-top:20px;">
-                        <button class="action-btn" id="btn-true" onclick="stroopAnswer(true)">ПРАВДА</button>
-                        <button class="action-btn" id="btn-false" onclick="stroopAnswer(false)">ЛОЖЬ</button>
+                        <button class="action-btn" id="btn-true" onclick="stroopAnswer(true)">${T("ПРАВДА", "TRUE")}</button>
+                        <button class="action-btn" id="btn-false" onclick="stroopAnswer(false)">${T("ЛОЖЬ", "FALSE")}</button>
                     </div>
                 `;
                 stroopScore = 0; stroopFails = 0;
@@ -540,6 +565,8 @@
             "КНОПКА КРАСНАЯ", "КНОПКА ЗЕЛЕНАЯ", "СБ ЛУЧШИЕ",
             "ЗАРПЛАТА НЕ НУЖНА", "ЛЮБЛЮ БЮРОКРАТИЮ", "ЭТО ПРАВДА", "ЭТО ЛОЖЬ"
         ];
+        const stroopWordsEn = ["I AM LOYAL", "TRUE", "STOLE A CLIP", "FALSE", "WORK FOR FOOD", "LOVE TAXES", "DRINK BOSS COFFEE", "SLEEP AT WORK", "PINEAPPLE PIZZA", "DIRECTOR IS GENIUS", "I'M NOT A ROBOT", "BUTTON RED", "BUTTON GREEN", "SECURITY IS BEST", "NO NEED SALARY", "LOVE BUREAUCRACY", "THIS IS TRUE", "THIS IS FALSE"];
+        const currentStroopWords = lang === 'en' ? stroopWordsEn : stroopWords;
         const stroopColors = ["#00ff88", "#ff4444"]; // Green, Red
         let currentIsGreen = false;
 
@@ -548,7 +575,7 @@
             const wordEl = document.getElementById('stroop-word');
             if(!wordEl) return;
 
-            const word = stroopWords[Math.floor(Math.random() * stroopWords.length)];
+            const word = currentStroopWords[Math.floor(Math.random() * currentStroopWords.length)];
             const color = stroopColors[Math.floor(Math.random() * stroopColors.length)];
             
             wordEl.innerText = word;
@@ -586,8 +613,8 @@
                 if (stroopScore >= 10) {
                     clearInterval(stroopInterval);
                     pState.sb_verified = true; saveState();
-                    showDialog("— Ладно, вижу, что ты наш человек. Держи печать. Теперь дуй обратно в HR.");
-                    document.getElementById('action-area').innerHTML = '<button class="action-btn" onclick="loadFloor(69)">На 69 этаж</button>';
+                    showDialog(T("— Ладно, вижу, что ты наш человек. Держи печать. Теперь дуй обратно в HR.", "— Alright, I see you're our guy. Here is the stamp. Now get back to HR."));
+                    document.getElementById('action-area').innerHTML = `<button class="action-btn" onclick="loadFloor(69)">${T("На 69 этаж", "To floor 69")}</button>`;
                 } else {
                     nextStroopWord();
                 }
@@ -607,10 +634,10 @@
         function punishPlayer() {
             clearInterval(stroopInterval);
             isPunished = true;
-            showDialog("— ТАК! Ты мне тут не юли! Сиди и думай над поведением 60 секунд!");
+            showDialog(T("— ТАК! Ты мне тут не юли! Сиди и думай над поведением 60 секунд!", "— HEY! Don't mess with me! Sit and think about your behavior for 60 seconds!"));
             document.getElementById('btn-true').disabled = true;
             document.getElementById('btn-false').disabled = true;
-            document.getElementById('stroop-word').innerText = "БЛОКИРОВКА";
+            document.getElementById('stroop-word').innerText = T("БЛОКИРОВКА", "BLOCKED");
             document.getElementById('stroop-word').style.color = "red";
             
             let timer = 60;
@@ -619,7 +646,7 @@
             
             const tInt = setInterval(() => {
                 timer--;
-                timerEl.innerText = `ОЖИДАНИЕ: ${timer}с`;
+                timerEl.innerText = `${T("ОЖИДАНИЕ:", "WAITING:")} ${timer}с`;
                 if (timer <= 0) {
                     clearInterval(tInt);
                     isPunished = false;
@@ -629,7 +656,7 @@
                     timerEl.classList.add('hidden');
                     document.getElementById('btn-true').disabled = false;
                     document.getElementById('btn-false').disabled = false;
-                    showDialog("— Погнали заново. Жми 'ПРАВДА' ТОЛЬКО на зеленый цвет!");
+                    showDialog(T("— Погнали заново. Жми 'ПРАВДА' ТОЛЬКО на зеленый цвет!", "— Let's go again. Press 'TRUE' ONLY on green color!"));
                     nextStroopWord();
                 }
             }, 1000);

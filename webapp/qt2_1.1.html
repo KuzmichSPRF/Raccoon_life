@@ -318,6 +318,13 @@
             }
         });
 
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
         function showAlert(msg) {
             window.parent.postMessage({ type: 'show_alert', message: msg }, window.location.origin);
         }

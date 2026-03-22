@@ -161,6 +161,39 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        const T = (ru, en) => lang === 'en' ? en : ru;
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (lang === 'en') {
+                document.querySelector('.sidebar-title').innerText = "SYSTEM ELEVATOR";
+                document.querySelector('.reset-btn').innerText = "[ Restart ]";
+                document.getElementById('btn-f40').innerText = "Floor 40: Supply";
+                document.getElementById('btn-f21').innerText = "Floor 21: Safety Dept";
+                document.getElementById('btn-f20').innerText = "Floor 20: Medical";
+                document.getElementById('btn-f11').innerText = "Floor 11: Archive";
+                document.getElementById('btn-f10').innerText = "Floor 10: Library";
+                document.querySelector('#inventory > div:first-child').innerText = "--- BYPASS SHEET ---";
+                document.getElementById('inv-med').innerText = "🩺 Checkup passed";
+                document.getElementById('inv-tb').innerText = "🦺 Safety passed";
+                document.getElementById('inv-lib').innerText = "🤫 Silence kept";
+                document.getElementById('inv-lamp').innerText = "🔦 UV Lamp";
+                document.getElementById('inv-book').innerText = "📘 Book";
+                document.getElementById('char-name').innerText = "ELEVATOR";
+                document.getElementById('dialog-text').innerText = "We plunge into the lower levels. It smells like old paper and Corvalol here. Where to go?";
+                const actionBtns = document.querySelectorAll('.action-btn');
+                if(actionBtns[0]) actionBtns[0].innerText = "Start from 21st floor";
+                document.getElementById('finish-btn').innerText = "STAGE CLEARED";
+            }
+        });
+
         // --- АУДИО ---
         const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/03-main-theme.mp3');
         audioBg.volume = 0.4; audioBg.loop = true;
@@ -209,7 +242,7 @@
         saveState();
 
         function resetProgress() {
-            if (confirm("Вы точно хотите стереть память об этих этажах?")) {
+            if (confirm(T("Вы точно хотите стереть память об этих этажах?", "Are you sure you want to erase memories of these floors?"))) {
                 localStorage.removeItem('qt2_5_progress'); location.reload();
             }
         }
@@ -256,8 +289,8 @@
         function checkGlobalWin() {
             if (pState.medic_tested && pState.gosha_passed && pState.got_blank) {
                 actionArea.innerHTML = '';
-                showDialog("— ВСЕ ШТАМПЫ ПОЛУЧЕНЫ! Обходной лист закрыт. Теперь со всеми печатями вам нужно вернуться на 69-й этаж в Отдел Кадров для прохождения итогового тестирования...", () => {
-                    addBtn('В ОТДЕЛ КАДРОВ (ЗАВЕРШИТЬ)', () => {
+                showDialog(T("— ВСЕ ШТАМПЫ ПОЛУЧЕНЫ! Обходной лист закрыт. Теперь со всеми печатями вам нужно вернуться на 69-й этаж в Отдел Кадров для прохождения итогового тестирования...", "— ALL STAMPS OBTAINED! Bypass sheet is closed. Now with all the seals you need to return to the 69th floor HR Department to pass the final testing..."), () => {
+                    addBtn(T('В ОТДЕЛ КАДРОВ (ЗАВЕРШИТЬ)', 'TO HR DEPT (FINISH)'), () => {
                         document.getElementById('main-content').classList.add('hidden');
                         document.getElementById('sidebar').classList.add('hidden');
                         document.getElementById('end-screen').classList.remove('hidden');
@@ -269,32 +302,32 @@
         // ================= ЭТАЖ 20: МЕДИК =================
         function initFloor20() {
             actionArea.innerHTML = '';
-            charName.innerText = "Зинаида Петровна (Медик)";
+            charName.innerText = T("Зинаида Петровна (Медик)", "Zinaida Petrovna (Medic)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/med.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.medic_tested) {
-                showDialog("— Так, голубчик. Пульс как у зайца под обстрелом. Сдайте тест на рефлексы. Ловите нужную букву, но если экран станет КРАСНЫМ (скачок давления) — жмите 'ЗАКРЫТЬ ГЛАЗА' и ничего больше не трогайте!");
-                addBtn('НАЧАТЬ ТЕСТ ЗРЕНИЯ', startMedicGame);
+                showDialog(T("— Так, голубчик. Пульс как у зайца под обстрелом. Сдайте тест на рефлексы. Ловите нужную букву, но если экран станет КРАСНЫМ (скачок давления) — жмите 'ЗАКРЫТЬ ГЛАЗА' и ничего больше не трогайте!", "— So, my dear. Pulse like a hare under fire. Pass the reflex test. Catch the required letter, but if the screen turns RED (pressure spike) — press 'CLOSE EYES' and don't touch anything else!"));
+                addBtn(T('НАЧАТЬ ТЕСТ ЗРЕНИЯ', 'START VISION TEST'), startMedicGame);
             } else if (pState.has_faded_folder && !pState.has_uv_lamp) {
-                showDialog("— У вас в руках какая-то пыльная гадость! Быстро под кварцевую лампу! О... это же скрытые чернила. Забирайте свою папку и проваливайте, пока я вас не продезинфицировала!");
-                addBtn('ПРОСВЕТИТЬ ПАПКУ', () => {
+                showDialog(T("— У вас в руках какая-то пыльная гадость! Быстро под кварцевую лампу! О... это же скрытые чернила. Забирайте свою папку и проваливайте, пока я вас не продезинфицировала!", "— You have some dusty muck in your hands! Quickly under the quartz lamp! Oh... this is invisible ink. Take your folder and get out before I disinfect you!"));
+                addBtn(T('ПРОСВЕТИТЬ ПАПКУ', 'EXPOSE FOLDER'), () => {
                     pState.has_uv_lamp = true; pState.gosha_revealed = true; saveState();
                     tg.HapticFeedback.notificationOccurred('success');
-                    showDialog("— (Ультрафиолет проявил скрытый номер: 666-G-ОШ-А). Отлично, теперь можно нести это безопаснику на 21-й этаж.");
-                    actionArea.innerHTML = ''; addBtn('СПУСТИТЬСЯ НА 21 ЭТАЖ', ()=>loadFloor(21));
+                    showDialog(T("— (Ультрафиолет проявил скрытый номер: 666-G-ОШ-А). Отлично, теперь можно нести это безопаснику на 21-й этаж.", "— (Ultraviolet revealed a hidden number: 666-G-OSH-A). Great, now you can take this to the security guy on the 21st floor."));
+                    actionArea.innerHTML = ''; addBtn(T('СПУСТИТЬСЯ НА 21 ЭТАЖ', 'GO TO 21ST FLOOR'), ()=>loadFloor(21));
                 });
             } else {
-                showDialog("— Я вам уже всё подписала. Идите, не нервируйте меня, у меня кварцевание!");
+                showDialog(T("— Я вам уже всё подписала. Идите, не нервируйте меня, у меня кварцевание!", "— I already signed everything for you. Go, don't unnerve me, I'm doing quartz sterilization!"));
             }
         }
 
         function startMedicGame() {
             actionArea.innerHTML = `
-                <div style="color:var(--neon-yellow); margin-bottom:5px;">НАЙДИТЕ БУКВУ: <span id="target-letter" style="font-size:1.5rem; font-weight:bold;">Ш</span></div>
-                <div style="font-size:0.8rem; margin-bottom:10px;">Счет: <span id="medic-score">0</span>/7</div>
+                <div style="color:var(--neon-yellow); margin-bottom:5px;">${T("НАЙДИТЕ БУКВУ:", "FIND LETTER:")} <span id="target-letter" style="font-size:1.5rem; font-weight:bold;">Ш</span></div>
+                <div style="font-size:0.8rem; margin-bottom:10px;">${T("Счет:", "Score:")} <span id="medic-score">0</span>/7</div>
                 <div id="medic-game" style="display:block;">
-                    <button id="eye-btn" onpointerdown="closeEyes(event)">ЗАКРЫТЬ ГЛАЗА</button>
+                    <button id="eye-btn" onpointerdown="closeEyes(event)">${T("ЗАКРЫТЬ ГЛАЗА", "CLOSE EYES")}</button>
                 </div>
             `;
             let score = 0, isRed = false, gameInt, letterInt;
@@ -315,7 +348,7 @@
                 l.onpointerdown = (e) => {
                     if (e) e.preventDefault();
                     if (isGameOver) return;
-                    if (isRed) { failMedic("ВЫ ОСЛЕПЛИ ОТ ДАВЛЕНИЯ!"); return; }
+                    if (isRed) { failMedic(T("ВЫ ОСЛЕПЛИ ОТ ДАВЛЕНИЯ!", "YOU WENT BLIND FROM PRESSURE!")); return; }
                     if (l.innerText === currentTarget) {
                         score++; document.getElementById('medic-score').innerText = score;
                         tg.HapticFeedback.impactOccurred('light');
@@ -323,7 +356,7 @@
                         document.getElementById('target-letter').innerText = currentTarget;
                         if(score >= 7) winMedic();
                     } else {
-                        failMedic("НЕ ТА БУКВА!");
+                        failMedic(T("НЕ ТА БУКВА!", "WRONG LETTER!"));
                     }
                     l.remove();
                 };
@@ -337,7 +370,7 @@
                 if (isRed) {
                     gameDiv.style.background = '#800000'; eyeBtn.style.display = 'block';
                     setTimeout(() => {
-                        if (isRed) failMedic("ВЫ НЕ ЗАКРЫЛИ ГЛАЗА ПРИ СКАЧКЕ ДАВЛЕНИЯ!");
+                        if (isRed) failMedic(T("ВЫ НЕ ЗАКРЫЛИ ГЛАЗА ПРИ СКАЧКЕ ДАВЛЕНИЯ!", "YOU DIDN'T CLOSE YOUR EYES DURING THE SPIKE!"));
                     }, 1200); // Даем всего 1.2с на реакцию! Было 2000
                 } else {
                     gameDiv.style.background = '#111'; eyeBtn.style.display = 'none';
@@ -347,7 +380,7 @@
             window.closeEyes = function(e) {
                 if (e) e.preventDefault();
                 if (isGameOver) return;
-                if(!isRed) { failMedic("ЗАЧЕМ ЗАКРЫЛИ ГЛАЗА ПРОСТО ТАК?!"); return; }
+                if(!isRed) { failMedic(T("ЗАЧЕМ ЗАКРЫЛИ ГЛАЗА ПРОСТО ТАК?!", "WHY DID YOU CLOSE YOUR EYES FOR NO REASON?!")); return; }
                 isRed = false; gameDiv.style.background = '#111'; eyeBtn.style.display = 'none';
                 tg.HapticFeedback.impactOccurred('medium');
             };
@@ -357,7 +390,7 @@
                 isGameOver = true;
                 clearInterval(letterInt); clearInterval(gameInt);
                 tg.HapticFeedback.notificationOccurred('error');
-                showDialog(`— ${msg} Начинайте заново!`);
+                showDialog(`— ${msg} ` + T("Начинайте заново!", "Start over!"));
                 setTimeout(initFloor20, 2000);
             }
             function winMedic() {
@@ -366,7 +399,7 @@
                 clearInterval(letterInt); clearInterval(gameInt); gameDiv.innerHTML = '';
                 pState.medic_tested = true; saveState();
                 tg.HapticFeedback.notificationOccurred('success');
-                showDialog("— Глаз дергается, но рефлексы в норме. Штамп о годности поставлен.");
+                showDialog(T("— Глаз дергается, но рефлексы в норме. Штамп о годности поставлен.", "— Eye is twitching, but reflexes are normal. Fitness stamp applied."));
                 setTimeout(initFloor20, 2000);
             }
         }
@@ -374,23 +407,23 @@
         // ================= ЭТАЖ 21: ТЕХНИКА БЕЗОПАСНОСТИ =================
         function initFloor21() {
             actionArea.innerHTML = '';
-            charName.innerText = "Игорь Борисович (Охрана Труда)";
+            charName.innerText = T("Игорь Борисович (Охрана Труда)", "Igor Borisovich (Safety)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/teh_b.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.tb_maze_done) {
-                showDialog("— Вы почему без жилета? Сдайте эвакуацию! Дойдите до зеленой двери. Помните: в задымлении управление инвертировано (жмете ВЛЕВО — идете ВПРАВО)!");
-                addBtn('СИМУЛЯТОР ЭВАКУАЦИИ', startMazeGame);
+                showDialog(T("— Вы почему без жилета? Сдайте эвакуацию! Дойдите до зеленой двери. Помните: в задымлении управление инвертировано (жмете ВЛЕВО — идете ВПРАВО)!", "— Why are you without a vest? Pass the evacuation test! Get to the green door. Remember: in smoke, controls are inverted (press LEFT — go RIGHT)!"));
+                addBtn(T('СИМУЛЯТОР ЭВАКУАЦИИ', 'EVAC SIMULATOR'), startMazeGame);
             } else if (!pState.gosha_revealed) {
-                showDialog("— Выжили? Хорошо. Но я не поставлю печать, пока вы не принесете мне инвентарный номер списанного манекена Гоши. Ищите в Архиве на 11-м этаже.");
-                addBtn('СПУСТИТЬСЯ В АРХИВ (11)', () => loadFloor(11));
+                showDialog(T("— Выжили? Хорошо. Но я не поставлю печать, пока вы не принесете мне инвентарный номер списанного манекена Гоши. Ищите в Архиве на 11-м этаже.", "— Survived? Good. But I won't stamp it until you bring me the inventory number of the decommissioned dummy Gosha. Look in the Archive on the 11th floor."));
+                addBtn(T('СПУСТИТЬСЯ В АРХИВ (11)', 'GO DOWN TO ARCHIVE (11)'), () => loadFloor(11));
             } else if (!pState.gosha_passed) {
-                showDialog("— Нашли номер Гоши? 666-G-ОШ-А? Отлично, бюрократия соблюдена. Штамп ТБ поставлен! Теперь спускайтесь в Библиотеку на 10-й этаж.");
+                showDialog(T("— Нашли номер Гоши? 666-G-ОШ-А? Отлично, бюрократия соблюдена. Штамп ТБ поставлен! Теперь спускайтесь в Библиотеку на 10-й этаж.", "— Found Gosha's number? 666-G-OSH-A? Excellent, bureaucracy is satisfied. Safety stamp applied! Now go down to the Library on the 10th floor."));
                 pState.gosha_passed = true; saveState();
-                addBtn('ИДТИ НА 10 ЭТАЖ', () => loadFloor(10));
+                addBtn(T('ИДТИ НА 10 ЭТАЖ', 'GO TO FLOOR 10'), () => loadFloor(10));
             } else {
-                showDialog("— Штамп ТБ у вас есть. Не нарушайте правила. Библиотека на 10-м этаже ждет.");
-                addBtn('ИДТИ НА 10 ЭТАЖ', () => loadFloor(10));
+                showDialog(T("— Штамп ТБ у вас есть. Не нарушайте правила. Библиотека на 10-м этаже ждет.", "— You have the safety stamp. Don't break the rules. The Library on the 10th floor is waiting."));
+                addBtn(T('ИДТИ НА 10 ЭТАЖ', 'GO TO FLOOR 10'), () => loadFloor(10));
             }
         }
 
@@ -398,7 +431,7 @@
             clearInterval(window.mazeTimerInt);
             actionArea.innerHTML = `
                 <div id="maze-game" style="display:flex;">
-                    <div style="font-size:1.2rem; margin-bottom:5px; text-align:center;">Время: <span id="maze-timer" style="color:var(--neon-yellow);">20</span>с</div>
+                    <div style="font-size:1.2rem; margin-bottom:5px; text-align:center;">${T("Время:", "Time:")} <span id="maze-timer" style="color:var(--neon-yellow);">20</span>${T("с", "s")}</div>
                     <div class="maze-grid" id="maze-grid"></div>
                     <div class="maze-controls">
                         <div></div><button class="maze-btn" onclick="moveMaze(0,1)">⬆️</button><div></div>
@@ -406,7 +439,7 @@
                         <button class="maze-btn" onclick="moveMaze(0,-1)">⬇️</button>
                         <button class="maze-btn" onclick="moveMaze(-1,0)">➡️</button>
                     </div>
-                    <div style="font-size:0.7rem; margin-top:5px; color:var(--neon-pink);">ВНИМАНИЕ: УПРАВЛЕНИЕ ИНВЕРТИРОВАНО!</div>
+                    <div style="font-size:0.7rem; margin-top:5px; color:var(--neon-pink);">${T("ВНИМАНИЕ: УПРАВЛЕНИЕ ИНВЕРТИРОВАНО!", "WARNING: CONTROLS INVERTED!")}</div>
                 </div>
             `;
             let px = 0, py = 0; const ex = 5, ey = 5;
@@ -422,7 +455,7 @@
                     isGameOver = true;
                     clearInterval(window.mazeTimerInt);
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— ВРЕМЯ ВЫШЛО! ВЫ ЗАДОХНУЛИСЬ В ДЫМУ! Заново!");
+                    showDialog(T("— ВРЕМЯ ВЫШЛО! ВЫ ЗАДОХНУЛИСЬ В ДЫМУ! Заново!", "— TIME'S UP! YOU SUFFOCATED IN THE SMOKE! Start over!"));
                     document.getElementById('maze-game').style.display = 'none';
                     setTimeout(startMazeGame, 2000);
                 }
@@ -455,7 +488,7 @@
                     isGameOver = true;
                     clearInterval(window.mazeTimerInt);
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— ВЫ СГОРЕЛИ В СИМУЛЯТОРЕ! Заново!");
+                    showDialog(T("— ВЫ СГОРЕЛИ В СИМУЛЯТОРЕ! Заново!", "— YOU BURNED IN THE SIMULATOR! Start over!"));
                     document.getElementById('maze-game').style.display = 'none';
                     setTimeout(startMazeGame, 1500);
                 } else if (px===ex && py===ey) {
@@ -475,44 +508,45 @@
         // ================= ЭТАЖ 11: АРХИВ =================
         function initFloor11() {
             actionArea.innerHTML = '';
-            charName.innerText = "Авеларий (Архивариус)";
+            charName.innerText = T("Авеларий (Архивариус)", "Avelary (Archivist)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/arh.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.archive_sorted) {
-                showDialog("— Тс-с-с! Не топайте! Ищете дело Гоши? Оно в секции Г-8. Но чтобы я туда пустил, рассортируйте эту корзину! Смахните папки в нужные лотки. И протирайте пыль с экрана, я тут давно не убирал.");
-                addBtn('СОРТИРОВКА ХАОСА', startArchiveGame);
+                showDialog(T("— Тс-с-с! Не топайте! Ищете дело Гоши? Оно в секции Г-8. Но чтобы я туда пустил, рассортируйте эту корзину! Смахните папки в нужные лотки. И протирайте пыль с экрана, я тут давно не убирал.", "— Shh! Don't stomp! Looking for Gosha's file? It's in section G-8. But to let you in, sort this basket! Swipe folders into the correct trays. And wipe the dust off the screen, I haven't cleaned here in a while."));
+                addBtn(T('СОРТИРОВКА ХАОСА', 'SORT THE CHAOS'), startArchiveGame);
             } else if (!pState.has_faded_folder) {
                 pState.has_faded_folder = true; saveState();
-                showDialog("— Спасибо за помощь. Вот папка Гоши... Но чернила совсем выцвели. Я ничего не вижу. Возможно, у Медика (20 этаж) есть УФ-лампа?");
-                addBtn('ПОДНЯТЬСЯ К МЕДИКУ (20)', () => loadFloor(20));
+                showDialog(T("— Спасибо за помощь. Вот папка Гоши... Но чернила совсем выцвели. Я ничего не вижу. Возможно, у Медика (20 этаж) есть УФ-лампа?", "— Thanks for your help. Here is Gosha's folder... But the ink has completely faded. I can't see anything. Maybe the Medic (Floor 20) has a UV lamp?"));
+                addBtn(T('ПОДНЯТЬСЯ К МЕДИКУ (20)', 'GO UP TO MEDIC (20)'), () => loadFloor(20));
             } else {
-                showDialog("— Тихо... Налоговые отчеты за 2007 спят...");
+                showDialog(T("— Тихо... Налоговые отчеты за 2007 спят...", "— Quiet... Tax reports for 2007 are sleeping..."));
             }
         }
 
         function startArchiveGame() {
             actionArea.innerHTML = `
                 <div id="archive-game" style="display:flex;">
-                    <div style="margin-bottom:10px;">Осталось: <span id="arch-score" style="color:var(--neon-yellow);">15</span></div>
-                    <div id="active-folder">Папка</div>
+                    <div style="margin-bottom:10px;">${T("Осталось:", "Left:")} <span id="arch-score" style="color:var(--neon-yellow);">15</span></div>
+                    <div id="active-folder">${T("Папка", "Folder")}</div>
                     <div class="bin-row">
-                        <button class="bin-btn" style="background:#b30000;" onclick="sortFolder('red')">ШРЕДЕР</button>
-                        <button class="bin-btn" style="background:#004080;" onclick="sortFolder('blue')">ДИРЕКТОРУ</button>
-                        <button class="bin-btn" style="background:#006600;" onclick="sortFolder('green')">В ДОЛГИЙ ЯЩИК</button>
+                        <button class="bin-btn" style="background:#b30000;" onclick="sortFolder('red')">${T("ШРЕДЕР", "SHREDDER")}</button>
+                        <button class="bin-btn" style="background:#004080;" onclick="sortFolder('blue')">${T("ДИРЕКТОРУ", "TO BOSS")}</button>
+                        <button class="bin-btn" style="background:#006600;" onclick="sortFolder('green')">${T("В ДОЛГИЙ ЯЩИК", "SHELF IT")}</button>
                     </div>
-                    <div id="dust-cloud">ПЫЛЬ! ТРИТЕ ЭКРАН!</div>
+                    <div id="dust-cloud">${T("ПЫЛЬ! ТРИТЕ ЭКРАН!", "DUST! WIPE SCREEN!")}</div>
                 </div>
             `;
             
             let left = 15, currentType = ''; // Было 10
-            const types = [
-                {t: 'red', txt: "Мемы с котами", c: "#eaeaea"},
-                {t: 'red', txt: "Апдейт тасков\nпо синергии", c: "#eaeaea"},
-                {t: 'blue', txt: "Годовой отчет", c: "#eaeaea"},
-                {t: 'blue', txt: "Заявление\nна премию", c: "#eaeaea"},
-                {t: 'green', txt: "Жалобы курьеров", c: "#eaeaea"},
-                {t: 'green', txt: "Резюме джунов", c: "#eaeaea"}
+            const types = lang === 'en' ? [
+                {t: 'red', txt: "Cat memes", c: "#eaeaea"}, {t: 'red', txt: "Synergy tasks\nupdate", c: "#eaeaea"},
+                {t: 'blue', txt: "Annual report", c: "#eaeaea"}, {t: 'blue', txt: "Bonus\nrequest", c: "#eaeaea"},
+                {t: 'green', txt: "Courier complaints", c: "#eaeaea"}, {t: 'green', txt: "Junior resumes", c: "#eaeaea"}
+            ] : [
+                {t: 'red', txt: "Мемы с котами", c: "#eaeaea"}, {t: 'red', txt: "Апдейт тасков\nпо синергии", c: "#eaeaea"},
+                {t: 'blue', txt: "Годовой отчет", c: "#eaeaea"}, {t: 'blue', txt: "Заявление\nна премию", c: "#eaeaea"},
+                {t: 'green', txt: "Жалобы курьеров", c: "#eaeaea"}, {t: 'green', txt: "Резюме джунов", c: "#eaeaea"}
             ];
             let isGameOver = false;
 
@@ -540,7 +574,7 @@
                 } else {
                     isGameOver = true;
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— НЕ ТУДА! ВЕСЬ АРХИВ ПОСЫПАЛСЯ! ЗАНОВО!");
+                    showDialog(T("— НЕ ТУДА! ВЕСЬ АРХИВ ПОСЫПАЛСЯ! ЗАНОВО!", "— WRONG! THE WHOLE ARCHIVE COLLAPSED! START OVER!"));
                     clearInterval(dustInt); setTimeout(initFloor11, 2000);
                 }
             };
@@ -574,59 +608,59 @@
         // ================= ЭТАЖ 40: ЗАВХОЗ =================
         function initFloor40() {
             actionArea.innerHTML = '';
-            charName.innerText = "Палыч (Завхоз)";
+            charName.innerText = T("Палыч (Завхоз)", "Palych (Supply)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (pState.stealth_passed && !pState.has_book) {
-                showDialog("— Что? Маргарита просит книгу «Основы вайбкодинга»? Да я ею стол подпирал! Забирай, только не нуди. Из-за ее штрафов за шум у нас пол-отдела без премии.");
-                addBtn('ВЗЯТЬ КНИГУ', () => {
+                showDialog(T("— Что? Маргарита просит книгу «Основы вайбкодинга»? Да я ею стол подпирал! Забирай, только не нуди. Из-за ее штрафов за шум у нас пол-отдела без премии.", "— What? Margarita is asking for the book 'Basics of Vibecoding'? I was propping up a table with it! Take it, just don't whine. Because of her noise fines, half our department has no bonuses."));
+                addBtn(T('ВЗЯТЬ КНИГУ', 'TAKE BOOK'), () => {
                     pState.has_book = true; saveState();
                     tg.HapticFeedback.notificationOccurred('success');
                     initFloor40();
                 });
             } else if (pState.has_book) {
-                showDialog("— Ты еще здесь? Неси книгу Маргарите на 10-й этаж, пока она нас всех не оштрафовала.");
-                addBtn('СПУСТИТЬСЯ НА 10 ЭТАЖ', () => loadFloor(10));
+                showDialog(T("— Ты еще здесь? Неси книгу Маргарите на 10-й этаж, пока она нас всех не оштрафовала.", "— You still here? Take the book to Margarita on the 10th floor before she fines us all."));
+                addBtn(T('СПУСТИТЬСЯ НА 10 ЭТАЖ', 'GO DOWN TO FLOOR 10'), () => loadFloor(10));
             } else {
-                showDialog("— Иди работай. Коробок нет.");
+                showDialog(T("— Иди работай. Коробок нет.", "— Go to work. No boxes."));
             }
         }
 
         // ================= ЭТАЖ 10: БИБЛИОТЕКА =================
         function initFloor10() {
             actionArea.innerHTML = '';
-            charName.innerText = "Маргарита (Библиотекарь)";
+            charName.innerText = T("Маргарита (Библиотекарь)", "Margarita (Librarian)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/bibl.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.stealth_passed) {
-                showDialog("— Ти-ши-на. Вы находитесь в зоне ментальной концентрации. Докажите, что умеете сливаться с интерьером. Пройдите незаметно, делая шаги только когда зеленая зона активна. И не отвлекайтесь на мемы!");
-                addBtn('СИМУЛЯТОР ПЛАНКТОНА', startStealthGame);
+                showDialog(T("— Ти-ши-на. Вы находитесь в зоне ментальной концентрации. Докажите, что умеете сливаться с интерьером. Пройдите незаметно, делая шаги только когда зеленая зона активна. И не отвлекайтесь на мемы!", "— Qui-et. You are in a zone of mental concentration. Prove you can blend in with the interior. Pass unnoticed, taking steps only when the green zone is active. And don't get distracted by memes!"));
+                addBtn(T('СИМУЛЯТОР ПЛАНКТОНА', 'PLANKTON SIMULATOR'), startStealthGame);
             } else if (!pState.has_book) {
-                showDialog("— Изумительно тихо. Вам нужен финальный бланк обходного? Я отдала его Завхозу (40 этаж) как закладку в книге «Основы вайбкодинга». Верните книгу — получите бланк.");
-                addBtn('ПОДНЯТЬСЯ К ЗАВХОЗУ (40)', () => loadFloor(40));
+                showDialog(T("— Изумительно тихо. Вам нужен финальный бланк обходного? Я отдала его Завхозу (40 этаж) как закладку в книге «Основы вайбкодинга». Верните книгу — получите бланк.", "— Amazingly quiet. You need the final bypass form? I gave it to Supply (Floor 40) as a bookmark in the book 'Basics of Vibecoding'. Return the book — get the form."));
+                addBtn(T('ПОДНЯТЬСЯ К ЗАВХОЗУ (40)', 'GO UP TO SUPPLY (40)'), () => loadFloor(40));
             } else if (!pState.got_blank) {
-                showDialog("— Вы принесли мою книгу! Моя прелесть... Искренне благодарю вас. Вы единственный, кто смог забрать её у Завхоза. Вот ваш бланк, с моим финальным штампом. Вы готовы.");
+                showDialog(T("— Вы принесли мою книгу! Моя прелесть... Искренне благодарю вас. Вы единственный, кто смог забрать её у Завхоза. Вот ваш бланк, с моим финальным штампом. Вы готовы.", "— You brought my book! My precious... I sincerely thank you. You are the only one who managed to get it from Supply. Here is your form, with my final stamp. You are ready."));
                 pState.got_blank = true; saveState();
-                addBtn('ОТЛИЧНО', () => { tg.HapticFeedback.notificationOccurred('success'); initFloor10(); });
+                addBtn(T('ОТЛИЧНО', 'EXCELLENT'), () => { tg.HapticFeedback.notificationOccurred('success'); initFloor10(); });
             } else {
-                showDialog("— Еще раз спасибо за возвращенную книгу. А теперь соблюдайте тишину и возвращайтесь в Отдел Кадров, Элеонора Витальевна не любит ждать.");
+                showDialog(T("— Еще раз спасибо за возвращенную книгу. А теперь соблюдайте тишину и возвращайтесь в Отдел Кадров, Элеонора Витальевна не любит ждать.", "— Thanks again for the returned book. And now keep quiet and return to the HR Department, Eleonora doesn't like to wait."));
             }
         }
 
         function startStealthGame() {
             actionArea.innerHTML = `
                 <div id="stealth-game" style="display:flex;">
-                    <div style="margin-bottom:10px;">Прогресс: <span id="st-score" style="color:var(--game-green);">0</span>%</div>
+                    <div style="margin-bottom:10px;">${T("Прогресс:", "Progress:")} <span id="st-score" style="color:var(--game-green);">0</span>%</div>
                     <div id="stealth-bar">
                         <div id="stealth-zone"></div>
                         <div id="stealth-cursor"></div>
                     </div>
-                    <button class="action-btn" id="btn-step" onclick="makeStep()">СДЕЛАТЬ ШАГ</button>
+                    <button class="action-btn" id="btn-step" onclick="makeStep()">${T("СДЕЛАТЬ ШАГ", "MAKE A STEP")}</button>
                     <div id="fake-tg">
-                        <div>📩 Коллега прислал смешной мем!</div>
-                        <button onclick="failStealth('ВЫ ЗАСМЕЯЛИСЬ В ГОЛОС!')">ПОСМОТРЕТЬ</button>
+                        <div>📩 ${T("Коллега прислал смешной мем!", "Colleague sent a funny meme!")}</div>
+                        <button onclick="failStealth(T('ВЫ ЗАСМЕЯЛИСЬ В ГОЛОС!', 'YOU LAUGHED OUT LOUD!'))">${T("ПОСМОТРЕТЬ", "LOOK")}</button>
                     </div>
                 </div>
             `;
@@ -651,7 +685,7 @@
 
             window.makeStep = function() {
                 if (isGameOver) return;
-                if (tgDiv.style.display === 'block') { failStealth('Вы отвлеклись на телефон!'); return; }
+                if (tgDiv.style.display === 'block') { failStealth(T('Вы отвлеклись на телефон!', 'You got distracted by phone!')); return; }
                 // Зеленая зона 40-60% (совпадает с визуалом)
                 if (pos >= 40 && pos <= 60) {
                     score += 10; document.getElementById('st-score').innerText = score; // Очков за клик больше
@@ -664,7 +698,7 @@
                         initFloor10();
                     }
                 } else {
-                    failStealth('ВЫ СКРИПНУЛИ БОТИНКОМ МИМО РИТМА!');
+                    failStealth(T('ВЫ СКРИПНУЛИ БОТИНКОМ МИМО РИТМА!', 'YOUR SHOE SQUEAKED OFF BEAT!'));
                 }
             };
 
@@ -673,7 +707,7 @@
                 isGameOver = true;
                 clearInterval(stealthInt); clearInterval(tgInt);
                 tg.HapticFeedback.notificationOccurred('error');
-                showDialog(`— ТИШИНА!! ${msg} Заново!`);
+                showDialog(`— ${T("ТИШИНА!!", "SILENCE!!")} ${msg} ` + T("Заново!", "Start over!"));
                 setTimeout(startStealthGame, 2000);
             };
         }

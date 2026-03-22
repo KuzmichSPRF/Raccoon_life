@@ -197,6 +197,41 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        const T = (ru, en) => lang === 'en' ? en : ru;
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (lang === 'en') {
+                document.querySelector('.sidebar-title').innerText = "SYSTEM ELEVATOR";
+                document.querySelector('.reset-btn').innerText = "[ Restart ]";
+                document.getElementById('btn-f69').innerText = "Floor 69: HR Dept";
+                document.getElementById('btn-f68').innerText = "Floor 68: Security";
+                document.getElementById('btn-f41').innerText = "Floor 41: IT Dept";
+                document.getElementById('btn-f40').innerText = "Floor 40: Supply Manager";
+                document.getElementById('btn-f30').innerText = "Floor 30: Accounting (Block)";
+                document.querySelector('#inventory > div:first-child').innerText = "--- INVENTORY ---";
+                document.getElementById('inv-hr').innerText = "📄 Form 2026-B";
+                document.getElementById('inv-sb').innerText = "👁️ Security Checked";
+                document.getElementById('inv-box').innerText = "📦 Storage sorted";
+                document.getElementById('inv-card').innerText = "💳 Magnetic card";
+                document.getElementById('inv-it').innerText = "💻 IT Access";
+                document.getElementById('char-name').innerText = "ELEVATOR";
+                document.getElementById('dialog-text').innerText = "Elevator doors open with a creak. The air gets stale.";
+                const actionBtns = document.querySelectorAll('.action-btn');
+                if(actionBtns[0]) actionBtns[0].innerText = "Go to 40th floor (Supply)";
+                if(actionBtns[1]) actionBtns[1].innerText = "Go to 41st floor (IT)";
+                document.getElementById('finish-btn').innerText = "STAGE CLEARED";
+                document.querySelector('#image-modal div:last-child').innerText = "[ TWO FINGERS TO ZOOM ]";
+            }
+        });
+
         // --- СОСТОЯНИЕ И ЗВУК ---
         let pState = JSON.parse(localStorage.getItem('qt2_3_progress')) || {
             tetris_old_done: false, tetris_new_done: false,
@@ -321,7 +356,7 @@
         }, { passive: false });
 
         function resetProgress() {
-            if (confirm("Вы точно хотите сжечь документы и начать заново?")) {
+            if (confirm(T("Вы точно хотите сжечь документы и начать заново?", "Are you sure you want to burn the documents and start over?"))) {
                 localStorage.removeItem('qt2_3_progress'); location.reload();
             }
         }
@@ -376,24 +411,24 @@
 
         // ================= ЭТАЖИ ИЗ ПРОШЛЫХ ЧАСТЕЙ =================
         function initFloor69() {
-            charName.innerText = "Элеонора (Кадры)";
+            charName.innerText = T("Элеонора (Кадры)", "Eleonora (HR)");
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
             img.classList.remove('hidden');
-            showDialog("— Я все твои бумажки уже подписала. Иди на 40-й этаж к Завхозу, не мешай мне работать!");
+            showDialog(T("— Я все твои бумажки уже подписала. Иди на 40-й этаж к Завхозу, не мешай мне работать!", "— I already signed all your papers. Go to the 40th floor to the Supply Manager, don't bother me!"));
         }
 
         function initFloor68() {
-            charName.innerText = "Михалыч (СБ)";
+            charName.innerText = T("Михалыч (СБ)", "Mikhalych (Security)");
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/SB.png";
             img.classList.remove('hidden');
-            showDialog("— О, это ты. Твою «пиццу» я уже съел. Твой хеш-код отправлен айтишникам на 41-й. Дуй к ним, пусть пропишут тебя в систему.");
+            showDialog(T("— О, это ты. Твою «пиццу» я уже съел. Твой хеш-код отправлен айтишникам на 41-й. Дуй к ним, пусть пропишут тебя в систему.", "— Oh, it's you. I already ate your 'pizza'. Your hash code was sent to IT on 41. Go to them so they can register you in the system."));
         }
 
         // ================= ЭТАЖ 40: АХО =================
         function initFloor40() {
-            charName.innerText = "Палыч (АХО)";
+            charName.innerText = T("Палыч (АХО)", "Palych (Supply)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
@@ -401,27 +436,27 @@
 
             if (!pState.tetris_new_done) {
                 if (!pState.tetris_old_done) {
-                    showDialog("— (Не вылезая из-под стола) Нету ключей. Последний отдал вчера айтишнику с 41-го. Хочешь карту-вездеход? Докажи, что не распиз... разгильдяй. Расставь коробки в логотип компании (собери по порядку)!");
-                    addBtn('НАЧАТЬ ТЕТРИС', () => startPuzzle(1));
+                    showDialog(T("— (Не вылезая из-под стола) Нету ключей. Последний отдал вчера айтишнику с 41-го. Хочешь карту-вездеход? Докажи, что не распиз... разгильдяй. Расставь коробки в логотип компании (собери по порядку)!", "— (From under the table) No keys. Gave the last one to IT yesterday. Want a master card? Prove you're not a slacker. Arrange the boxes into the company logo!"));
+                    addBtn(T('НАЧАТЬ ТЕТРИС', 'START TETRIS'), () => startPuzzle(1));
                 } else {
-                    showDialog("— Это старый логотип, мы на ребрендинге! Собирай новый!");
-                    addBtn('НАЧАТЬ ТЕТРИС (РЕБРЕНДИНГ)', () => startPuzzle(2));
+                    showDialog(T("— Это старый логотип, мы на ребрендинге! Собирай новый!", "— That's the old logo, we're rebranding! Make the new one!"));
+                    addBtn(T('НАЧАТЬ ТЕТРИС (РЕБРЕНДИНГ)', 'START TETRIS (REBRAND)'), () => startPuzzle(2));
                 }
             } else if (!pState.inventory_done) {
-                showDialog("— Коробки стоят. Но я не выдам карту, пока ты не назовешь мне серийный номер монитора из отдела ИТ (41 этаж). Введи его:");
+                showDialog(T("— Коробки стоят. Но я не выдам карту, пока ты не назовешь мне серийный номер монитора из отдела ИТ (41 этаж). Введи его:", "— Boxes are set. But I won't give the card until you tell me the serial number of the monitor from IT (Floor 41). Enter it:"));
                 const inp = document.createElement('input');
                 inp.className = 'blind-input'; inp.id = 'sn-input'; inp.placeholder = 'SN-...';
                 actionArea.appendChild(inp);
-                addBtn('НАЗВАТЬ НОМЕР', () => {
+                addBtn(T('НАЗВАТЬ НОМЕР', 'NAME THE NUMBER'), () => {
                     if (document.getElementById('sn-input').value.trim().toUpperCase() === 'SN-2026-VOID') {
                         pState.inventory_done = true; saveState(); initFloor40();
                     } else {
                         tg.HapticFeedback.notificationOccurred('error');
-                        showDialog("— Че ты мне суешь? Это не тот серийник! Иди ищи лучше.");
+                        showDialog(T("— Че ты мне суешь? Это не тот серийник! Иди ищи лучше.", "— What is this? Wrong serial! Go find the right one."));
                     }
                 });
             } else {
-                showDialog("— Держи «нулевую» магнитную карту. Но она пустая. Иди на 41-й к Админу Зеро, пусть пропишет твою биометрию.");
+                showDialog(T("— Держи «нулевую» магнитную карту. Но она пустая. Иди на 41-й к Админу Зеро, пусть пропишет твою биометрию.", "— Here is a 'zero' magnetic card. It's empty. Go to Admin Zero on 41, let him write your biometrics."));
             }
         }
 
@@ -489,28 +524,28 @@
 
         // ================= ЭТАЖ 41: ИТ =================
         function initFloor41() { 
-            charName.innerText = "Админ Зеро (ИТ)";
+            charName.innerText = T("Админ Зеро (ИТ)", "Admin Zero (IT)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/otdel_it.png";
             img.classList.remove('hidden');
             
             if (!pState.inventory_done) {
-                showDialog("— О, свежее мясо. СБ прислало твой хеш, но он битый. Мне нужен пропуск, чтобы я прописал твою биометрию. Иди на 40-й к Палычу за картой.");
-                addBtn('ОСМОТРЕТЬ КОМНАТУ', () => { 
-                    showDialog("В темноте светятся синие светодиоды.\n\n(Картинка комнаты стала доступна для увеличения! Нажмите на неё)");
+                showDialog(T("— О, свежее мясо. СБ прислало твой хеш, но он битый. Мне нужен пропуск, чтобы я прописал твою биометрию. Иди на 40-й к Палычу за картой.", "— Oh, fresh meat. Security sent your hash, but it's broken. I need a pass to write your biometrics. Go to Palych on 40 for the card."));
+                addBtn(T('ОСМОТРЕТЬ КОМНАТУ', 'INSPECT ROOM'), () => { 
+                    showDialog(T("В темноте светятся синие светодиоды.\n\n(Картинка комнаты стала доступна для увеличения! Нажмите на неё)", "Blue LEDs glow in the dark.\n\n(The room image is now available for zooming! Click on it)"));
                     document.getElementById('floor-image').classList.add('zoomable');
                     tg.HapticFeedback.notificationOccurred('success');
                 });
             } else if (!pState.flappy_done) {
-                showDialog("— Пропуск принес? Ок. Но чтобы прописать тебя в облако, мне нужен твой физический файл из Кадров (69 этаж). Я уже запросил пневмопочту. Капсула в трубе, не дай ей разбиться о засоры!");
-                addBtn('ПРИНЯТЬ КАПСУЛУ', () => startFlappy());
+                showDialog(T("— Пропуск принес? Ок. Но чтобы прописать тебя в облако, мне нужен твой физический файл из Кадров (69 этаж). Я уже запросил пневмопочту. Капсула в трубе, не дай ей разбиться о засоры!", "— Brought the pass? Ok. But to write you to the cloud, I need your physical file from HR (Floor 69). I requested pneumatic mail. Don't let the capsule break!"));
+                addBtn(T('ПРИНЯТЬ КАПСУЛУ', 'RECEIVE CAPSULE'), () => startFlappy());
             } else if (!pState.code_fixed) {
-                showDialog("— Файл у меня. Но в консоли ошибка: Error: User_Brain_Not_Found. Найди в логах строку 'Access Denied' и замени на 'Granted' кликом. У тебя 15 секунд, поторопись!");
-                addBtn('ОТКРЫТЬ КОНСОЛЬ', () => startDebug());
+                showDialog(T("— Файл у меня. Но в консоли ошибка: Error: User_Brain_Not_Found. Найди в логах строку 'Access Denied' и замени на 'Granted' кликом. У тебя 15 секунд, поторопись!", "— I have the file. But there's a console error: User_Brain_Not_Found. Find 'Access Denied' in logs and click to change to 'Granted'. You have 15s!"));
+                addBtn(T('ОТКРЫТЬ КОНСОЛЬ', 'OPEN CONSOLE'), () => startDebug());
             } else {
-                showDialog("— Эй, куда? Пропуск я тебе выдал, но он «нулевой». Чистый пластик. Пока Бухгалтерия (30 этаж) не оплатит лицензию, ты для турникета — просто кусок углерода.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)");
-                addBtn('ЗАВЕРШИТЬ ЭТАП', () => {
+                showDialog(T("— Эй, куда? Пропуск я тебе выдал, но он «нулевой». Чистый пластик. Пока Бухгалтерия (30 этаж) не оплатит лицензию, ты для турникета — просто кусок углерода.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)", "— Hey, where to? I gave you the pass, but it's 'zero'. Pure plastic. Until Accounting (Floor 30) pays the license, you're just carbon to the turnstile.\n\n(TO BE CONTINUED...)"));
+                addBtn(T('ЗАВЕРШИТЬ ЭТАП', 'FINISH STAGE'), () => {
                     document.getElementById('main-content').classList.add('hidden');
                     document.getElementById('sidebar').classList.add('hidden');
                     document.getElementById('end-screen').classList.remove('hidden');
@@ -525,7 +560,7 @@
                     <div id="flappy-bird" style="width:20px; height:20px; background:var(--neon-pink); border-radius:50%; position:absolute; left:50px; top:115px;"></div>
                     <div id="flappy-score" style="position:absolute; top:10px; right:10px; color:var(--neon-yellow); font-size:20px; font-weight:bold; z-index:10;">0/8</div>
                 </div>
-                <div style="margin-top:10px; text-align:center;">Тапай по полю, чтобы капсула летела!<br>Пройди 8 труб.</div>
+                <div style="margin-top:10px; text-align:center;">${T("Тапай по полю, чтобы капсула летела!<br>Пройди 8 труб.", "Tap the field to fly!<br>Pass 8 pipes.")}</div>
             `;
             let birdY = 115, velocity = 0, pipes = [], score = 0, frame = 0, isGameOver = false, gameLoop, lastTime = 0;
             const gameDiv = document.getElementById('flappy-game');
@@ -575,8 +610,8 @@
             }
             function endGame(win) {
                 isGameOver = true; cancelAnimationFrame(gameLoop);
-                if (win) { pState.flappy_done = true; saveState(); showDialog("— Капсула прилетела! Документы целы."); initFloor41(); } 
-                else { tg.HapticFeedback.notificationOccurred('error'); showDialog("— Капсула разбилась в трубе! Документы разлетелись! Запускаем дубликат."); addBtn('ПОВТОРИТЬ', () => startFlappy()); }
+                if (win) { pState.flappy_done = true; saveState(); showDialog(T("— Капсула прилетела! Документы целы.", "— Capsule arrived! Documents are intact.")); initFloor41(); } 
+                else { tg.HapticFeedback.notificationOccurred('error'); showDialog(T("— Капсула разбилась в трубе! Документы разлетелись! Запускаем дубликат.", "— Capsule broke in the pipe! Documents scattered! Launching duplicate.")); addBtn(T('ПОВТОРИТЬ', 'RETRY'), () => startFlappy()); }
             }
             gameLoop = requestAnimationFrame(update);
         }
@@ -585,16 +620,16 @@
         function startDebug() {
             actionArea.innerHTML = `
                 <div id="debug-container" style="width:100%; max-width:400px; height:240px; background:#000; border:1px solid var(--neon-cyan); position:relative; overflow:hidden; font-family:monospace; padding:10px; font-size:0.9rem;"></div>
-                <div id="debug-timer" style="margin-top:10px; color:var(--neon-pink); font-size:1.2rem; font-weight:bold;">15 с</div>
+                <div id="debug-timer" style="margin-top:10px; color:var(--neon-pink); font-size:1.2rem; font-weight:bold;">15 ${T("с", "s")}</div>
             `;
             let time = 15;
             let timerInt = setInterval(() => {
-                time--; document.getElementById('debug-timer').innerText = time + ' с';
+                time--; document.getElementById('debug-timer').innerText = time + T(' с', ' s');
                 if (time <= 0) {
                     clearInterval(timerInt); clearInterval(scrambleInt);
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— Время вышло! Логи стерты. Пробуем еще раз.");
-                    addBtn('ПЕРЕЗАГРУЗИТЬ КОНСОЛЬ', () => startDebug());
+                    showDialog(T("— Время вышло! Логи стерты. Пробуем еще раз.", "— Time's up! Logs erased. Trying again."));
+                    addBtn(T('ПЕРЕЗАГРУЗИТЬ КОНСОЛЬ', 'REBOOT CONSOLE'), () => startDebug());
                 }
             }, 1000);
 
@@ -613,7 +648,7 @@
                                 clearInterval(timerInt); clearInterval(scrambleInt);
                                 tw.innerText = 'Access Granted'; tw.style.color = 'var(--neon-cyan)'; tw.style.background = '#020';
                                 tg.HapticFeedback.notificationOccurred('success');
-                                setTimeout(() => { pState.code_fixed = true; saveState(); showDialog("— Доступ получен! Система тебя признала."); initFloor41(); }, 1000);
+                                setTimeout(() => { pState.code_fixed = true; saveState(); showDialog(T("— Доступ получен! Система тебя признала.", "— Access granted! The system recognized you.")); initFloor41(); }, 1000);
                             };
                         }, 0);
                     } else { div.innerText = text; }

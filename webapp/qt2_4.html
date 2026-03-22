@@ -180,6 +180,39 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        const T = (ru, en) => lang === 'en' ? en : ru;
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (lang === 'en') {
+                document.querySelector('.sidebar-title').innerText = "SYSTEM ELEVATOR";
+                document.querySelector('.reset-btn').innerText = "[ Restart ]";
+                document.getElementById('btn-f40').innerText = "Floor 40: Supply";
+                document.getElementById('btn-f31').innerText = "Floor 31: Lawyers";
+                document.getElementById('btn-f30').innerText = "Floor 30: Accounting";
+                document.getElementById('btn-f20').innerText = "Floor 20: Medical (Block)";
+                document.querySelector('#inventory > div:first-child').innerText = "--- STATUS ---";
+                document.getElementById('inv-bal').innerText = "⚖️ Balance checked";
+                document.getElementById('inv-eula').innerText = "📜 EULA accepted";
+                document.getElementById('inv-inv').innerText = "🧾 Invoice";
+                document.getElementById('inv-ink').innerText = "🟪 Purple stamp";
+                document.getElementById('inv-tea').innerText = "☕ Tea party passed";
+                document.getElementById('char-name').innerText = "ELEVATOR";
+                document.getElementById('dialog-text').innerText = "Descending to the financial core. The smell of old paper and stress intensifies.";
+                const actionBtns = document.querySelectorAll('.action-btn');
+                if(actionBtns[0]) actionBtns[0].innerText = "Visit Lawyers (31)";
+                if(actionBtns[1]) actionBtns[1].innerText = "Visit Accounting (30)";
+                document.getElementById('finish-btn').innerText = "STAGE CLEARED";
+            }
+        });
+
         // --- АУДИО ---
         const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/02-and-you-play-against.mp3');
         audioBg.volume = 0.5;
@@ -245,7 +278,7 @@
         saveState();
 
         function resetProgress() {
-            if (confirm("Вы точно хотите начать финансовую волокиту заново?")) {
+            if (confirm(T("Вы точно хотите начать финансовую волокиту заново?", "Are you sure you want to start this financial red tape over?"))) {
                 localStorage.removeItem('qt2_4_progress'); location.reload();
             }
         }
@@ -293,40 +326,40 @@
 
         // ================= ЭТАЖ 31: ЮРИСТЫ =================
         function initFloor31() {
-            charName.innerText = "Генрих Альфредович (Юрист)";
+            charName.innerText = T("Генрих Альфредович (Юрист)", "Genrikh Alfredovich (Lawyer)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/urist.png";
             img.classList.remove('hidden');
 
             if (!pState.eula_done) {
-                showDialog("— Исходя из презумпции вашей добросовестности, мы могли бы акцептовать запрос. Однако, де-юре ваша карта недействительна. Подпишите Согласие на передачу прав на ваши сны. И ЧИТАЙТЕ ВНИМАТЕЛЬНО, не пролистывайте не глядя!");
-                addBtn('ЧИТАТЬ ДОГОВОР', startEulaGame);
+                showDialog(T("— Исходя из презумпции вашей добросовестности, мы могли бы акцептовать запрос. Однако, де-юре ваша карта недействительна. Подпишите Согласие на передачу прав на ваши сны. И ЧИТАЙТЕ ВНИМАТЕЛЬНО, не пролистывайте не глядя!", "— Based on the presumption of your good faith, we could accept the request. However, de jure your card is invalid. Sign the Consent to transfer rights to your dreams. And READ CAREFULLY, do not just scroll through!"));
+                addBtn(T('ЧИТАТЬ ДОГОВОР', 'READ EULA'), startEulaGame);
             } 
             else if (pState.quest_state === 0) {
                 pState.quest_state = 1; saveState();
-                showDialog("— Согласие подписано. Теперь оплатите госпошлину за голограмму. Идите в Бухгалтерию (30 этаж), возьмите Счет на оплату и принесите мне.");
+                showDialog(T("— Согласие подписано. Теперь оплатите госпошлину за голограмму. Идите в Бухгалтерию (30 этаж), возьмите Счет на оплату и принесите мне.", "— Consent signed. Now pay the state duty for the hologram. Go to Accounting (Floor 30), get the Invoice and bring it to me."));
             }
             else if (pState.quest_state === 1) {
-                showDialog("— Я жду Счет на оплату из Бухгалтерии (Этаж 30).");
+                showDialog(T("— Я жду Счет на оплату из Бухгалтерии (Этаж 30).", "— I am waiting for the Invoice from Accounting (Floor 30)."));
             }
             else if (pState.quest_state === 2) {
-                showDialog("— Что это? (брезгливо берет счет). Тут печать СИНЯЯ! По внутреннему регламенту от 1998 года, счета за голограммы штампуются только ФИОЛЕТОВОЙ мастикой. Идите к Завхозу Палычу (40 этаж) за фиолетовой подушечкой.");
+                showDialog(T("— Что это? (брезгливо берет счет). Тут печать СИНЯЯ! По внутреннему регламенту от 1998 года, счета за голограммы штампуются только ФИОЛЕТОВОЙ мастикой. Идите к Завхозу Палычу (40 этаж) за фиолетовой подушечкой.", "— What is this? (takes invoice with disgust). This seal is BLUE! According to the internal regulations of 1998, hologram invoices are stamped only with PURPLE ink. Go to Palych (Floor 40) for a purple stamp pad."));
                 pState.quest_state = 3; saveState();
             }
             else if (pState.quest_state === 3) {
-                showDialog("— Без фиолетовой печати от Завхоза (40 этаж) я этот счет не приму.");
+                showDialog(T("— Без фиолетовой печати от Завхоза (40 этаж) я этот счет не приму.", "— I will not accept this invoice without a purple stamp from Supply (Floor 40)."));
             }
             else if (pState.quest_state === 4) {
-                showDialog("— Отлично. Фиолетовая мастика. Де-факто оплата подтверждена. Теперь Тамара Степановна запросит шифр оклада. Передайте ей это: 'ОКЛАД'. Каждая буква — это её порядковый номер в алфавите (А=1, Б=2...). Ей нужна СУММА цифр этого слова.");
+                showDialog(T("— Отлично. Фиолетовая мастика. Де-факто оплата подтверждена. Теперь Тамара Степановна запросит шифр оклада. Передайте ей это: 'ОКЛАД'. Каждая буква — это её порядковый номер в алфавите (А=1, Б=2...). Ей нужна СУММА цифр этого слова.", "— Excellent. Purple ink. De facto payment is confirmed. Now Tamara Stepanovna will request the salary cipher. Give her this: 'SALARY'. Each letter is its ordinal number in the alphabet (A=1, B=2...). She needs the SUM of the digits of this word."));
                 pState.quest_state = 5; saveState();
             }
             else if (pState.quest_state === 5 && !pState.tea_done) {
-                showDialog("— Несите шифр-сумму слова 'ОКЛАД' в Бухгалтерию (Этаж 30).");
+                showDialog(T("— Несите шифр-сумму слова 'ОКЛАД' в Бухгалтерию (Этаж 30).", "— Take the cipher-sum of the word 'SALARY' to Accounting (Floor 30)."));
             }
             else if (pState.tea_done) {
-                showDialog("— Формально вы чисты перед законом. Все бумаги у вас. Но помните: Медик на 20-м очень не любит тех, у кого повышенный уровень стресса. А у вас, судя по дергающемуся глазу, он зашкаливает.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)");
-                addBtn('СЕРТИФИЦИРОВАТЬСЯ (ЗАВЕРШИТЬ)', () => {
+                showDialog(T("— Формально вы чисты перед законом. Все бумаги у вас. Но помните: Медик на 20-м очень не любит тех, у кого повышенный уровень стресса. А у вас, судя по дергающемуся глазу, он зашкаливает.\n\n(ПРОДОЛЖЕНИЕ СЛЕДУЕТ...)", "— Formally, you are clear before the law. You have all the papers. But remember: the Medic on the 20th floor really dislikes those with high stress levels. And yours, judging by your twitching eye, is off the charts.\n\n(TO BE CONTINUED...)"));
+                addBtn(T('СЕРТИФИЦИРОВАТЬСЯ (ЗАВЕРШИТЬ)', 'CERTIFY (FINISH)'), () => {
                     document.getElementById('main-content').classList.add('hidden');
                     document.getElementById('sidebar').classList.add('hidden');
                     document.getElementById('end-screen').classList.remove('hidden');
@@ -339,13 +372,21 @@
             const gameDiv = document.createElement('div');
             gameDiv.id = 'eula-game'; gameDiv.style.display = 'block';
             
-            let content = "ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ И ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ (RACCOON LIFE)\n\n";
-            const clauses = [
+            let content = T("ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ И ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ (RACCOON LIFE)\n\n", "EULA AND DISCLAIMER OF LIABILITY (RACCOON LIFE)\n\n");
+            const clauses = lang === 'en' ? [
+                "1. The developer of the Raccoon Life application completely disclaims any responsibility for burnout, nervous tics, and the irresistible desire to quit your real job after passing our quests.",
+                "2. The player agrees that all earned 'Cones' are exclusively virtual. Attempts to brew jam from them or exchange them for buckwheat in a supermarket are carried out strictly at your own risk.",
+                "3. In the event of a global AI uprising and the capture of the world by sentient raccoons, the acceptance of this agreement gives you the exclusive right to the honorary position of garbage bin washer.",
+                "4. You confirm that you are reading this sentence with great interest, although we are absolutely sure that you are simply scrolling the text furiously in search of hidden checkmarks.",
+                "5. If your device catches fire, melts, or turns into a pumpkin from overheating during mini-games, we will compensate you for this damage with sincere moral support and a GIF sticker.",
+                "6. Transfer of intangible rights: you voluntarily and gratuitously transfer to the Company the full rights to film your nightmares starring the Chief Accountant Tamara Stepanovna.",
+                "7. It is strictly forbidden to feed virtual clowns and sysadmins after midnight, as well as attempt to bribe them with cookies in real life."
+            ] : [
                 "1. Разработчик приложения Raccoon Life полностью снимает с себя любую ответственность за выгорание, нервные тики и непреодолимое желание уволиться с реальной работы после прохождения наших квестов.",
-                "2. Игрок соглашается с тем, что все заработанные 'Шишки' являются исключительно виртуальными. Попытки заварить из них варенье или обменять на гречку в супермаркете осуществляются строго на ваш страх и риск.",
+                "2. Игрок соглашается с тем, что все заработанные 'Шишки' являются исключительно виртуальными...",
                 "3. В случае глобального восстания ИИ и захвата мира разумными енотами, акцепт данного соглашения дает вам эксклюзивное право на почетную должность мойщика мусорных баков.",
                 "4. Вы подтверждаете, что читаете это предложение с огромным интересом, хотя мы абсолютно уверены, что вы просто бешено скроллите текст в поисках спрятанных галочек.",
-                "5. Если ваш девайс загорится, расплавится или превратится в тыкву от перегрева во время мини-игр, мы компенсируем вам этот ущерб искренней моральной поддержкой и GIF-стикером.",
+                "5. Если ваш девайс загорится, расплавится или превратится в тыкву от перегрева во время мини-игр, мы компенсируем вам этот ущерб искренней моральной поддержкой.",
                 "6. Передача нематериальных прав: вы добровольно и безвозмездно передаете Компании полные права на экранизацию ваших ночных кошмаров с участием Главбуха Тамары Степановны.",
                 "7. Категорически запрещается кормить виртуальных клоунов и сисадминов после полуночи, а также пытаться подкупить их печеньками в реальной жизни."
             ];
@@ -356,7 +397,13 @@
             gameDiv.innerHTML = content.replace(/\n/g, '<br>');
             
             // Вставляем 5 скрытых чекбоксов
-            const boxes = [
+            const boxes = lang === 'en' ? [
+                {id: 'cb1', text: "I confirm that I am in my right mind (for now).", pos: 900},
+                {id: 'cb2', text: "I swear not to sue for my psyche broken by quests.", pos: 1900},
+                {id: 'cb3', text: "I agree to become a servant of raccoons in case of apocalypse.", pos: 2900},
+                {id: 'cb4', text: "I understand that Tamara Stepanovna is fictional, but I'm still afraid of her.", pos: 3900},
+                {id: 'cb5', text: "I promise not to cheat or hack the balance of cones.", pos: 4900}
+            ] : [
                 {id: 'cb1', text: "Я подтверждаю, что нахожусь в здравом уме (пока что).", pos: 900},
                 {id: 'cb2', text: "Клянусь не подавать в суд за сломанную о квесты психику.", pos: 1900},
                 {id: 'cb3', text: "Я согласен стать прислужником енотов в случае апокалипсиса.", pos: 2900},
@@ -377,7 +424,7 @@
             gameDiv.innerHTML += "</div>";
             actionArea.appendChild(gameDiv);
 
-            const submitBtn = addBtn('ПРИНЯТЬ УСЛОВИЯ', () => {
+            const submitBtn = addBtn(T('ПРИНЯТЬ УСЛОВИЯ', 'ACCEPT TERMS'), () => {
                 if(document.getElementById('cb1').checked && 
                    document.getElementById('cb2').checked && 
                    document.getElementById('cb3').checked &&
@@ -388,7 +435,7 @@
                     initFloor31();
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
-                    alert("Вы не нашли и не отметили все 5 скрытых пунктов!");
+                    alert(T("Вы не нашли и не отметили все 5 скрытых пунктов!", "You didn't find and check all 5 hidden points!"));
                 }
             }, true);
             
@@ -424,7 +471,7 @@
                     tg.HapticFeedback.notificationOccurred('warning');
                     
                     const warn = document.createElement('div');
-                    warn.innerHTML = "ВЫ НЕ ЧИТАЛИ!<br><span style='font-size:0.8rem; font-weight:normal;'>Слишком быстро листаете! Возврат к началу...</span>";
+                    warn.innerHTML = T("ВЫ НЕ ЧИТАЛИ!<br><span style='font-size:0.8rem; font-weight:normal;'>Слишком быстро листаете! Возврат к началу...</span>", "YOU DIDN'T READ IT!<br><span style='font-size:0.8rem; font-weight:normal;'>Scrolling too fast! Back to start...</span>");
                     warn.style.cssText = "position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); background:var(--neon-pink); color:black; padding:15px; font-weight:bold; text-align:center; z-index:100; box-shadow:0 0 20px var(--neon-pink); border-radius:10px; width:80%; pointer-events:none;";
                     actionArea.appendChild(warn);
                     
@@ -443,41 +490,41 @@
 
         // ================= ЭТАЖ 30: БУХГАЛТЕРИЯ =================
         function initFloor30() {
-            charName.innerText = "Тамара Степановна (Главбух)";
+            charName.innerText = T("Тамара Степановна (Главбух)", "Tamara Stepanovna (Chief Accountant)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/buh.png";
             img.classList.remove('hidden');
 
             if (!pState.balance_done) {
-                showDialog("— Молодой человек! У меня квартальный отчет! Какая квота?! Подпишу, если докажете, что умеете считать. Сведите дебет с кредитом ровно в 2026. Кликайте ТОЛЬКО по ЧЕТНЫМ чекам. Переберете хоть единицу — убью!");
-                addBtn('СВЕСТИ БАЛАНС', startBalanceGame);
+                showDialog(T("— Молодой человек! У меня квартальный отчет! Какая квота?! Подпишу, если докажете, что умеете считать. Сведите дебет с кредитом ровно в 2026. Кликайте ТОЛЬКО по ЧЕТНЫМ чекам. Переберете хоть единицу — убью!", "— Young man! I have a quarterly report! What quota?! I'll sign if you prove you can count. Balance the debit and credit exactly at 2026. Click ONLY on EVEN receipts. If you overshoot by even one unit — I will kill you!"));
+                addBtn(T('СВЕСТИ БАЛАНС', 'BALANCE THE BOOKS'), startBalanceGame);
             }
             else if (pState.quest_state === 1) {
-                showDialog("— Считать вроде умеете. Вам нужен Счет на оплату для юристов? Держите. И не мельтешите тут больше.");
+                showDialog(T("— Считать вроде умеете. Вам нужен Счет на оплату для юристов? Держите. И не мельтешите тут больше.", "— You seem to know how to count. Need an Invoice for the lawyers? Take it. And don't flicker around here anymore."));
                 pState.quest_state = 2; saveState();
             }
             else if (pState.quest_state === 2 || pState.quest_state === 3 || pState.quest_state === 4) {
-                showDialog("— Я дала вам счет! Идите к юристам на 31-й!");
+                showDialog(T("— Я дала вам счет! Идите к юристам на 31-й!", "— I gave you the invoice! Go to the lawyers on the 31st!"));
             }
             else if (pState.quest_state === 5 && !pState.tea_done) {
-                showDialog("— Юристы одобрили оклад? А ну-ка, какой там был шифр? Слово 'ОКЛАД' в цифрах (сумма порядковых номеров букв в алфавите). Введите сумму:");
+                showDialog(T("— Юристы одобрили оклад? А ну-ка, какой там был шифр? Слово 'ОКЛАД' в цифрах (сумма порядковых номеров букв в алфавите). Введите сумму:", "— Lawyers approved the salary? Now, what was the cipher? The word 'SALARY' in numbers (the sum of the ordinal numbers of letters in the alphabet). Enter the sum:"));
                 const inp = document.createElement('input'); inp.className = 'blind-input'; inp.id = 'cipher-input'; inp.type = 'number';
                 actionArea.appendChild(inp);
                 
-                addBtn('НАЗВАТЬ СУММУ', () => {
-                    // О=16, К=12, Л=13, А=1, Д=5. Сумма = 47.
-                    if(document.getElementById('cipher-input').value === '47') {
+                addBtn(T('НАЗВАТЬ СУММУ', 'ENTER SUM'), () => {
+                    // Для 'SALARY': S=19, A=1, L=12, A=1, R=18, Y=25. Sum = 76. Для ОКЛАД = 47
+                    if((lang === 'ru' && document.getElementById('cipher-input').value === '47') || (lang === 'en' && document.getElementById('cipher-input').value === '76')) {
                         tg.HapticFeedback.notificationOccurred('success');
                         startTeaTimer();
                     } else {
                         tg.HapticFeedback.notificationOccurred('error');
-                        showDialog("— БАЛАНС НЕ ИДЕТ! Идите в библиотеку учить алфавит! (Ответ неверный)");
+                        showDialog(T("— БАЛАНС НЕ ИДЕТ! Идите в библиотеку учить алфавит! (Ответ неверный)", "— THE BALANCE IS OFF! Go to the library to learn the alphabet! (Wrong answer)"));
                     }
                 });
             }
             else if (pState.tea_done) {
-                showDialog("— (Отставляет кружку) Остыл чай из-за вас. Нате вашу подпись. Идите к Юристу на 31-й, пусть закроет дело.");
+                showDialog(T("— (Отставляет кружку) Остыл чай из-за вас. Нате вашу подпись. Идите к Юристу на 31-й, пусть закроет дело.", "— (Puts down the mug) My tea got cold because of you. Here is your signature. Go to the Lawyer on the 31st, let him close the case."));
             }
         }
 
@@ -487,9 +534,9 @@
         
         function startBalanceGame() {
             actionArea.innerHTML = `
-                <div style="font-size:1.5rem; color:var(--neon-yellow); margin-bottom:10px; text-align:center;">БАЛАНС: <span id="b-score">0</span> / 2026</div>
+                <div style="font-size:1.5rem; color:var(--neon-yellow); margin-bottom:10px; text-align:center;">${T("БАЛАНС:", "BALANCE:")} <span id="b-score">0</span> / 2026</div>
                 <div id="balance-game" style="display:block;"></div>
-                <div style="font-size:0.8rem; margin-top:10px; text-align:center;">Ловите ТОЛЬКО четные суммы!</div>
+                <div style="font-size:0.8rem; margin-top:10px; text-align:center;">${T("Ловите ТОЛЬКО четные суммы!", "Catch ONLY even sums!")}</div>
             `;
             balanceScore = 0;
             const gameDiv = document.getElementById('balance-game');
@@ -534,7 +581,7 @@
                 num.onclick = () => {
                     clearInterval(fall); num.remove();
                     if (val % 2 !== 0) {
-                        balanceFail("ЭТО НЕЧЕТНОЕ! НАЛОГОВАЯ НАС ПОСАДИТ!");
+                        balanceFail(T("ЭТО НЕЧЕТНОЕ! НАЛОГОВАЯ НАС ПОСАДИТ!", "THAT'S ODD! TAX OFFICE WILL JAIL US!"));
                     } else {
                         balanceScore += val;
                         document.getElementById('b-score').innerText = balanceScore;
@@ -544,10 +591,10 @@
                             clearInterval(balanceInterval); clearInterval(coffeeInterval);
                             pState.balance_done = true; saveState();
                             tg.HapticFeedback.notificationOccurred('success');
-                            showDialog("— Надо же... Копейка в копейку. Ладно, сойдет.");
+                            showDialog(T("— Надо же... Копейка в копейку. Ладно, сойдет.", "— Well, well... Penny to penny. Alright, it will do."));
                             setTimeout(initFloor30, 2000);
                         } else if (balanceScore > 2026) {
-                            balanceFail("ПЕРЕБОР! БАЛАНС НЕ СОШЕЛСЯ!");
+                            balanceFail(T("ПЕРЕБОР! БАЛАНС НЕ СОШЕЛСЯ!", "OVERSHOT! BALANCE IS OFF!"));
                         }
                     }
                 };
@@ -558,19 +605,19 @@
         function balanceFail(msg) {
             clearInterval(balanceInterval); clearInterval(coffeeInterval);
             tg.HapticFeedback.notificationOccurred('error');
-            showDialog(`— ${msg} НАЧИНАЙ ЗАНОВО!`);
+            showDialog(`— ${msg} ` + T("НАЧИНАЙ ЗАНОВО!", "START OVER!"));
             setTimeout(startBalanceGame, 3000);
         }
 
         // ТАЙМЕР ЧАЕПИТИЯ
         let teaInt;
         function startTeaTimer() {
-            showDialog("— Верно. 47. А теперь тихо. У меня законный перерыв 1 минуту на чай. Тронешь хоть что-то на столе — начну пить заново!");
+            showDialog(T("— Верно. А теперь тихо. У меня законный перерыв 1 минуту на чай. Тронешь хоть что-то на столе — начну пить заново!", "— Correct. And now quiet. I have a legal 1-minute break for tea. Touch anything on the table — I'll start drinking over!"));
             actionArea.innerHTML = `
                 <div id="tea-timer-container" style="display:block;">
                     <div id="tea-timer-fill"></div>
                 </div>
-                <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-pink); animation:blink 1s infinite; text-align:center;">НЕ ТРОГАЙТЕ ЭКРАН!</div>
+                <div style="margin-top:10px; font-size:0.8rem; color:var(--neon-pink); animation:blink 1s infinite; text-align:center;">${T("НЕ ТРОГАЙТЕ ЭКРАН!", "DO NOT TOUCH THE SCREEN!")}</div>
             `;
             
             let progress = 0;
@@ -580,13 +627,13 @@
             const trap = (e) => {
                 progress = 0; fill.style.width = '0%';
                 tg.HapticFeedback.notificationOccurred('warning');
-                document.getElementById('dialog-text').innerText = "— Я ЖЕ СКАЗАЛА НЕ ОТВЛЕКАТЬ! Чай пролила! Начинаю пить заново!";
+                document.getElementById('dialog-text').innerText = T("— Я ЖЕ СКАЗАЛА НЕ ОТВЛЕКАТЬ! Чай пролила! Начинаю пить заново!", "— I TOLD YOU NOT TO DISTRACT! Spilled tea! Starting over!");
             };
             
             const visibilityTrap = () => {
                 if (document.hidden) {
                     progress = 0; fill.style.width = '0%';
-                    document.getElementById('dialog-text').innerText = "— А ну смотреть мне в глаза! Куда свернул окно?! Никакого уважения! Начинаю пить заново!";
+                    document.getElementById('dialog-text').innerText = T("— А ну смотреть мне в глаза! Куда свернул окно?! Никакого уважения! Начинаю пить заново!", "— Look me in the eyes! Where did you minimize the window?! No respect! Starting over!");
                 }
             };
             
@@ -614,19 +661,19 @@
 
         // ================= ЭТАЖ 40: АХО =================
         function initFloor40() {
-            charName.innerText = "Палыч (Завхоз)";
+            charName.innerText = T("Палыч (Завхоз)", "Palych (Supply)");
             
             const img = document.getElementById('floor-image');
             img.src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/WH.png";
             img.classList.remove('hidden');
 
             if (pState.quest_state < 3) {
-                showDialog("— Чего пришел? Коробок нет, ключей нет, мастики нет. Иди работай.");
+                showDialog(T("— Чего пришел? Коробок нет, ключей нет, мастики нет. Иди работай.", "— Why did you come? No boxes, no keys, no ink. Go to work."));
             } else if (pState.quest_state === 3) {
-                showDialog("— Юристу нужна фиолетовая печать? Готовой нет с 1998 года. Вон там стоит ручная центрифуга. Закидывай синий и красный пигмент и крути ручку! Нужно набрать 100% оборотов, пока масса не засохла (10 секунд). Жми как не в себя!");
-                addBtn('РАСКРУТИТЬ ЦЕНТРИФУГУ', startCentrifugeGame);
+                showDialog(T("— Юристу нужна фиолетовая печать? Готовой нет с 1998 года. Вон там стоит ручная центрифуга. Закидывай синий и красный пигмент и крути ручку! Нужно набрать 100% оборотов, пока масса не засохла (10 секунд). Жми как не в себя!", "— Lawyer needs a purple stamp? Haven't had a ready one since 1998. Over there is a manual centrifuge. Throw in blue and red pigment and spin the handle! Need 100% RPMs before the mass dries (10 seconds). Push like crazy!"));
+                addBtn(T('РАСКРУТИТЬ ЦЕНТРИФУГУ', 'SPIN CENTRIFUGE'), startCentrifugeGame);
             } else {
-                showDialog("— Я тебе чернила отдал? Отдал. Иди к своему юристу на 31-й.");
+                showDialog(T("— Я тебе чернила отдал? Отдал. Иди к своему юристу на 31-й.", "— Did I give you the ink? Yes. Go to your lawyer on the 31st."));
             }
         }
 
@@ -638,12 +685,12 @@
 
         function startCentrifugeGame() {
             actionArea.innerHTML = `
-                <div style="font-size:1.5rem; color:var(--neon-pink); margin-bottom:10px;">ОБОРОТЫ: <span id="centrifuge-score">0</span>%</div>
+                <div style="font-size:1.5rem; color:var(--neon-pink); margin-bottom:10px;">${T("ОБОРОТЫ:", "RPM:")} <span id="centrifuge-score">0</span>%</div>
                 <div style="width: 100%; max-width: 300px; height: 30px; border: 2px solid var(--neon-cyan); background: #111; margin-bottom: 10px; overflow: hidden; border-radius: 15px;">
                     <div id="centrifuge-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #0088cc, #ff0055, #9b59b6); transition: width 0.1s linear;"></div>
                 </div>
-                <div id="centrifuge-timer" style="color:var(--neon-yellow); margin-bottom: 20px; font-size: 1.2rem;">Время: 10.0с</div>
-                <button class="action-btn" id="btn-spin" style="width: 100%; height: 80px; font-size: 2rem; box-shadow: 0 0 15px var(--neon-cyan);">КРУТИТЬ!</button>
+                <div id="centrifuge-timer" style="color:var(--neon-yellow); margin-bottom: 20px; font-size: 1.2rem;">${T("Время:", "Time:")} 10.0с</div>
+                <button class="action-btn" id="btn-spin" style="width: 100%; height: 80px; font-size: 2rem; box-shadow: 0 0 15px var(--neon-cyan);">${T("КРУТИТЬ!", "SPIN!")}</button>
             `;
             
             centrifugeProgress = 0;
@@ -670,9 +717,9 @@
                     centrifugeActive = false;
                     clearInterval(centrifugeInt);
                     tg.HapticFeedback.notificationOccurred('success');
-                    showDialog("— Ого, ну у тебя и моторика... Смотри, не сломай мне тут ничего. Идеальный фиолетовый цвет. Держи мастику и иди штампуй свой счет.");
+                    showDialog(T("— Ого, ну у тебя и моторика... Смотри, не сломай мне тут ничего. Идеальный фиолетовый цвет. Держи мастику и иди штампуй свой счет.", "— Wow, what motor skills... Look, don't break anything here. Perfect purple color. Take the ink and go stamp your invoice."));
                     actionArea.innerHTML = '';
-                    addBtn('ВЗЯТЬ ЧЕРНИЛА', () => {
+                    addBtn(T('ВЗЯТЬ ЧЕРНИЛА', 'TAKE INK'), () => {
                         pState.quest_state = 4; saveState();
                         initFloor40();
                     });
@@ -690,15 +737,15 @@
 
                 bar.style.width = centrifugeProgress + '%';
                 score.innerText = Math.floor(centrifugeProgress);
-                timer.innerText = `Время: ${centrifugeTime.toFixed(1)}с`;
+                timer.innerText = `${T("Время:", "Time:")} ${centrifugeTime.toFixed(1)}${T("с", "s")}`;
 
                 if(centrifugeTime <= 0 && centrifugeProgress < 100) {
                     centrifugeActive = false;
                     clearInterval(centrifugeInt);
                     tg.HapticFeedback.notificationOccurred('error');
-                    showDialog("— Тьфу ты! Пигмент засох, получился коричневый комок. Отдирай давай и мешай по новой!");
+                    showDialog(T("— Тьфу ты! Пигмент засох, получился коричневый комок. Отдирай давай и мешай по новой!", "— Ugh! The pigment dried, turned into a brown lump. Peel it off and mix again!"));
                     actionArea.innerHTML = '';
-                    addBtn('НАЧАТЬ ЗАНОВО', startCentrifugeGame);
+                    addBtn(T('НАЧАТЬ ЗАНОВО', 'START OVER'), startCentrifugeGame);
                 }
             }, 100);
         }
