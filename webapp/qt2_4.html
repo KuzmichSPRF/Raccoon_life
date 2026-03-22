@@ -365,8 +365,8 @@
                 let delta = gameDiv.scrollTop - lastScroll;
                 if (dt === 0) dt = 1;
                 
-                // Проверяем скролл вниз: либо разовый прыжок > 300px, либо слишком высокая скорость
-                if (delta > 0 && (delta > 300 || (delta / dt) > 5)) {
+                // Проверяем скролл вниз: теперь более чувствительно (прыжок > 150px или скорость > 2.5px/мс)
+                if (delta > 0 && (delta > 150 || (delta / dt) > 2.5)) {
                     isResetting = true;
                     gameDiv.style.overflowY = 'hidden'; // Убиваем инерцию скролла браузера
                     gameDiv.scrollTop = 0;
@@ -516,7 +516,7 @@
         // ТАЙМЕР ЧАЕПИТИЯ
         let teaInt;
         function startTeaTimer() {
-            showDialog("— Верно. 47. А теперь тихо. У меня законный перерыв 15 секунд на чай. Тронешь хоть что-то на столе — начну пить заново!");
+            showDialog("— Верно. 47. А теперь тихо. У меня законный перерыв 1 минуту на чай. Тронешь хоть что-то на столе — начну пить заново!");
             actionArea.innerHTML = `
                 <div id="tea-timer-container" style="display:block;">
                     <div id="tea-timer-fill"></div>
@@ -549,7 +549,7 @@
             }, 500);
 
             teaInt = setInterval(() => {
-                progress += (100 / 150); // 15 сек = 150 тиков по 100мс
+                progress += (100 / 600); // 60 сек = 600 тиков по 100мс
                 fill.style.width = progress + '%';
                 if(progress >= 100) {
                     clearInterval(teaInt);
