@@ -840,7 +840,8 @@
       syncStats(); // Sync on quest complete
       
       // Начисляем шишки только за первое прохождение квестов (пропускаем газеты)
-      if (!id.startsWith('news_')) {
+      // Добавлено исключение для caps_news
+      if (!id.startsWith('news_') && !id.startsWith('caps_news')) {
         earnTokens(10000, 'quest_complete:' + id);
       }
       

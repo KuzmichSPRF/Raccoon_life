@@ -577,6 +577,9 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         # Если квестов стало больше, обновляем время
         quests_updated = len(merged_quests) > len(existing_quests)
         time_update_sql = ", last_quest_time = CURRENT_TIMESTAMP" if quests_updated else ""
+        
+        # Для рейтинга считаем только реальные квесты (ID начинается на qt)
+        actual_quests_count = len([q for q in merged_quests if q.startswith('qt')])
 
         # Обновляем статистику
         cursor.execute(f'''
@@ -607,7 +610,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('roulette_cones_won', 0)),
             int(stats_data.get('roulette_cones_lost', 0)),
             json.dumps(merged_quests),
-            len(merged_quests),
+            actual_quests_count,
             user_id
         ))
         
@@ -2124,8 +2127,11 @@ def handle_earn_tokens(data: dict):
             if quest_id == 'welcome_bonus':
                 cursor.execute('UPDATE user_stats SET quests = ? WHERE user_id = ?', (json.dumps(existing_quests), user_id))
             else:
+                # Пересчитываем реальные квесты
+                actual_count = len([q for q in existing_quests if q.startswith('qt')])
+                
                 cursor.execute('''UPDATE user_stats SET quests = ?, quests_completed = ?, last_quest_time = CURRENT_TIMESTAMP WHERE user_id = ?''', 
-                               (json.dumps(existing_quests), len(existing_quests), user_id))
+                               (json.dumps(existing_quests), actual_count, user_id))
             conn.commit()
         except Exception as e:
             logger.error(f"Ошибка проверки квеста: {e}")
