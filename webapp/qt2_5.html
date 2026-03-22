@@ -654,7 +654,7 @@
                 if (tgDiv.style.display === 'block') { failStealth('Вы отвлеклись на телефон!'); return; }
                 // Зеленая зона 40-60% (совпадает с визуалом)
                 if (pos >= 40 && pos <= 60) {
-                    score += 20; document.getElementById('st-score').innerText = score; // Очков за клик больше
+                    score += 10; document.getElementById('st-score').innerText = score; // Очков за клик больше
                     tg.HapticFeedback.impactOccurred('light');
                     if(score >= 100) {
                         isGameOver = true;
