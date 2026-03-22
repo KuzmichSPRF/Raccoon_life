@@ -158,6 +158,50 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
+        const lang = localStorage.getItem('rl_lang') || 'ru';
+        const T = (ru, en) => lang === 'en' ? en : ru;
+        
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'language_changed') {
+                localStorage.setItem('rl_lang', event.data.lang);
+                location.reload();
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (lang === 'en') {
+                document.querySelector('.sidebar-title').innerText = "SYSTEM ELEVATOR";
+                document.querySelector('.reset-btn').innerText = "[ Restart ]";
+                document.getElementById('btn-f100').innerText = "Floor 100: Boss's Office";
+                document.getElementById('btn-f69').innerText = "Floor 69: HR Dept";
+                document.querySelector('#inventory > div:first-child').innerText = "--- STATUS ---";
+                
+                const seals = document.querySelectorAll('#inv-list .seal');
+                if (seals.length >= 9) {
+                    seals[0].innerText = "✅ Form 2026-B";
+                    seals[1].innerText = "✅ Security Checked";
+                    seals[2].innerText = "✅ IT Access";
+                    seals[3].innerText = "✅ Supply Signature";
+                    seals[4].innerText = "✅ Financial Stamp";
+                    seals[5].innerText = "✅ Legal Visa";
+                    seals[6].innerText = "✅ Checkup Passed";
+                    seals[7].innerText = "✅ Safety Passed";
+                    seals[8].innerText = "✅ DISC Profile";
+                } else if (seals.length === 1 && seals[0].classList.contains('fired')) {
+                    seals[0].innerText = "❌ Bypass Sheet (Termination)";
+                }
+                
+                document.getElementById('char-name').innerText = "CABINET";
+                document.getElementById('dialog-text').innerText = "The final push.";
+                const actionBtns = document.querySelectorAll('.action-btn');
+                if (actionBtns[0]) actionBtns[0].innerText = "Approach the desk";
+                
+                document.getElementById('h-title').innerText = "CONGRATULATIONS! YOU'RE HIRED!";
+                document.getElementById('f-text').innerHTML = "However, according to internal directive #666 from this morning, the position you applied for has been eliminated during optimization.<br><br>Please proceed to the 69th floor HR Department to process your termination Bypass Sheet.";
+                document.getElementById('f-btn').innerText = "Understand and forgive";
+            }
+        });
+
         // --- АУДИО (ФОН) ---
         const audioBg = new Audio('https://github.com/KuzmichSPRF/Raccoon_life/raw/refs/heads/main/sound/Korol_i_SHut_-_Durak_i_molniya_8_bit_(SkySound.cc).mp3');
         audioBg.volume = 0.5;
@@ -197,7 +241,7 @@
         }
 
         function resetProgress() {
-            if (confirm("Вы уверены? Это сбросит прогресс финальной главы.")) {
+            if (confirm(T("Вы уверены? Это сбросит прогресс финальной главы.", "Are you sure? This will reset the progress of the final chapter."))) {
                 localStorage.removeItem('qt2_7_progress'); location.reload();
             }
         }
@@ -240,19 +284,19 @@
         // ================= ЭТАЖ 100: БОСС =================
         function initFloor100() {
             actionArea.innerHTML = '';
-            charName.innerText = "Верховный Полоскун (Начальник всех енотов)";
+            charName.innerText = T("Верховный Полоскун (Начальник всех енотов)", "Supreme Raccoon (Boss of all raccoons)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/boss.png"; // Fallback to via.placeholder if 404
             
             if (pState.phase === 0) {
-                showDialog("— (Кресло медленно поворачивается. За панорамным окном почему-то идет дождь, хотя на улице солнце) Значит, вы тот самый... выживший. Прошли Элеонору, не сошли с ума у Палыча и даже пережили чай Тамары Степановны. Впечатляет.", () => {
-                    addBtn('ПРОТЯНУТЬ ОБХОДНОЙ ЛИСТ', () => { pState.phase = 1; saveState(); initFloor100(); });
+                showDialog(T("— (Кресло медленно поворачивается. За панорамным окном почему-то идет дождь, хотя на улице солнце) Значит, вы тот самый... выживший. Прошли Элеонору, не сошли с ума у Палыча и даже пережили чай Тамары Степановны. Впечатляет.", "— (The chair slowly turns. It's somehow raining outside the panoramic window, even though it's sunny) So, you're the one... the survivor. Passed Eleonora, didn't go crazy with Palych, and even survived Tamara Stepanovna's tea. Impressive."), () => {
+                    addBtn(T('ПРОТЯНУТЬ ОБХОДНОЙ ЛИСТ', 'HAND OVER BYPASS SHEET'), () => { pState.phase = 1; saveState(); initFloor100(); });
                 });
             } else if (pState.phase === 1) {
-                showDialog("— Обходной лист заполнен? Почти. Не хватает самой важной подписи. Моей. Но я подписываю документы только тем, кто понимает истинную философию нашей компании. Попробуйте получить мою подпись.", startRunningButton);
+                showDialog(T("— Обходной лист заполнен? Почти. Не хватает самой важной подписи. Моей. Но я подписываю документы только тем, кто понимает истинную философию нашей компании. Попробуйте получить мою подпись.", "— Bypass sheet filled? Almost. Missing the most important signature. Mine. But I only sign documents for those who understand the true philosophy of our company. Try to get my signature."), startRunningButton);
             } else if (pState.phase === 2) {
                 startSoulSelling();
             } else if (pState.phase === 3) {
-                showDialog("— Охрана! Выведите уволенного сотрудника из моего кабинета!");
+                showDialog(T("— Охрана! Выведите уволенного сотрудника из моего кабинета!", "— Guards! Escort the fired employee out of my office!"));
             }
         }
 
@@ -263,7 +307,7 @@
             
             const btn = document.createElement('button');
             btn.className = 'action-btn runaway-btn';
-            btn.innerText = 'ПОДПИСАТЬ';
+            btn.innerText = T('ПОДПИСАТЬ', 'SIGN');
             btn.style.left = (actionArea.clientWidth / 2 - 90) + 'px';
             btn.style.top = '20px';
             
@@ -287,7 +331,7 @@
                 btn.style.top = newY + 'px';
                 
                 if (runJumps > 12) {
-                    btn.innerText = "ЛАДНО, ЖМИ";
+                    btn.innerText = T("ЛАДНО, ЖМИ", "FINE, CLICK IT");
                     btn.style.boxShadow = "0 0 20px var(--neon-pink)";
                     btn.style.color = "var(--neon-pink)";
                 }
@@ -306,7 +350,7 @@
 
         let soulClicks = 0;
         function startSoulSelling() {
-            showDialog("— Вы действительно хотите продать свою душу... ой, то есть, приступить к работе?");
+            showDialog(T("— Вы действительно хотите продать свою душу... ой, то есть, приступить к работе?", "— Do you really want to sell your soul... oh, I mean, start working?"));
             actionArea.innerHTML = '';
             actionArea.style.minHeight = '350px'; // Увеличиваем зону прыжков
 
@@ -314,7 +358,7 @@
             btn.className = 'action-btn runaway-btn';
             btn.style.color = "var(--neon-yellow)";
             btn.style.borderColor = "var(--neon-yellow)";
-            btn.innerText = 'ДА (0/10)';
+            btn.innerText = T('ДА (0/10)', 'YES (0/10)');
             btn.style.left = (actionArea.clientWidth / 2 - 90) + 'px';
             btn.style.top = '20px';
 
@@ -343,7 +387,7 @@
                     triggerEnding();
                     return;
                 }
-                btn.innerText = `ДА (${soulClicks}/10)`;
+                btn.innerText = T(`ДА (${soulClicks}/10)`, `YES (${soulClicks}/10)`);
                 jump();
             };
             actionArea.appendChild(btn);
@@ -366,7 +410,7 @@
             document.getElementById('hiring-overlay').classList.add('hidden');
             
             // Меняем инвентарь
-            document.getElementById('inv-list').innerHTML = '<div class="seal fired">❌ Обходной лист (Увольнение)</div>';
+            document.getElementById('inv-list').innerHTML = `<div class="seal fired">❌ ${T("Обходной лист (Увольнение)", "Bypass Sheet (Termination)")}</div>`;
             
             // Блокируем босса, открываем кадры
             document.getElementById('btn-f100').disabled = true;
@@ -379,11 +423,11 @@
         // ================= ЭТАЖ 69: ОТДЕЛ КАДРОВ =================
         function initFloor69() {
             actionArea.innerHTML = '';
-            charName.innerText = "Элеонора Витальевна (Кадры)";
+            charName.innerText = T("Элеонора Витальевна (Кадры)", "Eleonora (HR)");
             document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/QT2/main/HR.png";
             
-            showDialog("— Снова вы? Уже увольняетесь? Ну я же говорила... Ладно, вот ваш обходной лист для увольняющихся. Тут всего 100 инстанций... Начнем сначала?", () => {
-                addBtn('ПОЙТИ В БАР (ЗАВЕРШИТЬ)', () => {
+            showDialog(T("— Снова вы? Уже увольняетесь? Ну я же говорила... Ладно, вот ваш обходной лист для увольняющихся. Тут всего 100 инстанций... Начнем сначала?", "— You again? Resigning already? Well, I told you... Alright, here is your bypass sheet for resignation. Only 100 instances here... Shall we start over?"), () => {
+                addBtn(T('ПОЙТИ В БАР (ЗАВЕРШИТЬ)', 'GO TO A BAR (FINISH)'), () => {
                     try { audioIntro.pause(); } catch(e){}
                     try { audioBg.pause(); } catch(e){}
                     window.parent.postMessage({ type: 'quest_complete', id: 'qt2_7' }, window.location.origin);
@@ -399,7 +443,7 @@
 
         // Если страница перезагружена после увольнения
         if (pState.phase === 3) {
-            document.getElementById('inv-list').innerHTML = '<div class="seal fired">❌ Обходной лист (Увольнение)</div>';
+            document.getElementById('inv-list').innerHTML = `<div class="seal fired">❌ ${T("Обходной лист (Увольнение)", "Bypass Sheet (Termination)")}</div>`;
             document.getElementById('btn-f100').classList.add('hidden');
             document.getElementById('btn-f69').classList.remove('hidden');
             loadFloor(69);
