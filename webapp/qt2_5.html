@@ -359,7 +359,7 @@
         function initFloor21() {
             actionArea.innerHTML = '';
             charName.innerText = "Игорь Борисович (Охрана Труда)";
-            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/tb.png";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/teh_b.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.tb_maze_done) {
@@ -459,7 +459,7 @@
         function initFloor11() {
             actionArea.innerHTML = '';
             charName.innerText = "Авеларий (Архивариус)";
-            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/archive.png";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/arh.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.archive_sorted) {
@@ -577,7 +577,7 @@
         function initFloor10() {
             actionArea.innerHTML = '';
             charName.innerText = "Маргарита (Библиотекарь)";
-            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/library.png";
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/bibl.png";
             document.getElementById('floor-image').classList.remove('hidden');
 
             if (!pState.stealth_passed) {
@@ -587,11 +587,11 @@
                 showDialog("— Изумительно тихо. Вам нужен финальный бланк обходного? Я отдала его Завхозу (40 этаж) как закладку в книге «Основы вайбкодинга». Верните книгу — получите бланк.");
                 addBtn('ПОДНЯТЬСЯ К ЗАВХОЗУ (40)', () => loadFloor(40));
             } else if (!pState.got_blank) {
-                showDialog("— Вы принесли мою книгу! Моя прелесть... Вот ваш бланк, с моим финальным штампом. Вы готовы.");
+                showDialog("— Вы принесли мою книгу! Моя прелесть... Искренне благодарю вас. Вы единственный, кто смог забрать её у Завхоза. Вот ваш бланк, с моим финальным штампом. Вы готовы.");
                 pState.got_blank = true; saveState();
                 addBtn('ОТЛИЧНО', () => { tg.HapticFeedback.notificationOccurred('success'); initFloor10(); });
             } else {
-                showDialog("— Вы нарушаете тишину. Идите к черным дверям.");
+                showDialog("— Еще раз спасибо за возвращенную книгу. А теперь соблюдайте тишину и идите к черным дверям, Босс не любит ждать.");
             }
         }
 
