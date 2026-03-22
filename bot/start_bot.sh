@@ -22,10 +22,10 @@ fi
 pkill -f "python.*bot.py" 2>/dev/null
 sleep 2
 
-# 2. Проверить что порт 5000 свободен
-if netstat -tuln 2>/dev/null | grep -q ":5000"; then
-    echo "⚠️ Порт 5000 занят! Освобождаем..."
-    fuser -k 5000/tcp 2>/dev/null
+# 2. Проверить что порт свободен
+if netstat -tuln 2>/dev/null | grep -q ":$FLASK_PORT"; then
+    echo "⚠️ Порт $FLASK_PORT занят! Освобождаем..."
+    fuser -k $FLASK_PORT/tcp 2>/dev/null
     sleep 2
 fi
 
@@ -47,11 +47,10 @@ if ps -p "$NEW_PID" > /dev/null 2>&1; then
     echo "✅ Бот работает (PID $NEW_PID)"
     
     # Проверка Flask
-    if curl -s http://localhost:5000/api/boss_hp | grep -q "status"; then
+    if curl -s http://localhost:$FLASK_PORT/api/boss_hp | grep -q "status"; then
         echo "✅ Flask API работает"
     else
-        echo "❌ Flask API не отвечает"
-    fi
+        echo "❌ Flas
 else
     echo "❌ Бот не запустился! Смотрите лог:"
     tail -20 "$LOG_FILE"

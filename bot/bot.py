@@ -31,6 +31,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
 
 # Настройка логирования
 logging.basicConfig(
@@ -2777,7 +2778,7 @@ async def debug_all_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def run_flask():
     """Запуск Flask сервера в отдельном потоке"""
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
+    app.run(host='0.0.0.0', port=FLASK_PORT, debug=False, use_reloader=False, threaded=True)
 
 
 def main():
@@ -2788,7 +2789,7 @@ def main():
     # Запуск Flask в фоне
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    logger.info("🚀 Flask API server started on port 5000")
+    logger.info(f"🚀 Flask API server started on port {FLASK_PORT}")
 
     # Настройка Telegram бота
     builder = (
