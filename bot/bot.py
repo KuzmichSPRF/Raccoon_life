@@ -213,6 +213,10 @@ def init_db():
         _add_missing_columns(cursor)
         conn.commit()
         
+        # Принудительный пересчет квестов (только qt) для всех игроков в рейтинге
+        _recalculate_quests(cursor)
+        conn.commit()
+        
         # Миграция: создание таблицы игровых сессий
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='game_sessions'")
         if not cursor.fetchone():
@@ -240,6 +244,26 @@ def init_db():
     finally:
         conn.close()
 
+
+def _recalculate_quests(cursor):
+    """Пересчитывает quests_completed для всех пользователей, учитывая только реальные квесты (qt)"""
+    try:
+        cursor.execute("SELECT user_id, quests FROM user_stats WHERE quests IS NOT NULL AND quests != '[]'")
+        rows = cursor.fetchall()
+        updated_count = 0
+        for row in rows:
+            try:
+                quests_list = json.loads(row['quests'])
+                if isinstance(quests_list, list):
+                    # Считаем только элементы, которые начинаются на 'qt'
+                    actual_count = len([q for q in quests_list if isinstance(q, str) and q.startswith('qt')])
+                    cursor.execute("UPDATE user_stats SET quests_completed = ? WHERE user_id = ?", (actual_count, row['user_id']))
+                    updated_count += 1
+            except Exception:
+                continue
+        logger.info(f"✅ Пересчет quests_completed завершен. Актуализировано {updated_count} игроков.")
+    except Exception as e:
+        logger.error(f"Ошибка пересчета квестов: {e}")
 
 def _add_missing_columns(cursor):
     """Добавляет недостающие колонки в существующие таблицы"""
