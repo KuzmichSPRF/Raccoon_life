@@ -15,6 +15,7 @@ import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
+import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -1598,8 +1599,6 @@ def api_submit_news():
         finally:
             conn.close()
 
-        # Формируем и отправляем сообщение админу
-        import requests
         
         escaped_text = text.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
         
