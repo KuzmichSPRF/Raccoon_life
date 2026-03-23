@@ -25,4 +25,6 @@ jobs:
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
+            # Убиваем зависшие процессы перед перезапуском
+            sudo pkill -f bot.py || true
             sudo systemctl restart raccoon_bot
