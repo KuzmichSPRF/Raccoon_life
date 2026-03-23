@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to NEW Server 
+      - name: Deploy to NEW Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.REMOTE_HOST }}
@@ -25,10 +25,18 @@ jobs:
             sudo systemctl stop raccoon_bot || true
             # 2. Добиваем любые зависшие процессы бота
             sudo pkill -f bot.py || true
-            
+
             cd ~/Raccoon_life
+            
+            # 3. Сбрасываем локальные изменения (чтобы не конфликтовали)
+            git reset --hard HEAD
+            git clean -fd
+            
+            # 4. Забираем свежие изменения
             git pull origin main
+            
             source venv/bin/activate
             pip install -r requirements.txt
-            # 3. Запускаем чистую службу
+            
+            # 5. Запускаем чистую службу
             sudo systemctl start raccoon_bot
