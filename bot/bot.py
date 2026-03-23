@@ -1577,21 +1577,6 @@ def api_submit_news():
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            # Проверка кулдауна (3 часа)
-            cursor.execute('SELECT last_news_submit FROM user_stats WHERE user_id = ?', (user_id,))
-            row = cursor.fetchone()
-            
-            if row and row['last_news_submit']:
-                last_submit = datetime.strptime(row['last_news_submit'], "%Y-%m-%d %H:%M:%S")
-                time_diff = datetime.utcnow() - last_submit
-                if time_diff < timedelta(hours=3):
-                    remaining = timedelta(hours=3) - time_diff
-                    hours, remainder = divmod(remaining.seconds, 3600)
-                    minutes, _ = divmod(remainder, 60)
-                    return jsonify({
-                        'status': 'cooldown', 
-                        'message': f'Подождите {hours}ч {minutes}м перед следующей отправкой.'
-                    }), 400
             # Проверка кулдауна (3 часа) для всех, кроме администратора
             if user_id != ADMIN_ID:
                 cursor.execute('SELECT last_news_submit FROM user_stats WHERE user_id = ?', (user_id,))
