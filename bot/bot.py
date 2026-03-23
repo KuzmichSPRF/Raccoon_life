@@ -3158,7 +3158,6 @@ async def post_init(application: Application):
             BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
             BotCommand('broadcast', '📢 Рассылка всем (админ)'),
             BotCommand('unban', '✅ Разбанить пользователя (админ)'),
-            BotCommand('delete', '🗑️ Удалить пользователя (админ)')
             BotCommand('delete', '🗑️ Удалить пользователя (админ)'),
             BotCommand('notime', '⏳ Сбросить лимит новостей (админ)')
         ]
