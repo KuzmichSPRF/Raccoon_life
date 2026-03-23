@@ -27,10 +27,8 @@ jobs:
             echo "🚀 Starting deploy..."
             cd ~/Raccoon_life
 
-            # 1. Останавливаем бота (сначала pkill, потом systemctl)
+            # 1. Останавливаем бота через systemctl
             echo "⏹️ Stopping bot..."
-            pkill -f bot.py || true
-            sleep 1
             sudo systemctl stop raccoon_bot || true
             sleep 2
 
