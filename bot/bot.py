@@ -3030,6 +3030,10 @@ async def reset_news_cooldown_admin(update: Update, context: ContextTypes.DEFAUL
     Команда для админа: /notime <username|user_id>
     Сбрасывает таймер отправки новостей для пользователя
     """
+    # Проверка на наличие message
+    if not update.message:
+        return
+
     # Проверка прав администратора
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ У вас нет прав для этой команды!")
