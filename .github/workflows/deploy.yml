@@ -23,30 +23,37 @@ jobs:
           script: |
             cd ~/Raccoon_life
             
-            # 1. Останавливаем бота (пробуем без sudo, если не работает - с sudo)
+            # 1. Останавливаем бота
             systemctl stop raccoon_bot 2>/dev/null || sudo systemctl stop raccoon_bot 2>/dev/null || true
             pkill -f bot.py 2>/dev/null || sudo pkill -f bot.py 2>/dev/null || true
+            sleep 2
 
-            # 2. Сбрасываем локальные изменения (чтобы не конфликтовали)
+            # 2. Сбрасываем локальные изменения
             git reset --hard HEAD
             git clean -fd
             
             # 3. Забираем свежие изменения
             git pull origin main
             
-            # 4. Активируем venv (пробуем разные пути)
-            if [ -f "venv/bin/activate" ]; then
-                source venv/bin/activate
-            elif [ -f "/home/${USER}/Raccoon_life/venv/bin/activate" ]; then
-                source /home/${USER}/Raccoon_life/venv/bin/activate
-            else
-                # Если venv нет, создаём
+            # 4. Создаём/обновляем venv (обязательно!)
+            if [ ! -d "venv" ]; then
+                echo "Creating virtual environment..."
                 python3 -m venv venv
-                source venv/bin/activate
             fi
             
+            source venv/bin/activate
+            
             # 5. Устанавливаем зависимости
+            pip install --upgrade pip
             pip install -r requirements.txt
             
-            # 6. Запускаем бота (пробуем без sudo, если не работает - с sudo)
+            # 6. Проверяем что venv работает
+            which python
+            python --version
+            
+            # 7. Запускаем бота
             systemctl start raccoon_bot 2>/dev/null || sudo systemctl start raccoon_bot 2>/dev/null || true
+            
+            # 8. Проверяем статус
+            sleep 2
+            systemctl status raccoon_bot 2>/dev/null || sudo systemctl status raccoon_bot 2>/dev/null || true
