@@ -1577,6 +1577,7 @@ def api_submit_news():
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
+            logger.info(f"Отправка новости: user_id={user_id}, ADMIN_ID={ADMIN_ID}")
             # Проверка кулдауна (3 часа) для всех, кроме администратора
             if user_id != ADMIN_ID:
                 cursor.execute('SELECT last_news_submit FROM user_stats WHERE user_id = ?', (user_id,))
@@ -1611,8 +1612,8 @@ def api_submit_news():
         if is_anonymous:
             msg += "🕵️‍♂️ <b>Отправитель:</b> Анонимно"
         else:
-            username = auth_user.get('username', 'Нет_юзернейма')
-            first_name = auth_user.get('first_name', 'Без_имени')
+            username = auth_user.get('username', 'Нет_юзернейма').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            first_name = auth_user.get('first_name', 'Без_имени').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             msg += f"👤 <b>Отправитель:</b> {first_name} (@{username})\n🆔 <b>ID:</b> <code>{user_id}</code>"
 
         reply_markup = {
@@ -1621,10 +1622,15 @@ def api_submit_news():
             ]]
         }
 
-        requests.post(
+        response = requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
-            json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML", "reply_markup": reply_markup}
+            json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML", "reply_markup": reply_markup},
+            timeout=10
         )
+        
+        if response.status_code != 200:
+            logger.error(f"Telegram API Error (submit_news): {response.text}")
+            return jsonify({'error': f'Сбой Telegram API: {response.status_code}'}), 500
 
         return jsonify({'status': 'ok'})
     except Exception as e:
