@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main  # Сработает при пуше в ветку main
+  workflow_dispatch:  # Ручной запуск через GitHub UI
 
 jobs:
   # Деплой на НОВЫЙ сервер (ветка main)
   deploy-new:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,7 +23,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
           script: |
             cd ~/Raccoon_life
-            
+
             # 1. Останавливаем бота
             systemctl stop raccoon_bot 2>/dev/null || sudo systemctl stop raccoon_bot 2>/dev/null || true
             pkill -f bot.py 2>/dev/null || sudo pkill -f bot.py 2>/dev/null || true
@@ -31,29 +32,29 @@ jobs:
             # 2. Сбрасываем локальные изменения
             git reset --hard HEAD
             git clean -fd
-            
+
             # 3. Забираем свежие изменения
             git pull origin main
-            
+
             # 4. Создаём/обновляем venv (обязательно!)
             if [ ! -d "venv" ]; then
                 echo "Creating virtual environment..."
                 python3 -m venv venv
             fi
-            
+
             source venv/bin/activate
-            
+
             # 5. Устанавливаем зависимости
             pip install --upgrade pip
             pip install -r requirements.txt
-            
+
             # 6. Проверяем что venv работает
             which python
             python --version
-            
+
             # 7. Запускаем бота
             systemctl start raccoon_bot 2>/dev/null || sudo systemctl start raccoon_bot 2>/dev/null || true
-            
+
             # 8. Проверяем статус
             sleep 2
             systemctl status raccoon_bot 2>/dev/null || sudo systemctl status raccoon_bot 2>/dev/null || true
