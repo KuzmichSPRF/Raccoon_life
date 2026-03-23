@@ -10,6 +10,7 @@ import json
 import hmac
 import hashlib
 import time
+from datetime import datetime, timedelta
 import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
@@ -355,6 +356,13 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлены колонки quests_completed и last_quest_time в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats quests: {e}")
+
+    if 'last_news_submit' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN last_news_submit TIMESTAMP")
+            logger.info("Миграция: добавлена колонка last_news_submit в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
 
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
@@ -1534,6 +1542,81 @@ def api_casino_roulette():
 
     except Exception as e:
         logger.error(f"Ошибка api_casino_roulette: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/submit_news', methods=['POST'])
+@limiter.limit("5 per minute")
+def api_submit_news():
+    """Отправка новости от пользователя администратору"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        text = sanitize_string(data.get('text', ''), max_length=2000)
+        is_anonymous = bool(data.get('isAnonymous', False))
+
+        if not user_id or not text:
+            return jsonify({'error': 'Missing data'}), 400
+
+        user_id = int(user_id)
+
+        # Проверка авторизации
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        auth_user = validate_webapp_data(init_data)
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        if is_user_banned(user_id):
+            return jsonify({'error': 'User is banned'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Проверка кулдауна (3 часа)
+            cursor.execute('SELECT last_news_submit FROM user_stats WHERE user_id = ?', (user_id,))
+            row = cursor.fetchone()
+            
+            if row and row['last_news_submit']:
+                last_submit = datetime.strptime(row['last_news_submit'], "%Y-%m-%d %H:%M:%S")
+                time_diff = datetime.utcnow() - last_submit
+                if time_diff < timedelta(hours=3):
+                    remaining = timedelta(hours=3) - time_diff
+                    hours, remainder = divmod(remaining.seconds, 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    return jsonify({
+                        'status': 'cooldown', 
+                        'message': f'Подождите {hours}ч {minutes}м перед следующей отправкой.'
+                    }), 400
+
+            # Обновляем время последней отправки
+            cursor.execute('''UPDATE user_stats SET last_news_submit = CURRENT_TIMESTAMP WHERE user_id = ?''', (user_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Формируем и отправляем сообщение админу
+        import requests
+        
+        escaped_text = text.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        
+        msg = f"📰 <b>Предложена новая новость!</b>\n\n"
+        msg += f"<i>{escaped_text}</i>\n\n"
+        
+        if is_anonymous:
+            msg += "🕵️‍♂️ <b>Отправитель:</b> Анонимно"
+        else:
+            username = auth_user.get('username', 'Нет_юзернейма')
+            first_name = auth_user.get('first_name', 'Без_имени')
+            msg += f"👤 <b>Отправитель:</b> {first_name} (@{username})\n🆔 <b>ID:</b> <code>{user_id}</code>"
+
+        requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML"})
+
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        logger.error(f"Ошибка api_submit_news: {e}")
         return jsonify({'error': str(e)}), 500
 
 

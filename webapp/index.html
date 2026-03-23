@@ -163,6 +163,23 @@
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
     }
     .tutorial-btn:active { transform: scale(0.95); }
+    
+    /* News Submit specific styles */
+    .news-textarea {
+      width: 100%; height: 120px; background: #121214; color: white;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+      padding: 12px; font-family: 'Montserrat', sans-serif; resize: none;
+      margin-bottom: 15px; font-size: 0.9rem;
+    }
+    .news-textarea:focus { outline: none; border-color: var(--primary); }
+    .anon-toggle {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+      justify-content: center; cursor: pointer; color: var(--text-sec);
+    }
+    .close-modal-btn {
+      position: absolute; top: 10px; right: 15px; background: none; border: none;
+      color: var(--text-sec); font-size: 1.5rem; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -195,6 +212,24 @@
       <h3 class="tutorial-title" data-i18n="season_complete_title">Сезон Завершен!</h3>
       <p class="tutorial-desc" data-i18n="season_complete_desc">Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Questoon Times!</p>
       <button class="tutorial-btn" style="background: var(--game-green); color: black;" onclick="closeSeasonComplete()" data-i18n="btn_hooray">Ура!</button>
+    </div>
+  </div>
+
+  <!-- News Submit Modal -->
+  <div id="news-submit-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal" style="position: relative; width: 90%;">
+      <button class="close-modal-btn" onclick="closeNewsModal()">✕</button>
+      <span class="tutorial-icon">✍️</span>
+      <h3 class="tutorial-title" data-i18n="submit_news_title">Предложить новость</h3>
+      <p class="tutorial-desc" data-i18n="submit_news_desc" style="font-size: 0.85rem;">У вас есть горячие слухи о енотах? Расскажите редакции! Отправлять можно раз в 3 часа.</p>
+      
+      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..."></textarea>
+      
+      <label class="anon-toggle">
+        <input type="checkbox" id="news-anon-checkbox"> <span data-i18n="submit_news_anon">Отправить анонимно</span>
+      </label>
+      
+      <button class="tutorial-btn" id="news-send-btn" onclick="submitNews()" data-i18n="submit_news_btn">Отправить</button>
     </div>
   </div>
 
@@ -306,7 +341,15 @@
       completed_quests: "квестов пройдено",
       season_complete_title: "Сезон Завершен!",
       season_complete_desc: "Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Questoon Times!",
-      btn_hooray: "Ура!"
+      btn_hooray: "Ура!",
+      submit_news_btn_main: "✍️ Предложить новость",
+      submit_news_title: "Предложить новость",
+      submit_news_desc: "У вас есть горячие слухи о енотах? Расскажите редакции! Отправлять можно раз в 3 часа.",
+      submit_news_anon: "Отправить анонимно",
+      submit_news_btn: "Отправить",
+      news_placeholder: "Пишите здесь...",
+      news_sent_success: "Новость успешно отправлена в редакцию!",
+      news_empty_error: "Пожалуйста, напишите текст новости."
     },
     en: {
       lang_btn: "EN",
@@ -335,7 +378,15 @@
       completed_quests: "quests completed",
       season_complete_title: "Season Completed!",
       season_complete_desc: "You have successfully passed all circles of bureaucratic hell and completed the 2nd season of The Questoon Times!",
-      btn_hooray: "Hooray!"
+      btn_hooray: "Hooray!",
+      submit_news_btn_main: "✍️ Submit News",
+      submit_news_title: "Submit News",
+      submit_news_desc: "Got some hot raccoon gossip? Tell the editors! You can submit once every 3 hours.",
+      submit_news_anon: "Send anonymously",
+      submit_news_btn: "Submit",
+      news_placeholder: "Type here...",
+      news_sent_success: "News successfully sent to the editors!",
+      news_empty_error: "Please write the news text."
     }
   };
 
@@ -350,6 +401,11 @@
     const langBtn = document.getElementById('lang-btn');
     if (langBtn) {
       langBtn.innerText = i18n[currentLang].lang_btn;
+    }
+    
+    const newsTextarea = document.getElementById('news-text');
+    if (newsTextarea) {
+        newsTextarea.placeholder = i18n[currentLang].news_placeholder;
     }
   }
 
@@ -772,6 +828,20 @@
     const list = document.getElementById('category-list');
     list.innerHTML = '';
 
+    // Добавляем кнопку "Предложить новость" только в раздел Газеты
+    if (catKey === 'newspapers') {
+      const submitBtnContainer = document.createElement('div');
+      submitBtnContainer.style.marginBottom = '15px';
+      submitBtnContainer.innerHTML = `
+        <button class="list-item" onclick="openNewsModal()" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--primary), #005588); border:none; cursor:pointer;">
+          <div class="list-item-title" style="color: white; text-align: center;">
+            ${i18n[currentLang].submit_news_btn_main}
+          </div>
+        </button>
+      `;
+      list.appendChild(submitBtnContainer);
+    }
+
     const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
 
     let previousCompleted = true;
@@ -1071,6 +1141,56 @@
         ]
       }
     };
+  }
+  
+  // ==================== NEWS SUBMISSION ====================
+  function openNewsModal() {
+      document.getElementById('news-text').value = '';
+      document.getElementById('news-anon-checkbox').checked = false;
+      document.getElementById('news-submit-overlay').classList.add('active');
+  }
+  
+  function closeNewsModal() {
+      document.getElementById('news-submit-overlay').classList.remove('active');
+  }
+  
+  function submitNews() {
+      const text = document.getElementById('news-text').value.trim();
+      const isAnonymous = document.getElementById('news-anon-checkbox').checked;
+      const btn = document.getElementById('news-send-btn');
+      
+      if (!text) {
+          tg.showAlert(i18n[currentLang].news_empty_error);
+          return;
+      }
+      
+      btn.disabled = true;
+      btn.innerText = "...";
+      
+      fetch('/api/submit_news', {
+          method: 'POST',
+          headers: { 
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': tg.initData || ''
+          },
+          body: JSON.stringify({ userId: getUserId(), text: text, isAnonymous: isAnonymous })
+      })
+      .then(res => res.json())
+      .then(data => {
+          if (data.status === 'ok') {
+              tg.showAlert(i18n[currentLang].news_sent_success);
+              closeNewsModal();
+          } else if (data.status === 'cooldown') {
+              tg.showAlert(data.message);
+          } else {
+              tg.showAlert("Ошибка: " + data.error);
+          }
+      })
+      .catch(err => tg.showAlert("Сетевая ошибка!"))
+      .finally(() => {
+          btn.disabled = false;
+          btn.innerText = i18n[currentLang].submit_news_btn;
+      });
   }
 
   // ==================== MESSAGE HANDLER ====================
