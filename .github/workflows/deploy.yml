@@ -9,7 +9,7 @@ jobs:
   # Деплой на НОВЫЙ сервер (ветка main)
   deploy-new:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -21,22 +21,32 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
           script: |
-            # 1. Штатно останавливаем службу
-            sudo systemctl stop raccoon_bot || true
-            # 2. Добиваем любые зависшие процессы бота
-            sudo pkill -f bot.py || true
-
             cd ~/Raccoon_life
             
-            # 3. Сбрасываем локальные изменения (чтобы не конфликтовали)
+            # 1. Останавливаем бота (пробуем без sudo, если не работает - с sudo)
+            systemctl stop raccoon_bot 2>/dev/null || sudo systemctl stop raccoon_bot 2>/dev/null || true
+            pkill -f bot.py 2>/dev/null || sudo pkill -f bot.py 2>/dev/null || true
+
+            # 2. Сбрасываем локальные изменения (чтобы не конфликтовали)
             git reset --hard HEAD
             git clean -fd
             
-            # 4. Забираем свежие изменения
+            # 3. Забираем свежие изменения
             git pull origin main
             
-            source venv/bin/activate
+            # 4. Активируем venv (пробуем разные пути)
+            if [ -f "venv/bin/activate" ]; then
+                source venv/bin/activate
+            elif [ -f "/home/${USER}/Raccoon_life/venv/bin/activate" ]; then
+                source /home/${USER}/Raccoon_life/venv/bin/activate
+            else
+                # Если venv нет, создаём
+                python3 -m venv venv
+                source venv/bin/activate
+            fi
+            
+            # 5. Устанавливаем зависимости
             pip install -r requirements.txt
             
-            # 5. Запускаем чистую службу
-            sudo systemctl start raccoon_bot
+            # 6. Запускаем бота (пробуем без sudo, если не работает - с sudo)
+            systemctl start raccoon_bot 2>/dev/null || sudo systemctl start raccoon_bot 2>/dev/null || true
