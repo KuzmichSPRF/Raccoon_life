@@ -171,6 +171,12 @@
       padding: 12px; font-family: 'Montserrat', sans-serif; resize: none;
       margin-bottom: 15px; font-size: 0.9rem;
     }
+    .news-select {
+      width: 100%; background: #121214; color: white;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+      padding: 12px; font-family: 'Montserrat', sans-serif;
+      margin-bottom: 15px; font-size: 0.9rem; cursor: pointer;
+    }
     .news-textarea:focus { outline: none; border-color: var(--primary); }
     .anon-toggle {
       display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
@@ -223,7 +229,17 @@
       <h3 class="tutorial-title" data-i18n="submit_news_title">Предложить новость</h3>
       <p class="tutorial-desc" data-i18n="submit_news_desc" style="font-size: 0.85rem;">У вас есть горячие слухи о енотах? Расскажите редакции! Отправлять можно раз в 3 часа.</p>
       
-      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..."></textarea>
+      <select id="news-topic" class="news-select">
+        <option value="Сплетни" data-i18n="topic_gossip">Сплетни</option>
+        <option value="CapsGame">CapsGame</option>
+        <option value="The Raccoon Times">The Raccoon Times</option>
+        <option value="Идеи для бота" data-i18n="topic_ideas">Идеи для бота</option>
+        <option value="Жалобы/Баги" data-i18n="topic_bugs">Жалобы/Баги</option>
+        <option value="Предложить сотрудничество" data-i18n="topic_collab">Предложить сотрудничество</option>
+        <option value="Другое" data-i18n="topic_other">Другое</option>
+      </select>
+
+      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..." maxlength="280"></textarea>
       
       <label class="anon-toggle">
         <input type="checkbox" id="news-anon-checkbox"> <span data-i18n="submit_news_anon">Отправить анонимно</span>
@@ -349,7 +365,12 @@
       submit_news_btn: "Отправить",
       news_placeholder: "Пишите здесь...",
       news_sent_success: "Новость успешно отправлена в редакцию!",
-      news_empty_error: "Пожалуйста, напишите текст новости."
+      news_empty_error: "Пожалуйста, напишите текст новости.",
+      topic_gossip: "Сплетни",
+      topic_ideas: "Идеи для бота",
+      topic_bugs: "Жалобы/Баги",
+      topic_other: "Другое",
+      topic_collab: "Предложить сотрудничество"
     },
     en: {
       lang_btn: "EN",
@@ -386,7 +407,12 @@
       submit_news_btn: "Submit",
       news_placeholder: "Type here...",
       news_sent_success: "News successfully sent to the editors!",
-      news_empty_error: "Please write the news text."
+      news_empty_error: "Please write the news text.",
+      topic_gossip: "Gossip",
+      topic_ideas: "Bot Ideas",
+      topic_bugs: "Complaints/Bugs",
+      topic_other: "Other",
+      topic_collab: "Propose cooperation"
     }
   };
 
@@ -1156,6 +1182,7 @@
   
   function submitNews() {
       const text = document.getElementById('news-text').value.trim();
+      const topic = document.getElementById('news-topic').value;
       const isAnonymous = document.getElementById('news-anon-checkbox').checked;
       const btn = document.getElementById('news-send-btn');
       
@@ -1173,7 +1200,7 @@
               'Content-Type': 'application/json',
               'X-Telegram-Init-Data': tg.initData || ''
           },
-          body: JSON.stringify({ userId: getUserId(), text: text, isAnonymous: isAnonymous })
+          body: JSON.stringify({ userId: getUserId(), topic: topic, text: text, isAnonymous: isAnonymous })
       })
       .then(res => res.json())
       .then(data => {

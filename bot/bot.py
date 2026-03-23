@@ -21,7 +21,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 from telegram import BotCommand
 from telegram.error import RetryAfter
 from dotenv import load_dotenv
@@ -1555,7 +1555,8 @@ def api_submit_news():
 
         data = request.get_json()
         user_id = data.get('userId') or data.get('user_id')
-        text = sanitize_string(data.get('text', ''), max_length=2000)
+        text = sanitize_string(data.get('text', ''), max_length=280)
+        topic = sanitize_string(data.get('topic', 'Другое'), max_length=100)
         is_anonymous = bool(data.get('isAnonymous', False))
 
         if not user_id or not text:
@@ -1602,8 +1603,10 @@ def api_submit_news():
         
         escaped_text = text.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
         
-        msg = f"📰 <b>Предложена новая новость!</b>\n\n"
+        msg = f"📰 <b>Новое сообщение от игрока!</b>\n"
+        msg += f"🏷 <b>Тема:</b> {topic}\n\n"
         msg += f"<i>{escaped_text}</i>\n\n"
+        msg += f"➖➖➖➖➖➖\n"
         
         if is_anonymous:
             msg += "🕵️‍♂️ <b>Отправитель:</b> Анонимно"
@@ -1612,7 +1615,16 @@ def api_submit_news():
             first_name = auth_user.get('first_name', 'Без_имени')
             msg += f"👤 <b>Отправитель:</b> {first_name} (@{username})\n🆔 <b>ID:</b> <code>{user_id}</code>"
 
-        requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML"})
+        reply_markup = {
+            "inline_keyboard": [[
+                {"text": "✅ Опубликовать", "callback_data": "publish_news"}
+            ]]
+        }
+
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
+            json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML", "reply_markup": reply_markup}
+        )
 
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -3033,6 +3045,45 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         logger.error(f"Ошибка обработки WebAppData: {e}")
 
 
+async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик нажатия на кнопку 'Опубликовать' под предложенной новостью"""
+    query = update.callback_query
+    
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await query.answer("❌ У вас нет прав!", show_alert=True)
+        return
+        
+    await query.answer("Публикуем...")
+    
+    try:
+        # Получаем HTML-код сообщения
+        text_html = query.message.text_html
+        
+        # Разделяем по нашему разделителю, чтобы отсечь системную инфу об отправителе
+        if "➖➖➖➖➖➖" in text_html:
+            publish_text = text_html.split("➖➖➖➖➖➖")[0].strip()
+        else:
+            publish_text = text_html
+            
+        await context.bot.send_message(
+            chat_id="@the_raccoon_times_group",
+            message_thread_id=1,
+            text=publish_text,
+            parse_mode=ParseMode.HTML
+        )
+        
+        # Обновляем сообщение админа: убираем кнопку и пишем, что опубликовано
+        await query.edit_message_text(
+            text=text_html + "\n\n✅ <b>Опубликовано в группе!</b>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=None
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при публикации новости: {e}")
+        await query.answer("❌ Ошибка при публикации!", show_alert=True)
+
+
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
     try:
@@ -3110,6 +3161,7 @@ def main():
     telegram_app.add_handler(CommandHandler("broadcast", broadcast_admin))
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
+    telegram_app.add_handler(CallbackQueryHandler(publish_news_callback, pattern="^publish_news$"))
 
     # Шпион работает в группе 1, чтобы читать сообщения параллельно командам
     telegram_app.add_handler(MessageHandler(filters.ALL, debug_all_updates), group=1)
