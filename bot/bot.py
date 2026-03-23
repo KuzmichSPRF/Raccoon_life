@@ -27,8 +27,19 @@ from telegram import BotCommand
 from telegram.error import RetryAfter
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения
-load_dotenv()
+# Пути к файлам
+# При exec() __file__ не работает, используем абсолютный путь
+try:
+    _current_file = __file__
+except NameError:
+    _current_file = str(Path.cwd() / 'bot' / 'bot.py')
+
+BOT_DIR = Path(_current_file).parent
+PROJECT_DIR = BOT_DIR.parent
+
+# Загрузка переменных окружения из папки bot
+env_path = BOT_DIR / ".env"
+load_dotenv(dotenv_path=str(env_path))
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
@@ -43,15 +54,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 security_logger = logging.getLogger('security')  # Отдельный logger для security событий
 
-# Пути к файлам
-# При exec() __file__ не работает, используем абсолютный путь
-try:
-    _current_file = __file__
-except NameError:
-    _current_file = str(Path.cwd() / 'bot' / 'bot.py')
-
-BOT_DIR = Path(_current_file).parent
-PROJECT_DIR = BOT_DIR.parent
 DB_PATH = str(BOT_DIR / "users.db")
 WEBAPP_DIR = PROJECT_DIR / "webapp"
 
