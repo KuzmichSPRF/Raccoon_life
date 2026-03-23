@@ -21,40 +21,53 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
+          command_timeout: 10m
           script: |
+            set -e  # Выход при ошибке
+            
+            echo "🚀 Starting deploy..."
             cd ~/Raccoon_life
 
             # 1. Останавливаем бота
-            systemctl stop raccoon_bot 2>/dev/null || sudo systemctl stop raccoon_bot 2>/dev/null || true
-            pkill -f bot.py 2>/dev/null || sudo pkill -f bot.py 2>/dev/null || true
+            echo "⏹️ Stopping bot..."
+            systemctl stop raccoon_bot || sudo systemctl stop raccoon_bot || true
+            pkill -f bot.py || sudo pkill -f bot.py || true
             sleep 2
 
             # 2. Сбрасываем локальные изменения
+            echo "🔄 Resetting local changes..."
             git reset --hard HEAD
             git clean -fd
 
             # 3. Забираем свежие изменения
+            echo "📥 Pulling changes..."
             git pull origin main
 
-            # 4. Создаём/обновляем venv (обязательно!)
+            # 4. Создаём/обновляем venv
+            echo "🐍 Checking venv..."
             if [ ! -d "venv" ]; then
                 echo "Creating virtual environment..."
                 python3 -m venv venv
             fi
-
+            
             source venv/bin/activate
 
-            # 5. Устанавливаем зависимости 
+            # 5. Устанавливаем зависимости
+            echo "📦 Installing dependencies..."
             pip install --upgrade pip
             pip install -r requirements.txt
 
             # 6. Проверяем что venv работает
-            which python
-            python --version
+            echo "✅ Python version: $(python --version)"
+            echo "✅ Python path: $(which python)"
 
             # 7. Запускаем бота
-            systemctl start raccoon_bot 2>/dev/null || sudo systemctl start raccoon_bot 2>/dev/null || true
+            echo "▶️ Starting bot..."
+            systemctl start raccoon_bot || sudo systemctl start raccoon_bot || true
 
             # 8. Проверяем статус
             sleep 2
-            systemctl status raccoon_bot 2>/dev/null || sudo systemctl status raccoon_bot 2>/dev/null || true
+            echo "📊 Bot status:"
+            systemctl status raccoon_bot --no-pager || sudo systemctl status raccoon_bot --no-pager || true
+            
+            echo "✅ Deploy complete!"
