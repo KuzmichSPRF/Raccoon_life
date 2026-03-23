@@ -3101,31 +3101,31 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик нажатия на кнопку 'Опубликовать' под предложенной новостью"""
     query = update.callback_query
-    
+
     # Проверка прав администратора
     if update.effective_user.id != ADMIN_ID:
         await query.answer("❌ У вас нет прав!", show_alert=True)
         return
-        
+
     await query.answer("Публикуем...")
-    
+
     try:
         # Получаем HTML-код сообщения
         text_html = query.message.text_html
-        
+
         # Разделяем по нашему разделителю, чтобы отсечь системную инфу об отправителе
         if "➖➖➖➖➖➖" in text_html:
             publish_text = text_html.split("➖➖➖➖➖➖")[0].strip()
         else:
             publish_text = text_html
-            
+
+        # Публикуем в канал/группу
         await context.bot.send_message(
             chat_id="@the_raccoon_times_group",
-            message_thread_id=1,
             text=publish_text,
             parse_mode=ParseMode.HTML
         )
-        
+
         # Обновляем сообщение админа: убираем кнопку и пишем, что опубликовано
         await query.edit_message_text(
             text=text_html + "\n\n✅ <b>Опубликовано в группе!</b>",
