@@ -3025,6 +3025,51 @@ async def delete_user_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE
         conn.close()
 
 
+async def reset_news_cooldown_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /notime <username|user_id>
+    Сбрасывает таймер отправки новостей для пользователя
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка аргументов
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "❌ Использование: /notime <username|user_id>\n"
+            "Пример: /notime @username\n"
+            "Пример: /notime 123456789"
+        )
+        return
+
+    # Ищем пользователя по username или ID
+    identifier = context.args[0]
+    user_info = get_user_by_id_or_username(identifier)
+
+    if not user_info:
+        await update.message.reply_text(f"❌ Пользователь '{identifier}' не найден!")
+        return
+
+    user_id = user_info['user_id']
+    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+
+    # Сбрасываем лимит в БД
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('UPDATE user_stats SET last_news_submit = NULL WHERE user_id = ?', (user_id,))
+        conn.commit()
+        logger.info(f"⏳ Сброс таймера новостей: user_id={user_id} админом {update.effective_user.id}")
+        await update.message.reply_text(f"✅ <b>Таймер отправки новостей сброшен!</b>\n\nПользователь <b>{user_name}</b> теперь может отправить новость прямо сейчас.", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Ошибка reset_news_cooldown_admin: {e}")
+        await update.message.reply_text(f"❌ Ошибка при сбросе таймера: {e}")
+    finally:
+        conn.close()
+
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик данных от WebApp (tg.sendData)"""
     user_id = update.effective_user.id
@@ -3114,6 +3159,8 @@ async def post_init(application: Application):
             BotCommand('broadcast', '📢 Рассылка всем (админ)'),
             BotCommand('unban', '✅ Разбанить пользователя (админ)'),
             BotCommand('delete', '🗑️ Удалить пользователя (админ)')
+            BotCommand('delete', '🗑️ Удалить пользователя (админ)'),
+            BotCommand('notime', '⏳ Сбросить лимит новостей (админ)')
         ]
         await application.bot.set_my_commands(commands)
         logger.info("✅ Commands menu set")
@@ -3166,6 +3213,7 @@ def main():
     telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
     telegram_app.add_handler(CommandHandler("unban", unban_user_admin))
     telegram_app.add_handler(CommandHandler("delete", delete_user_admin))
+    telegram_app.add_handler(CommandHandler("notime", reset_news_cooldown_admin))
     telegram_app.add_handler(CommandHandler("broadcast", broadcast_admin))
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
