@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy to NEW Server
         uses: appleboy/ssh-action@master
@@ -21,18 +21,18 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
-          command_timeout: 10m
+          command_timeout: 20m
+          debug: true
           script: |
-            set -e
-            
             echo "🚀 Starting deploy..."
             cd ~/Raccoon_life
 
-            # 1. Останавливаем бота
+            # 1. Останавливаем бота (сначала pkill, потом systemctl)
             echo "⏹️ Stopping bot..."
-            sudo systemctl stop raccoon_bot || true
             pkill -f bot.py || true
-            sleep 2 
+            sleep 1
+            sudo systemctl stop raccoon_bot || true
+            sleep 2
 
             # 2. Сбрасываем локальные изменения
             echo "🔄 Resetting local changes..."
@@ -51,7 +51,7 @@ jobs:
             fi
             echo "Creating virtual environment..."
             python3 -m venv venv
-            
+
             source venv/bin/activate
 
             # 5. Устанавливаем зависимости
@@ -62,7 +62,7 @@ jobs:
             # 6. Проверяем что venv работает
             echo "✅ Python version: $(python --version)"
             echo "✅ Python path: $(which python)"
-            
+
             # Проверяем что файл бота существует
             echo "✅ Bot file exists: $(test -f bot/bot.py && echo 'YES' || echo 'NO')"
 
@@ -78,12 +78,12 @@ jobs:
             sleep 3
             echo "📊 Bot status:"
             sudo systemctl status raccoon_bot --no-pager || true
-            
+
             # 10. Показываем последние логи если ошибка
             if ! sudo systemctl is-active --quiet raccoon_bot; then
                 echo "❌ Bot failed to start! Last logs:"
                 sudo journalctl -u raccoon_bot -n 20 --no-pager
                 exit 1
             fi
-            
+
             echo "✅ Deploy complete!"
