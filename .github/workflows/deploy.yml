@@ -44,7 +44,7 @@ jobs:
 
             source venv/bin/activate
 
-            # 5. Устанавливаем зависимости
+            # 5. Устанавливаем зависимости 
             pip install --upgrade pip
             pip install -r requirements.txt
 
