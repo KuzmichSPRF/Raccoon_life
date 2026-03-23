@@ -21,10 +21,14 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY_NEW }}
           script: |
+            # 1. Штатно останавливаем службу
+            sudo systemctl stop raccoon_bot || true
+            # 2. Добиваем любые зависшие процессы бота
+            sudo pkill -f bot.py || true
+            
             cd ~/Raccoon_life
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
-            # Убиваем зависшие процессы перед перезапуском
-            sudo pkill -f bot.py || true
-            sudo systemctl restart raccoon_bot
+            # 3. Запускаем чистую службу
+            sudo systemctl start raccoon_bot
