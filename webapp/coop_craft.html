@@ -484,8 +484,12 @@
                         `;
                     });
 
-                    const deleteBtnHtml = (userId == c.initiator_id || userId == 456789123) // ADMIN_ID
-                        ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>` 
+                    const isOwner = userId == c.initiator_id || userId == 456789123; // ADMIN_ID
+                    const shareBtnHtml = isOwner
+                        ? `<button class="action-btn btn-small" style="background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="shareCraft(${c.craft_id})">📤 Поделиться</button>`
+                        : '';
+                    const deleteBtnHtml = isOwner
+                        ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>`
                         : '';
 
                     container.innerHTML += `
@@ -500,9 +504,9 @@
                             <div class="stages-container" id="stages-for-craft-${c.craft_id}" ${isSingleView ? 'style="display:block;"' : ''}>
                                 ${stagesHtml}
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px;">
                                 <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">${isSingleView ? 'Скрыть этапы' : 'Показать этапы'}</button>
-                                ${deleteBtnHtml}
+                                <div style="display: flex; gap: 8px;">${shareBtnHtml}${deleteBtnHtml}</div>
                             </div>
                         </div>
                     `;
@@ -569,6 +573,11 @@
             const input = document.getElementById('share-link-input');
             input.select(); document.execCommand("copy");
             tg.showAlert("Ссылка скопирована в буфер обмена!");
+        }
+
+        function shareCraft(craftId) {
+            tg.HapticFeedback.impactOccurred('light');
+            showShareModal(craftId);
         }
 
         function showAlert(message, title = 'Сообщение') {
