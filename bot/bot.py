@@ -2469,9 +2469,9 @@ def api_craft_create():
                     )
 
                     app_url = f"{WEBAPP_URL.rstrip('/')}/coop_craft.html" if WEBAPP_URL else None
-                    keyboard = [[InlineKeyboardButton(text="🤝 Присоединиться к крафту", web_app=WebAppInfo(url=app_url))]] if app_url else []
+                    keyboard = [[{"text": "🤝 Присоединиться к крафту", "web_app": {"url": app_url}}]] if app_url else []
 
-                    requests.post(
+                    response = requests.post(
                         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                         json={
                             "chat_id": "@the_raccoon_times_group",
@@ -2482,7 +2482,11 @@ def api_craft_create():
                         },
                         timeout=10
                     )
-                    logger.info(f"📢 Отправлено уведомление о новом крафте #{craft_id} в группу.")
+                    
+                    if response.status_code != 200:
+                        logger.error(f"❌ Ошибка Telegram API при отправке в группу: {response.text}")
+                    else:
+                        logger.info(f"📢 Отправлено уведомление о новом крафте #{craft_id} в группу.")
                 except Exception as e:
                     logger.error(f"❌ Ошибка отправки уведомления о крафте: {e}")
 
