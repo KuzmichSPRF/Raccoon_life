@@ -29,6 +29,6 @@ jobs:
             pip install python-telegram-bot python-dotenv requests flask flask-cors flask-limiter
             
             # 1. Убиваем зависшие процессы
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S pkill -f bot.py || true
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S -p "" pkill -9 -f bot.py || true
             # 2. Перезапускаем чистый сервис
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S -p "" systemctl restart raccoon-test
