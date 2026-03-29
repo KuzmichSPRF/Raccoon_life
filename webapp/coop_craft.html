@@ -261,6 +261,18 @@
         </div>
     </div>
 
+    <!-- Всплывающее окно выбора помощи -->
+    <div id="pledge-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
+        <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(0, 136, 204, 0.3); padding: 25px;">
+            <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Чем помочь?</h3>
+            <p style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Выберите, что вы готовы предоставить для этого этапа:</p>
+            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">Только фишки</button>
+            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">Только $GUM</button>
+            <button class="action-btn btn-small" style="margin-bottom: 15px; width: 100%; background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="submitPledge('all')">И фишки, и $GUM</button>
+            <button class="action-btn btn-small" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closePledgeModal()">Отмена</button>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -383,36 +395,38 @@
             }
         }
 
-        async function pledgeStage(stageId) {
-            tg.HapticFeedback.impactOccurred('medium');
+        let currentPledgeStageId = null;
 
-            tg.showPopup({
-                title: 'Чем помочь?',
-                message: 'Выберите, что вы готовы предоставить для этого этапа крафта.',
-                buttons: [
-                    {id: 'items', type: 'default', text: 'Только фишки'},
-                    {id: 'gum', type: 'default', text: 'Только $GUM'},
-                    {id: 'all', type: 'default', text: 'И фишки, и $GUM'},
-                    {type: 'cancel'},
-                ]
-            }, async (buttonId) => {
-                if (buttonId === 'items' || buttonId === 'gum' || buttonId === 'all') {
-                    try {
-                        const res = await fetch('/api/craft/pledge', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-                            body: JSON.stringify({ userId, stageId, pledgeType: buttonId })
-                        });
-                        const data = await res.json();
-                        if (data.status === 'ok') {
-                            tg.showAlert('Вы успешно взялись за этап!');
-                            loadCrafts();
-                        } else {
-                            tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
-                        }
-                    } catch(e) { tg.showAlert('Ошибка соединения'); }
+        function pledgeStage(stageId) {
+            tg.HapticFeedback.impactOccurred('medium');
+            currentPledgeStageId = stageId;
+            document.getElementById('pledge-overlay').style.display = 'flex';
+        }
+
+        function closePledgeModal() {
+            tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('pledge-overlay').style.display = 'none';
+            currentPledgeStageId = null;
+        }
+
+        async function submitPledge(pledgeType) {
+            closePledgeModal();
+            if (!currentPledgeStageId) return;
+            
+            try {
+                const res = await fetch('/api/craft/pledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                    body: JSON.stringify({ userId, stageId: currentPledgeStageId, pledgeType: pledgeType })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    tg.showAlert('Вы успешно взялись за этап!');
+                    loadCrafts();
+                } else {
+                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
                 }
-            });
+            } catch(e) { tg.showAlert('Ошибка соединения'); }
         }
 
         async function completeStage(stageId) {
