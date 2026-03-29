@@ -2468,10 +2468,10 @@ def api_craft_create():
                         f"Присоединяйтесь и помогайте в создании редких фишек!"
                     )
 
-                        # В группах надежнее использовать обычную ссылку (deep link), а не web_app кнопку
-                        bot_app_url = "https://t.me/Raccoon_Life_bot/app"
-                        deep_link = f"{bot_app_url}?startapp=craft_{craft_id}"
-                        keyboard = [[{"text": "🤝 Присоединиться", "url": deep_link}]]
+                    # В группах надежнее использовать обычную ссылку (deep link), а не web_app кнопку
+                    bot_app_url = "https://t.me/Raccoon_Life_bot/app"
+                    deep_link = f"{bot_app_url}?startapp=craft_{craft_id}"
+                    keyboard = [[{"text": "🤝 Присоединиться", "url": deep_link}]]
 
                     response = requests.post(
                         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
