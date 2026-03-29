@@ -345,8 +345,18 @@
                                     <div style="flex:1; padding-right:10px;">
                                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
                                         <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
-                                        <div class="stage-status ${statusClass}">${statusText}</div>
-                                        ${s.contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Помогает: ${s.contributor_name}</div>` : ''}
+                                        <div class="stage-status ${statusClass}">${statusText}</div>`
+                                        + (s.contributor_name ? (() => {
+                                            let type_text = '';
+                                            if (s.contribution_type === 'items') {
+                                                type_text = '(фишки)';
+                                            } else if (s.contribution_type === 'gum') {
+                                                type_text = '($GUM)';
+                                            } else {
+                                                type_text = '(всё)';
+                                            }
+                                            return `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Помогает: ${s.contributor_name} ${type_text}</div>`;
+                                        })() : '') + `
                                     </div>
                                     <div>${btnHtml}</div>
                                 </div>
@@ -375,22 +385,34 @@
 
         async function pledgeStage(stageId) {
             tg.HapticFeedback.impactOccurred('medium');
-            if (!confirm('Вы уверены, что готовы предоставить материалы для этого этапа?')) return;
-            
-            try {
-                const res = await fetch('/api/craft/pledge', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-                    body: JSON.stringify({ userId, stageId })
-                });
-                const data = await res.json();
-                if (data.status === 'ok') {
-                    tg.showAlert('Вы успешно взялись за этап!');
-                    loadCrafts();
-                } else {
-                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+
+            tg.showPopup({
+                title: 'Чем помочь?',
+                message: 'Выберите, что вы готовы предоставить для этого этапа крафта.',
+                buttons: [
+                    {id: 'items', type: 'default', text: 'Только фишки'},
+                    {id: 'gum', type: 'default', text: 'Только $GUM'},
+                    {id: 'all', type: 'default', text: 'И фишки, и $GUM'},
+                    {type: 'cancel'},
+                ]
+            }, async (buttonId) => {
+                if (buttonId === 'items' || buttonId === 'gum' || buttonId === 'all') {
+                    try {
+                        const res = await fetch('/api/craft/pledge', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                            body: JSON.stringify({ userId, stageId, pledgeType: buttonId })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'ok') {
+                            tg.showAlert('Вы успешно взялись за этап!');
+                            loadCrafts();
+                        } else {
+                            tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                        }
+                    } catch(e) { tg.showAlert('Ошибка соединения'); }
                 }
-            } catch(e) { tg.showAlert('Ошибка соединения'); }
+            });
         }
 
         async function completeStage(stageId) {

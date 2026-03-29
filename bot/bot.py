@@ -227,6 +227,7 @@ def init_db():
                 material_req TEXT,
                 contributor_id INTEGER,
                 status TEXT DEFAULT 'pending', -- pending, pledged, completed
+                contribution_type TEXT, -- 'items', 'gum', 'all'
                 FOREIGN KEY(craft_id) REFERENCES coop_crafts(craft_id),
                 FOREIGN KEY(contributor_id) REFERENCES users(user_id)
             )
@@ -393,6 +394,16 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка last_news_submit в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
+
+    # Проверка coop_craft_stages на наличие contribution_type
+    cursor.execute("PRAGMA table_info(coop_craft_stages)")
+    coop_stages_cols = {row[1] for row in cursor.fetchall()}
+    if 'contribution_type' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN contribution_type TEXT")
+            logger.info("Миграция: добавлена колонка contribution_type в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages.contribution_type: {e}")
 
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
@@ -2419,7 +2430,7 @@ def api_craft_active():
             
             # Получаем этапы для каждого крафта
             cursor.execute('''
-                SELECT s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.contributor_id, s.status,
+                SELECT s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.contributor_id, s.status, s.contribution_type,
                        u.username, u.first_name
                 FROM coop_craft_stages s
                 LEFT JOIN users u ON s.contributor_id = u.user_id
@@ -2455,6 +2466,7 @@ def api_craft_pledge():
         data = request.get_json()
         user_id = int(data.get('userId', 0))
         stage_id = int(data.get('stageId', 0))
+        pledge_type = sanitize_string(data.get('pledgeType', 'all')) # 'items', 'gum', 'all'
         
         auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
         if not auth_user or str(auth_user.get('id')) != str(user_id):
@@ -2475,9 +2487,9 @@ def api_craft_pledge():
             ensure_user_exists(user_id)
             cursor.execute('''
                 UPDATE coop_craft_stages 
-                SET contributor_id = ?, status = 'pledged' 
+                SET contributor_id = ?, status = 'pledged', contribution_type = ?
                 WHERE stage_id = ?
-            ''', (user_id, stage_id))
+            ''', (user_id, pledge_type, stage_id))
             
             # Проверяем, заполнились ли все этапы. Если да - переводим крафт в in_progress
             cursor.execute("SELECT COUNT(*) FROM coop_craft_stages WHERE craft_id = ? AND status = 'pending'", (craft_id,))
