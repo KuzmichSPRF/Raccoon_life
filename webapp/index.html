@@ -272,6 +272,10 @@
         <span class="menu-card-icon">📰</span>
         <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
       </div>
+      <div class="menu-card" onclick="window.location.href='coop_craft.html'">
+        <span class="menu-card-icon">🛠</span>
+        <span class="menu-card-title" data-i18n="menu_craft">Крафт</span>
+      </div>
       <div class="menu-card" onclick="renderCategory('quests')">
         <span class="menu-card-icon">❓</span>
         <span class="menu-card-title" data-i18n="menu_quests">Квесты</span>
@@ -342,6 +346,7 @@
       menu_partners: "Партнеры",
       menu_rating: "Рейтинг",
       menu_support: "Поддержать",
+      menu_craft: "Крафт",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
@@ -384,6 +389,7 @@
       menu_partners: "Partners",
       menu_rating: "Rating",
       menu_support: "Support",
+      menu_craft: "Craft",
       reader_title: "Viewer",
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
@@ -1330,6 +1336,16 @@
   // ==================== INIT ====================
   // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
   window.addEventListener('DOMContentLoaded', () => {
+    // Проверяем параметр startapp (переход по приватной ссылке)
+    const startParam = tg.initDataUnsafe?.start_param;
+    if (startParam && startParam.startsWith('craft_')) {
+        const craftId = startParam.split('_')[1];
+        window.location.href = `coop_craft.html?private_id=${craftId}`;
+        // Используем replace, чтобы не создавать запись в истории и избежать цикла редиректов
+        window.location.replace(`coop_craft.html?private_id=${craftId}`);
+        return; // Останавливаем дальнейшую загрузку главного меню
+    }
+
     applyTranslations();
     loadStats();
 

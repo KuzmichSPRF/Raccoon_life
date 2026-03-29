@@ -204,6 +204,40 @@ def init_db():
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
+        
+        # Таблица совместных крафтов
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS coop_crafts (
+                craft_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                initiator_id INTEGER,
+                item_name TEXT,
+                start_grade TEXT,
+                target_grade TEXT,
+                status TEXT DEFAULT 'open', -- open, in_progress, completed, cancelled
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_private INTEGER DEFAULT 0,
+                FOREIGN KEY(initiator_id) REFERENCES users(user_id)
+            )
+        ''')
+
+        # Таблица этапов совместного крафта
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS coop_craft_stages (
+                stage_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                craft_id INTEGER,
+                stage_index INTEGER,
+                from_grade TEXT,
+                to_grade TEXT,
+                material_req TEXT,
+                reward_amount REAL DEFAULT 0,
+                reward_currency TEXT DEFAULT 'TON',
+                contributor_id INTEGER,
+                status TEXT DEFAULT 'pending', -- pending, pledged, completed
+                contribution_type TEXT, -- 'items', 'gum', 'all'
+                FOREIGN KEY(craft_id) REFERENCES coop_crafts(craft_id),
+                FOREIGN KEY(contributor_id) REFERENCES users(user_id)
+            )
+        ''')
 
         # Инициализация босса
         cursor.execute('''
@@ -367,6 +401,44 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
 
+    # Проверка coop_craft_stages на наличие item/gum contributor_id
+    cursor.execute("PRAGMA table_info(coop_craft_stages)")
+    coop_stages_cols = {row[1] for row in cursor.fetchall()}
+    if 'item_contributor_id' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN item_contributor_id INTEGER")
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN gum_contributor_id INTEGER")
+            logger.info("Миграция: добавлены колонки item_contributor_id, gum_contributor_id в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages для мульти-крафта: {e}")
+
+    if 'reward_amount' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN reward_amount REAL DEFAULT 0")
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN reward_currency TEXT DEFAULT 'TON'")
+            logger.info("Миграция: добавлены колонки вознаграждения в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages rewards: {e}")
+
+    # Проверка coop_craft_stages на наличие contribution_type
+    cursor.execute("PRAGMA table_info(coop_craft_stages)")
+    coop_stages_cols = {row[1] for row in cursor.fetchall()}
+    if 'contribution_type' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN contribution_type TEXT")
+            logger.info("Миграция: добавлена колонка contribution_type в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages.contribution_type: {e}")
+
+    # Проверка coop_crafts на наличие is_private
+    cursor.execute("PRAGMA table_info(coop_crafts)")
+    coop_crafts_cols = {row[1] for row in cursor.fetchall()}
+    if 'is_private' not in coop_crafts_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_crafts ADD COLUMN is_private INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка is_private в coop_crafts")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_crafts.is_private: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -2313,6 +2385,386 @@ def handle_spend_tokens(data: dict):
         return jsonify({'status': 'error', 'message': 'Insufficient tokens'}), 400
 
 
+# ==================== СОВМЕСТНЫЙ КРАФТ (COOP CRAFT) ====================
+
+@app.route('/api/craft/create', methods=['POST'])
+@limiter.limit("10 per minute")
+def api_craft_create():
+    """
+    Инициация совместного крафта.
+    Ожидает: userId, itemName, startGrade, targetGrade, stages (список объектов {from, to, material})
+    """
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        item_name = sanitize_string(data.get('itemName', 'Неизвестная фишка'))
+        start_grade = sanitize_string(data.get('startGrade', 'Common'))
+        target_grade = sanitize_string(data.get('targetGrade', 'Diamond'))
+        is_private = 1 if data.get('isPrivate') else 0
+        stages = data.get('stages', [])
+
+        if not stages:
+            return jsonify({'error': 'No stages provided'}), 400
+
+        ensure_user_exists(user_id, auth_user)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Создаем запись о крафте
+            cursor.execute('''
+                INSERT INTO coop_crafts (initiator_id, item_name, start_grade, target_grade, is_private)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, item_name, start_grade, target_grade, is_private))
+            
+            craft_id = cursor.lastrowid
+            
+            # Добавляем этапы
+            for idx, stage in enumerate(stages):
+                from_grade = sanitize_string(stage.get('from', ''))
+                to_grade = sanitize_string(stage.get('to', ''))
+                material_req = sanitize_string(stage.get('material', ''))
+                reward_amount = stage.get('rewardAmount', 0)
+                try:
+                    reward_amount = float(reward_amount)
+                except (ValueError, TypeError):
+                    reward_amount = 0.0
+                reward_currency = sanitize_string(stage.get('rewardCurrency', 'TON'))
+                
+                cursor.execute('''
+                    INSERT INTO coop_craft_stages (craft_id, stage_index, from_grade, to_grade, material_req, reward_amount, reward_currency)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (craft_id, idx, from_grade, to_grade, material_req, reward_amount, reward_currency))
+                
+            conn.commit()
+            logger.info(f"🛠️ Создан крафт #{craft_id} игроком {user_id} ({item_name}: {start_grade} -> {target_grade})")
+            return jsonify({'status': 'ok', 'craft_id': craft_id})
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.error(f"Ошибка api_craft_create: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/craft/active', methods=['GET'])
+def api_craft_active():
+    """Получение списка активных крафтов (для присоединения других игроков)"""
+    user_id = request.args.get('userId', 0)
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        user_id = 0
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Берем открытые публичные крафты, ЛИБО приватные крафты, созданные самим юзером
+        cursor.execute('''
+            SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
+                   u.username, u.first_name
+            FROM coop_crafts c
+            LEFT JOIN users u ON c.initiator_id = u.user_id
+            WHERE c.status IN ('open', 'in_progress') AND (c.is_private = 0 OR c.initiator_id = ?)
+            ORDER BY c.created_at DESC LIMIT 50
+        ''', (user_id,))
+        crafts_rows = cursor.fetchall()
+        
+        crafts = []
+        for row in crafts_rows:
+            craft = dict(row)
+            craft['initiator_username'] = craft.get('username')
+            craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
+            
+            # Получаем этапы для каждого крафта
+            cursor.execute('''
+                SELECT 
+                    s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status, s.reward_amount, s.reward_currency,
+                    s.item_contributor_id, s.gum_contributor_id,
+                    item_user.username as item_username, item_user.first_name as item_first_name,
+                    gum_user.username as gum_username, gum_user.first_name as gum_first_name
+                FROM coop_craft_stages s
+                LEFT JOIN users item_user ON s.item_contributor_id = item_user.user_id
+                LEFT JOIN users gum_user ON s.gum_contributor_id = gum_user.user_id
+                WHERE s.craft_id = ?
+                ORDER BY s.stage_index ASC
+            ''', (craft['craft_id'],))
+            
+            stages = []
+            for s_row in cursor.fetchall():
+                stage = dict(s_row)
+                stage['item_contributor_username'] = stage.get('item_username')
+                if stage['item_contributor_id']:
+                    stage['item_contributor_name'] = stage.pop('item_username') or stage.pop('item_first_name') or f"Игрок {stage['item_contributor_id']}"
+                else:
+                    stage['item_contributor_name'] = None
+                    stage.pop('item_username', None)
+                    stage.pop('item_first_name', None)
+                
+                stage['gum_contributor_username'] = stage.get('gum_username')
+                if stage['gum_contributor_id']:
+                    stage['gum_contributor_name'] = stage.pop('gum_username') or stage.pop('gum_first_name') or f"Игрок {stage['gum_contributor_id']}"
+                else:
+                    stage['gum_contributor_name'] = None
+                    stage.pop('gum_username', None)
+                    stage.pop('gum_first_name', None)
+
+                stages.append(stage)
+                
+            craft['stages'] = stages
+            crafts.append(craft)
+            
+        return jsonify({'status': 'ok', 'crafts': crafts})
+    except Exception as e:
+        logger.error(f"Ошибка api_craft_active: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/craft/get', methods=['GET'])
+def api_craft_get():
+    """Получение конкретного крафта по ID (для перехода по приватной ссылке)"""
+    craft_id = request.args.get('craftId', 0)
+    try:
+        craft_id = int(craft_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid ID'}), 400
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
+                   u.username, u.first_name
+            FROM coop_crafts c
+            LEFT JOIN users u ON c.initiator_id = u.user_id
+            WHERE c.craft_id = ?
+        ''', (craft_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Craft not found'}), 404
+            
+        craft = dict(row)
+        craft['initiator_username'] = craft.get('username')
+        craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
+        
+        cursor.execute('''
+            SELECT 
+                s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status, s.reward_amount, s.reward_currency,
+                s.item_contributor_id, s.gum_contributor_id,
+                item_user.username as item_username, item_user.first_name as item_first_name,
+                gum_user.username as gum_username, gum_user.first_name as gum_first_name
+            FROM coop_craft_stages s
+            LEFT JOIN users item_user ON s.item_contributor_id = item_user.user_id
+            LEFT JOIN users gum_user ON s.gum_contributor_id = gum_user.user_id
+            WHERE s.craft_id = ?
+            ORDER BY s.stage_index ASC
+        ''', (craft_id,))
+        
+        stages = []
+        for s_row in cursor.fetchall():
+            stage = dict(s_row)
+            stage['item_contributor_username'] = stage.get('item_username')
+            if stage['item_contributor_id']:
+                stage['item_contributor_name'] = stage.pop('item_username') or stage.pop('item_first_name') or f"Игрок {stage['item_contributor_id']}"
+            else:
+                stage['item_contributor_name'] = None
+            
+            stage['gum_contributor_username'] = stage.get('gum_username')
+            if stage['gum_contributor_id']:
+                stage['gum_contributor_name'] = stage.pop('gum_username') or stage.pop('gum_first_name') or f"Игрок {stage['gum_contributor_id']}"
+            else:
+                stage['gum_contributor_name'] = None
+            stages.append(stage)
+            
+        craft['stages'] = stages
+        return jsonify({'status': 'ok', 'crafts': [craft]}) # Возвращаем массивом для унификации с фронтендом
+    finally:
+        conn.close()
+
+@app.route('/api/craft/pledge', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_craft_pledge():
+    """Игрок вызывается предоставить материалы для этапа (pledge)"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        stage_id = int(data.get('stageId', 0))
+        pledge_type = sanitize_string(data.get('pledgeType', 'all')) # 'items', 'gum', или 'all'
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Проверяем, свободен ли этап
+            cursor.execute('SELECT status, item_contributor_id, gum_contributor_id, craft_id, material_req FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'error': 'Stage not found'}), 404
+
+            # Проверяем, что можно взять на себя
+            if pledge_type == 'items' and row['item_contributor_id'] is not None:
+                return jsonify({'error': 'Фишки для этого этапа уже предоставляет другой игрок.'}), 400
+            if pledge_type == 'gum' and row['gum_contributor_id'] is not None:
+                return jsonify({'error': '$GUM для этого этапа уже предоставляет другой игрок.'}), 400
+            if pledge_type == 'all' and (row['item_contributor_id'] is not None or row['gum_contributor_id'] is not None):
+                return jsonify({'error': 'Часть этого этапа уже занята другим игроком.'}), 400
+                
+            craft_id = row['craft_id']
+            
+            # Назначаем игрока
+            ensure_user_exists(user_id, auth_user)
+            if pledge_type == 'items':
+                cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
+            elif pledge_type == 'gum':
+                cursor.execute("UPDATE coop_craft_stages SET gum_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
+            elif pledge_type == 'all':
+                cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ?, gum_contributor_id = ? WHERE stage_id = ?", (user_id, user_id, stage_id))
+            else:
+                return jsonify({'error': 'Invalid pledge type'}), 400
+
+            # Проверяем, нужно ли обновить статус этапа
+            needs_items = 'фишк' in row['material_req']
+            needs_gum = '$GUM' in row['material_req']
+            
+            # Получаем обновленные данные
+            cursor.execute('SELECT item_contributor_id, gum_contributor_id FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
+            updated_row = cursor.fetchone()
+            
+            items_now_pledged = updated_row['item_contributor_id'] is not None
+            gum_now_pledged = updated_row['gum_contributor_id'] is not None
+
+            if (not needs_items or items_now_pledged) and (not needs_gum or gum_now_pledged):
+                cursor.execute("UPDATE coop_craft_stages SET status = 'pledged' WHERE stage_id = ?", (stage_id,))
+
+            # Проверяем, заполнились ли все этапы крафта. Если да - переводим крафт в in_progress
+            cursor.execute("SELECT COUNT(*) FROM coop_craft_stages WHERE craft_id = ? AND status = 'pending'", (craft_id,))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("UPDATE coop_crafts SET status = 'in_progress' WHERE craft_id = ?", (craft_id,))
+                
+            conn.commit()
+            logger.info(f"🤝 Игрок {user_id} взялся за '{pledge_type}' для этапа #{stage_id} (Крафт #{craft_id})")
+            return jsonify({'status': 'ok'})
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/craft/complete_stage', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_craft_complete_stage():
+    """Отметить этап как выполненный"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        stage_id = int(data.get('stageId', 0))
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Получаем информацию об этапе и крафте
+            cursor.execute('''
+                SELECT s.status, s.craft_id, c.initiator_id, s.stage_index
+                FROM coop_craft_stages s
+                JOIN coop_crafts c ON s.craft_id = c.craft_id
+                WHERE s.stage_id = ?
+            ''', (stage_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Stage not found'}), 404
+                
+            # Только инициатор крафта может отметить этап выполненным
+            if user_id != row['initiator_id']:
+                return jsonify({'error': 'Permission denied'}), 403
+                
+            if row['status'] == 'completed':
+                return jsonify({'error': 'Stage already completed'}), 400
+                
+            craft_id = row['craft_id']
+            stage_index = row['stage_index']
+            
+            # Проверяем, завершены ли все предыдущие этапы
+            cursor.execute('''
+                SELECT COUNT(*) FROM coop_craft_stages 
+                WHERE craft_id = ? AND stage_index < ? AND status != 'completed'
+            ''', (craft_id, stage_index))
+            if cursor.fetchone()[0] > 0:
+                return jsonify({'error': 'Сначала необходимо завершить предыдущие этапы!'}), 400
+
+            # Обновляем статус этапа
+            cursor.execute("UPDATE coop_craft_stages SET status = 'completed' WHERE stage_id = ?", (stage_id,))
+            
+            # Проверяем завершение всего крафта
+            cursor.execute("SELECT COUNT(*) FROM coop_craft_stages WHERE craft_id = ? AND status != 'completed'", (craft_id,))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("UPDATE coop_crafts SET status = 'completed' WHERE craft_id = ?", (craft_id,))
+                logger.info(f"🏆 Крафт #{craft_id} успешно ЗАВЕРШЕН!")
+                
+            conn.commit()
+            return jsonify({'status': 'ok'})
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/craft/delete', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_craft_delete():
+    """Удаление объявления о крафте (создателем или админом)"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        craft_id = int(data.get('craftId', 0))
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Получаем информацию о крафте
+            cursor.execute('SELECT initiator_id FROM coop_crafts WHERE craft_id = ?', (craft_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Craft not found'}), 404
+                
+            # Только инициатор крафта или админ могут удалить
+            if user_id != row['initiator_id'] and user_id != ADMIN_ID:
+                return jsonify({'error': 'Permission denied'}), 403
+            
+            # Удаляем сначала этапы, потом сам крафт
+            cursor.execute("DELETE FROM coop_craft_stages WHERE craft_id = ?", (craft_id,))
+            cursor.execute("DELETE FROM coop_crafts WHERE craft_id = ?", (craft_id,))
+            
+            conn.commit()
+            logger.info(f"🗑️ Крафт #{craft_id} удален пользователем {user_id}")
+            return jsonify({'status': 'ok'})
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.error(f"Ошибка api_craft_delete: {e}")
+        return jsonify({'error': str(e)}), 500
 # ==================== TELEGRAM BOT ====================
 
 def has_received_welcome_bonus(user_id: int) -> bool:
