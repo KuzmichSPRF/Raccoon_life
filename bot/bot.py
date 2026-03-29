@@ -212,6 +212,7 @@ def init_db():
                 target_grade TEXT,
                 status TEXT DEFAULT 'open', -- open, in_progress, completed, cancelled
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_private INTEGER DEFAULT 0,
                 FOREIGN KEY(initiator_id) REFERENCES users(user_id)
             )
         ''')
@@ -225,6 +226,8 @@ def init_db():
                 from_grade TEXT,
                 to_grade TEXT,
                 material_req TEXT,
+                reward_amount REAL DEFAULT 0,
+                reward_currency TEXT DEFAULT 'TON',
                 contributor_id INTEGER,
                 status TEXT DEFAULT 'pending', -- pending, pledged, completed
                 contribution_type TEXT, -- 'items', 'gum', 'all'
@@ -406,6 +409,14 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции coop_craft_stages для мульти-крафта: {e}")
 
+    if 'reward_amount' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN reward_amount REAL DEFAULT 0")
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN reward_currency TEXT DEFAULT 'TON'")
+            logger.info("Миграция: добавлены колонки вознаграждения в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages rewards: {e}")
+
     # Проверка coop_craft_stages на наличие contribution_type
     cursor.execute("PRAGMA table_info(coop_craft_stages)")
     coop_stages_cols = {row[1] for row in cursor.fetchall()}
@@ -416,6 +427,15 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции coop_craft_stages.contribution_type: {e}")
 
+    # Проверка coop_crafts на наличие is_private
+    cursor.execute("PRAGMA table_info(coop_crafts)")
+    coop_crafts_cols = {row[1] for row in cursor.fetchall()}
+    if 'is_private' not in coop_crafts_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_crafts ADD COLUMN is_private INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка is_private в coop_crafts")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_crafts.is_private: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -2380,6 +2400,7 @@ def api_craft_create():
         item_name = sanitize_string(data.get('itemName', 'Неизвестная фишка'))
         start_grade = sanitize_string(data.get('startGrade', 'Common'))
         target_grade = sanitize_string(data.get('targetGrade', 'Diamond'))
+        is_private = 1 if data.get('isPrivate') else 0
         stages = data.get('stages', [])
 
         if not stages:
@@ -2390,9 +2411,9 @@ def api_craft_create():
         try:
             # Создаем запись о крафте
             cursor.execute('''
-                INSERT INTO coop_crafts (initiator_id, item_name, start_grade, target_grade)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, item_name, start_grade, target_grade))
+                INSERT INTO coop_crafts (initiator_id, item_name, start_grade, target_grade, is_private)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, item_name, start_grade, target_grade, is_private))
             
             craft_id = cursor.lastrowid
             
@@ -2401,11 +2422,17 @@ def api_craft_create():
                 from_grade = sanitize_string(stage.get('from', ''))
                 to_grade = sanitize_string(stage.get('to', ''))
                 material_req = sanitize_string(stage.get('material', ''))
+                reward_amount = stage.get('rewardAmount', 0)
+                try:
+                    reward_amount = float(reward_amount)
+                except (ValueError, TypeError):
+                    reward_amount = 0.0
+                reward_currency = sanitize_string(stage.get('rewardCurrency', 'TON'))
                 
                 cursor.execute('''
-                    INSERT INTO coop_craft_stages (craft_id, stage_index, from_grade, to_grade, material_req)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (craft_id, idx, from_grade, to_grade, material_req))
+                    INSERT INTO coop_craft_stages (craft_id, stage_index, from_grade, to_grade, material_req, reward_amount, reward_currency)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (craft_id, idx, from_grade, to_grade, material_req, reward_amount, reward_currency))
                 
             conn.commit()
             logger.info(f"🛠️ Создан крафт #{craft_id} игроком {user_id} ({item_name}: {start_grade} -> {target_grade})")
@@ -2420,29 +2447,36 @@ def api_craft_create():
 @app.route('/api/craft/active', methods=['GET'])
 def api_craft_active():
     """Получение списка активных крафтов (для присоединения других игроков)"""
+    user_id = request.args.get('userId', 0)
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        user_id = 0
+        
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Берем открытые крафты и крафты в процессе
+        # Берем открытые публичные крафты, ЛИБО приватные крафты, созданные самим юзером
         cursor.execute('''
             SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
                    u.username, u.first_name
             FROM coop_crafts c
             LEFT JOIN users u ON c.initiator_id = u.user_id
-            WHERE c.status IN ('open', 'in_progress')
+            WHERE c.status IN ('open', 'in_progress') AND (c.is_private = 0 OR c.initiator_id = ?)
             ORDER BY c.created_at DESC LIMIT 50
-        ''')
+        ''', (user_id,))
         crafts_rows = cursor.fetchall()
         
         crafts = []
         for row in crafts_rows:
             craft = dict(row)
+            craft['initiator_username'] = craft.get('username')
             craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
             
             # Получаем этапы для каждого крафта
             cursor.execute('''
                 SELECT 
-                    s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status,
+                    s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status, s.reward_amount, s.reward_currency,
                     s.item_contributor_id, s.gum_contributor_id,
                     item_user.username as item_username, item_user.first_name as item_first_name,
                     gum_user.username as gum_username, gum_user.first_name as gum_first_name
@@ -2456,15 +2490,21 @@ def api_craft_active():
             stages = []
             for s_row in cursor.fetchall():
                 stage = dict(s_row)
+                stage['item_contributor_username'] = stage.get('item_username')
                 if stage['item_contributor_id']:
                     stage['item_contributor_name'] = stage.pop('item_username') or stage.pop('item_first_name') or f"Игрок {stage['item_contributor_id']}"
                 else:
                     stage['item_contributor_name'] = None
+                    stage.pop('item_username', None)
+                    stage.pop('item_first_name', None)
                 
+                stage['gum_contributor_username'] = stage.get('gum_username')
                 if stage['gum_contributor_id']:
                     stage['gum_contributor_name'] = stage.pop('gum_username') or stage.pop('gum_first_name') or f"Игрок {stage['gum_contributor_id']}"
                 else:
                     stage['gum_contributor_name'] = None
+                    stage.pop('gum_username', None)
+                    stage.pop('gum_first_name', None)
 
                 stages.append(stage)
                 
@@ -2478,6 +2518,68 @@ def api_craft_active():
     finally:
         conn.close()
 
+
+@app.route('/api/craft/get', methods=['GET'])
+def api_craft_get():
+    """Получение конкретного крафта по ID (для перехода по приватной ссылке)"""
+    craft_id = request.args.get('craftId', 0)
+    try:
+        craft_id = int(craft_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid ID'}), 400
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
+                   u.username, u.first_name
+            FROM coop_crafts c
+            LEFT JOIN users u ON c.initiator_id = u.user_id
+            WHERE c.craft_id = ?
+        ''', (craft_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'error': 'Craft not found'}), 404
+            
+        craft = dict(row)
+        craft['initiator_username'] = craft.get('username')
+        craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
+        
+        cursor.execute('''
+            SELECT 
+                s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status, s.reward_amount, s.reward_currency,
+                s.item_contributor_id, s.gum_contributor_id,
+                item_user.username as item_username, item_user.first_name as item_first_name,
+                gum_user.username as gum_username, gum_user.first_name as gum_first_name
+            FROM coop_craft_stages s
+            LEFT JOIN users item_user ON s.item_contributor_id = item_user.user_id
+            LEFT JOIN users gum_user ON s.gum_contributor_id = gum_user.user_id
+            WHERE s.craft_id = ?
+            ORDER BY s.stage_index ASC
+        ''', (craft_id,))
+        
+        stages = []
+        for s_row in cursor.fetchall():
+            stage = dict(s_row)
+            stage['item_contributor_username'] = stage.get('item_username')
+            if stage['item_contributor_id']:
+                stage['item_contributor_name'] = stage.pop('item_username') or stage.pop('item_first_name') or f"Игрок {stage['item_contributor_id']}"
+            else:
+                stage['item_contributor_name'] = None
+            
+            stage['gum_contributor_username'] = stage.get('gum_username')
+            if stage['gum_contributor_id']:
+                stage['gum_contributor_name'] = stage.pop('gum_username') or stage.pop('gum_first_name') or f"Игрок {stage['gum_contributor_id']}"
+            else:
+                stage['gum_contributor_name'] = None
+            stages.append(stage)
+            
+        craft['stages'] = stages
+        return jsonify({'status': 'ok', 'crafts': [craft]}) # Возвращаем массивом для унификации с фронтендом
+    finally:
+        conn.close()
 
 @app.route('/api/craft/pledge', methods=['POST'])
 @limiter.limit("20 per minute")
@@ -2569,7 +2671,7 @@ def api_craft_complete_stage():
         try:
             # Получаем информацию об этапе и крафте
             cursor.execute('''
-                SELECT s.status, s.craft_id, c.initiator_id
+                SELECT s.status, s.craft_id, c.initiator_id, s.stage_index
                 FROM coop_craft_stages s
                 JOIN coop_crafts c ON s.craft_id = c.craft_id
                 WHERE s.stage_id = ?
@@ -2587,7 +2689,16 @@ def api_craft_complete_stage():
                 return jsonify({'error': 'Stage already completed'}), 400
                 
             craft_id = row['craft_id']
+            stage_index = row['stage_index']
             
+            # Проверяем, завершены ли все предыдущие этапы
+            cursor.execute('''
+                SELECT COUNT(*) FROM coop_craft_stages 
+                WHERE craft_id = ? AND stage_index < ? AND status != 'completed'
+            ''', (craft_id, stage_index))
+            if cursor.fetchone()[0] > 0:
+                return jsonify({'error': 'Сначала необходимо завершить предыдущие этапы!'}), 400
+
             # Обновляем статус этапа
             cursor.execute("UPDATE coop_craft_stages SET status = 'completed' WHERE stage_id = ?", (stage_id,))
             

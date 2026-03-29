@@ -1336,6 +1336,14 @@
   // ==================== INIT ====================
   // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
   window.addEventListener('DOMContentLoaded', () => {
+    // Проверяем параметр startapp (переход по приватной ссылке)
+    const startParam = tg.initDataUnsafe?.start_param;
+    if (startParam && startParam.startsWith('craft_')) {
+        const craftId = startParam.split('_')[1];
+        window.location.href = `coop_craft.html?private_id=${craftId}`;
+        return; // Останавливаем дальнейшую загрузку главного меню
+    }
+
     applyTranslations();
     loadStats();
 

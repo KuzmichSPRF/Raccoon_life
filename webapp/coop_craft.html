@@ -278,9 +278,13 @@
                 </div>
             </div>
             
-            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
-            <label class="form-label">Этапы улучшения (генерируются автоматически)</label>
-            <div id="stages-inputs"></div>
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--text-sec); cursor: pointer; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                <input type="checkbox" id="c-private" style="width: 22px; height: 22px; margin: 0; accent-color: var(--primary);">
+                <span style="font-size: 0.9rem; font-weight: 700;">Сделать приватным (доступ по ссылке)</span>
+            </label>
+
+            <!-- Скрытый контейнер для генерации этапов в фоновом режиме -->
+            <div id="stages-inputs" style="display: none;"></div>
             
             <button class="action-btn" onclick="submitCraft()">🚀 Запустить крафт</button>
         </div>
@@ -307,6 +311,17 @@
         </div>
     </div>
 
+    <!-- Share Modal -->
+    <div id="share-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1002; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
+        <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--game-green); box-shadow: 0 0 30px rgba(0, 255, 136, 0.3); padding: 25px;">
+            <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Приватный крафт создан!</h3>
+            <p style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Отправьте эту ссылку друзьям, чтобы они могли помочь:</p>
+            <input type="text" id="share-link-input" readonly style="color:var(--primary); text-align:center; font-weight:bold; background:rgba(0,136,204,0.1); border:1px dashed var(--primary); margin-bottom:15px;">
+            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="copyShareLink()">📋 Скопировать ссылку</button>
+            <button class="action-btn btn-small" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closeShareModal()">Закрыть</button>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -316,6 +331,9 @@
         tg.BackButton.onClick(() => {
             window.location.href = 'index.html';
         });
+
+        // УКАЖИТЕ ЗДЕСЬ ДАННЫЕ ВАШЕГО БОТА (например, t.me/RaccoonLifeBot/app)
+        const BOT_APP_URL = "t.me/YOUR_BOT_USERNAME/YOUR_APP_SHORTNAME";
 
         const userId = tg.initDataUnsafe?.user?.id || 0;
         const initData = tg.initData || '';
@@ -343,6 +361,14 @@
             "Legend+": { to: "Diamond", material: "2 такие же Rare+ фишки + 200 000 $GUM" }
         };
 
+        function getPlayerLink(name, username, color) {
+            if (username && username !== 'null' && username !== 'undefined') {
+                const cleanUsername = username.replace('@', '');
+                return `<span onclick="tg.openTelegramLink('https://t.me/${cleanUsername}'); event.stopPropagation();" style="color:${color}; text-decoration:underline; cursor:pointer;">${name}</span>`;
+            }
+            return `<span style="color:${color};">${name}</span>`;
+        }
+
         function switchTab(tabId) {
             tg.HapticFeedback.impactOccurred('light');
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -351,7 +377,11 @@
             event.target.classList.add('active');
             document.getElementById('view-' + tabId).classList.add('active');
             
-            if(tabId === 'active') loadCrafts();
+            if(tabId === 'active') {
+                // Убираем параметр private_id из URL, если мы переключили вкладку
+                window.history.replaceState({}, document.title, window.location.pathname);
+                loadCrafts();
+            }
         }
 
         async function loadCrafts() {
@@ -359,7 +389,18 @@
             container.innerHTML = '<div class="loader">Загрузка...</div>';
             
             try {
-                const res = await fetch('/api/craft/active');
+                const urlParams = new URLSearchParams(window.location.search);
+                const privateId = urlParams.get('private_id');
+                
+                let fetchUrl = `/api/craft/active?userId=${userId}`;
+                let isSingleView = false;
+
+                if (privateId) {
+                    fetchUrl = `/api/craft/get?craftId=${privateId}`;
+                    isSingleView = true;
+                }
+                
+                const res = await fetch(fetchUrl);
                 const data = await res.json();
                 
                 if (data.crafts.length === 0) {
@@ -372,9 +413,15 @@
                 }
                 
                 container.innerHTML = '';
+                
+                if (isSingleView) {
+                    container.innerHTML += `<button class="toggle-stages-btn" style="width:100%; margin-bottom:15px; padding:12px; font-size:1rem;" onclick="window.location.href='coop_craft.html'">⬅ Вернуться на общую доску</button>`;
+                }
+
                 data.crafts.forEach(c => {
+                    let firstUncompletedIndex = c.stages.findIndex(s => s.status !== 'completed');
                     let stagesHtml = '';
-                    c.stages.forEach(s => {
+                    c.stages.forEach((s, index) => {
                         let statusClass = s.status === 'pending' ? 'status-pending' : (s.status === 'pledged' ? 'status-pledged' : 'status-completed');
                         let statusText = s.status === 'pending' ? 'Ожидает помощника' : (s.status === 'pledged' ? 'В процессе' : '✅ Завершено');
                         
@@ -384,11 +431,20 @@
                         const itemsPledged = s.item_contributor_id > 0;
                         const gumPledged = s.gum_contributor_id > 0;
 
+                        let rewardHtml = '';
+                        if (s.reward_amount && parseFloat(s.reward_amount) > 0) {
+                            rewardHtml = `<div style="font-size:13px; color:#ffd700; margin-bottom:4px; font-weight:bold;">🎁 Награда: ${s.reward_amount} ${s.reward_currency}</div>`;
+                        }
+
                         let btnHtml = '';
                         if (s.status === 'pending' && ((needsItems && !itemsPledged) || (needsGum && !gumPledged))) {
                             btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id}, '${materialReq}', ${s.item_contributor_id || 0}, ${s.gum_contributor_id || 0})">🤝 Помочь</button>`;
                         } else if (s.status === 'pledged' && userId == c.initiator_id) {
-                            btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">Подтвердить</button>`;
+                            if (index === firstUncompletedIndex) {
+                                btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">Подтвердить</button>`;
+                            } else {
+                                btnHtml = `<button class="action-btn btn-small" style="background: rgba(255,255,255,0.1); color: var(--text-sec); box-shadow: none;" disabled>В очереди</button>`;
+                            }
                         }
 
                         stagesHtml += `
@@ -396,9 +452,10 @@
                                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                     <div style="flex:1; padding-right:10px;">
                                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
-                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>`
-                                        + (s.item_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Фишки: ${s.item_contributor_name}</div>` : '')
-                                        + (s.gum_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">💰 $GUM: ${s.gum_contributor_name}</div>` : '') +
+                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
+                                        ${rewardHtml}`
+                                        + (s.item_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Фишки: ${getPlayerLink(s.item_contributor_name, s.item_contributor_username, 'var(--primary)')}</div>` : '')
+                                        + (s.gum_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">💰 $GUM: ${getPlayerLink(s.gum_contributor_name, s.gum_contributor_username, 'var(--primary)')}</div>` : '') +
                                         `<div class="stage-status ${statusClass}">${statusText}</div>
                                     </div>
                                     <div>${btnHtml}</div>
@@ -415,17 +472,16 @@
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">🧩 ${c.item_name}</h3>
-                                <span class="card-subtitle">от ${c.initiator_name}</span>
+                                <span class="card-subtitle">от ${getPlayerLink(c.initiator_name, c.initiator_username, 'var(--text-sec)')}</span>
                             </div>
                             <div class="target-grade">
                                 ${c.start_grade} ➔ <b>${c.target_grade}</b>
                             </div>
-                            <div class="stages-container" id="stages-for-craft-${c.craft_id}">
-                                <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--text-sec);">Этапы:</div>
+                            <div class="stages-container" id="stages-for-craft-${c.craft_id}" ${isSingleView ? 'style="display:block;"' : ''}>
                                 ${stagesHtml}
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                                <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">Показать этапы</button>
+                                <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">${isSingleView ? 'Скрыть этапы' : 'Показать этапы'}</button>
                                 ${deleteBtnHtml}
                             </div>
                         </div>
@@ -482,6 +538,19 @@
             currentPledgeStageId = null;
         }
 
+        function showShareModal(craftId) {
+            const link = `https://${BOT_APP_URL}?startapp=craft_${craftId}`;
+            document.getElementById('share-link-input').value = link;
+            document.getElementById('share-overlay').style.display = 'flex';
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+        function closeShareModal() { document.getElementById('share-overlay').style.display = 'none'; }
+        function copyShareLink() {
+            const input = document.getElementById('share-link-input');
+            input.select(); document.execCommand("copy");
+            tg.showAlert("Ссылка скопирована в буфер обмена!");
+        }
+
         function showAlert(message, title = 'Сообщение') {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-text').innerText = message;
@@ -518,7 +587,7 @@
 
         async function completeStage(stageId) {
             tg.HapticFeedback.impactOccurred('heavy');
-            if (!confirm('Подтверждаете, что все материалы для этого этапа получены?')) return;
+            if (!confirm('Подтверждаете, что фишка успешно улучшена до нужного грейда?')) return;
             
             try {
                 const res = await fetch('/api/craft/complete_stage', {
@@ -613,6 +682,13 @@
                     div.innerHTML = `
                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${currentGradeName} ➔ ${rule.to}</div>
                         <div style="font-size:13px; color:var(--text-sec);">📦 Ресурсы: <span style="color:#fff">${rule.material}</span></div>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <input type="number" class="s-reward-amount" placeholder="Награда за этап (опц.)" step="0.01" min="0" style="flex: 2; margin: 0;">
+                            <select class="s-reward-currency" style="flex: 1; margin: 0;">
+                                <option value="TON">TON</option>
+                                <option value="$CG">$CG</option>
+                            </select>
+                        </div>
                     `;
                     container.appendChild(div);
                 }
@@ -624,6 +700,7 @@
             const itemName = document.getElementById('c-name').value;
             const startGrade = document.getElementById('c-start').value;
             const targetGrade = document.getElementById('c-target').value;
+            const isPrivate = document.getElementById('c-private').checked;
             
             const stageCards = document.querySelectorAll('.stage-display-card');
             const stages = [];
@@ -632,7 +709,9 @@
                 stages.push({
                     from: card.dataset.from,
                     to: card.dataset.to,
-                    material: card.dataset.material
+                    material: card.dataset.material,
+                    rewardAmount: card.querySelector('.s-reward-amount').value,
+                    rewardCurrency: card.querySelector('.s-reward-currency').value
                 });
             });
             
@@ -647,17 +726,22 @@
                 const res = await fetch('/api/craft/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-                    body: JSON.stringify({ userId, itemName, startGrade, targetGrade, stages })
+                    body: JSON.stringify({ userId, itemName, startGrade, targetGrade, isPrivate, stages })
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    showAlert('Крафт успешно создан!');
                     // Очистка формы
                     document.getElementById('c-name').value = '';
                     document.getElementById('c-start').value = 'Common';
                     document.getElementById('c-target').value = 'Diamond';
+                    document.getElementById('c-private').checked = false;
                     generateStages();
                     
+                    if (isPrivate) {
+                        showShareModal(data.craft_id);
+                    } else {
+                        showAlert('Публичный крафт успешно создан!');
+                    }
                     // Переключаемся на первую вкладку
                     document.querySelector('.tab-btn').click();
                 } else {
