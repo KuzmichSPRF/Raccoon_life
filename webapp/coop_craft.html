@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Совместный крафт</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #1a1a1a);
+            --card-bg: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            --text-color: var(--tg-theme-text-color, #ffffff);
+            --hint-color: var(--tg-theme-hint-color, #aaaaaa);
+            --accent-color: var(--tg-theme-button-color, #ff9800);
+            --accent-text: var(--tg-theme-button-text-color, #ffffff);
+            --success-color: #4caf50;
+            --danger-color: #f44336;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            padding-bottom: 40px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .header-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: var(--accent-text);
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .card-subtitle {
+            color: var(--hint-color);
+            font-size: 12px;
+        }
+
+        .target-grade {
+            background: rgba(255, 152, 0, 0.1);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 12px;
+            border: 1px dashed var(--accent-color);
+        }
+
+        .stage-row {
+            border-left: 3px solid var(--accent-color);
+            padding-left: 12px;
+            margin-bottom: 12px;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-right: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .stage-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stage-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .status-pending { background: #607d8b; color: white; }
+        .status-pledged { background: var(--accent-color); color: var(--accent-text); }
+        .status-completed { background: var(--success-color); color: white; }
+
+        .action-btn {
+            background: var(--accent-color);
+            color: var(--accent-text);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+            width: auto;
+            margin-top: 0;
+            box-shadow: none;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: var(--text-color);
+            font-size: 15px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; color: var(--hint-color); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--hint-color);
+        }
+
+        .loader {
+            text-align: center;
+            padding: 20px;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-title">🛠 Совместный Крафт</div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('active')">Доска крафтов</button>
+        <button class="tab-btn" onclick="switchTab('create')">Создать крафт</button>
+    </div>
+
+    <!-- Вкладка: Активные крафты -->
+    <div id="view-active" class="view-section active">
+        <div id="crafts-container">
+            <div class="loader">Загрузка крафтов...</div>
+        </div>
+    </div>
+
+    <!-- Вкладка: Создание крафта -->
+    <div id="view-create" class="view-section">
+        <div class="card">
+            <div class="form-group">
+                <label class="form-label">Название фишки</label>
+                <input type="text" id="c-name" placeholder="Например: Клоун Капс" required>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Начальный грейд</label>
+                    <select id="c-start" onchange="generateStages()"></select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">Целевой грейд</label>
+                    <select id="c-target" onchange="generateStages()"></select>
+                </div>
+            </div>
+            
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
+            <label class="form-label">Этапы улучшения (генерируются автоматически)</label>
+            <div id="stages-inputs"></div>
+            
+            <button class="action-btn" onclick="submitCraft()">🚀 Запустить крафт</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Показываем кнопку назад
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            window.location.href = 'index.html';
+        });
+
+        const userId = tg.initDataUnsafe?.user?.id || 0;
+        const initData = tg.initData || '';
+
+        const GRADES = [
+            { name: "Common", name_ru: "Common" },
+            { name: "Common+", name_ru: "Common+" },
+            { name: "Rare", name_ru: "Rare" },
+            { name: "Rare+", name_ru: "Rare+" },
+            { name: "Epic", name_ru: "Epic" },
+            { name: "Epic+", name_ru: "Epic+" },
+            { name: "Legend", name_ru: "Legend" },
+            { name: "Legend+", name_ru: "Legend+" },
+            { name: "Diamond", name_ru: "Diamond" }
+        ];
+
+        const CRAFT_RULES = {
+            "Common": { to: "Common+", material: "1 такая же Common фишка + 1 000 $GUM" },
+            "Common+": { to: "Rare", material: "2 любые Common+ фишки + 2 500 $GUM" },
+            "Rare": { to: "Rare+", material: "1 такая же Rare фишка + 10 000 $GUM" },
+            "Rare+": { to: "Epic", material: "2 любые Rare+ фишки + 20 000 $GUM" },
+            "Epic": { to: "Epic+", material: "2 такие же Epic фишки + 40 000 $GUM" },
+            "Epic+": { to: "Legend", material: "1 любая Epic+ фишка + 75 000 $GUM" },
+            "Legend": { to: "Legend+", material: "1 любая Epic+ фишка + 125 000 $GUM" },
+            "Legend+": { to: "Diamond", material: "2 такие же Rare+ фишки + 200 000 $GUM" }
+        };
+
+        function switchTab(tabId) {
+            tg.HapticFeedback.impactOccurred('light');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('view-' + tabId).classList.add('active');
+            
+            if(tabId === 'active') loadCrafts();
+        }
+
+        async function loadCrafts() {
+            const container = document.getElementById('crafts-container');
+            container.innerHTML = '<div class="loader">Загрузка...</div>';
+            
+            try {
+                const res = await fetch('/api/craft/active');
+                const data = await res.json();
+                
+                if (data.crafts.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div style="font-size:40px; margin-bottom:10px;">🦝</div>
+                            Пока нет активных крафтов.<br>Будьте первым!
+                        </div>`;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                data.crafts.forEach(c => {
+                    let stagesHtml = '';
+                    c.stages.forEach(s => {
+                        let statusClass = s.status === 'pending' ? 'status-pending' : (s.status === 'pledged' ? 'status-pledged' : 'status-completed');
+                        let statusText = s.status === 'pending' ? 'Ожидает помощника' : (s.status === 'pledged' ? 'В процессе' : '✅ Завершено');
+                        
+                        let btnHtml = '';
+                        if (s.status === 'pending') {
+                            btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id})">🤝 Помочь</button>`;
+                        } else if (s.status === 'pledged' && (userId == c.initiator_id || userId == s.contributor_id)) {
+                            btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">Подтвердить</button>`;
+                        }
+
+                        stagesHtml += `
+                            <div class="stage-row">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                    <div style="flex:1; padding-right:10px;">
+                                        <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
+                                        <div style="font-size:13px; color:var(--hint-color); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
+                                        <div class="stage-status ${statusClass}">${statusText}</div>
+                                        ${s.contributor_name ? `<div style="font-size:12px; margin-top:6px; color:#ff9800;">👤 Помогает: ${s.contributor_name}</div>` : ''}
+                                    </div>
+                                    <div>${btnHtml}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML += `
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">🧩 ${c.item_name}</h3>
+                                <span class="card-subtitle">от ${c.initiator_name}</span>
+                            </div>
+                            <div class="target-grade">
+                                ${c.start_grade} ➔ <b>${c.target_grade}</b>
+                            </div>
+                            <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--hint-color);">Этапы:</div>
+                            ${stagesHtml}
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state">Ошибка загрузки данных :(</div>';
+            }
+        }
+
+        async function pledgeStage(stageId) {
+            tg.HapticFeedback.impactOccurred('medium');
+            if (!confirm('Вы уверены, что готовы предоставить материалы для этого этапа?')) return;
+            
+            try {
+                const res = await fetch('/api/craft/pledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                    body: JSON.stringify({ userId, stageId })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    tg.showAlert('Вы успешно взялись за этап!');
+                    loadCrafts();
+                } else {
+                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                }
+            } catch(e) { tg.showAlert('Ошибка соединения'); }
+        }
+
+        async function completeStage(stageId) {
+            tg.HapticFeedback.impactOccurred('heavy');
+            if (!confirm('Подтверждаете передачу материалов и выполнение этапа?')) return;
+            
+            try {
+                const res = await fetch('/api/craft/complete_stage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                    body: JSON.stringify({ userId, stageId })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    tg.showAlert('Этап успешно завершен!');
+                    loadCrafts();
+                } else {
+                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                }
+            } catch(e) { tg.showAlert('Ошибка соединения'); }
+        }
+
+        // --- Форма создания ---
+        function populateGradeSelectors() {
+            const startSelect = document.getElementById('c-start');
+            const targetSelect = document.getElementById('c-target');
+            
+            GRADES.forEach((grade, index) => {
+                // Нельзя начинать с Diamond
+                if (grade.name !== "Diamond") {
+                    const optionStart = document.createElement('option');
+                    optionStart.value = grade.name;
+                    optionStart.innerText = grade.name;
+                    startSelect.appendChild(optionStart);
+                }
+
+                // Нельзя крафтить в Common
+                if (grade.name !== "Common") {
+                    const optionTarget = document.createElement('option');
+                    optionTarget.value = grade.name;
+                    optionTarget.innerText = grade.name;
+                    targetSelect.appendChild(optionTarget);
+                }
+            });
+
+            // Значения по умолчанию
+            startSelect.value = "Common";
+            targetSelect.value = "Diamond";
+        }
+
+        function generateStages() {
+            const startGrade = document.getElementById('c-start').value;
+            const targetGrade = document.getElementById('c-target').value;
+            const container = document.getElementById('stages-inputs');
+            container.innerHTML = '';
+
+            const startIndex = GRADES.findIndex(g => g.name === startGrade);
+            const targetIndex = GRADES.findIndex(g => g.name === targetGrade);
+
+            if (startIndex >= targetIndex) {
+                container.innerHTML = `<div class="empty-state" style="padding: 10px; color: var(--danger-color);">Начальный грейд должен быть ниже целевого.</div>`;
+                return;
+            }
+
+            for (let i = startIndex; i < targetIndex; i++) {
+                const currentGradeName = GRADES[i].name;
+                const rule = CRAFT_RULES[currentGradeName];
+                if (rule) {
+                    const div = document.createElement('div');
+                    div.className = 'card stage-display-card';
+                    div.style.background = 'rgba(0,0,0,0.2)';
+                    div.style.padding = '12px';
+                    div.style.borderLeft = '3px solid #ff9800';
+                    div.style.marginBottom = '8px';
+                    
+                    div.dataset.from = currentGradeName;
+                    div.dataset.to = rule.to;
+                    div.dataset.material = rule.material;
+
+                    div.innerHTML = `
+                        <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${currentGradeName} ➔ ${rule.to}</div>
+                        <div style="font-size:13px; color:var(--hint-color);">📦 Ресурсы: <span style="color:#fff">${rule.material}</span></div>
+                    `;
+                    container.appendChild(div);
+                }
+            }
+        }
+
+        async function submitCraft() {
+            tg.HapticFeedback.impactOccurred('medium');
+            const itemName = document.getElementById('c-name').value;
+            const startGrade = document.getElementById('c-start').value;
+            const targetGrade = document.getElementById('c-target').value;
+            
+            const stageCards = document.querySelectorAll('.stage-display-card');
+            const stages = [];
+            
+            stageCards.forEach(card => {
+                stages.push({
+                    from: card.dataset.from,
+                    to: card.dataset.to,
+                    material: card.dataset.material
+                });
+            });
+            
+            if (!itemName || !startGrade || !targetGrade || stages.length === 0) {
+                tg.showAlert('Заполните все поля. Убедитесь, что начальный грейд ниже целевого.');
+                return;
+            }
+            
+            tg.MainButton.showProgress();
+            
+            try {
+                const res = await fetch('/api/craft/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                    body: JSON.stringify({ userId, itemName, startGrade, targetGrade, stages })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    tg.showAlert('Крафт успешно создан!');
+                    // Очистка формы
+                    document.getElementById('c-name').value = '';
+                    document.getElementById('c-start').value = 'Common';
+                    document.getElementById('c-target').value = 'Diamond';
+                    generateStages();
+                    
+                    // Переключаемся на первую вкладку
+                    document.querySelector('.tab-btn').click();
+                } else {
+                    tg.showAlert('Ошибка: ' + (data.error || ''));
+                }
+            } catch(e) {
+                tg.showAlert('Ошибка соединения');
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        // Инициализация
+        populateGradeSelectors();
+        generateStages();
+        loadCrafts();
+    </script>
+</body>
+</html>
