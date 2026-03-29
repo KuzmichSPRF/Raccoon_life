@@ -2446,6 +2446,46 @@ def api_craft_create():
                 
             conn.commit()
             logger.info(f"🛠️ Создан крафт #{craft_id} игроком {user_id} ({item_name}: {start_grade} -> {target_grade})")
+
+            # Отправляем уведомление в группу, если крафт публичный
+            if not is_private:
+                try:
+                    initiator_name = auth_user.get('first_name', f"Игрок {user_id}")
+                    if auth_user.get('username'):
+                        initiator_name = f"@{auth_user.get('username')}"
+                    
+                    # Sanitize for HTML
+                    initiator_name_safe = sanitize_string(initiator_name)
+                    item_name_safe = sanitize_string(item_name)
+                    start_grade_safe = sanitize_string(start_grade)
+                    target_grade_safe = sanitize_string(target_grade)
+
+                    message_text = (
+                        f"🛠️ <b>Новый публичный крафт на доске!</b>\n\n"
+                        f"<b>Инициатор:</b> {initiator_name_safe}\n"
+                        f"<b>Предмет:</b> {item_name_safe}\n"
+                        f"<b>Цель:</b> {start_grade_safe} ➔ {target_grade_safe}\n\n"
+                        f"Присоединяйтесь и помогайте в создании редких фишек!"
+                    )
+
+                    app_url = f"{WEBAPP_URL.rstrip('/')}/coop_craft.html" if WEBAPP_URL else None
+                    keyboard = [[InlineKeyboardButton(text="🤝 Присоединиться к крафту", web_app=WebAppInfo(url=app_url))]] if app_url else []
+
+                    requests.post(
+                        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                        json={
+                            "chat_id": "@the_raccoon_times_group",
+                            "message_thread_id": 3552,
+                            "text": message_text, 
+                            "parse_mode": "HTML", 
+                            "reply_markup": {"inline_keyboard": keyboard} if keyboard else None
+                        },
+                        timeout=10
+                    )
+                    logger.info(f"📢 Отправлено уведомление о новом крафте #{craft_id} в группу.")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка отправки уведомления о крафте: {e}")
+
             return jsonify({'status': 'ok', 'craft_id': craft_id})
         finally:
             conn.close()
