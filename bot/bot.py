@@ -2670,7 +2670,13 @@ def api_craft_pledge():
         cursor = conn.cursor()
         try:
             # Проверяем, свободен ли этап
-            cursor.execute('SELECT status, item_contributor_id, gum_contributor_id, craft_id, material_req FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
+            cursor.execute('''
+                SELECT s.status, s.item_contributor_id, s.gum_contributor_id, s.craft_id, s.material_req, s.stage_index,
+                       c.initiator_id, c.item_name
+                FROM coop_craft_stages s
+                JOIN coop_crafts c ON s.craft_id = c.craft_id
+                WHERE s.stage_id = ?
+            ''', (stage_id,))
             row = cursor.fetchone()
             if not row:
                 return jsonify({'error': 'Stage not found'}), 404
@@ -2684,6 +2690,9 @@ def api_craft_pledge():
                 return jsonify({'error': 'Часть этого этапа уже занята другим игроком.'}), 400
                 
             craft_id = row['craft_id']
+            initiator_id = row['initiator_id']
+            item_name = row['item_name']
+            stage_index = row['stage_index']
             
             # Назначаем игрока
             ensure_user_exists(user_id, auth_user)
@@ -2717,6 +2726,39 @@ def api_craft_pledge():
                 
             conn.commit()
             logger.info(f"🤝 Игрок {user_id} взялся за '{pledge_type}' для этапа #{stage_id} (Крафт #{craft_id})")
+            
+            # Отправка уведомления создателю крафта (если это не он сам берет этап)
+            if initiator_id != user_id:
+                try:
+                    contributor_name = auth_user.get('first_name', f"Игрок {user_id}")
+                    if auth_user.get('username'):
+                        contributor_name = f"@{auth_user.get('username')}"
+                    
+                    safe_item = sanitize_string(item_name).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                    safe_contributor = sanitize_string(contributor_name).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                    
+                    pledge_str = 'предоставит фишки' if pledge_type == 'items' else 'предоставит $GUM' if pledge_type == 'gum' else 'предоставит все ресурсы'
+
+                    msg_text = (
+                        f"🤝 <b>Отличные новости!</b>\n\n"
+                        f"Пользователь <b>{safe_contributor}</b> вызвался помочь вам с крафтом <b>{safe_item}</b>\n"
+                        f"<i>(Этап {stage_index + 1}: {pledge_str})</i>\n\n"
+                        f"Зайдите в игру, чтобы проверить статус!"
+                    )
+                    
+                    bot_app_url = "https://t.me/Raccoon_Life_bot/app"
+                    deep_link = f"{bot_app_url}?startapp=craft_{craft_id}"
+                    keyboard = [[{"text": "🛠 Открыть крафт", "url": deep_link}]]
+
+                    requests.post(
+                        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                        json={"chat_id": initiator_id, "text": msg_text, "parse_mode": "HTML", "reply_markup": {"inline_keyboard": keyboard}},
+                        timeout=5
+                    )
+                    logger.info(f"📬 Уведомление о помощнике отправлено создателю {initiator_id}")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка отправки уведомления инициатору крафта: {e}")
+
             return jsonify({'status': 'ok'})
         finally:
             conn.close()
