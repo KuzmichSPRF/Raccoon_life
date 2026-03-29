@@ -1344,6 +1344,13 @@
         // Используем replace, чтобы не создавать запись в истории и избежать цикла редиректов
         window.location.replace(`coop_craft.html?private_id=${craftId}`);
         return; // Останавливаем дальнейшую загрузку главного меню
+        // Предотвращаем вечный цикл при возвращении из крафта в главное меню
+        if (!sessionStorage.getItem('redirected_' + startParam)) {
+            sessionStorage.setItem('redirected_' + startParam, 'true');
+            const craftId = startParam.split('_')[1];
+            window.location.replace(`coop_craft.html?private_id=${craftId}`);
+            return; // Останавливаем дальнейшую загрузку главного меню
+        }
     }
 
     applyTranslations();
