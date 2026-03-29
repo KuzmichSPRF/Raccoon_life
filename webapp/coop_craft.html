@@ -494,8 +494,8 @@
         }
 
         async function submitPledge(pledgeType) {
-            closePledgeModal();
             const stageId = currentPledgeStageId;
+            closePledgeModal();
             if (!stageId) return;
 
             currentPledgeStageId = null; // Сбрасываем сразу
