@@ -28,7 +28,9 @@ jobs:
             # Установка всех зависимостей (на всякий случай)
             pip install python-telegram-bot python-dotenv requests flask flask-cors flask-limiter
             
-            # 1. Убиваем зависшие процессы
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S -p "" pkill -9 -f bot.py || true
-            # 2. Перезапускаем чистый сервис
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S -p "" systemctl restart raccoon-test
+            # 1. Автоматически настраиваем сервис, чтобы он убивал зависшего бота за 2 секунды
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'mkdir -p /etc/systemd/system/raccoon-test.service.d && printf "[Service]\nTimeoutStopSec=2\nKillSignal=SIGKILL\n" > /etc/systemd/system/raccoon-test.service.d/override.conf'
+            
+            # 2. Применяем новые настройки и перезапускаем
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl daemon-reload
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart raccoon-test
