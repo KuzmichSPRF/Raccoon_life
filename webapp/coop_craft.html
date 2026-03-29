@@ -264,8 +264,12 @@
     <div id="view-create" class="view-section">
         <div class="card">
             <div class="form-group">
-                <label class="form-label">Название фишки</label>
-                <input type="text" id="c-name" placeholder="Например: Клоун Капс" required>
+                <label class="form-label">Коллекция</label>
+                <select id="c-collection"></select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Номер или название фишки</label>
+                <input type="text" id="c-chip-number" placeholder="Например: #15 или 'Золотой ноткоин'">
             </div>
             <div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1;">
@@ -338,6 +342,21 @@
 
         const userId = tg.initDataUnsafe?.user?.id || 0;
         const initData = tg.initData || '';
+
+        const COLLECTIONS = [
+            "Adventure Caps", "The Fifth Cap", "Helga's Secret", "Ashes Of Glory", "Beavis & Gum-head",
+            "Pixel Nostalgia", "Cheeton", "WrestleMania", "Pepe", "Garden Of Myth", "X Caps",
+            "Mortal Caps", "Zords", "Catopolis", "90s Girls", "Bitonicle", "Mickey", "Tonder Surprise",
+            "Gumanoid", "Tonchu Caps", "Simptons", "Pocatontas", "Need for Ton", "Tonosaurs",
+            "Street Fighton", "Tonsper", "Ton and Jerry", "Ninja Tonturtles", "Ton Kombat",
+            "Power Tongers", "Goton City", "Back in the 90's", "Sailor Ton", "Batonman",
+            "Winter Tales", "Mad Caps", "Du Rove", "Tonsters", "Ton is", "Capston", "Grinchton",
+            "Halloween", "Neon Dream", "Nuts Farm", "TON Station", "NOT Punks", "Medieval Cats",
+            "Blockbusters", "TON Festival", "Duckygram", "Fanton", "Ton 2k", "Daopeople",
+            "Happy Farmer", "Zifretta", "Gatto", "Naruton", "TON Church", "Notcoin", "DAOLama",
+            "The Daily Ton", "MemHustle", "YupLand", "Full Metal Jetton", "National Cars",
+            "Tamatonchi", "[X] Kaidzen [改善] 二", "[X] Kaidzen [改善]"
+        ];
 
         const GRADES = [
             { name: "Common", name_ru: "Common" },
@@ -627,6 +646,16 @@
         }
 
         // --- Форма создания ---
+        function populateCollectionSelector() {
+            const select = document.getElementById('c-collection');
+            COLLECTIONS.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection;
+                option.innerText = collection;
+                select.appendChild(option);
+            });
+        }
+
         function populateGradeSelectors() {
             const startSelect = document.getElementById('c-start');
             const targetSelect = document.getElementById('c-target');
@@ -698,7 +727,9 @@
 
         async function submitCraft() {
             tg.HapticFeedback.impactOccurred('medium');
-            const itemName = document.getElementById('c-name').value;
+            const collection = document.getElementById('c-collection').value;
+            const chipNumber = document.getElementById('c-chip-number').value;
+            const itemName = `${collection} ${chipNumber ? chipNumber.trim() : ''}`.trim();
             const startGrade = document.getElementById('c-start').value;
             const targetGrade = document.getElementById('c-target').value;
             const isPrivate = document.getElementById('c-private').checked;
@@ -716,7 +747,7 @@
                 });
             });
             
-            if (!itemName || !startGrade || !targetGrade || stages.length === 0) {
+            if (!collection || !startGrade || !targetGrade || stages.length === 0) {
                 showAlert('Заполните все поля. Убедитесь, что начальный грейд ниже целевого.');
                 return;
             }
@@ -732,7 +763,8 @@
                 const data = await res.json();
                 if (data.status === 'ok') {
                     // Очистка формы
-                    document.getElementById('c-name').value = '';
+                    document.getElementById('c-collection').selectedIndex = 0;
+                    document.getElementById('c-chip-number').value = '';
                     document.getElementById('c-start').value = 'Common';
                     document.getElementById('c-target').value = 'Diamond';
                     document.getElementById('c-private').checked = false;
@@ -756,6 +788,7 @@
         }
 
         // Инициализация
+        populateCollectionSelector();
         populateGradeSelectors();
         generateStages();
         loadCrafts();
