@@ -416,7 +416,7 @@
                 let isSingleView = false;
 
                 if (privateId) {
-                    fetchUrl = `/api/craft/get?craftId=${privateId}`;
+                    fetchUrl = `/api/craft/get?craftId=${privateId}&userId=${userId}`;
                     isSingleView = true;
                 }
                 
@@ -484,11 +484,10 @@
                         `;
                     });
 
-                    const isOwner = userId == c.initiator_id || userId == 456789123; // ADMIN_ID
-                    const shareBtnHtml = isOwner
+                    const shareBtnHtml = c.can_delete
                         ? `<button class="action-btn btn-small" style="background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="shareCraft(${c.craft_id})">📤 Поделиться</button>`
                         : '';
-                    const deleteBtnHtml = isOwner
+                    const deleteBtnHtml = c.can_delete
                         ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>`
                         : '';
 

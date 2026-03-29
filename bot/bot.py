@@ -2492,6 +2492,7 @@ def api_craft_active():
         for row in crafts_rows:
             craft = dict(row)
             craft['initiator_username'] = craft.get('username')
+            craft['can_delete'] = (user_id == craft['initiator_id'] or user_id == ADMIN_ID)
             craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
             
             # Получаем этапы для каждого крафта
@@ -2543,9 +2544,11 @@ def api_craft_active():
 @app.route('/api/craft/get', methods=['GET'])
 def api_craft_get():
     """Получение конкретного крафта по ID (для перехода по приватной ссылке)"""
+    user_id = request.args.get('userId', 0)
     craft_id = request.args.get('craftId', 0)
     try:
         craft_id = int(craft_id)
+        user_id = int(user_id)
     except (ValueError, TypeError):
         return jsonify({'error': 'Invalid ID'}), 400
         
@@ -2566,6 +2569,7 @@ def api_craft_get():
             
         craft = dict(row)
         craft['initiator_username'] = craft.get('username')
+        craft['can_delete'] = (user_id == craft['initiator_id'] or user_id == ADMIN_ID)
         craft['initiator_name'] = craft.pop('username') or craft.pop('first_name') or f"Игрок {craft['initiator_id']}"
         
         cursor.execute('''
