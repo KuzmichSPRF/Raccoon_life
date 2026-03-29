@@ -2558,6 +2558,46 @@ def api_craft_complete_stage():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/craft/delete', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_craft_delete():
+    """Удаление объявления о крафте (создателем или админом)"""
+    try:
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        craft_id = int(data.get('craftId', 0))
+        
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            # Получаем информацию о крафте
+            cursor.execute('SELECT initiator_id FROM coop_crafts WHERE craft_id = ?', (craft_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return jsonify({'error': 'Craft not found'}), 404
+                
+            # Только инициатор крафта или админ могут удалить
+            if user_id != row['initiator_id'] and user_id != ADMIN_ID:
+                return jsonify({'error': 'Permission denied'}), 403
+            
+            # Удаляем сначала этапы, потом сам крафт
+            cursor.execute("DELETE FROM coop_craft_stages WHERE craft_id = ?", (craft_id,))
+            cursor.execute("DELETE FROM coop_crafts WHERE craft_id = ?", (craft_id,))
+            
+            conn.commit()
+            logger.info(f"🗑️ Крафт #{craft_id} удален пользователем {user_id}")
+            return jsonify({'status': 'ok'})
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.error(f"Ошибка api_craft_delete: {e}")
+        return jsonify({'error': str(e)}), 500
 # ==================== TELEGRAM BOT ====================
 
 def has_received_welcome_bonus(user_id: int) -> bool:

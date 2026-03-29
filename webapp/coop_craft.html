@@ -176,6 +176,13 @@
             box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
         }
 
+        .btn-delete {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+        }
+
+
         input, select {
             width: 100%;
             padding: 12px;
@@ -207,6 +214,24 @@
             padding: 20px;
             color: var(--primary);
             font-weight: bold;
+        }
+
+        .stages-container {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .toggle-stages-btn {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-sec);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
         }
 
         /* Styling for generated steps */
@@ -258,6 +283,15 @@
             <div id="stages-inputs"></div>
             
             <button class="action-btn" onclick="submitCraft()">🚀 Запустить крафт</button>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1001; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
+        <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(0, 136, 204, 0.3); padding: 25px;">
+            <h3 id="alert-title" style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Сообщение</h3>
+            <p id="alert-text" style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px; white-space: pre-wrap;"></p>
+            <button class="action-btn" style="padding: 12px 40px; width: auto;" onclick="closeAlertModal()">OK</button>
         </div>
     </div>
 
@@ -353,20 +387,16 @@
 
                         stagesHtml += `
                             <div class="stage-row">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                     <div style="flex:1; padding-right:10px;">
                                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
                                         <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
                                         <div class="stage-status ${statusClass}">${statusText}</div>`
                                         + (s.contributor_name ? (() => {
                                             let type_text = '';
-                                            if (s.contribution_type === 'items') {
-                                                type_text = '(фишки)';
-                                            } else if (s.contribution_type === 'gum') {
-                                                type_text = '($GUM)';
-                                            } else {
-                                                type_text = '(всё)';
-                                            }
+                                            if (s.contribution_type === 'items') { type_text = '(фишки)'; } 
+                                            else if (s.contribution_type === 'gum') { type_text = '($GUM)'; } 
+                                            else { type_text = '(всё)'; }
                                             return `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Помогает: ${s.contributor_name} ${type_text}</div>`;
                                         })() : '') + `
                                     </div>
@@ -375,6 +405,10 @@
                             </div>
                         `;
                     });
+
+                    const deleteBtnHtml = (userId == c.initiator_id) 
+                        ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>` 
+                        : '';
 
                     container.innerHTML += `
                         <div class="card">
@@ -385,8 +419,14 @@
                             <div class="target-grade">
                                 ${c.start_grade} ➔ <b>${c.target_grade}</b>
                             </div>
-                            <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--text-sec);">Этапы:</div>
-                            ${stagesHtml}
+                            <div class="stages-container" id="stages-for-craft-${c.craft_id}">
+                                <div style="font-size:14px; font-weight:bold; margin-bottom:10px; color:var(--text-sec);">Этапы:</div>
+                                ${stagesHtml}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                                <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">Показать этапы</button>
+                                ${deleteBtnHtml}
+                            </div>
                         </div>
                     `;
                 });
@@ -396,6 +436,18 @@
         }
 
         let currentPledgeStageId = null;
+
+        function toggleStages(craftId, button) {
+            const container = document.getElementById(`stages-for-craft-${craftId}`);
+            if (container.style.display === 'block') {
+                container.style.display = 'none';
+                button.innerText = 'Показать этапы';
+            } else {
+                container.style.display = 'block';
+                button.innerText = 'Скрыть этапы';
+            }
+            tg.HapticFeedback.impactOccurred('light');
+        }
 
         function pledgeStage(stageId) {
             tg.HapticFeedback.impactOccurred('medium');
@@ -407,6 +459,17 @@
             tg.HapticFeedback.impactOccurred('light');
             document.getElementById('pledge-overlay').style.display = 'none';
             currentPledgeStageId = null;
+        }
+
+        function showAlert(message, title = 'Сообщение') {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-text').innerText = message;
+            document.getElementById('alert-overlay').style.display = 'flex';
+            tg.HapticFeedback.notificationOccurred('error');
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-overlay').style.display = 'none';
         }
 
         async function submitPledge(pledgeType) {
@@ -421,12 +484,12 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    tg.showAlert('Вы успешно взялись за этап!');
+                    showAlert('Вы успешно взялись за этап!');
                     loadCrafts();
                 } else {
-                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
                 }
-            } catch(e) { tg.showAlert('Ошибка соединения'); }
+            } catch(e) { showAlert('Ошибка соединения'); }
         }
 
         async function completeStage(stageId) {
@@ -441,12 +504,32 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    tg.showAlert('Этап успешно завершен!');
+                    showAlert('Этап успешно завершен!');
                     loadCrafts();
                 } else {
-                    tg.showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
                 }
-            } catch(e) { tg.showAlert('Ошибка соединения'); }
+            } catch(e) { showAlert('Ошибка соединения'); }
+        }
+
+        async function deleteCraft(craftId) {
+            tg.HapticFeedback.impactOccurred('heavy');
+            if (!confirm('Вы уверены, что хотите удалить это объявление о крафте?')) return;
+
+            try {
+                const res = await fetch('/api/craft/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                    body: JSON.stringify({ userId, craftId })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    showAlert('Объявление удалено.');
+                    loadCrafts();
+                } else {
+                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                }
+            } catch(e) { showAlert('Ошибка соединения'); }
         }
 
         // --- Форма создания ---
@@ -530,7 +613,7 @@
             });
             
             if (!itemName || !startGrade || !targetGrade || stages.length === 0) {
-                tg.showAlert('Заполните все поля. Убедитесь, что начальный грейд ниже целевого.');
+                showAlert('Заполните все поля. Убедитесь, что начальный грейд ниже целевого.');
                 return;
             }
             
@@ -544,7 +627,7 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    tg.showAlert('Крафт успешно создан!');
+                    showAlert('Крафт успешно создан!');
                     // Очистка формы
                     document.getElementById('c-name').value = '';
                     document.getElementById('c-start').value = 'Common';
@@ -554,10 +637,10 @@
                     // Переключаемся на первую вкладку
                     document.querySelector('.tab-btn').click();
                 } else {
-                    tg.showAlert('Ошибка: ' + (data.error || ''));
+                    showAlert('Ошибка: ' + (data.error || ''));
                 }
             } catch(e) {
-                tg.showAlert('Ошибка соединения');
+                showAlert('Ошибка соединения');
             } finally {
                 tg.MainButton.hideProgress();
             }
