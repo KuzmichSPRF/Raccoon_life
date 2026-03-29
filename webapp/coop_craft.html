@@ -456,16 +456,20 @@
 
             const needsItems = /фишк/i.test(materialReq);
             const needsGum = /\$GUM/i.test(materialReq);
-            const itemsPledged = itemContributorId > 0;
-            const gumPledged = gumContributorId > 0;
+            const itemsAlreadyPledged = itemContributorId > 0;
+            const gumAlreadyPledged = gumContributorId > 0;
 
             const optionsContainer = document.getElementById('pledge-options');
             optionsContainer.innerHTML = '';
 
-            if (needsItems && !itemsPledged) {
+            // Если нужны оба ресурса и они оба свободны, показываем кнопку "всё"
+            if (needsItems && !itemsAlreadyPledged && needsGum && !gumAlreadyPledged) {
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 15px; width: 100%; background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="submitPledge('all')">И фишки, и $GUM</button>`;
+            }
+            if (needsItems && !itemsAlreadyPledged) {
                 optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">Только фишки</button>`;
             }
-            if (needsGum && !gumPledged) {
+            if (needsGum && !gumAlreadyPledged) {
                 optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">Только $GUM</button>`;
             }
 

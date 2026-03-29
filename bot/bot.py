@@ -2487,7 +2487,7 @@ def api_craft_pledge():
         data = request.get_json()
         user_id = int(data.get('userId', 0))
         stage_id = int(data.get('stageId', 0))
-        pledge_type = sanitize_string(data.get('pledgeType', 'items')) # 'items' или 'gum'
+        pledge_type = sanitize_string(data.get('pledgeType', 'all')) # 'items', 'gum', или 'all'
         
         auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
         if not auth_user or str(auth_user.get('id')) != str(user_id):
@@ -2502,11 +2502,13 @@ def api_craft_pledge():
             if not row:
                 return jsonify({'error': 'Stage not found'}), 404
 
+            # Проверяем, что можно взять на себя
             if pledge_type == 'items' and row['item_contributor_id'] is not None:
-                return jsonify({'error': 'Items for this stage are already pledged'}), 400
-            
+                return jsonify({'error': 'Фишки для этого этапа уже предоставляет другой игрок.'}), 400
             if pledge_type == 'gum' and row['gum_contributor_id'] is not None:
-                return jsonify({'error': 'GUM for this stage is already pledged'}), 400
+                return jsonify({'error': '$GUM для этого этапа уже предоставляет другой игрок.'}), 400
+            if pledge_type == 'all' and (row['item_contributor_id'] is not None or row['gum_contributor_id'] is not None):
+                return jsonify({'error': 'Часть этого этапа уже занята другим игроком.'}), 400
                 
             craft_id = row['craft_id']
             
@@ -2516,6 +2518,8 @@ def api_craft_pledge():
                 cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
             elif pledge_type == 'gum':
                 cursor.execute("UPDATE coop_craft_stages SET gum_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
+            elif pledge_type == 'all':
+                cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ?, gum_contributor_id = ? WHERE stage_id = ?", (user_id, user_id, stage_id))
             else:
                 return jsonify({'error': 'Invalid pledge type'}), 400
 
@@ -2523,10 +2527,14 @@ def api_craft_pledge():
             needs_items = 'фишк' in row['material_req']
             needs_gum = '$GUM' in row['material_req']
             
-            items_pledged = (row['item_contributor_id'] is not None) or (pledge_type == 'items')
-            gum_pledged = (row['gum_contributor_id'] is not None) or (pledge_type == 'gum')
+            # Получаем обновленные данные
+            cursor.execute('SELECT item_contributor_id, gum_contributor_id FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
+            updated_row = cursor.fetchone()
+            
+            items_now_pledged = updated_row['item_contributor_id'] is not None
+            gum_now_pledged = updated_row['gum_contributor_id'] is not None
 
-            if (not needs_items or items_pledged) and (not needs_gum or gum_pledged):
+            if (not needs_items or items_now_pledged) and (not needs_gum or gum_now_pledged):
                 cursor.execute("UPDATE coop_craft_stages SET status = 'pledged' WHERE stage_id = ?", (stage_id,))
 
             # Проверяем, заполнились ли все этапы крафта. Если да - переводим крафт в in_progress
