@@ -2406,6 +2406,8 @@ def api_craft_create():
         if not stages:
             return jsonify({'error': 'No stages provided'}), 400
 
+        ensure_user_exists(user_id, auth_user)
+
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
@@ -2615,7 +2617,7 @@ def api_craft_pledge():
             craft_id = row['craft_id']
             
             # Назначаем игрока
-            ensure_user_exists(user_id)
+            ensure_user_exists(user_id, auth_user)
             if pledge_type == 'items':
                 cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
             elif pledge_type == 'gum':
