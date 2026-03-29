@@ -395,6 +395,17 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
 
+    # Проверка coop_craft_stages на наличие item/gum contributor_id
+    cursor.execute("PRAGMA table_info(coop_craft_stages)")
+    coop_stages_cols = {row[1] for row in cursor.fetchall()}
+    if 'item_contributor_id' not in coop_stages_cols:
+        try:
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN item_contributor_id INTEGER")
+            cursor.execute("ALTER TABLE coop_craft_stages ADD COLUMN gum_contributor_id INTEGER")
+            logger.info("Миграция: добавлены колонки item_contributor_id, gum_contributor_id в coop_craft_stages")
+        except Exception as e:
+            logger.error(f"Ошибка миграции coop_craft_stages для мульти-крафта: {e}")
+
     # Проверка coop_craft_stages на наличие contribution_type
     cursor.execute("PRAGMA table_info(coop_craft_stages)")
     coop_stages_cols = {row[1] for row in cursor.fetchall()}
@@ -2430,10 +2441,14 @@ def api_craft_active():
             
             # Получаем этапы для каждого крафта
             cursor.execute('''
-                SELECT s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.contributor_id, s.status, s.contribution_type,
-                       u.username, u.first_name
+                SELECT 
+                    s.stage_id, s.stage_index, s.from_grade, s.to_grade, s.material_req, s.status,
+                    s.item_contributor_id, s.gum_contributor_id,
+                    item_user.username as item_username, item_user.first_name as item_first_name,
+                    gum_user.username as gum_username, gum_user.first_name as gum_first_name
                 FROM coop_craft_stages s
-                LEFT JOIN users u ON s.contributor_id = u.user_id
+                LEFT JOIN users item_user ON s.item_contributor_id = item_user.user_id
+                LEFT JOIN users gum_user ON s.gum_contributor_id = gum_user.user_id
                 WHERE s.craft_id = ?
                 ORDER BY s.stage_index ASC
             ''', (craft['craft_id'],))
@@ -2441,10 +2456,16 @@ def api_craft_active():
             stages = []
             for s_row in cursor.fetchall():
                 stage = dict(s_row)
-                if stage['contributor_id']:
-                    stage['contributor_name'] = stage.pop('username') or stage.pop('first_name') or f"Игрок {stage['contributor_id']}"
+                if stage['item_contributor_id']:
+                    stage['item_contributor_name'] = stage.pop('item_username') or stage.pop('item_first_name') or f"Игрок {stage['item_contributor_id']}"
                 else:
-                    stage['contributor_name'] = None
+                    stage['item_contributor_name'] = None
+                
+                if stage['gum_contributor_id']:
+                    stage['gum_contributor_name'] = stage.pop('gum_username') or stage.pop('gum_first_name') or f"Игрок {stage['gum_contributor_id']}"
+                else:
+                    stage['gum_contributor_name'] = None
+
                 stages.append(stage)
                 
             craft['stages'] = stages
@@ -2466,7 +2487,7 @@ def api_craft_pledge():
         data = request.get_json()
         user_id = int(data.get('userId', 0))
         stage_id = int(data.get('stageId', 0))
-        pledge_type = sanitize_string(data.get('pledgeType', 'all')) # 'items', 'gum', 'all'
+        pledge_type = sanitize_string(data.get('pledgeType', 'items')) # 'items' или 'gum'
         
         auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
         if not auth_user or str(auth_user.get('id')) != str(user_id):
@@ -2476,28 +2497,45 @@ def api_craft_pledge():
         cursor = conn.cursor()
         try:
             # Проверяем, свободен ли этап
-            cursor.execute('SELECT status, craft_id FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
+            cursor.execute('SELECT status, item_contributor_id, gum_contributor_id, craft_id, material_req FROM coop_craft_stages WHERE stage_id = ?', (stage_id,))
             row = cursor.fetchone()
-            if not row or row['status'] != 'pending':
-                return jsonify({'error': 'Stage is already assigned or completed'}), 400
+            if not row:
+                return jsonify({'error': 'Stage not found'}), 404
+
+            if pledge_type == 'items' and row['item_contributor_id'] is not None:
+                return jsonify({'error': 'Items for this stage are already pledged'}), 400
+            
+            if pledge_type == 'gum' and row['gum_contributor_id'] is not None:
+                return jsonify({'error': 'GUM for this stage is already pledged'}), 400
                 
             craft_id = row['craft_id']
             
             # Назначаем игрока
             ensure_user_exists(user_id)
-            cursor.execute('''
-                UPDATE coop_craft_stages 
-                SET contributor_id = ?, status = 'pledged', contribution_type = ?
-                WHERE stage_id = ?
-            ''', (user_id, pledge_type, stage_id))
+            if pledge_type == 'items':
+                cursor.execute("UPDATE coop_craft_stages SET item_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
+            elif pledge_type == 'gum':
+                cursor.execute("UPDATE coop_craft_stages SET gum_contributor_id = ? WHERE stage_id = ?", (user_id, stage_id))
+            else:
+                return jsonify({'error': 'Invalid pledge type'}), 400
+
+            # Проверяем, нужно ли обновить статус этапа
+            needs_items = 'фишк' in row['material_req']
+            needs_gum = '$GUM' in row['material_req']
             
-            # Проверяем, заполнились ли все этапы. Если да - переводим крафт в in_progress
+            items_pledged = (row['item_contributor_id'] is not None) or (pledge_type == 'items')
+            gum_pledged = (row['gum_contributor_id'] is not None) or (pledge_type == 'gum')
+
+            if (not needs_items or items_pledged) and (not needs_gum or gum_pledged):
+                cursor.execute("UPDATE coop_craft_stages SET status = 'pledged' WHERE stage_id = ?", (stage_id,))
+
+            # Проверяем, заполнились ли все этапы крафта. Если да - переводим крафт в in_progress
             cursor.execute("SELECT COUNT(*) FROM coop_craft_stages WHERE craft_id = ? AND status = 'pending'", (craft_id,))
             if cursor.fetchone()[0] == 0:
                 cursor.execute("UPDATE coop_crafts SET status = 'in_progress' WHERE craft_id = ?", (craft_id,))
                 
             conn.commit()
-            logger.info(f"🤝 Игрок {user_id} взялся за выполнение этапа #{stage_id} (Крафт #{craft_id})")
+            logger.info(f"🤝 Игрок {user_id} взялся за '{pledge_type}' для этапа #{stage_id} (Крафт #{craft_id})")
             return jsonify({'status': 'ok'})
         finally:
             conn.close()
@@ -2523,7 +2561,7 @@ def api_craft_complete_stage():
         try:
             # Получаем информацию об этапе и крафте
             cursor.execute('''
-                SELECT s.status, s.craft_id, c.initiator_id, s.contributor_id 
+                SELECT s.status, s.craft_id, c.initiator_id
                 FROM coop_craft_stages s
                 JOIN coop_crafts c ON s.craft_id = c.craft_id
                 WHERE s.stage_id = ?
@@ -2533,8 +2571,8 @@ def api_craft_complete_stage():
             if not row:
                 return jsonify({'error': 'Stage not found'}), 404
                 
-            # Только инициатор крафта или сам контрибьютор могут отметить этап выполненным
-            if user_id != row['initiator_id'] and user_id != row['contributor_id']:
+            # Только инициатор крафта может отметить этап выполненным
+            if user_id != row['initiator_id']:
                 return jsonify({'error': 'Permission denied'}), 403
                 
             if row['status'] == 'completed':

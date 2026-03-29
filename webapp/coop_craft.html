@@ -300,9 +300,9 @@
         <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(0, 136, 204, 0.3); padding: 25px;">
             <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Чем помочь?</h3>
             <p style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Выберите, что вы готовы предоставить для этого этапа:</p>
-            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">Только фишки</button>
-            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">Только $GUM</button>
-            <button class="action-btn btn-small" style="margin-bottom: 15px; width: 100%; background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="submitPledge('all')">И фишки, и $GUM</button>
+            <div id="pledge-options">
+                <!-- Кнопки генерируются динамически -->
+            </div>
             <button class="action-btn btn-small" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closePledgeModal()">Отмена</button>
         </div>
     </div>
@@ -378,10 +378,16 @@
                         let statusClass = s.status === 'pending' ? 'status-pending' : (s.status === 'pledged' ? 'status-pledged' : 'status-completed');
                         let statusText = s.status === 'pending' ? 'Ожидает помощника' : (s.status === 'pledged' ? 'В процессе' : '✅ Завершено');
                         
+                        const materialReq = s.material_req.replace(/'/g, "\\'");
+                        const needsItems = /фишк/i.test(materialReq);
+                        const needsGum = /\$GUM/i.test(materialReq);
+                        const itemsPledged = s.item_contributor_id > 0;
+                        const gumPledged = s.gum_contributor_id > 0;
+
                         let btnHtml = '';
-                        if (s.status === 'pending') {
-                            btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id})">🤝 Помочь</button>`;
-                        } else if (s.status === 'pledged' && (userId == c.initiator_id || userId == s.contributor_id)) {
+                        if (s.status === 'pending' && ((needsItems && !itemsPledged) || (needsGum && !gumPledged))) {
+                            btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id}, '${materialReq}', ${s.item_contributor_id || 0}, ${s.gum_contributor_id || 0})">🤝 Помочь</button>`;
+                        } else if (s.status === 'pledged' && userId == c.initiator_id) {
                             btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">Подтвердить</button>`;
                         }
 
@@ -390,15 +396,10 @@
                                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                     <div style="flex:1; padding-right:10px;">
                                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
-                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
-                                        <div class="stage-status ${statusClass}">${statusText}</div>`
-                                        + (s.contributor_name ? (() => {
-                                            let type_text = '';
-                                            if (s.contribution_type === 'items') { type_text = '(фишки)'; } 
-                                            else if (s.contribution_type === 'gum') { type_text = '($GUM)'; } 
-                                            else { type_text = '(всё)'; }
-                                            return `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Помогает: ${s.contributor_name} ${type_text}</div>`;
-                                        })() : '') + `
+                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>`
+                                        + (s.item_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Фишки: ${s.item_contributor_name}</div>` : '')
+                                        + (s.gum_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">💰 $GUM: ${s.gum_contributor_name}</div>` : '') +
+                                        `<div class="stage-status ${statusClass}">${statusText}</div>
                                     </div>
                                     <div>${btnHtml}</div>
                                 </div>
@@ -406,7 +407,7 @@
                         `;
                     });
 
-                    const deleteBtnHtml = (userId == c.initiator_id) 
+                    const deleteBtnHtml = (userId == c.initiator_id || userId == 456789123) // ADMIN_ID
                         ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>` 
                         : '';
 
@@ -449,9 +450,25 @@
             tg.HapticFeedback.impactOccurred('light');
         }
 
-        function pledgeStage(stageId) {
+        function pledgeStage(stageId, materialReq, itemContributorId, gumContributorId) {
             tg.HapticFeedback.impactOccurred('medium');
             currentPledgeStageId = stageId;
+
+            const needsItems = /фишк/i.test(materialReq);
+            const needsGum = /\$GUM/i.test(materialReq);
+            const itemsPledged = itemContributorId > 0;
+            const gumPledged = gumContributorId > 0;
+
+            const optionsContainer = document.getElementById('pledge-options');
+            optionsContainer.innerHTML = '';
+
+            if (needsItems && !itemsPledged) {
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">Только фишки</button>`;
+            }
+            if (needsGum && !gumPledged) {
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">Только $GUM</button>`;
+            }
+
             document.getElementById('pledge-overlay').style.display = 'flex';
         }
 
@@ -474,13 +491,16 @@
 
         async function submitPledge(pledgeType) {
             closePledgeModal();
-            if (!currentPledgeStageId) return;
+            const stageId = currentPledgeStageId;
+            if (!stageId) return;
+
+            currentPledgeStageId = null; // Сбрасываем сразу
             
             try {
                 const res = await fetch('/api/craft/pledge', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
-                    body: JSON.stringify({ userId, stageId: currentPledgeStageId, pledgeType: pledgeType })
+                    body: JSON.stringify({ userId, stageId: stageId, pledgeType: pledgeType })
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
@@ -494,7 +514,7 @@
 
         async function completeStage(stageId) {
             tg.HapticFeedback.impactOccurred('heavy');
-            if (!confirm('Подтверждаете передачу материалов и выполнение этапа?')) return;
+            if (!confirm('Подтверждаете, что все материалы для этого этапа получены?')) return;
             
             try {
                 const res = await fetch('/api/craft/complete_stage', {
