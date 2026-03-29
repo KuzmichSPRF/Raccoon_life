@@ -2466,15 +2466,26 @@ def api_craft_active():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Берем открытые публичные крафты, ЛИБО приватные крафты, созданные самим юзером
-        cursor.execute('''
-            SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
-                   u.username, u.first_name
-            FROM coop_crafts c
-            LEFT JOIN users u ON c.initiator_id = u.user_id
-            WHERE c.status IN ('open', 'in_progress') AND (c.is_private = 0 OR c.initiator_id = ?)
-            ORDER BY c.created_at DESC LIMIT 50
-        ''', (user_id,))
+        if user_id == ADMIN_ID:
+            # Админ видит все активные крафты (включая чужие приватные)
+            cursor.execute('''
+                SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
+                       u.username, u.first_name
+                FROM coop_crafts c
+                LEFT JOIN users u ON c.initiator_id = u.user_id
+                WHERE c.status IN ('open', 'in_progress')
+                ORDER BY c.created_at DESC LIMIT 50
+            ''')
+        else:
+            # Обычный игрок видит публичные крафты ЛИБО свои приватные
+            cursor.execute('''
+                SELECT c.craft_id, c.initiator_id, c.item_name, c.start_grade, c.target_grade, c.status, c.created_at,
+                       u.username, u.first_name
+                FROM coop_crafts c
+                LEFT JOIN users u ON c.initiator_id = u.user_id
+                WHERE c.status IN ('open', 'in_progress') AND (c.is_private = 0 OR c.initiator_id = ?)
+                ORDER BY c.created_at DESC LIMIT 50
+            ''', (user_id,))
         crafts_rows = cursor.fetchall()
         
         crafts = []
