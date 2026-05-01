@@ -248,6 +248,8 @@ def init_db():
                 side1_odds REAL,
                 side2_name TEXT,
                 side2_odds REAL,
+                draw_name TEXT DEFAULT 'Ничья',
+                draw_odds REAL DEFAULT 1.0,
                 start_time TEXT,
                 status TEXT DEFAULT 'draft', -- draft, active, locked, finished
                 winner INTEGER DEFAULT 0
@@ -469,6 +471,17 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка is_private в coop_crafts")
         except Exception as e:
             logger.error(f"Ошибка миграции coop_crafts.is_private: {e}")
+
+    # Проверка tot_events на наличие draw_odds
+    cursor.execute("PRAGMA table_info(tot_events)")
+    tot_events_cols = {row[1] for row in cursor.fetchall()}
+    if 'draw_odds' not in tot_events_cols:
+        try:
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN draw_name TEXT DEFAULT 'Ничья'")
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN draw_odds REAL DEFAULT 1.0")
+            logger.info("Миграция: добавлены колонки ничьей в tot_events")
+        except Exception as e:
+            logger.error(f"Ошибка миграции tot_events draw: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -3002,7 +3015,7 @@ def api_tot_my_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.title, e.side1_name, e.side2_name, e.side1_odds, e.side2_odds
+            SELECT b.*, e.title, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
             WHERE b.user_id = ?
@@ -3031,12 +3044,13 @@ def api_admin_tot_create():
         
         s1_odds = float(data.get('side1_odds') or 1.0)
         s2_odds = float(data.get('side2_odds') or 1.0)
+        draw_odds = float(data.get('draw_odds') or 1.0)
         
         cursor.execute('''
-            INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, start_time, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'draft')
+            INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, draw_name, draw_odds, start_time, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')
         ''', (data.get('title'), data.get('side1_name'), s1_odds,
-              data.get('side2_name'), s2_odds, data.get('start_time')))
+              data.get('side2_name'), s2_odds, data.get('draw_name', 'Ничья'), draw_odds, data.get('start_time')))
         event_id = cursor.lastrowid
         conn.commit()
         return jsonify({'status': 'ok', 'event_id': event_id})
@@ -3107,10 +3121,10 @@ def api_admin_tot_status():
             cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND side = ?", (event_id, winner))
             cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
         elif action == 'paid':
-            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
             bets = cursor.fetchall()
             for b in bets:
-                odds = b['side1_odds'] if b['winner'] == 1 else b['side2_odds']
+                odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b['draw_odds'])
                 add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
             cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         elif action == 'active':
@@ -3135,7 +3149,7 @@ def api_admin_tot_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.side1_name, e.side2_name, e.side1_odds, e.side2_odds, u.username
+            SELECT b.*, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, u.username
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
             JOIN users u ON b.user_id = u.user_id
@@ -3166,7 +3180,7 @@ def api_admin_tot_bet_status():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.user_id, b.amount, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.winner, b.event_id
+            SELECT b.user_id, b.amount, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, b.event_id
             FROM tot_bets b 
             JOIN tot_events e ON b.event_id = e.event_id 
             WHERE b.bet_id = ?
@@ -3184,7 +3198,7 @@ def api_admin_tot_bet_status():
                     msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
                 conn.commit()
             elif bet['status'] == 'won' and action == 'pay':
-                odds = bet['side1_odds'] if bet['winner'] == 1 else bet['side2_odds']
+                odds = bet['side1_odds'] if bet['winner'] == 1 else (bet['side2_odds'] if bet['winner'] == 2 else bet['draw_odds'])
                 win_amount = int(bet['amount'] * odds)
                 cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE bet_id = ?", (bet_id,))
                 conn.commit()
@@ -3905,7 +3919,7 @@ async def tot_finish_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
         
         # Отчет для админа
-        odds = event['side1_odds'] if winner == 1 else event['side2_odds']
+        odds = event['side1_odds'] if winner == 1 else (event['side2_odds'] if winner == 2 else event.get('draw_odds', 1.0))
         cursor.execute("SELECT b.amount, u.username, u.first_name FROM tot_bets b JOIN users u ON b.user_id = u.user_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
         report = f"🏆 <b>Итоги события #{event_id}</b>\nПобедила сторона {winner} (x{odds})\n\nК выплате:\n"
         total = 0
@@ -3927,10 +3941,10 @@ async def tot_pay_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+        cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
         bets = cursor.fetchall()
         for b in bets:
-            odds = b['side1_odds'] if b['winner'] == 1 else b['side2_odds']
+            odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b.get('draw_odds', 1.0))
             add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
         cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         conn.commit()

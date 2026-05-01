@@ -1109,18 +1109,22 @@
                 <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML((e.start_time || '').replace('T', ' '))}</div>
                 
                 ${!isLocked ? `
-                <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
-                  <button class="btn-primary" style="flex: 1; padding: 10px; font-size: 0.9rem;" onclick="placeBetForm(${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
-                    ${escapeHTML(e.side1_name)} (x${e.side1_odds})
+                <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px;">
+                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem;" onclick="placeBetForm(${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
+                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.7rem;">(x${e.side1_odds})</span>
                   </button>
-                  <button class="btn-primary" style="flex: 1; padding: 10px; font-size: 0.9rem;" onclick="placeBetForm(${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
-                    ${escapeHTML(e.side2_name)} (x${e.side2_odds})
+                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem; background: #555;" onclick="placeBetForm(${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1})">
+                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.7rem;">(x${e.draw_odds || 1})</span>
+                  </button>
+                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem;" onclick="placeBetForm(${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
+                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.7rem;">(x${e.side2_odds})</span>
                   </button>
                 </div>
                 ` : `
-                <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px; opacity: 0.7;">
-                  <div style="flex: 1; text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(e.side1_name)} (x${e.side1_odds})</div>
-                  <div style="flex: 1; text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(e.side2_name)} (x${e.side2_odds})</div>
+                <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px; opacity: 0.7;">
+                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side1_name)}<br>(x${e.side1_odds})</div>
+                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.draw_name || 'Ничья')}<br>(x${e.draw_odds || 1})</div>
+                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side2_name)}<br>(x${e.side2_odds})</div>
                 </div>
                 `}
               </div>
@@ -1180,8 +1184,8 @@
           }
           let html = '';
           data.bets.forEach(b => {
-            const sideName = b.side === 1 ? b.side1_name : b.side2_name;
-            const odds = b.side === 1 ? b.side1_odds : b.side2_odds;
+            const sideName = b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья'));
+            const odds = b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1));
             
             let statusColor = '#fff';
             let statusText = b.status;
@@ -1227,6 +1231,10 @@
           <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         </div>
         <div style="display:flex; gap:10px; width:100%;">
+          <input type="text" id="tot-draw-name" placeholder="Название (Ничья)" value="Ничья" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+          <input type="number" id="tot-draw-odds" placeholder="Коэф X" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        </div>
+        <div style="display:flex; gap:10px; width:100%;">
           <input type="text" id="tot-s2-name" placeholder="Сторона 2" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
           <input type="number" id="tot-s2-odds" placeholder="Коэф 2" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         </div>
@@ -1250,6 +1258,7 @@
     const title = document.getElementById('tot-title').value.trim();
     const side1 = document.getElementById('tot-s1-name').value.trim();
     const side2 = document.getElementById('tot-s2-name').value.trim();
+    const drawName = document.getElementById('tot-draw-name').value.trim() || 'Ничья';
     const startTime = document.getElementById('tot-start-time').value;
     
     if (!title || !side1 || !side2 || !startTime) {
@@ -1264,6 +1273,8 @@
       side1_odds: parseFloat(document.getElementById('tot-s1-odds').value) || 1.0,
       side2_name: side2,
       side2_odds: parseFloat(document.getElementById('tot-s2-odds').value) || 1.0,
+      draw_name: drawName,
+      draw_odds: parseFloat(document.getElementById('tot-draw-odds').value) || 1.0,
       start_time: startTime
     };
     
@@ -1299,12 +1310,13 @@
           html += `
             <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
               <div><b>#${e.event_id} ${escapeHTML(e.title)}</b> (Статус: ${e.status})</div>
-              <div style="font-size:0.8rem; color:#aaa;">${escapeHTML(e.side1_name)}(${e.side1_odds}) vs ${escapeHTML(e.side2_name)}(${e.side2_odds})</div>
+              <div style="font-size:0.8rem; color:#aaa;">${escapeHTML(e.side1_name)}(${e.side1_odds}) | ${escapeHTML(e.draw_name || 'Ничья')}(${e.draw_odds || 1}) | ${escapeHTML(e.side2_name)}(${e.side2_odds})</div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
                 ${e.status === 'draft' ? `<button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'active')">Активировать</button>` : ''}
                 ${e.status === 'active' ? `<button style="padding:5px 10px; background:#ffaa00; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'locked')">Заблокировать (Начать)</button>` : ''}
                 ${e.status === 'locked' ? `
                   <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 1)">Победил 1</button>
+                  <button style="padding:5px 10px; background:#666666; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 3)">Ничья</button>
                   <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 2)">Победил 2</button>
                 ` : ''}
                 ${e.status === 'finished' ? `<button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'paid')">Выплачено</button>` : ''}
@@ -1370,8 +1382,8 @@
       if (data.status === 'ok') {
         let html = '';
         data.bets.forEach(b => {
-          const sideName = b.side === 1 ? b.side1_name : b.side2_name;
-          const odds = b.side === 1 ? b.side1_odds : b.side2_odds;
+          const sideName = b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья'));
+          const odds = b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1));
           const winAmount = Math.floor(b.amount * odds);
 
           html += `
