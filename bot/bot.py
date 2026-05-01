@@ -3147,6 +3147,34 @@ def api_admin_tot_bet_status():
     finally:
         conn.close()
 
+@app.route('/api/admin/tot/delete', methods=['POST'])
+def api_admin_tot_delete():
+    """Удалить событие и все его ставки (Админ)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        event_id = int(data.get('eventId'))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Сначала удаляем все ставки, привязанные к этому событию
+        cursor.execute("DELETE FROM tot_bets WHERE event_id = ?", (event_id,))
+        # Затем удаляем само событие
+        cursor.execute("DELETE FROM tot_events WHERE event_id = ?", (event_id,))
+        
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 # ==================== TELEGRAM BOT ====================
 
 def has_received_welcome_bonus(user_id: int) -> bool:
