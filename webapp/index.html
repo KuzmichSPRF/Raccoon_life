@@ -1296,6 +1296,7 @@
                   <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 2)">Победил 2</button>
                 ` : ''}
                 ${e.status === 'finished' ? `<button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'paid')">Выплачено</button>` : ''}
+                <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminDeleteEvent(${e.event_id})">🗑 Удалить</button>
               </div>
             </div>
           `;
@@ -1320,6 +1321,24 @@
     .then(res => {
       if (res.status === 'ok') {
         tg.showAlert('Статус обновлен!');
+        totAdminLoadEvents();
+      } else {
+        tg.showAlert('Ошибка: ' + res.error);
+      }
+    });
+  }
+
+  function totAdminDeleteEvent(eventId) {
+    if (!confirm(`ВЫ ТОЧНО ХОТИТЕ УДАЛИТЬ СОБЫТИЕ #${eventId}?\n\nЭто действие безвозвратно удалит событие и все привязанные к нему ставки.`)) return;
+    
+    fetch('/api/admin/tot/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+      body: JSON.stringify({ userId: getUserId(), eventId: eventId })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.status === 'ok') {
         totAdminLoadEvents();
       } else {
         tg.showAlert('Ошибка: ' + res.error);

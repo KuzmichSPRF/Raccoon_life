@@ -2905,19 +2905,11 @@ def api_craft_delete():
 def api_tot_events():
     """Список активных событий для пользователей"""
     try:
-        user_id = request.args.get('userId', 0)
-        try:
-            user_id = int(user_id)
-        except:
-            user_id = 0
-            
-        is_admin = (user_id == ADMIN_ID)
-
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tot_events WHERE status IN ('active', 'locked') ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
-        return jsonify({'status': 'ok', 'events': events, 'is_admin': is_admin})
+        return jsonify({'status': 'ok', 'events': events})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -2950,10 +2942,6 @@ def api_tot_bet():
         event = cursor.fetchone()
         if not event or event['status'] != 'active':
             return jsonify({'error': 'Событие неактивно или не существует'}), 400
-
-        spend_result = spend_tokens(user_id, amount, f'tot_bet:{event_id}')
-        if not spend_result:
-            return jsonify({'error': 'Недостаточно шишек'}), 400
 
         # Списание токенов убрано - ставки делаются вне зависимости от баланса шишек
         
@@ -3050,9 +3038,6 @@ def api_admin_tot_status():
         cursor = conn.cursor()
         
         if action == 'locked':
-            cursor.execute("SELECT bet_id, user_id, amount FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
-            for b in cursor.fetchall():
-                add_tokens(b['user_id'], int(b['amount']), 'tot_bet_refund')
             # Ставки бесплатные, поэтому возврат отменен
             cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
             cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
@@ -3119,17 +3104,34 @@ def api_admin_tot_bet_status():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, amount, status FROM tot_bets WHERE bet_id = ?", (bet_id,))
+        cursor.execute('''
+            SELECT b.user_id, b.amount, b.status, e.title 
+            FROM tot_bets b 
+            JOIN tot_events e ON b.event_id = e.event_id 
+            WHERE b.bet_id = ?
+        ''', (bet_id,))
         bet = cursor.fetchone()
         
         if bet and bet['status'] == 'pending':
+            msg_text = ""
             if action == 'accept':
                 cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
+                msg_text = f"✅ Ваша ставка ({bet['amount']} CG) на <b>{bet['title']}</b> ПРИНЯТА."
             elif action == 'reject':
                 cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
-                add_tokens(bet['user_id'], int(bet['amount']), 'tot_bet_refund')
                 # Ставки бесплатные, поэтому возврат отменен
+                msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
             conn.commit()
+            
+            try:
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={"chat_id": bet['user_id'], "text": msg_text, "parse_mode": "HTML"},
+                    timeout=5
+                )
+            except Exception as e:
+                logger.error(f"Ошибка отправки уведомления о ставке: {e}")
+                
             return jsonify({'status': 'ok'})
         return jsonify({'error': 'Ставка уже обработана или не найдена'}), 400
     except Exception as e:
@@ -3779,15 +3781,11 @@ async def tot_lock_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_id = context.args[0]
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT bet_id, user_id, amount FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
-    for b in cursor.fetchall():
-        add_tokens(b['user_id'], int(b['amount']), 'tot_bet_refund')
     # Ставки бесплатные, поэтому возврат отменен
     cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
     cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
     conn.commit()
     conn.close()
-    await update.message.reply_text(f"🔒 Событие #{event_id} ЗАБЛОКИРОВАНО. Непринятые ставки удалены с возвратом средств.")
     await update.message.reply_text(f"🔒 Событие #{event_id} ЗАБЛОКИРОВАНО. Непринятые ставки удалены.")
 
 async def tot_finish_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3856,12 +3854,9 @@ async def tot_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if bet and bet['status'] == 'pending':
             if action == 'accept':
                 cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
-                await context.bot.send_message(chat_id=bet['user_id'], text=f"✅ Ваша ставка ({bet['amount']} Шишек) на <b>{bet['title']}</b> ПРИНЯТА.", parse_mode=ParseMode.HTML)
                 await context.bot.send_message(chat_id=bet['user_id'], text=f"✅ Ваша ставка ({bet['amount']}) на <b>{bet['title']}</b> ПРИНЯТА.", parse_mode=ParseMode.HTML)
             else:
                 cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
-                add_tokens(bet['user_id'], int(bet['amount']), 'tot_bet_refund')
-                await context.bot.send_message(chat_id=bet['user_id'], text=f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА. Шишки возвращены.", parse_mode=ParseMode.HTML)
                 await context.bot.send_message(chat_id=bet['user_id'], text=f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА.", parse_mode=ParseMode.HTML)
             conn.commit()
             await query.edit_message_text(f"{query.message.text_html}\n\nСтатус изменен: <b>{'ПРИНЯТО' if action=='accept' else 'ОТКЛОНЕНО'}</b>", parse_mode=ParseMode.HTML)
