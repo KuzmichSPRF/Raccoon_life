@@ -1087,7 +1087,9 @@
       .then(res => res.json())
       .then(data => {
         if (data.status === 'ok') {
-          if (data.is_admin) {
+          // Укажите свой реальный Telegram ID внутри массива:
+          const isFrontendAdmin = [123456789].includes(getUserId());
+          if (data.is_admin || data.isAdmin || isFrontendAdmin) {
             document.getElementById('tab-tot-admin').style.display = 'block';
           } else {
             document.getElementById('tab-tot-admin').style.display = 'none';
