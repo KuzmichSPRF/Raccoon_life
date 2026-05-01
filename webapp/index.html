@@ -272,6 +272,10 @@
         <span class="menu-card-icon">📰</span>
         <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
       </div>
+      <div class="menu-card" onclick="openTotalizator()">
+        <span class="menu-card-icon">🎲</span>
+        <span class="menu-card-title" data-i18n="menu_tot">Тотализатор</span>
+      </div>
       <div class="menu-card" onclick="window.location.href='coop_craft.html'">
         <span class="menu-card-icon">🛠</span>
         <span class="menu-card-title" data-i18n="menu_craft">Крафт</span>
@@ -313,6 +317,16 @@
     <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
+  <div id="tot-screen" class="screen">
+    <h2 class="section-title" style="text-align: center;" data-i18n="menu_tot">Тотализатор</h2>
+    <div class="rating-tabs" style="flex-wrap: wrap;">
+      <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents()">События</button>
+      <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets()">Мои ставки</button>
+      <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin()" style="background: #5c1a1a; border-color: #ff4444; display: none;">Админ</button>
+    </div>
+    <div id="tot-content" style="padding-bottom: 20px;"></div>
+  </div>
+
   <div id="reader-screen" class="screen">
     <div id="reader-topbar">
       <button id="back-btn" onclick="handleBack()">✕</button>
@@ -347,6 +361,7 @@
       menu_rating: "Рейтинг",
       menu_support: "Поддержать",
       menu_craft: "Крафт",
+      menu_tot: "Тотализатор",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
@@ -390,6 +405,7 @@
       menu_rating: "Rating",
       menu_support: "Support",
       menu_craft: "Craft",
+      menu_tot: "Betting",
       reader_title: "Viewer",
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
@@ -544,6 +560,11 @@
         icon: '🤝',
         title: currentLang === 'ru' ? '🤝 Партнеры' : '🤝 Partners',
         desc: currentLang === 'ru' ? 'Здесь вы найдете проекты наших партнеров. Поддерживайте друзей и получайте бонусы!' : 'Here you will find our partners\' projects. Support friends and get bonuses!'
+      },
+      tot: {
+        icon: '🎲',
+        title: currentLang === 'ru' ? '🎲 Тотализатор' : '🎲 Betting',
+        desc: currentLang === 'ru' ? 'Делайте ставки на события и выигрывайте шишки!' : 'Place bets on events and win cones!'
       }
     };
   }
@@ -829,6 +850,8 @@
       navigateTo('main-menu');
     } else if (current === 'main-menu') {
       navigateTo('cover-screen');
+    } else if (current === 'tot-screen') {
+      navigateTo('main-menu');
     }
   }
 
@@ -1045,6 +1068,310 @@
         console.error('Ошибка загрузки рейтинга:', err);
         list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
       });
+  }
+
+  // ==================== TOTALIZATOR ====================
+  function openTotalizator() {
+    navigateTo('tot-screen');
+    document.getElementById('tab-tot-admin').style.display = 'none';
+    loadTotEvents();
+  }
+
+  function loadTotEvents() {
+    document.querySelectorAll('#tot-screen .rating-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-tot-events').classList.add('active');
+    const content = document.getElementById('tot-content');
+    content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка событий...</div>';
+
+    fetch('/api/tot/events?userId=' + getUserId())
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          if (data.is_admin) {
+            document.getElementById('tab-tot-admin').style.display = 'block';
+          } else {
+            document.getElementById('tab-tot-admin').style.display = 'none';
+          }
+          if (data.events.length === 0) {
+            content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Нет активных событий.</div>';
+            return;
+          }
+          let html = '';
+          data.events.forEach(e => {
+            const isLocked = e.status === 'locked';
+            html += `
+              <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                <div style="width: 100%; display: flex; justify-content: space-between;">
+                  <span style="font-weight: 800; font-size: 1.1rem; color: var(--primary);">${escapeHTML(e.title)}</span>
+                  <span style="font-size: 0.8rem; padding: 3px 8px; border-radius: 8px; background: ${isLocked ? '#ff4444' : 'var(--game-green)'}; color: ${isLocked ? '#fff' : '#000'};">${isLocked ? 'СТАВКИ ЗАКРЫТЫ' : 'АКТИВНО'}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML(e.start_time)}</div>
+                
+                ${!isLocked ? `
+                <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+                  <button class="btn-primary" style="flex: 1; padding: 10px; font-size: 0.9rem;" onclick="placeBetForm(${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
+                    ${escapeHTML(e.side1_name)} (x${e.side1_odds})
+                  </button>
+                  <button class="btn-primary" style="flex: 1; padding: 10px; font-size: 0.9rem;" onclick="placeBetForm(${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
+                    ${escapeHTML(e.side2_name)} (x${e.side2_odds})
+                  </button>
+                </div>
+                ` : `
+                <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px; opacity: 0.7;">
+                  <div style="flex: 1; text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(e.side1_name)} (x${e.side1_odds})</div>
+                  <div style="flex: 1; text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1);">${escapeHTML(e.side2_name)} (x${e.side2_odds})</div>
+                </div>
+                `}
+              </div>
+            `;
+          });
+          content.innerHTML = html;
+        } else {
+          content.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка: ${data.error}</div>`;
+        }
+      })
+      .catch(err => {
+        content.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка сети</div>`;
+      });
+  }
+
+  function placeBetForm(eventId, side, sideName, odds) {
+    const amountStr = prompt(`Событие #${eventId}\nСтавка на: ${sideName} (множитель x${odds})\n\nВведите сумму ставки ($CG):`);
+    if (!amountStr) return;
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      tg.showAlert("Некорректная сумма!");
+      return;
+    }
+    
+    tg.MainButton.showProgress();
+    fetch('/api/tot/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+      body: JSON.stringify({ userId: getUserId(), eventId: eventId, side: side, amount: amount })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        tg.showAlert("Ставка размещена! Ожидает подтверждения администратора.");
+        loadTotMyBets();
+      } else {
+        tg.showAlert("Ошибка: " + data.error);
+      }
+    })
+    .catch(err => tg.showAlert("Ошибка сети"))
+    .finally(() => tg.MainButton.hideProgress());
+  }
+
+  function loadTotMyBets() {
+    document.querySelectorAll('#tot-screen .rating-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-tot-mybets').classList.add('active');
+    const content = document.getElementById('tot-content');
+    content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка истории...</div>';
+
+    fetch(`/api/tot/my_bets?userId=${getUserId()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          if (data.bets.length === 0) {
+            content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">У вас пока нет ставок.</div>';
+            return;
+          }
+          let html = '';
+          data.bets.forEach(b => {
+            const sideName = b.side === 1 ? b.side1_name : b.side2_name;
+            const odds = b.side === 1 ? b.side1_odds : b.side2_odds;
+            
+            let statusColor = '#fff';
+            let statusText = b.status;
+            if (b.status === 'pending') { statusColor = 'var(--game-yellow)'; statusText = 'Ожидает'; }
+            if (b.status === 'accepted') { statusColor = 'var(--primary)'; statusText = 'Принято'; }
+            if (b.status === 'rejected') { statusColor = '#ff4444'; statusText = 'Отклонено'; }
+            if (b.status === 'won') { statusColor = 'var(--game-green)'; statusText = 'Победа'; }
+            if (b.status === 'lost') { statusColor = '#ff4444'; statusText = 'Проигрыш'; }
+            if (b.status === 'paid') { statusColor = 'var(--game-green)'; statusText = 'Завершено (Выплачено)'; }
+
+            html += `
+              <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                <div style="width: 100%; display: flex; justify-content: space-between;">
+                  <span style="font-weight: bold; color: var(--text-main);">${escapeHTML(b.title)}</span>
+                  <span style="font-size: 0.8rem; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,0.1); color: ${statusColor};">${statusText}</span>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-sec);">Ставка: <b>${b.amount} CG</b> на ${escapeHTML(sideName)} (x${odds})</div>
+                <div style="font-size: 0.75rem; color: var(--text-sec);">Дата: ${b.created_at}</div>
+              </div>
+            `;
+          });
+          content.innerHTML = html;
+        } else {
+          content.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка: ${data.error}</div>`;
+        }
+      })
+      .catch(err => {
+        content.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка сети</div>`;
+      });
+  }
+
+  function loadTotAdmin() {
+    document.querySelectorAll('#tot-screen .rating-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-tot-admin').classList.add('active');
+    const content = document.getElementById('tot-content');
+    
+    content.innerHTML = `
+      <div style="background: rgba(255,0,0,0.1); border: 1px solid #ff4444; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+        <h3 style="margin-top:0; color:#ff4444; margin-bottom: 10px;">Создать событие</h3>
+        <input type="text" id="tot-title" placeholder="Название события" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <div style="display:flex; gap:10px; width:100%;">
+          <input type="text" id="tot-s1-name" placeholder="Сторона 1" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+          <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        </div>
+        <div style="display:flex; gap:10px; width:100%;">
+          <input type="text" id="tot-s2-name" placeholder="Сторона 2" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+          <input type="number" id="tot-s2-odds" placeholder="Коэф 2" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        </div>
+        <input type="text" id="tot-start-time" placeholder="Время начала (Текст)" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <button class="btn-primary" style="width:100%; background:#ff4444; border-radius:8px; padding: 10px;" onclick="totAdminCreateEvent()">Создать (Draft)</button>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-bottom: 20px;">
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.9rem;" onclick="totAdminLoadEvents()">Все события</button>
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.9rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Ожидающие ставки</button>
+      </div>
+      
+      <div id="tot-admin-list" style="text-align: center; color: var(--text-sec);">Загрузка...</div>
+    `;
+    totAdminLoadBets('pending');
+  }
+
+  function totAdminCreateEvent() {
+    const data = {
+      userId: getUserId(),
+      title: document.getElementById('tot-title').value,
+      side1_name: document.getElementById('tot-s1-name').value,
+      side1_odds: parseFloat(document.getElementById('tot-s1-odds').value),
+      side2_name: document.getElementById('tot-s2-name').value,
+      side2_odds: parseFloat(document.getElementById('tot-s2-odds').value),
+      start_time: document.getElementById('tot-start-time').value
+    };
+    
+    fetch('/api/admin/tot/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+      body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.status === 'ok') {
+        tg.showAlert('Событие создано! ID: ' + res.event_id);
+        totAdminLoadEvents();
+      } else {
+        tg.showAlert('Ошибка: ' + res.error);
+        if (res.error === 'Unauthorized') document.getElementById('tab-tot-admin').style.display = 'none';
+      }
+    });
+  }
+
+  function totAdminLoadEvents() {
+    const list = document.getElementById('tot-admin-list');
+    list.innerHTML = 'Загрузка событий...';
+    
+    fetch(`/api/admin/tot/events?userId=${getUserId()}`, {
+      headers: { 'X-Telegram-Init-Data': tg.initData || '' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        let html = '';
+        data.events.forEach(e => {
+          html += `
+            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
+              <div><b>#${e.event_id} ${escapeHTML(e.title)}</b> (Статус: ${e.status})</div>
+              <div style="font-size:0.8rem; color:#aaa;">${escapeHTML(e.side1_name)}(${e.side1_odds}) vs ${escapeHTML(e.side2_name)}(${e.side2_odds})</div>
+              <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
+                ${e.status === 'draft' ? `<button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'active')">Активировать</button>` : ''}
+                ${e.status === 'active' ? `<button style="padding:5px 10px; background:#ffaa00; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'locked')">Заблокировать (Начать)</button>` : ''}
+                ${e.status === 'locked' ? `
+                  <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 1)">Победил 1</button>
+                  <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 2)">Победил 2</button>
+                ` : ''}
+                ${e.status === 'finished' ? `<button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'paid')">Выплачено</button>` : ''}
+              </div>
+            </div>
+          `;
+        });
+        list.innerHTML = html || 'Событий нет';
+      } else {
+        list.innerHTML = 'Ошибка: ' + data.error;
+        if (data.error === 'Unauthorized') document.getElementById('tab-tot-admin').style.display = 'none';
+      }
+    });
+  }
+
+  function totAdminAction(eventId, action, winner = 0) {
+    if (!confirm(`Подтверждаете действие '${action}' для события #${eventId}?`)) return;
+    
+    fetch('/api/admin/tot/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+      body: JSON.stringify({ userId: getUserId(), eventId: eventId, action: action, winner: winner })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.status === 'ok') {
+        tg.showAlert('Статус обновлен!');
+        totAdminLoadEvents();
+      } else {
+        tg.showAlert('Ошибка: ' + res.error);
+      }
+    });
+  }
+
+  function totAdminLoadBets(status) {
+    const list = document.getElementById('tot-admin-list');
+    list.innerHTML = 'Загрузка ставок...';
+    
+    fetch(`/api/admin/tot/bets?userId=${getUserId()}&status=${status}`, {
+      headers: { 'X-Telegram-Init-Data': tg.initData || '' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        let html = '';
+        data.bets.forEach(b => {
+          const sideName = b.side === 1 ? b.side1_name : b.side2_name;
+          html += `
+            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
+              <div><b>Ставка #${b.bet_id}</b> | Игрок: @${escapeHTML(b.username)} (ID:${b.user_id})</div>
+              <div style="font-size:0.85rem; color:#ccc;">${b.amount} CG на ${escapeHTML(sideName)} (Событие #${b.event_id})</div>
+              <div style="display:flex; gap:5px; margin-top:5px;">
+                <button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'accept')">✅ Принять</button>
+                <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'reject')">❌ Отклонить</button>
+              </div>
+            </div>
+          `;
+        });
+        list.innerHTML = html || 'Нет ожидающих ставок';
+      } else {
+        list.innerHTML = 'Ошибка: ' + data.error;
+        if (data.error === 'Unauthorized') document.getElementById('tab-tot-admin').style.display = 'none';
+      }
+    });
+  }
+
+  function totAdminBetAction(betId, action) {
+    fetch('/api/admin/tot/bet_status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+      body: JSON.stringify({ userId: getUserId(), betId: betId, action: action })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.status === 'ok') {
+        totAdminLoadBets('pending');
+      } else {
+        tg.showAlert('Ошибка: ' + res.error);
+      }
+    });
   }
 
   function escapeHTML(str) {
