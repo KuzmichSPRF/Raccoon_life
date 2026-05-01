@@ -1073,7 +1073,7 @@
   // ==================== TOTALIZATOR ====================
   function openTotalizator() {
     navigateTo('tot-screen');
-    document.getElementById('tab-tot-admin').style.display = 'none';
+    document.getElementById('tab-tot-admin').style.display = 'block';
     loadTotEvents();
   }
 
@@ -1086,19 +1086,6 @@
     fetch('/api/tot/events?userId=' + getUserId())
       .then(res => res.json())
       .then(data => {
-        // Проверяем права админа независимо от ответа сервера
-        const currentId = String(getUserId());
-        console.log("Мой Telegram ID:", currentId); // Если вкладки нет, нажмите F12 и посмотрите свой ID в консоли
-        
-        // Укажите свой ID В КАВЫЧКАХ!
-        const isFrontendAdmin = ["1101701507"].includes(currentId);
-        
-        if (data.is_admin || data.isAdmin || isFrontendAdmin) {
-          document.getElementById('tab-tot-admin').style.display = 'block';
-        } else {
-          document.getElementById('tab-tot-admin').style.display = 'none';
-        }
-
         if (data.status === 'ok') {
           if (data.events.length === 0) {
             content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Нет активных событий.</div>';
