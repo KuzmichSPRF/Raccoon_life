@@ -1234,10 +1234,6 @@
         <button class="btn-primary" style="width:100%; background:#ff4444; border-radius:8px; padding: 10px;" onclick="totAdminCreateEvent()">Создать (Draft)</button>
       </div>
       
-      <div style="display:flex; gap:10px; margin-bottom: 20px;">
-        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem;" onclick="totAdminLoadEvents()">События</button>
-        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Ожидают</button>
-        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#9b59b6;" onclick="totAdminLoadBets('won')">К выплате</button>
       <div style="display:flex; gap:5px; margin-bottom: 20px;">
         <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem;" onclick="totAdminLoadEvents()">События</button>
         <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Заявки</button>
@@ -1251,14 +1247,24 @@
   }
 
   function totAdminCreateEvent() {
+    const title = document.getElementById('tot-title').value.trim();
+    const side1 = document.getElementById('tot-s1-name').value.trim();
+    const side2 = document.getElementById('tot-s2-name').value.trim();
+    const startTime = document.getElementById('tot-start-time').value;
+    
+    if (!title || !side1 || !side2 || !startTime) {
+      tg.showAlert('Пожалуйста, заполните все поля!');
+      return;
+    }
+
     const data = {
       userId: getUserId(),
-      title: document.getElementById('tot-title').value,
-      side1_name: document.getElementById('tot-s1-name').value,
-      side1_odds: parseFloat(document.getElementById('tot-s1-odds').value),
-      side2_name: document.getElementById('tot-s2-name').value,
-      side2_odds: parseFloat(document.getElementById('tot-s2-odds').value),
-      start_time: document.getElementById('tot-start-time').value
+      title: title,
+      side1_name: side1,
+      side1_odds: parseFloat(document.getElementById('tot-s1-odds').value) || 1.0,
+      side2_name: side2,
+      side2_odds: parseFloat(document.getElementById('tot-s2-odds').value) || 1.0,
+      start_time: startTime
     };
     
     fetch('/api/admin/tot/create', {

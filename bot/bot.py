@@ -3028,11 +3028,15 @@ def api_admin_tot_create():
 
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        s1_odds = float(data.get('side1_odds') or 1.0)
+        s2_odds = float(data.get('side2_odds') or 1.0)
+        
         cursor.execute('''
             INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, start_time, status)
             VALUES (?, ?, ?, ?, ?, ?, 'draft')
-        ''', (data.get('title'), data.get('side1_name'), float(data.get('side1_odds', 1)),
-              data.get('side2_name'), float(data.get('side2_odds', 1)), data.get('start_time')))
+        ''', (data.get('title'), data.get('side1_name'), s1_odds,
+              data.get('side2_name'), s2_odds, data.get('start_time')))
         event_id = cursor.lastrowid
         conn.commit()
         return jsonify({'status': 'ok', 'event_id': event_id})
