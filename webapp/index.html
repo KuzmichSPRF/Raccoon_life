@@ -1235,8 +1235,9 @@
       </div>
       
       <div style="display:flex; gap:10px; margin-bottom: 20px;">
-        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.9rem;" onclick="totAdminLoadEvents()">Все события</button>
-        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.9rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Ожидающие ставки</button>
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem;" onclick="totAdminLoadEvents()">События</button>
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Ожидают</button>
+        <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#9b59b6;" onclick="totAdminLoadBets('won')">К выплате</button>
       </div>
       
       <div id="tot-admin-list" style="text-align: center; color: var(--text-sec);">Загрузка...</div>
@@ -1359,18 +1360,33 @@
         let html = '';
         data.bets.forEach(b => {
           const sideName = b.side === 1 ? b.side1_name : b.side2_name;
+          const odds = b.side === 1 ? b.side1_odds : b.side2_odds;
+          const winAmount = Math.floor(b.amount * odds);
+
           html += `
             <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
               <div><b>Ставка #${b.bet_id}</b> | Игрок: @${escapeHTML(b.username)} (ID:${b.user_id})</div>
               <div style="font-size:0.85rem; color:#ccc;">${b.amount} CG на ${escapeHTML(sideName)} (Событие #${b.event_id})</div>
-              <div style="display:flex; gap:5px; margin-top:5px;">
-                <button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'accept')">✅ Принять</button>
-                <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'reject')">❌ Отклонить</button>
-              </div>
-            </div>
           `;
+          
+          if (status === 'pending') {
+            html += `
+              <div style="display:flex; gap:5px; margin-top:5px;">
+                <button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'accept', 'pending')">✅ Принять</button>
+                <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'reject', 'pending')">❌ Отклонить</button>
+              </div>
+            `;
+          } else if (status === 'won') {
+            html += `
+              <div style="font-size:0.9rem; color:#00ff88; font-weight:bold;">💰 К выплате: ${winAmount} Шишек</div>
+              <div style="display:flex; gap:5px; margin-top:5px;">
+                <button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'pay', 'won')">💰 Выплатить</button>
+              </div>
+            `;
+          }
+          html += `</div>`;
         });
-        list.innerHTML = html || 'Нет ожидающих ставок';
+        list.innerHTML = html || (status === 'pending' ? 'Нет ожидающих ставок' : 'Нет ставок к выплате');
       } else {
         list.innerHTML = 'Ошибка: ' + data.error;
         if (data.error === 'Unauthorized') document.getElementById('tab-tot-admin').style.display = 'none';
@@ -1378,7 +1394,7 @@
     });
   }
 
-  function totAdminBetAction(betId, action) {
+  function totAdminBetAction(betId, action, currentStatus = 'pending') {
     fetch('/api/admin/tot/bet_status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
@@ -1387,7 +1403,7 @@
     .then(r => r.json())
     .then(res => {
       if (res.status === 'ok') {
-        totAdminLoadBets('pending');
+        totAdminLoadBets(currentStatus);
       } else {
         tg.showAlert('Ошибка: ' + res.error);
       }

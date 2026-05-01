@@ -3082,7 +3082,7 @@ def api_admin_tot_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.side1_name, e.side2_name, u.username
+            SELECT b.*, e.side1_name, e.side2_name, e.side1_odds, e.side2_odds, u.username
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
             JOIN users u ON b.user_id = u.user_id
@@ -3113,7 +3113,7 @@ def api_admin_tot_bet_status():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.user_id, b.amount, b.status, e.title 
+            SELECT b.user_id, b.amount, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.winner, b.event_id
             FROM tot_bets b 
             JOIN tot_events e ON b.event_id = e.event_id 
             WHERE b.bet_id = ?
