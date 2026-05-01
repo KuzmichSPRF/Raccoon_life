@@ -1238,6 +1238,11 @@
         <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem;" onclick="totAdminLoadEvents()">События</button>
         <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Ожидают</button>
         <button class="btn-primary" style="flex:1; padding:10px; font-size:0.8rem; background:#9b59b6;" onclick="totAdminLoadBets('won')">К выплате</button>
+      <div style="display:flex; gap:5px; margin-bottom: 20px;">
+        <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem;" onclick="totAdminLoadEvents()">События</button>
+        <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem; background:#e67e22;" onclick="totAdminLoadBets('pending')">Заявки</button>
+        <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem; background:#2980b9;" onclick="totAdminLoadBets('accepted')">Принятые</button>
+        <button class="btn-primary" style="flex:1; padding:10px 5px; font-size:0.75rem; background:#9b59b6;" onclick="totAdminLoadBets('won')">Выплаты</button>
       </div>
       
       <div id="tot-admin-list" style="text-align: center; color: var(--text-sec);">Загрузка...</div>
@@ -1376,6 +1381,10 @@
                 <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'reject', 'pending')">❌ Отклонить</button>
               </div>
             `;
+              } else if (status === 'accepted') {
+                html += `
+                  <div style="font-size:0.9rem; color:#00ff88; margin-top:5px;">✅ Принята (в игре)</div>
+                `;
           } else if (status === 'won') {
             html += `
               <div style="font-size:0.9rem; color:#00ff88; font-weight:bold;">💰 К выплате: ${winAmount} Шишек</div>
@@ -1387,6 +1396,12 @@
           html += `</div>`;
         });
         list.innerHTML = html || (status === 'pending' ? 'Нет ожидающих ставок' : 'Нет ставок к выплате');
+            
+            let emptyText = 'Нет ставок';
+            if (status === 'pending') emptyText = 'Нет новых заявок';
+            if (status === 'accepted') emptyText = 'Нет принятых ставок';
+            if (status === 'won') emptyText = 'Нет ставок к выплате';
+            list.innerHTML = html || emptyText;
       } else {
         list.innerHTML = 'Ошибка: ' + data.error;
         if (data.error === 'Unauthorized') document.getElementById('tab-tot-admin').style.display = 'none';
