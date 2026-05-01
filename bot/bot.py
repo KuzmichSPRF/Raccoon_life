@@ -2898,6 +2898,233 @@ def api_craft_delete():
     except Exception as e:
         logger.error(f"Ошибка api_craft_delete: {e}")
         return jsonify({'error': str(e)}), 500
+
+# ==================== TOTALIZATOR API ====================
+
+@app.route('/api/tot/events', methods=['GET'])
+def api_tot_events():
+    """Список активных событий для пользователей"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tot_events WHERE status IN ('active', 'locked') ORDER BY event_id DESC")
+        events = [dict(row) for row in cursor.fetchall()]
+        return jsonify({'status': 'ok', 'events': events})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/tot/bet', methods=['POST'])
+@limiter.limit("10 per minute")
+def api_tot_bet():
+    """Сделать ставку"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        event_id = int(data.get('eventId', 0))
+        side = int(data.get('side', 1))
+        amount = int(data.get('amount', 0))
+
+        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
+        if not auth_user or str(auth_user.get('id')) != str(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        if amount <= 0:
+            return jsonify({'error': 'Сумма должна быть больше 0'}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT status FROM tot_events WHERE event_id = ?", (event_id,))
+        event = cursor.fetchone()
+        if not event or event['status'] != 'active':
+            return jsonify({'error': 'Событие неактивно или не существует'}), 400
+
+        spend_result = spend_tokens(user_id, amount, f'tot_bet:{event_id}')
+        if not spend_result:
+            return jsonify({'error': 'Недостаточно шишек'}), 400
+
+        cursor.execute("INSERT INTO tot_bets (event_id, user_id, side, amount, status) VALUES (?, ?, ?, ?, 'pending')",
+                       (event_id, user_id, side, amount))
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/tot/my_bets', methods=['GET'])
+def api_tot_my_bets():
+    """История ставок пользователя"""
+    try:
+        user_id = int(request.args.get('userId', 0))
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT b.*, e.title, e.side1_name, e.side2_name, e.side1_odds, e.side2_odds
+            FROM tot_bets b
+            JOIN tot_events e ON b.event_id = e.event_id
+            WHERE b.user_id = ?
+            ORDER BY b.created_at DESC
+        ''', (user_id,))
+        bets = [dict(row) for row in cursor.fetchall()]
+        return jsonify({'status': 'ok', 'bets': bets})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/tot/create', methods=['POST'])
+def api_admin_tot_create():
+    """Создать событие (Админ)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, start_time, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'draft')
+        ''', (data.get('title'), data.get('side1_name'), float(data.get('side1_odds', 1)),
+              data.get('side2_name'), float(data.get('side2_odds', 1)), data.get('start_time')))
+        event_id = cursor.lastrowid
+        conn.commit()
+        return jsonify({'status': 'ok', 'event_id': event_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/tot/events', methods=['GET'])
+def api_admin_tot_events():
+    """Список всех событий (Админ)"""
+    try:
+        user_id = int(request.args.get('userId', 0))
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tot_events ORDER BY event_id DESC")
+        events = [dict(row) for row in cursor.fetchall()]
+        return jsonify({'status': 'ok', 'events': events})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/tot/status', methods=['POST'])
+def api_admin_tot_status():
+    """Изменить статус события (Админ)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        event_id = int(data.get('eventId'))
+        action = data.get('action')
+        winner = int(data.get('winner', 0))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if action == 'locked':
+            cursor.execute("SELECT bet_id, user_id, amount FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+            for b in cursor.fetchall():
+                add_tokens(b['user_id'], int(b['amount']), 'tot_bet_refund')
+            cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+            cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
+        elif action == 'finished':
+            cursor.execute("UPDATE tot_events SET status = 'finished', winner = ? WHERE event_id = ?", (winner, event_id))
+            cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND side = ?", (event_id, winner))
+            cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
+        elif action == 'paid':
+            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+            bets = cursor.fetchall()
+            for b in bets:
+                odds = b['side1_odds'] if b['winner'] == 1 else b['side2_odds']
+                add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
+            cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
+        elif action == 'active':
+            cursor.execute("UPDATE tot_events SET status = 'active' WHERE event_id = ?", (event_id,))
+            
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/tot/bets', methods=['GET'])
+def api_admin_tot_bets():
+    """Список ставок (Админ)"""
+    try:
+        user_id = int(request.args.get('userId', 0))
+        status = request.args.get('status', 'pending')
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT b.*, e.side1_name, e.side2_name, u.username
+            FROM tot_bets b
+            JOIN tot_events e ON b.event_id = e.event_id
+            JOIN users u ON b.user_id = u.user_id
+            WHERE b.status = ?
+            ORDER BY b.created_at ASC
+        ''', (status,))
+        bets = [dict(row) for row in cursor.fetchall()]
+        return jsonify({'status': 'ok', 'bets': bets})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/admin/tot/bet_status', methods=['POST'])
+def api_admin_tot_bet_status():
+    """Одобрить/Отклонить ставку (Админ)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        if user_id != ADMIN_ID:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        bet_id = int(data.get('betId'))
+        action = data.get('action')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, amount, status FROM tot_bets WHERE bet_id = ?", (bet_id,))
+        bet = cursor.fetchone()
+        
+        if bet and bet['status'] == 'pending':
+            if action == 'accept':
+                cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
+            elif action == 'reject':
+                cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
+                add_tokens(bet['user_id'], int(bet['amount']), 'tot_bet_refund')
+            conn.commit()
+            return jsonify({'status': 'ok'})
+        return jsonify({'error': 'Ставка уже обработана или не найдена'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 # ==================== TELEGRAM BOT ====================
 
 def has_received_welcome_bonus(user_id: int) -> bool:
