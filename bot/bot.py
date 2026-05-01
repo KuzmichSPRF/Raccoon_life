@@ -2905,11 +2905,19 @@ def api_craft_delete():
 def api_tot_events():
     """Список активных событий для пользователей"""
     try:
+        user_id = request.args.get('userId', 0)
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            user_id = 0
+            
+        is_admin = (user_id == ADMIN_ID)
+
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tot_events WHERE status IN ('active', 'locked') ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
-        return jsonify({'status': 'ok', 'events': events})
+        return jsonify({'status': 'ok', 'events': events, 'is_admin': is_admin})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
