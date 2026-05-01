@@ -3120,16 +3120,26 @@ def api_admin_tot_bet_status():
         ''', (bet_id,))
         bet = cursor.fetchone()
         
-        if bet and bet['status'] == 'pending':
+        if bet:
             msg_text = ""
-            if action == 'accept':
-                cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
-                msg_text = f"✅ Ваша ставка ({bet['amount']} CG) на <b>{bet['title']}</b> ПРИНЯТА."
-            elif action == 'reject':
-                cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
-                # Ставки бесплатные, поэтому возврат отменен
-                msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
-            conn.commit()
+            if bet['status'] == 'pending':
+                if action == 'accept':
+                    cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
+                    msg_text = f"✅ Ваша ставка ({bet['amount']} CG) на <b>{bet['title']}</b> ПРИНЯТА."
+                elif action == 'reject':
+                    cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
+                    msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
+                conn.commit()
+            elif bet['status'] == 'won' and action == 'pay':
+                odds = bet['side1_odds'] if bet['winner'] == 1 else bet['side2_odds']
+                win_amount = int(bet['amount'] * odds)
+                cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE bet_id = ?", (bet_id,))
+                conn.commit()
+                
+                add_tokens(bet['user_id'], win_amount, f"tot_win:{bet['event_id']}")
+                msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} Шишек</b> начислен на баланс!"
+            else:
+                return jsonify({'error': 'Ставка уже обработана или неверное действие'}), 400
             
             try:
                 requests.post(
@@ -3141,7 +3151,7 @@ def api_admin_tot_bet_status():
                 logger.error(f"Ошибка отправки уведомления о ставке: {e}")
                 
             return jsonify({'status': 'ok'})
-        return jsonify({'error': 'Ставка уже обработана или не найдена'}), 400
+        return jsonify({'error': 'Ставка не найдена'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
