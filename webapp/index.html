@@ -1073,8 +1073,7 @@
   // ==================== TOTALIZATOR ====================
   function openTotalizator() {
     navigateTo('tot-screen');
-    // По умолчанию показываем вкладку админа (бэкенд отдаст 403, если не админ, и вкладка спрячется)
-    document.getElementById('tab-tot-admin').style.display = 'block';
+    document.getElementById('tab-tot-admin').style.display = 'none';
     loadTotEvents();
   }
 
@@ -1084,10 +1083,15 @@
     const content = document.getElementById('tot-content');
     content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка событий...</div>';
 
-    fetch('/api/tot/events')
+    fetch('/api/tot/events?userId=' + getUserId())
       .then(res => res.json())
       .then(data => {
         if (data.status === 'ok') {
+          if (data.is_admin) {
+            document.getElementById('tab-tot-admin').style.display = 'block';
+          } else {
+            document.getElementById('tab-tot-admin').style.display = 'none';
+          }
           if (data.events.length === 0) {
             content.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Нет активных событий.</div>';
             return;
@@ -1217,13 +1221,13 @@
       <div style="background: rgba(255,0,0,0.1); border: 1px solid #ff4444; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
         <h3 style="margin-top:0; color:#ff4444; margin-bottom: 10px;">Создать событие</h3>
         <input type="text" id="tot-title" placeholder="Название события" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
-        <div style="display:flex; gap:10px;">
-          <input type="text" id="tot-s1-name" placeholder="Сторона 1" style="flex:2; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
-          <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <div style="display:flex; gap:10px; width:100%;">
+          <input type="text" id="tot-s1-name" placeholder="Сторона 1" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+          <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         </div>
-        <div style="display:flex; gap:10px;">
-          <input type="text" id="tot-s2-name" placeholder="Сторона 2" style="flex:2; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
-          <input type="number" id="tot-s2-odds" placeholder="Коэф 2" step="0.01" style="flex:1; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <div style="display:flex; gap:10px; width:100%;">
+          <input type="text" id="tot-s2-name" placeholder="Сторона 2" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+          <input type="number" id="tot-s2-odds" placeholder="Коэф 2" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         </div>
         <input type="text" id="tot-start-time" placeholder="Время начала (Текст)" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         <button class="btn-primary" style="width:100%; background:#ff4444; border-radius:8px; padding: 10px;" onclick="totAdminCreateEvent()">Создать (Draft)</button>
