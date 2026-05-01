@@ -2917,6 +2917,23 @@ def api_tot_events():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tot_events WHERE status IN ('active', 'locked') ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
+        
+        current_time = datetime.now()
+        changed = False
+        for e in events:
+            if e['status'] == 'active' and e['start_time']:
+                try:
+                    fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
+                    if current_time >= datetime.strptime(e['start_time'], fmt):
+                        cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (e['event_id'],))
+                        cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
+                        e['status'] = 'locked'
+                        changed = True
+                except Exception:
+                    pass
+        if changed:
+            conn.commit()
+            
         return jsonify({'status': 'ok', 'events': events, 'is_admin': is_admin})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2946,10 +2963,25 @@ def api_tot_bet():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT status FROM tot_events WHERE event_id = ?", (event_id,))
+        cursor.execute("SELECT status, start_time FROM tot_events WHERE event_id = ?", (event_id,))
         event = cursor.fetchone()
-        if not event or event['status'] != 'active':
-            return jsonify({'error': 'Событие неактивно или не существует'}), 400
+        if not event:
+            return jsonify({'error': 'Событие не существует'}), 400
+            
+        status = event['status']
+        if status == 'active' and event['start_time']:
+            try:
+                fmt = '%Y-%m-%dT%H:%M:%S' if len(event['start_time']) > 16 else '%Y-%m-%dT%H:%M'
+                if datetime.now() >= datetime.strptime(event['start_time'], fmt):
+                    cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
+                    cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+                    conn.commit()
+                    status = 'locked'
+            except Exception:
+                pass
+                
+        if status != 'active':
+            return jsonify({'error': 'Событие неактивно или время ставок истекло'}), 400
 
         # Списание токенов убрано - ставки делаются вне зависимости от баланса шишек
         
@@ -3021,6 +3053,23 @@ def api_admin_tot_events():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM tot_events ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
+        
+        current_time = datetime.now()
+        changed = False
+        for e in events:
+            if e['status'] == 'active' and e['start_time']:
+                try:
+                    fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
+                    if current_time >= datetime.strptime(e['start_time'], fmt):
+                        cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (e['event_id'],))
+                        cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
+                        e['status'] = 'locked'
+                        changed = True
+                except Exception:
+                    pass
+        if changed:
+            conn.commit()
+            
         return jsonify({'status': 'ok', 'events': events})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
