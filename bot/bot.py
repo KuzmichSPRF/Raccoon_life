@@ -244,6 +244,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS tot_events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
+                image_url TEXT,
                 side1_name TEXT,
                 side1_odds REAL,
                 side2_name TEXT,
@@ -264,6 +265,7 @@ def init_db():
                 user_id INTEGER,
                 side INTEGER,
                 amount REAL,
+                currency TEXT DEFAULT 'CG',
                 status TEXT DEFAULT 'pending', -- pending, accepted, rejected, won, lost, paid
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(event_id) REFERENCES tot_events(event_id),
@@ -482,6 +484,23 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлены колонки ничьей в tot_events")
         except Exception as e:
             logger.error(f"Ошибка миграции tot_events draw: {e}")
+
+    if 'image_url' not in tot_events_cols:
+        try:
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN image_url TEXT")
+            logger.info("Миграция: добавлена колонка image_url в tot_events")
+        except Exception as e:
+            logger.error(f"Ошибка миграции tot_events image_url: {e}")
+            
+    # Проверка tot_bets на наличие currency
+    cursor.execute("PRAGMA table_info(tot_bets)")
+    tot_bets_cols = {row[1] for row in cursor.fetchall()}
+    if 'currency' not in tot_bets_cols:
+        try:
+            cursor.execute("ALTER TABLE tot_bets ADD COLUMN currency TEXT DEFAULT 'CG'")
+            logger.info("Миграция: добавлена колонка currency в tot_bets")
+        except Exception as e:
+            logger.error(f"Ошибка миграции tot_bets currency: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -2938,6 +2957,10 @@ def api_tot_events():
                 try:
                     fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
                     if current_time >= datetime.strptime(e['start_time'], fmt):
+                        cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
+                        for b in cursor.fetchall():
+                            if b['currency'] == 'Шишки':
+                                add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{e['event_id']}")
                         cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (e['event_id'],))
                         cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
                         e['status'] = 'locked'
@@ -2965,6 +2988,7 @@ def api_tot_bet():
         event_id = int(data.get('eventId', 0))
         side = int(data.get('side', 1))
         amount = int(data.get('amount', 0))
+        currency = data.get('currency', 'CG')
 
         auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
         if not auth_user or str(auth_user.get('id')) != str(user_id):
@@ -2976,7 +3000,7 @@ def api_tot_bet():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT status, start_time FROM tot_events WHERE event_id = ?", (event_id,))
+        cursor.execute("SELECT status, start_time, title, side1_name, side2_name, draw_name FROM tot_events WHERE event_id = ?", (event_id,))
         event = cursor.fetchone()
         if not event:
             return jsonify({'error': 'Событие не существует'}), 400
@@ -2986,6 +3010,10 @@ def api_tot_bet():
             try:
                 fmt = '%Y-%m-%dT%H:%M:%S' if len(event['start_time']) > 16 else '%Y-%m-%dT%H:%M'
                 if datetime.now() >= datetime.strptime(event['start_time'], fmt):
+                    cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+                    for b in cursor.fetchall():
+                        if b['currency'] == 'Шишки':
+                            add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{event_id}")
                     cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
                     cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
                     conn.commit()
@@ -2996,11 +3024,42 @@ def api_tot_bet():
         if status != 'active':
             return jsonify({'error': 'Событие неактивно или время ставок истекло'}), 400
 
-        # Списание токенов убрано - ставки делаются вне зависимости от баланса шишек
+        if currency == 'Шишки':
+            spend_result = spend_tokens(user_id, amount, f'tot_bet:{event_id}')
+            if not spend_result:
+                return jsonify({'error': 'Недостаточно шишек на балансе'}), 400
         
-        cursor.execute("INSERT INTO tot_bets (event_id, user_id, side, amount, status) VALUES (?, ?, ?, ?, 'pending')",
-                       (event_id, user_id, side, amount))
+        cursor.execute("INSERT INTO tot_bets (event_id, user_id, side, amount, currency, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+                       (event_id, user_id, side, amount, currency))
         conn.commit()
+        
+        # Отправка уведомления администратору
+        try:
+            username = auth_user.get('username', 'Нет_юзернейма').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            first_name = auth_user.get('first_name', 'Без_имени').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            
+            side_name = event['side1_name'] if side == 1 else (event['side2_name'] if side == 2 else event['draw_name'])
+            safe_title = str(event['title']).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            safe_side = str(side_name).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            
+            msg = (
+                f"🎲 <b>Новая заявка на ставку!</b>\n\n"
+                f"👤 <b>Игрок:</b> {first_name} (@{username})\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n\n"
+                f"🏆 <b>Событие:</b> #{event_id} {safe_title}\n"
+                f"🎯 <b>Выбор:</b> {safe_side}\n"
+                f"💰 <b>Сумма:</b> {amount} {currency}\n\n"
+                f"<i>Зайдите в WebApp ➔ Тотализатор ➔ Админ ➔ Заявки, чтобы принять или отклонить.</i>"
+            )
+            
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML"},
+                timeout=5
+            )
+        except Exception as e:
+            logger.error(f"Ошибка отправки уведомления о ставке админу: {e}")
+            
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -3045,11 +3104,12 @@ def api_admin_tot_create():
         s1_odds = float(data.get('side1_odds') or 1.0)
         s2_odds = float(data.get('side2_odds') or 1.0)
         draw_odds = float(data.get('draw_odds') or 1.0)
+        image_url = data.get('image_url')
         
         cursor.execute('''
-            INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, draw_name, draw_odds, start_time, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')
-        ''', (data.get('title'), data.get('side1_name'), s1_odds,
+            INSERT INTO tot_events (title, image_url, side1_name, side1_odds, side2_name, side2_odds, draw_name, draw_odds, start_time, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+        ''', (data.get('title'), image_url, data.get('side1_name'), s1_odds,
               data.get('side2_name'), s2_odds, data.get('draw_name', 'Ничья'), draw_odds, data.get('start_time')))
         event_id = cursor.lastrowid
         conn.commit()
@@ -3079,6 +3139,10 @@ def api_admin_tot_events():
                 try:
                     fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
                     if current_time >= datetime.strptime(e['start_time'], fmt):
+                        cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
+                        for b in cursor.fetchall():
+                            if b['currency'] == 'Шишки':
+                                add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{e['event_id']}")
                         cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (e['event_id'],))
                         cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
                         e['status'] = 'locked'
@@ -3113,7 +3177,10 @@ def api_admin_tot_status():
         cursor = conn.cursor()
         
         if action == 'locked':
-            # Ставки бесплатные, поэтому возврат отменен
+            cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+            for b in cursor.fetchall():
+                if b['currency'] == 'Шишки':
+                    add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{event_id}")
             cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
             cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
         elif action == 'finished':
@@ -3121,11 +3188,12 @@ def api_admin_tot_status():
             cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND side = ?", (event_id, winner))
             cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
         elif action == 'paid':
-            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, b.currency, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
             bets = cursor.fetchall()
             for b in bets:
                 odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b['draw_odds'])
-                add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
+                if b['currency'] == 'Шишки':
+                    add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
             cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         elif action == 'active':
             cursor.execute("UPDATE tot_events SET status = 'active' WHERE event_id = ?", (event_id,))
@@ -3180,7 +3248,7 @@ def api_admin_tot_bet_status():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.user_id, b.amount, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, b.event_id
+            SELECT b.user_id, b.amount, b.currency, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, b.event_id
             FROM tot_bets b 
             JOIN tot_events e ON b.event_id = e.event_id 
             WHERE b.bet_id = ?
@@ -3192,9 +3260,11 @@ def api_admin_tot_bet_status():
             if bet['status'] == 'pending':
                 if action == 'accept':
                     cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
-                    msg_text = f"✅ Ваша ставка ({bet['amount']} CG) на <b>{bet['title']}</b> ПРИНЯТА."
+                    msg_text = f"✅ Ваша ставка ({bet['amount']} {bet['currency']}) на <b>{bet['title']}</b> ПРИНЯТА."
                 elif action == 'reject':
                     cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
+                    if bet['currency'] == 'Шишки':
+                        add_tokens(bet['user_id'], int(bet['amount']), f"tot_refund:{bet['event_id']}")
                     msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
                 conn.commit()
             elif bet['status'] == 'won' and action == 'pay':
@@ -3203,8 +3273,9 @@ def api_admin_tot_bet_status():
                 cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE bet_id = ?", (bet_id,))
                 conn.commit()
                 
-                add_tokens(bet['user_id'], win_amount, f"tot_win:{bet['event_id']}")
-                msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} Шишек</b> начислен на баланс!"
+                if bet['currency'] == 'Шишки':
+                    add_tokens(bet['user_id'], win_amount, f"tot_win:{bet['event_id']}")
+                msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} {bet['currency']}</b> начислен на баланс!"
             else:
                 return jsonify({'error': 'Ставка уже обработана или неверное действие'}), 400
             
@@ -3240,6 +3311,10 @@ def api_admin_tot_delete():
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status IN ('pending', 'accepted')", (event_id,))
+        for b in cursor.fetchall():
+            if b['currency'] == 'Шишки':
+                add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{event_id}")
         # Сначала удаляем все ставки, привязанные к этому событию
         cursor.execute("DELETE FROM tot_bets WHERE event_id = ?", (event_id,))
         # Затем удаляем само событие
@@ -3863,13 +3938,14 @@ async def tot_create_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = ' '.join(context.args)
     parts = [p.strip() for p in text.split('|')]
     if len(parts) < 6:
-        await update.message.reply_text("❌ Использование: /tot_create Название | Сторона 1 | Коэф 1 | Сторона 2 | Коэф 2 | Время начала")
+        await update.message.reply_text("❌ Использование: /tot_create Название | Сторона 1 | Коэф 1 | Сторона 2 | Коэф 2 | Время начала | [URL Картинки]")
         return
     try:
+        image_url = parts[6] if len(parts) > 6 else None
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, start_time, status) VALUES (?, ?, ?, ?, ?, ?, 'draft')", 
-                       (parts[0], parts[1], float(parts[2]), parts[3], float(parts[4]), parts[5]))
+        cursor.execute("INSERT INTO tot_events (title, side1_name, side1_odds, side2_name, side2_odds, start_time, image_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')", 
+                       (parts[0], parts[1], float(parts[2]), parts[3], float(parts[4]), parts[5], image_url))
         event_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -3894,7 +3970,10 @@ async def tot_lock_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_id = context.args[0]
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Ставки бесплатные, поэтому возврат отменен
+    cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
+    for b in cursor.fetchall():
+        if b['currency'] == 'Шишки':
+            add_tokens(b['user_id'], int(b['amount']), f"tot_refund:{event_id}")
     cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
     cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
     conn.commit()
@@ -3920,14 +3999,18 @@ async def tot_finish_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Отчет для админа
         odds = event['side1_odds'] if winner == 1 else (event['side2_odds'] if winner == 2 else event.get('draw_odds', 1.0))
-        cursor.execute("SELECT b.amount, u.username, u.first_name FROM tot_bets b JOIN users u ON b.user_id = u.user_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+        cursor.execute("SELECT b.amount, b.currency, u.username, u.first_name FROM tot_bets b JOIN users u ON b.user_id = u.user_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
         report = f"🏆 <b>Итоги события #{event_id}</b>\nПобедила сторона {winner} (x{odds})\n\nК выплате:\n"
-        total = 0
+        total_cg = 0
+        total_cones = 0
         for w in cursor.fetchall():
             win_amount = int(w['amount'] * odds)
-            total += win_amount
-            report += f"➖ @{w['username'] or w['first_name']}: {win_amount} Шишек\n"
-        report += f"\nВсего: {total} Шишек.\nДля выплаты введите: <code>/tot_pay {event_id}</code>"
+            if w['currency'] == 'Шишки':
+                total_cones += win_amount
+            else:
+                total_cg += win_amount
+            report += f"➖ @{w['username'] or w['first_name']}: {win_amount} {w['currency']}\n"
+        report += f"\nВсего: {total_cg} CG, {total_cones} Шишек.\nДля выплаты введите: <code>/tot_pay {event_id}</code>"
         
         await update.message.reply_text(report, parse_mode=ParseMode.HTML)
         conn.commit()
@@ -3941,11 +4024,12 @@ async def tot_pay_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT b.bet_id, b.user_id, b.amount, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+        cursor.execute("SELECT b.bet_id, b.user_id, b.amount, b.currency, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
         bets = cursor.fetchall()
         for b in bets:
             odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b.get('draw_odds', 1.0))
-            add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
+            if b['currency'] == 'Шишки':
+                add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
         cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         conn.commit()
         await update.message.reply_text(f"✅ Выплаты по событию #{event_id} завершены! Роздано {len(bets)} победителям.")
@@ -3962,14 +4046,16 @@ async def tot_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT b.user_id, b.amount, b.status, e.title FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.bet_id = ?", (bet_id,))
+        cursor.execute("SELECT b.user_id, b.amount, b.currency, b.status, e.title, b.event_id FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.bet_id = ?", (bet_id,))
         bet = cursor.fetchone()
         if bet and bet['status'] == 'pending':
             if action == 'accept':
                 cursor.execute("UPDATE tot_bets SET status = 'accepted' WHERE bet_id = ?", (bet_id,))
-                await context.bot.send_message(chat_id=bet['user_id'], text=f"✅ Ваша ставка ({bet['amount']}) на <b>{bet['title']}</b> ПРИНЯТА.", parse_mode=ParseMode.HTML)
+                await context.bot.send_message(chat_id=bet['user_id'], text=f"✅ Ваша ставка ({bet['amount']} {bet['currency']}) на <b>{bet['title']}</b> ПРИНЯТА.", parse_mode=ParseMode.HTML)
             else:
                 cursor.execute("UPDATE tot_bets SET status = 'rejected' WHERE bet_id = ?", (bet_id,))
+                if bet['currency'] == 'Шишки':
+                    add_tokens(bet['user_id'], int(bet['amount']), f"tot_refund:{bet['event_id']}")
                 await context.bot.send_message(chat_id=bet['user_id'], text=f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА.", parse_mode=ParseMode.HTML)
             conn.commit()
             await query.edit_message_text(f"{query.message.text_html}\n\nСтатус изменен: <b>{'ПРИНЯТО' if action=='accept' else 'ОТКЛОНЕНО'}</b>", parse_mode=ParseMode.HTML)

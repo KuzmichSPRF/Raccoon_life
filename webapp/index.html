@@ -186,6 +186,20 @@
       position: absolute; top: 10px; right: 15px; background: none; border: none;
       color: var(--text-sec); font-size: 1.5rem; cursor: pointer;
     }
+
+    /* Modal Input for Betting */
+    .bet-currency-tabs {
+      display: flex; gap: 10px; margin-bottom: 15px; width: 100%;
+    }
+    .bet-currency-tab {
+      flex: 1; padding: 12px; background: #121214; color: var(--text-sec);
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; cursor: pointer;
+      font-family: 'Montserrat', sans-serif; font-weight: 700; transition: 0.2s;
+    }
+    .bet-currency-tab.active {
+      background: var(--primary); color: white; border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -246,6 +260,23 @@
       </label>
       
       <button class="tutorial-btn" id="news-send-btn" onclick="submitNews()" data-i18n="submit_news_btn">Отправить</button>
+    </div>
+  </div>
+
+  <!-- Bet Modal -->
+  <div id="bet-modal-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal" style="width: 90%; position: relative;">
+      <button class="close-modal-btn" onclick="closeBetModal()">✕</button>
+      <span class="tutorial-icon">🎲</span>
+      <h3 class="tutorial-title" id="bet-modal-title">Сделать ставку</h3>
+      <p class="tutorial-desc" id="bet-modal-desc" style="font-size: 0.9rem; margin-bottom: 15px;"></p>
+      
+      <div class="bet-currency-tabs">
+        <button id="bet-currency-cg" class="bet-currency-tab active" onclick="selectBetCurrency('CG')">$CG</button>
+        <button id="bet-currency-cones" class="bet-currency-tab" onclick="selectBetCurrency('Шишки')">Шишки</button>
+      </div>
+      <input type="number" id="bet-amount" placeholder="Сумма ставки" style="width:100%; padding:12px; margin-bottom:15px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
+      <button class="tutorial-btn" style="width: 100%;" onclick="submitBet()">Поставить</button>
     </div>
   </div>
 
@@ -1102,6 +1133,7 @@
             const isLocked = e.status === 'locked';
             html += `
               <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                ${e.image_url ? `<img src="${escapeHTML(e.image_url)}" alt="Event Image" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 12px; margin-bottom: 5px;">` : ''}
                 <div style="width: 100%; display: flex; justify-content: space-between;">
                   <span style="font-weight: 800; font-size: 1.1rem; color: var(--primary);">${escapeHTML(e.title)}</span>
                   <span style="font-size: 0.8rem; padding: 3px 8px; border-radius: 8px; background: ${isLocked ? '#ff4444' : 'var(--game-green)'}; color: ${isLocked ? '#fff' : '#000'};">${isLocked ? 'СТАВКИ ЗАКРЫТЫ' : 'АКТИВНО'}</span>
@@ -1140,10 +1172,34 @@
       });
   }
 
+  let currentBetData = null;
+  let currentBetCurrency = 'CG';
+
+  function selectBetCurrency(currency) {
+    currentBetCurrency = currency;
+    document.getElementById('bet-currency-cg').classList.remove('active');
+    document.getElementById('bet-currency-cones').classList.remove('active');
+    if (currency === 'CG') document.getElementById('bet-currency-cg').classList.add('active');
+    else document.getElementById('bet-currency-cones').classList.add('active');
+  }
+
   function placeBetForm(eventId, side, sideName, odds) {
-    const amountStr = prompt(`Событие #${eventId}\nСтавка на: ${sideName} (множитель x${odds})\n\nВведите сумму ставки ($CG):`);
-    if (!amountStr) return;
-    const amount = parseFloat(amountStr);
+    currentBetData = { eventId, side };
+    document.getElementById('bet-modal-title').innerText = `Событие #${eventId}`;
+    document.getElementById('bet-modal-desc').innerText = `Ставка на: ${escapeHTML(sideName)} (x${odds})`;
+    document.getElementById('bet-amount').value = '';
+    selectBetCurrency('CG');
+    document.getElementById('bet-modal-overlay').classList.add('active');
+  }
+
+  function closeBetModal() {
+    document.getElementById('bet-modal-overlay').classList.remove('active');
+    currentBetData = null;
+  }
+
+  function submitBet() {
+    if (!currentBetData) return;
+    const amount = parseFloat(document.getElementById('bet-amount').value);
     if (isNaN(amount) || amount <= 0) {
       tg.showAlert("Некорректная сумма!");
       return;
@@ -1153,12 +1209,13 @@
     fetch('/api/tot/bet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
-      body: JSON.stringify({ userId: getUserId(), eventId: eventId, side: side, amount: amount })
+      body: JSON.stringify({ userId: getUserId(), eventId: currentBetData.eventId, side: currentBetData.side, amount: amount, currency: currentBetCurrency })
     })
     .then(res => res.json())
     .then(data => {
       if (data.status === 'ok') {
         tg.showAlert("Ставка размещена! Ожидает подтверждения администратора.");
+        closeBetModal();
         loadTotMyBets();
       } else {
         tg.showAlert("Ошибка: " + data.error);
@@ -1202,7 +1259,7 @@
                   <span style="font-weight: bold; color: var(--text-main);">${escapeHTML(b.title)}</span>
                   <span style="font-size: 0.8rem; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,0.1); color: ${statusColor};">${statusText}</span>
                 </div>
-                <div style="font-size: 0.9rem; color: var(--text-sec);">Ставка: <b>${b.amount} CG</b> на ${escapeHTML(sideName)} (x${odds})</div>
+                <div style="font-size: 0.9rem; color: var(--text-sec);">Ставка: <b>${b.amount} ${b.currency || 'CG'}</b> на ${escapeHTML(sideName)} (x${odds})</div>
                 <div style="font-size: 0.75rem; color: var(--text-sec);">Дата: ${b.created_at}</div>
               </div>
             `;
@@ -1226,6 +1283,7 @@
       <div style="background: rgba(255,0,0,0.1); border: 1px solid #ff4444; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
         <h3 style="margin-top:0; color:#ff4444; margin-bottom: 10px;">Создать событие</h3>
         <input type="text" id="tot-title" placeholder="Название события" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <input type="text" id="tot-image" placeholder="URL картинки (необязательно)" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         <div style="display:flex; gap:10px; width:100%;">
           <input type="text" id="tot-s1-name" placeholder="Сторона 1" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
           <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
@@ -1256,6 +1314,7 @@
 
   function totAdminCreateEvent() {
     const title = document.getElementById('tot-title').value.trim();
+    const imageUrl = document.getElementById('tot-image').value.trim();
     const side1 = document.getElementById('tot-s1-name').value.trim();
     const side2 = document.getElementById('tot-s2-name').value.trim();
     const drawName = document.getElementById('tot-draw-name').value.trim() || 'Ничья';
@@ -1269,6 +1328,7 @@
     const data = {
       userId: getUserId(),
       title: title,
+      image_url: imageUrl || null,
       side1_name: side1,
       side1_odds: parseFloat(document.getElementById('tot-s1-odds').value) || 1.0,
       side2_name: side2,
@@ -1389,7 +1449,7 @@
           html += `
             <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
               <div><b>Ставка #${b.bet_id}</b> | Игрок: @${escapeHTML(b.username)} (ID:${b.user_id})</div>
-              <div style="font-size:0.85rem; color:#ccc;">${b.amount} CG на ${escapeHTML(sideName)} (Событие #${b.event_id})</div>
+              <div style="font-size:0.85rem; color:#ccc;">${b.amount} ${b.currency || 'CG'} на ${escapeHTML(sideName)} (Событие #${b.event_id})</div>
           `;
           
           if (status === 'pending') {
@@ -1405,7 +1465,7 @@
                 `;
           } else if (status === 'won') {
             html += `
-              <div style="font-size:0.9rem; color:#00ff88; font-weight:bold;">💰 К выплате: ${winAmount} Шишек</div>
+              <div style="font-size:0.9rem; color:#00ff88; font-weight:bold;">💰 К выплате: ${winAmount} ${b.currency || 'CG'}</div>
               <div style="display:flex; gap:5px; margin-top:5px;">
                 <button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminBetAction(${b.bet_id}, 'pay', 'won')">💰 Выплатить</button>
               </div>
