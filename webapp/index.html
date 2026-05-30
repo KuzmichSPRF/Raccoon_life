@@ -1253,6 +1253,10 @@
             if (b.status === 'lost') { statusColor = '#ff4444'; statusText = 'Проигрыш'; }
             if (b.status === 'paid') { statusColor = 'var(--game-green)'; statusText = 'Завершено (Выплачено)'; }
 
+            const safeTitleJs = (b.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeSideJs = (sideName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const shareBtnText = currentLang === 'ru' ? '📤 Поделиться' : '📤 Share';
+
             html += `
               <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                 <div style="width: 100%; display: flex; justify-content: space-between;">
@@ -1261,6 +1265,10 @@
                 </div>
                 <div style="font-size: 0.9rem; color: var(--text-sec);">Ставка: <b>${b.amount} ${b.currency || 'CG'}</b> на ${escapeHTML(sideName)} (x${odds})</div>
                 <div style="font-size: 0.75rem; color: var(--text-sec);">Дата: ${b.created_at}</div>
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                  <div style="font-size: 0.75rem; color: var(--text-sec);">Дата: ${b.created_at}</div>
+                  <button class="btn-primary" style="padding: 5px 12px; font-size: 0.75rem; width: auto; margin: 0; box-shadow: none;" onclick="shareBet(${b.amount}, '${b.currency || 'CG'}', '${safeSideJs}', '${safeTitleJs}')">${shareBtnText}</button>
+                </div>
               </div>
             `;
           });
@@ -1273,6 +1281,18 @@
         content.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка сети</div>`;
       });
   }
+
+  window.shareBet = function(amount, currency, sideName, title) {
+    let text = '';
+    if (currentLang === 'ru') {
+      text = `Я поставил ${amount} ${currency} на «${sideName}» в событии «${title}»! Присоединяйся к ставкам в Raccoon Life 🦝🎲`;
+    } else {
+      text = `I bet ${amount} ${currency} on '${sideName}' in the '${title}' event! Join the betting in Raccoon Life 🦝🎲`;
+    }
+    const url = `https://t.me/Raccoon_Life_bot/app`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    tg.openTelegramLink(shareUrl);
+  };
 
   function loadTotAdmin() {
     document.querySelectorAll('#tot-screen .rating-tab').forEach(t => t.classList.remove('active'));
