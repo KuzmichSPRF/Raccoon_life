@@ -1131,6 +1131,8 @@
           let html = '';
           data.events.forEach(e => {
             const isLocked = e.status === 'locked';
+            const safeTitleJs = (e.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const shareBtnText = currentLang === 'ru' ? '📤 Поделиться' : '📤 Share';
             html += `
               <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                 ${e.image_url ? `<img src="${escapeHTML(e.image_url)}" alt="Event Image" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 12px; margin-bottom: 5px;">` : ''}
@@ -1138,8 +1140,11 @@
                   <span style="font-weight: 800; font-size: 1.1rem; color: var(--primary);">${escapeHTML(e.title)}</span>
                   <span style="font-size: 0.8rem; padding: 3px 8px; border-radius: 8px; background: ${isLocked ? '#ff4444' : 'var(--game-green)'}; color: ${isLocked ? '#fff' : '#000'};">${isLocked ? 'СТАВКИ ЗАКРЫТЫ' : 'АКТИВНО'}</span>
                 </div>
-                <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML((e.start_time || '').replace('T', ' '))}</div>
-                
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML((e.start_time || '').replace('T', ' '))}</div>
+                  <button class="btn-primary" style="padding: 5px 12px; font-size: 0.75rem; width: auto; margin: 0; box-shadow: none;" onclick="shareEvent('${safeTitleJs}')">${shareBtnText}</button>
+                </div>
+
                 ${!isLocked ? `
                 <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px;">
                   <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem;" onclick="placeBetForm(${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
@@ -1282,12 +1287,24 @@
       });
   }
 
+  window.shareEvent = function(title) {
+    let text = '';
+    if (currentLang === 'ru') {
+      text = `Событие «${title}» уже в Тотализаторе Raccoon Life!\n\nТотализатор Raccoon Life — делай ставки на реальные и игровые события и выигрывай Шишки! 🦝🎲`;
+    } else {
+      text = `The event '${title}' is already in Raccoon Life Betting!\n\nRaccoon Life Betting — place bets on real and game events and win Cones! 🦝🎲`;
+    }
+    const url = `https://t.me/Raccoon_Life_bot/app`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    tg.openTelegramLink(shareUrl);
+  };
+
   window.shareBet = function(amount, currency, sideName, title) {
     let text = '';
     if (currentLang === 'ru') {
-      text = `Я поставил ${amount} ${currency} на «${sideName}» в событии «${title}»! Присоединяйся к ставкам в Raccoon Life 🦝🎲`;
+      text = `Я поставил ${amount} ${currency} на «${sideName}» в событии «${title}»!\n\nТотализатор Raccoon Life — делай ставки на реальные и игровые события и выигрывай Шишки! 🦝🎲`;
     } else {
-      text = `I bet ${amount} ${currency} on '${sideName}' in the '${title}' event! Join the betting in Raccoon Life 🦝🎲`;
+      text = `I bet ${amount} ${currency} on '${sideName}' in the '${title}' event!\n\nRaccoon Life Betting — place bets on real and game events and win Cones! 🦝🎲`;
     }
     const url = `https://t.me/Raccoon_Life_bot/app`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
