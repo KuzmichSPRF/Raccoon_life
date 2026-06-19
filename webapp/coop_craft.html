@@ -334,6 +334,8 @@
         // Показываем кнопку назад
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
+            // Очищаем флаг, чтобы при следующем заходе по ссылке редирект сработал
+            sessionStorage.removeItem('redirected_from_craft');
             window.location.href = 'index.html';
         });
 
