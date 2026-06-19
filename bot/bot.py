@@ -28,13 +28,10 @@ from telegram.error import RetryAfter
 from dotenv import load_dotenv
 
 # Пути к файлам
-# При exec() __file__ не работает, используем абсолютный путь
-try:
-    _current_file = __file__
-except NameError:
-    _current_file = str(Path.cwd() / 'bot' / 'bot.py')
-
-BOT_DIR = Path(_current_file).parent
+# Определяем абсолютный путь к директории, где находится этот скрипт (bot.py)
+# Это делает пути независимыми от того, откуда запускается скрипт
+BOT_DIR = Path(__file__).resolve().parent
+# Определяем корневую директорию проекта
 PROJECT_DIR = BOT_DIR.parent
 
 # Загрузка переменных окружения из папки bot
@@ -54,20 +51,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 security_logger = logging.getLogger('security')  # Отдельный logger для security событий
 
-DB_PATH = str(BOT_DIR / "users.db")
+DB_PATH = BOT_DIR / "users.db"
 WEBAPP_DIR = PROJECT_DIR / "webapp"
 
-logger.info(f"Database: {DB_PATH}")
-logger.info(f"WebApp: {WEBAPP_DIR}")
+logger.info(f"Database path: {DB_PATH.absolute()}")
+logger.info(f"WebApp static folder: {WEBAPP_DIR.absolute()}")
 
 # Flask приложение
-# Указываем root_path явно для работы при exec()
-app = Flask(
-    __name__,
-    static_folder=str(WEBAPP_DIR),
-    static_url_path='',
-    root_path=str(PROJECT_DIR)
-)
+app = Flask(__name__, static_folder=str(WEBAPP_DIR.absolute()), static_url_path='')
 
 # Настройка CORS с ограничениями по происхождению
 ALLOWED_ORIGINS = [
@@ -127,7 +118,7 @@ def request_entity_too_large(e):
 
 def get_db_connection():
     """Создает подключение к базе данных"""
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
     conn.row_factory = sqlite3.Row
     return conn
 
