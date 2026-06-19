@@ -1856,31 +1856,23 @@
           return; // Останавливаем дальнейшую загрузку главного меню
       }
 
-    applyTranslations();
-    loadStats();
       applyTranslations();
       loadStats();
 
-    // Сохраняем user_id в localStorage для future use
-    const userId = getUserId();
-    if (userId) {
-      localStorage.setItem('rl_user_id', userId);
-      console.log('💾 User ID сохранён:', userId);
-      // Сохраняем user_id в localStorage для future use
       const userId = getUserId();
       if (userId) {
         localStorage.setItem('rl_user_id', userId);
         console.log('💾 User ID сохранён:', userId);
       }
 
-      // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
       setTimeout(() => {
         loadTokenBalance();
-          loadStatsFromServer(); // Загружаем прогресс квестов с сервера
-        checkWelcomeBonus(); // Проверяем и показываем уведомление о 1000 токенах
+        loadStatsFromServer();
+        checkWelcomeBonus();
         console.log('🦝 Raccoon Life WebApp ready!');
         console.log('👤 User ID:', getUserId());
       }, 300);
+
     } catch (e) {
         console.error("Критическая ошибка при инициализации:", e);
         // Показываем пользователю сообщение об ошибке вместо черного экрана
