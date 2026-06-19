@@ -1836,14 +1836,13 @@
   window.addEventListener('DOMContentLoaded', () => {
     // Проверяем параметр startapp (переход по приватной ссылке)
     const startParam = tg.initDataUnsafe?.start_param;
-    if (startParam && startParam.startsWith('craft_')) {
-        // Предотвращаем вечный цикл при возвращении из крафта в главное меню
-        if (!sessionStorage.getItem('redirected_' + startParam)) {
-            sessionStorage.setItem('redirected_' + startParam, 'true');
-            const craftId = startParam.split('_')[1];
-            window.location.replace(`coop_craft.html?private_id=${craftId}`);
-            return; // Останавливаем дальнейшую загрузку главного меню
-        }
+    if (startParam && startParam.startsWith('craft_') && !sessionStorage.getItem('redirected_from_craft')) {
+        // Устанавливаем флаг, что перенаправление было выполнено
+        sessionStorage.setItem('redirected_from_craft', 'true');
+        
+        const craftId = startParam.split('_')[1];
+        window.location.replace(`coop_craft.html?private_id=${craftId}`);
+        return; // Останавливаем дальнейшую загрузку главного меню
     }
 
     applyTranslations();
