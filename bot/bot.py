@@ -113,6 +113,20 @@ def request_entity_too_large(e):
         'message': 'Размер запроса превышает допустимый лимит (1MB)'
     }), 413
 
+@app.before_request
+def log_request_info():
+    """Логирование входящих запросов для отладки."""
+    # Логируем каждый запрос, чтобы видеть, что доходит до сервера
+    logger.info(
+        f"➡️ Request: {request.method} {request.path} from {request.remote_addr} | User-Agent: {request.user_agent.string}"
+    )
+
+@app.after_request
+def log_response_info(response):
+    """Логирование исходящих ответов для отладки."""
+    logger.info(f"⬅️ Response: {response.status_code} for {request.method} {request.path}")
+    return response
+
 
 # ==================== БАЗА ДАННЫХ ====================
 
