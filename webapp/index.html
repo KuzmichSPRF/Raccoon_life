@@ -1844,15 +1844,47 @@
         window.location.replace(`coop_craft.html?private_id=${craftId}`);
         return; // Останавливаем дальнейшую загрузку главного меню
     }
+    try {
+      // Проверяем параметр startapp (переход по приватной ссылке)
+      const startParam = tg.initDataUnsafe?.start_param;
+      if (startParam && startParam.startsWith('craft_') && !sessionStorage.getItem('redirected_from_craft')) {
+          // Устанавливаем флаг, что перенаправление было выполнено
+          sessionStorage.setItem('redirected_from_craft', 'true');
+          
+          const craftId = startParam.split('_')[1];
+          window.location.replace(`coop_craft.html?private_id=${craftId}`);
+          return; // Останавливаем дальнейшую загрузку главного меню
+      }
 
     applyTranslations();
     loadStats();
+      applyTranslations();
+      loadStats();
 
     // Сохраняем user_id в localStorage для future use
     const userId = getUserId();
     if (userId) {
       localStorage.setItem('rl_user_id', userId);
       console.log('💾 User ID сохранён:', userId);
+      // Сохраняем user_id в localStorage для future use
+      const userId = getUserId();
+      if (userId) {
+        localStorage.setItem('rl_user_id', userId);
+        console.log('💾 User ID сохранён:', userId);
+      }
+
+      // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
+      setTimeout(() => {
+        loadTokenBalance();
+          loadStatsFromServer(); // Загружаем прогресс квестов с сервера
+        checkWelcomeBonus(); // Проверяем и показываем уведомление о 1000 токенах
+        console.log('🦝 Raccoon Life WebApp ready!');
+        console.log('👤 User ID:', getUserId());
+      }, 300);
+    } catch (e) {
+        console.error("Критическая ошибка при инициализации:", e);
+        // Показываем пользователю сообщение об ошибке вместо черного экрана
+        document.body.innerHTML = `<div style="color:red; padding: 20px; text-align:center;">Критическая ошибка: ${e.message}.<br><br>Пожалуйста, перезапустите бота или очистите кеш.</div>`;
     }
 
     // Загружаем баланс с небольшой задержкой чтобы Telegram успел инициализироваться
