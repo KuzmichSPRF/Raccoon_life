@@ -3065,6 +3065,11 @@ def api_tot_bet():
         if status != 'active':
             return jsonify({'error': 'Событие неактивно или время ставок истекло'}), 400
 
+        cursor.execute("SELECT 1 FROM tot_bets WHERE event_id = ? AND user_id = ? AND status IN ('pending', 'accepted') LIMIT 1", (event_id, user_id))
+        existing_bet = cursor.fetchone()
+        if existing_bet:
+            return jsonify({'error': 'У вас уже есть активная ставка по этому событию'}), 400
+
         if currency == 'Шишки':
             spend_result = spend_tokens(user_id, amount, f'tot_bet:{event_id}')
             if not spend_result:

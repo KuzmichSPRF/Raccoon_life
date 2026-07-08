@@ -1503,13 +1503,13 @@
     placeBetForm(eventId, side, sideName, odds);
   }
 
-  function hasPendingBet(callback) {
+  function hasActiveBetForEvent(eventId, callback) {
     fetch(`/api/tot/my_bets?userId=${getUserId()}`)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'ok') {
-          const pendingExists = (data.bets || []).some(b => b.status === 'pending');
-          callback(pendingExists);
+          const activeExists = (data.bets || []).some(b => Number(b.event_id) === Number(eventId) && ['pending', 'accepted'].includes(b.status));
+          callback(activeExists);
         } else {
           callback(false);
         }
@@ -1518,9 +1518,9 @@
   }
 
   function placeBetForm(eventId, side, sideName, odds) {
-    hasPendingBet((pendingExists) => {
-      if (pendingExists) {
-        tg.showAlert('У вас уже есть ставка на рассмотрении. Дождитесь одобрения или отклонения предыдущей ставки.');
+    hasActiveBetForEvent(eventId, (activeExists) => {
+      if (activeExists) {
+        tg.showAlert('У вас уже есть активная ставка по этому событию. Повторно поставить нельзя.');
         return;
       }
 
