@@ -16,7 +16,7 @@ from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -1402,6 +1402,13 @@ def index_route():
 def static_files(filename):
     """Отдача статических файлов из webapp/"""
     return app.send_static_file(filename)
+
+
+@app.route('/image/<path:filename>')
+def image_files(filename):
+    """Отдача картинок из папки image/ проекта."""
+    image_dir = PROJECT_DIR / 'image'
+    return send_from_directory(str(image_dir), filename)
 
 
 @app.route('/api/boss_hp', methods=['GET'])
