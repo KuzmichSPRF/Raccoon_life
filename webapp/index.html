@@ -1415,7 +1415,7 @@
                   <span style="font-size: 0.8rem; padding: 3px 8px; border-radius: 8px; background: ${isLocked ? '#ff4444' : 'var(--game-green)'}; color: ${isLocked ? '#fff' : '#000'};">${isLocked ? 'СТАВКИ ЗАКРЫТЫ' : 'АКТИВНО'}</span>
                 </div>
                 <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                  <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML((e.start_time || '').replace('T', ' '))}</div>
+                  <div style="font-size: 0.85rem; color: var(--text-sec);">Начало: ${escapeHTML((e.start_time || '').replace('T', ' '))} МСК</div>
                   <button class="btn-primary" style="padding: 5px 12px; font-size: 0.75rem; width: auto; margin: 0; box-shadow: none;" onclick="shareEvent('${safeTitleJs}')">${shareBtnText}</button>
                 </div>
 

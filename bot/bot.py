@@ -11,6 +11,7 @@ import hmac
 import hashlib
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
@@ -90,6 +91,34 @@ limiter = Limiter(
     default_limits=["10000 per day", "1000 per hour"],
     storage_uri="memory://"
 )
+
+def get_moscow_now():
+    """Текущее время в Москве."""
+    return datetime.now(ZoneInfo("Europe/Moscow"))
+
+
+def parse_moscow_datetime(value):
+    """Парсит строку времени как московское время."""
+    if not value:
+        return None
+
+    text = str(value).strip()
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            return parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
+        except ValueError:
+            continue
+
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
+    return parsed.astimezone(ZoneInfo("Europe/Moscow"))
+
 
 # Обработчик ошибок rate limit
 @app.errorhandler(429)
@@ -2962,13 +2991,13 @@ def api_tot_events():
         cursor.execute("SELECT * FROM tot_events WHERE status IN ('active', 'locked') ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
         
-        current_time = datetime.now()
+        current_time = get_moscow_now()
         changed = False
         for e in events:
             if e['status'] == 'active' and e['start_time']:
                 try:
-                    fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
-                    if current_time >= datetime.strptime(e['start_time'], fmt):
+                    start_dt = parse_moscow_datetime(e['start_time'])
+                    if start_dt and current_time >= start_dt:
                         cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
                         for b in cursor.fetchall():
                             if b['currency'] == 'Шишки':
@@ -3020,8 +3049,8 @@ def api_tot_bet():
         status = event['status']
         if status == 'active' and event['start_time']:
             try:
-                fmt = '%Y-%m-%dT%H:%M:%S' if len(event['start_time']) > 16 else '%Y-%m-%dT%H:%M'
-                if datetime.now() >= datetime.strptime(event['start_time'], fmt):
+                start_dt = parse_moscow_datetime(event['start_time'])
+                if start_dt and get_moscow_now() >= start_dt:
                     cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
                     for b in cursor.fetchall():
                         if b['currency'] == 'Шишки':
@@ -3144,13 +3173,13 @@ def api_admin_tot_events():
         cursor.execute("SELECT * FROM tot_events ORDER BY event_id DESC")
         events = [dict(row) for row in cursor.fetchall()]
         
-        current_time = datetime.now()
+        current_time = get_moscow_now()
         changed = False
         for e in events:
             if e['status'] == 'active' and e['start_time']:
                 try:
-                    fmt = '%Y-%m-%dT%H:%M:%S' if len(e['start_time']) > 16 else '%Y-%m-%dT%H:%M'
-                    if current_time >= datetime.strptime(e['start_time'], fmt):
+                    start_dt = parse_moscow_datetime(e['start_time'])
+                    if start_dt and current_time >= start_dt:
                         cursor.execute("SELECT user_id, amount, currency FROM tot_bets WHERE event_id = ? AND status = 'pending'", (e['event_id'],))
                         for b in cursor.fetchall():
                             if b['currency'] == 'Шишки':
