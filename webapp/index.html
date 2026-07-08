@@ -25,21 +25,46 @@
       background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
     }
     #tot-screen {
-      background-image: url(../image/bgr_toto.png);
+      background-color: #121214;
+      min-height: 100vh;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+    }
+    #tot-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('../image/bgr_toto.png');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      min-height: 100vh;
-      background-attachment: scroll;
+      z-index: -2;
+      transform: scale(1.02);
+    }
+    #tot-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 7, 10, 0.35);
+      z-index: -1;
     }
     #tot-screen .rating-tabs,
     #tot-content {
       background: transparent;
+      position: relative;
+      z-index: 1;
     }
     #tot-screen .rating-tab {
-      background: rgba(30, 30, 36, 0.8);
-      backdrop-filter: blur(6px);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(20, 20, 26, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .tot-card {
+      background: rgba(24, 24, 30, 0.78);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
     }
     .screen { display: none; padding: 5vh 16px 20px; flex-direction: column; gap: 12px; }
     .active { display: flex; }
