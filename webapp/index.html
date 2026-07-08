@@ -29,7 +29,17 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      background-attachment: fixed;
+      min-height: 100vh;
+      background-attachment: scroll;
+    }
+    #tot-screen .rating-tabs,
+    #tot-content {
+      background: transparent;
+    }
+    #tot-screen .rating-tab {
+      background: rgba(30, 30, 36, 0.8);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.12);
     }
     .screen { display: none; padding: 5vh 16px 20px; flex-direction: column; gap: 12px; }
     .active { display: flex; }
