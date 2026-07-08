@@ -200,21 +200,102 @@
       background: var(--primary); color: white; border-color: var(--primary);
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
     }
-
+    
     /* New Totalizator Styles */
     .tot-card {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
-      border-radius: 20px;
-      padding: 16px;
+      background: #1e1e24;
+      border-radius: 16px;
+      padding: 12px;
       margin-bottom: 16px;
       border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     .tot-card-header {
-      text-align: center;
-      margin-bottom: 15px;
-      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-sec);
+      margin-bottom: 8px;
+      padding: 0 4px;
     }
+    .tot-card-header .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--game-green);
+      box-shadow: 0 0 8px var(--game-green);
+      margin-right: 5px;
+    }
+    .tot-card-header .status-dot.locked {
+      background: #ff4444;
+      box-shadow: 0 0 8px #ff4444;
+    }
+    .tot-card-teams {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .tot-team {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .tot-team-flag {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .tot-vs {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text-sec);
+    }
+    .tot-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .tot-odds-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .tot-odds-btn {
+      background: rgba(0, 136, 204, 0.1);
+      border: 1px solid var(--primary);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 10px 5px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
+    }
+    .tot-odds-btn:active {
+      transform: scale(0.95);
+      background: var(--primary);
+    }
+    .tot-odds-btn.disabled {
+      background: rgba(255,255,255,0.05);
+      border-color: #444;
+      color: var(--text-sec);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .tot-odds-btn .odds-value {
+      color: var(--primary);
+      font-size: 0.7rem;
+    }
+    .tot-odds-btn.disabled .odds-value { color: var(--text-sec); }
+
   </style>
 </head>
 <body>
