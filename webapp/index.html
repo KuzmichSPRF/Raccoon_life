@@ -107,7 +107,14 @@
       text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     }
     .token-label { font-size: 0.7rem; color: var(--text-sec); text-transform: uppercase; }
-    .section-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; }
+    .section-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+      letter-spacing: 0.02em;
+    }
     .list-item {
       background: var(--card-bg); border-radius: 12px; padding: 16px;
       display: flex; align-items: center; gap: 15px;
@@ -147,11 +154,16 @@
       display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
     }
     #tot-screen {
-      padding-top: max(20px, 5vh);
+      padding-top: max(12px, 3vh);
+    }
+    #tot-screen .section-title {
+      margin-top: 4px;
+      margin-bottom: 10px;
+      padding: 0 8px;
     }
     #tot-screen .rating-tabs {
-      margin-top: 6px;
-      margin-bottom: 10px;
+      margin-top: 2px;
+      margin-bottom: 8px;
     }
     .rating-tab {
       flex: 1; padding: 12px; background: var(--card-bg); color: var(--text-sec);
