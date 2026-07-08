@@ -146,6 +146,13 @@
     .rating-tabs {
       display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
     }
+    #tot-screen {
+      padding-top: max(20px, 5vh);
+    }
+    #tot-screen .rating-tabs {
+      margin-top: 6px;
+      margin-bottom: 10px;
+    }
     .rating-tab {
       flex: 1; padding: 12px; background: var(--card-bg); color: var(--text-sec);
       border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer;
@@ -156,6 +163,38 @@
     .rating-tab.active {
       background: var(--primary); color: white;
       border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    }
+    .tot-side-btn {
+      flex: 1;
+      padding: 10px 6px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      background: rgba(20, 20, 26, 0.82);
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      text-transform: none;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tot-side-btn:active {
+      transform: scale(0.97);
+    }
+    .tot-side-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
     }
 
@@ -1331,14 +1370,14 @@
 
                 ${!isLocked ? `
                 <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px;">
-                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem;" onclick="placeBetForm(${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
-                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.7rem;">(x${e.side1_odds})</span>
+                  <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
+                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.side1_odds})</span>
                   </button>
-                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem; background: #555;" onclick="placeBetForm(${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1})">
-                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.7rem;">(x${e.draw_odds || 1})</span>
+                  <button class="tot-side-btn" style="background: rgba(90, 90, 100, 0.82);" onclick="selectTotOption(this, ${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1})">
+                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.draw_odds || 1})</span>
                   </button>
-                  <button class="btn-primary" style="flex: 1; padding: 10px 5px; font-size: 0.8rem;" onclick="placeBetForm(${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
-                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.7rem;">(x${e.side2_odds})</span>
+                  <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
+                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.side2_odds})</span>
                   </button>
                 </div>
                 ` : `
@@ -1370,6 +1409,15 @@
     document.getElementById('bet-currency-cones').classList.remove('active');
     if (currency === 'CG') document.getElementById('bet-currency-cg').classList.add('active');
     else document.getElementById('bet-currency-cones').classList.add('active');
+  }
+
+  function selectTotOption(button, eventId, side, sideName, odds) {
+    const card = button.closest('.list-item');
+    if (card) {
+      card.querySelectorAll('.tot-side-btn').forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+    }
+    placeBetForm(eventId, side, sideName, odds);
   }
 
   function placeBetForm(eventId, side, sideName, odds) {
