@@ -1422,13 +1422,13 @@
                 ${!isLocked ? `
                 <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px;">
                   <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
-                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.side1_odds})</span>
+                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side1_odds})</span>
                   </button>
                   <button class="tot-side-btn" style="background: rgba(90, 90, 100, 0.82);" onclick="selectTotOption(this, ${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1})">
-                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.draw_odds || 1})</span>
+                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.draw_odds || 1})</span>
                   </button>
                   <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
-                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.7rem; opacity: 0.8;">(x${e.side2_odds})</span>
+                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side2_odds})</span>
                   </button>
                 </div>
                 ` : `
