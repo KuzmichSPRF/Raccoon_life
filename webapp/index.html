@@ -231,10 +231,12 @@
       border: 1px solid rgba(255,255,255,0.14);
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
       backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
     }
     .tot-brand-icon {
       font-size: 1.2rem;
       filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.35));
+      transition: filter 0.25s ease;
     }
     .tot-brand-text {
       font-family: 'Montserrat', sans-serif;
@@ -244,6 +246,25 @@
       text-transform: uppercase;
       color: #ffd36a;
       text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+      transition: text-shadow 0.25s ease, filter 0.25s ease;
+    }
+    .tot-brand.success {
+      transform: translateY(-1px);
+      background: rgba(34, 26, 8, 0.92);
+      border-color: rgba(255, 211, 106, 0.7);
+      box-shadow: 0 0 0 1px rgba(255, 211, 106, 0.25), 0 0 18px rgba(255, 211, 106, 0.45), 0 0 32px rgba(255, 176, 0, 0.28);
+      animation: tot-brand-glow 1.2s ease;
+    }
+    .tot-brand.success .tot-brand-icon,
+    .tot-brand.success .tot-brand-text {
+      filter: brightness(1.35) saturate(1.25);
+      text-shadow: 0 0 10px rgba(255, 211, 106, 0.8), 0 0 20px rgba(255, 176, 0, 0.45);
+    }
+    @keyframes tot-brand-glow {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.03); }
+      70% { transform: scale(0.98); }
+      100% { transform: scale(1); }
     }
 
     /* Tutorial Modal Styles */
@@ -1453,6 +1474,17 @@
 
   let currentBetData = null;
   let currentBetCurrency = 'CG';
+  let totBrandGlowTimer = null;
+
+  function triggerTotBrandCelebration() {
+    const brand = document.querySelector('#tot-screen .tot-brand');
+    if (!brand) return;
+    brand.classList.remove('success');
+    void brand.offsetWidth;
+    brand.classList.add('success');
+    if (totBrandGlowTimer) clearTimeout(totBrandGlowTimer);
+    totBrandGlowTimer = setTimeout(() => brand.classList.remove('success'), 1400);
+  }
 
   function selectBetCurrency(currency) {
     currentBetCurrency = currency;
@@ -1525,6 +1557,7 @@
       if (data.status === 'ok') {
         tg.showAlert("Ставка размещена! Ожидает подтверждения администратора.");
         closeBetModal();
+        triggerTotBrandCelebration();
         loadTotMyBets();
       } else {
         tg.showAlert("Ошибка: " + data.error);
