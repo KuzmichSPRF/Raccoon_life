@@ -3287,8 +3287,12 @@ def api_admin_tot_status():
                     odds = b['exact_score_odds'] or 1.0
                 else:
                     odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b['draw_odds'])
+                win_amount = int(b['amount'] * odds)
                 if b['currency'] == 'Шишки':
-                    add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
+                    add_tokens(b['user_id'], win_amount, f'tot_win:{event_id}')
+                elif b['currency'] == 'CG':
+                    add_tokens(b['user_id'], win_amount, f'tot_win_cg:{event_id}')
+                    add_tokens(b['user_id'], win_amount * 10, f'tot_win_cones:{event_id}')
             cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         elif action == 'active':
             cursor.execute("UPDATE tot_events SET status = 'active' WHERE event_id = ?", (event_id,))
@@ -3373,7 +3377,13 @@ def api_admin_tot_bet_status():
                 
                 if bet['currency'] == 'Шишки':
                     add_tokens(bet['user_id'], win_amount, f"tot_win:{bet['event_id']}")
-                msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} {bet['currency']}</b> начислен на баланс!"
+                elif bet['currency'] == 'CG':
+                    add_tokens(bet['user_id'], win_amount, f"tot_win_cg:{bet['event_id']}")
+                    add_tokens(bet['user_id'], win_amount * 10, f"tot_win_cones:{bet['event_id']}")
+                if bet['currency'] == 'CG':
+                    msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} CG</b> и <b>{win_amount * 10} Шишек</b> начислены на баланс!"
+                else:
+                    msg_text = f"🎉 <b>Ставка сыграла!</b>\nСобытие: <b>{bet['title']}</b>\nВаш выигрыш: <b>{win_amount} {bet['currency']}</b> начислен на баланс!"
             else:
                 return jsonify({'error': 'Ставка уже обработана или неверное действие'}), 400
             
@@ -4126,8 +4136,12 @@ async def tot_pay_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bets = cursor.fetchall()
         for b in bets:
             odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b.get('draw_odds', 1.0))
+            win_amount = int(b['amount'] * odds)
             if b['currency'] == 'Шишки':
-                add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
+                add_tokens(b['user_id'], win_amount, f'tot_win:{event_id}')
+            elif b['currency'] == 'CG':
+                add_tokens(b['user_id'], win_amount, f'tot_win_cg:{event_id}')
+                add_tokens(b['user_id'], win_amount * 10, f'tot_win_cones:{event_id}')
         cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
         conn.commit()
         await update.message.reply_text(f"✅ Выплаты по событию #{event_id} завершены! Роздано {len(bets)} победителям.")
