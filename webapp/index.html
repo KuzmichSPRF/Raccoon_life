@@ -1866,8 +1866,12 @@
       if (data.status === 'ok') {
         let html = '';
         data.bets.forEach(b => {
-          const sideName = b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья'));
-          const odds = b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1));
+          const sideName = (b.event_type || 'standard') === 'exact_score'
+            ? (b.prediction || 'Точный счёт')
+            : (b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья')));
+          const odds = (b.event_type || 'standard') === 'exact_score'
+            ? (b.exact_score_odds || 1)
+            : (b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1)));
           const winAmount = Math.floor(b.amount * odds);
 
           html += `
