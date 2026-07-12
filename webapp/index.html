@@ -521,6 +521,7 @@
         <button id="bet-currency-cg" class="bet-currency-tab active" onclick="selectBetCurrency('CG')">$CG</button>
         <button id="bet-currency-cones" class="bet-currency-tab" onclick="selectBetCurrency('Шишки')">Шишки</button>
       </div>
+      <input type="text" id="bet-score-input" placeholder="Введите счёт, например 2:1" style="display:none; width:100%; padding:12px; margin-bottom:12px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
       <input type="number" id="bet-amount" placeholder="Сумма ставки" style="width:100%; padding:12px; margin-bottom:15px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
       <button class="tutorial-btn" style="width: 100%;" onclick="submitBet()">Поставить</button>
     </div>
@@ -1442,21 +1443,31 @@
 
                 ${!isLocked ? `
                 <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px;">
-                  <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds})">
-                    ${escapeHTML(e.side1_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side1_odds})</span>
-                  </button>
-                  <button class="tot-side-btn" style="background: rgba(90, 90, 100, 0.82);" onclick="selectTotOption(this, ${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1})">
-                    ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.draw_odds || 1})</span>
-                  </button>
-                  <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds})">
-                    ${escapeHTML(e.side2_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side2_odds})</span>
-                  </button>
+                  ${(e.event_type || 'standard') === 'exact_score' ? `
+                    <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 0, 'Точный счёт', ${e.exact_score_odds || 1}, 'exact_score')">
+                      Точный счёт<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.exact_score_odds || 1})</span>
+                    </button>
+                  ` : `
+                    <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 1, '${escapeHTML(e.side1_name)}', ${e.side1_odds}, 'standard')">
+                      ${escapeHTML(e.side1_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side1_odds})</span>
+                    </button>
+                    <button class="tot-side-btn" style="background: rgba(90, 90, 100, 0.82);" onclick="selectTotOption(this, ${e.event_id}, 3, '${escapeHTML(e.draw_name || 'Ничья')}', ${e.draw_odds || 1}, 'standard')">
+                      ${escapeHTML(e.draw_name || 'Ничья')}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.draw_odds || 1})</span>
+                    </button>
+                    <button class="tot-side-btn" onclick="selectTotOption(this, ${e.event_id}, 2, '${escapeHTML(e.side2_name)}', ${e.side2_odds}, 'standard')">
+                      ${escapeHTML(e.side2_name)}<br><span style="font-size:0.82rem; font-weight: 800; color: #ffd36a; text-shadow: 0 1px 4px rgba(0,0,0,0.35);">(x${e.side2_odds})</span>
+                    </button>
+                  `}
                 </div>
                 ` : `
                 <div style="display: flex; gap: 5px; width: 100%; margin-top: 10px; opacity: 0.7;">
-                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side1_name)}<br>(x${e.side1_odds})</div>
-                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.draw_name || 'Ничья')}<br>(x${e.draw_odds || 1})</div>
-                  <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side2_name)}<br>(x${e.side2_odds})</div>
+                  ${(e.event_type || 'standard') === 'exact_score' ? `
+                    <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">Точный счёт<br>(x${e.exact_score_odds || 1})</div>
+                  ` : `
+                    <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side1_name)}<br>(x${e.side1_odds})</div>
+                    <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.draw_name || 'Ничья')}<br>(x${e.draw_odds || 1})</div>
+                    <div style="flex: 1; text-align: center; padding: 10px 5px; background: rgba(255,255,255,0.05); border-radius: 12px; color: var(--text-sec); border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">${escapeHTML(e.side2_name)}<br>(x${e.side2_odds})</div>
+                  `}
                 </div>
                 `}
               </div>
@@ -1494,13 +1505,13 @@
     else document.getElementById('bet-currency-cones').classList.add('active');
   }
 
-  function selectTotOption(button, eventId, side, sideName, odds) {
+  function selectTotOption(button, eventId, side, sideName, odds, eventType = 'standard') {
     const card = button.closest('.list-item');
     if (card) {
       card.querySelectorAll('.tot-side-btn').forEach(btn => btn.classList.remove('active'));
       button.classList.add('active');
     }
-    placeBetForm(eventId, side, sideName, odds);
+    placeBetForm(eventId, side, sideName, odds, eventType);
   }
 
   function hasActiveBetForEvent(eventId, callback) {
@@ -1517,17 +1528,27 @@
       .catch(() => callback(false));
   }
 
-  function placeBetForm(eventId, side, sideName, odds) {
+  function toggleExactScoreInput(show) {
+    const input = document.getElementById('bet-score-input');
+    if (!input) return;
+    input.style.display = show ? 'block' : 'none';
+    if (!show) input.value = '';
+  }
+
+  function placeBetForm(eventId, side, sideName, odds, eventType = 'standard') {
     hasActiveBetForEvent(eventId, (activeExists) => {
       if (activeExists) {
         tg.showAlert('У вас уже есть активная ставка по этому событию. Повторно поставить нельзя.');
         return;
       }
 
-      currentBetData = { eventId, side };
+      currentBetData = { eventId, side, eventType };
       document.getElementById('bet-modal-title').innerText = `Событие #${eventId}`;
-      document.getElementById('bet-modal-desc').innerText = `Ставка на: ${escapeHTML(sideName)} (x${odds})`;
+      document.getElementById('bet-modal-desc').innerText = eventType === 'exact_score'
+        ? `Ставка на точный счёт (x${odds})`
+        : `Ставка на: ${escapeHTML(sideName)} (x${odds})`;
       document.getElementById('bet-amount').value = '';
+      toggleExactScoreInput(eventType === 'exact_score');
       selectBetCurrency('CG');
       document.getElementById('bet-modal-overlay').classList.add('active');
     });
@@ -1545,12 +1566,21 @@
       tg.showAlert("Некорректная сумма!");
       return;
     }
+
+    let prediction = null;
+    if (currentBetData.eventType === 'exact_score') {
+      prediction = document.getElementById('bet-score-input').value.trim();
+      if (!prediction || !/^\d+:\d+$/.test(prediction)) {
+        tg.showAlert("Введите точный счёт в формате 2:1");
+        return;
+      }
+    }
     
     tg.MainButton.showProgress();
     fetch('/api/tot/bet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
-      body: JSON.stringify({ userId: getUserId(), eventId: currentBetData.eventId, side: currentBetData.side, amount: amount, currency: currentBetCurrency })
+      body: JSON.stringify({ userId: getUserId(), eventId: currentBetData.eventId, side: currentBetData.side, amount: amount, currency: currentBetCurrency, prediction: prediction })
     })
     .then(res => res.json())
     .then(data => {
@@ -1583,8 +1613,8 @@
           }
           let html = '';
           data.bets.forEach(b => {
-            const sideName = b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья'));
-            const odds = b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1));
+            const sideName = b.event_type === 'exact_score' ? (b.prediction || 'Точный счёт') : (b.side === 1 ? b.side1_name : (b.side === 2 ? b.side2_name : (b.draw_name || 'Ничья')));
+            const odds = b.event_type === 'exact_score' ? (b.exact_score_odds || 1) : (b.side === 1 ? b.side1_odds : (b.side === 2 ? b.side2_odds : (b.draw_odds || 1)));
             
             let statusColor = '#fff';
             let statusText = b.status;
@@ -1658,6 +1688,10 @@
         <h3 style="margin-top:0; color:#ff4444; margin-bottom: 10px;">Создать событие</h3>
         <input type="text" id="tot-title" placeholder="Название события" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
         <input type="text" id="tot-image" placeholder="URL картинки (необязательно)" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        <div style="display:flex; gap:10px; width:100%; align-items:center; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; color:#fff; font-size:0.9rem; white-space:nowrap;"><input type="checkbox" id="tot-exact-score-mode"> Точный счёт</label>
+          <input type="number" id="tot-exact-score-odds" placeholder="Коэф для всех счётов" step="0.01" value="1.0" style="flex:1; min-width:0; padding:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
+        </div>
         <div style="display:flex; gap:10px; width:100%;">
           <input type="text" id="tot-s1-name" placeholder="Сторона 1" style="flex:2; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
           <input type="number" id="tot-s1-odds" placeholder="Коэф 1" step="0.01" style="flex:1; min-width:0; padding:10px; margin-bottom:10px; border-radius:8px; background:#121214; color:white; border:1px solid #333;">
@@ -1693,9 +1727,10 @@
     const side2 = document.getElementById('tot-s2-name').value.trim();
     const drawName = document.getElementById('tot-draw-name').value.trim() || 'Ничья';
     const startTime = document.getElementById('tot-start-time').value;
+    const exactScoreMode = document.getElementById('tot-exact-score-mode').checked;
     
-    if (!title || !side1 || !side2 || !startTime) {
-      tg.showAlert('Пожалуйста, заполните все поля!');
+    if (!title || !startTime || (!exactScoreMode && (!side1 || !side2))) {
+      tg.showAlert('Пожалуйста, заполните все обязательные поля!');
       return;
     }
 
@@ -1703,12 +1738,14 @@
       userId: getUserId(),
       title: title,
       image_url: imageUrl || null,
-      side1_name: side1,
+      side1_name: side1 || 'Команда 1',
       side1_odds: parseFloat(document.getElementById('tot-s1-odds').value) || 1.0,
-      side2_name: side2,
+      side2_name: side2 || 'Команда 2',
       side2_odds: parseFloat(document.getElementById('tot-s2-odds').value) || 1.0,
       draw_name: drawName,
       draw_odds: parseFloat(document.getElementById('tot-draw-odds').value) || 1.0,
+      exact_score_odds: parseFloat(document.getElementById('tot-exact-score-odds').value) || 1.0,
+      event_type: exactScoreMode ? 'exact_score' : 'standard',
       start_time: startTime
     };
     
@@ -1744,14 +1781,18 @@
           html += `
             <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid #555;">
               <div><b>#${e.event_id} ${escapeHTML(e.title)}</b> (Статус: ${e.status})</div>
-              <div style="font-size:0.8rem; color:#aaa;">${escapeHTML(e.side1_name)}(${e.side1_odds}) | ${escapeHTML(e.draw_name || 'Ничья')}(${e.draw_odds || 1}) | ${escapeHTML(e.side2_name)}(${e.side2_odds})</div>
+              <div style="font-size:0.8rem; color:#aaa;">${(e.event_type || 'standard') === 'exact_score' ? `Точный счёт · коэф: ${e.exact_score_odds || 1}` : `${escapeHTML(e.side1_name)}(${e.side1_odds}) | ${escapeHTML(e.draw_name || 'Ничья')}(${e.draw_odds || 1}) | ${escapeHTML(e.side2_name)}(${e.side2_odds})`}</div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px;">
                 ${e.status === 'draft' ? `<button style="padding:5px 10px; background:#00ff88; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'active')">Активировать</button>` : ''}
                 ${e.status === 'active' ? `<button style="padding:5px 10px; background:#ffaa00; border:none; border-radius:5px; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'locked')">Заблокировать (Начать)</button>` : ''}
                 ${e.status === 'locked' ? `
-                  <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 1)">Победил 1</button>
-                  <button style="padding:5px 10px; background:#666666; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 3)">Ничья</button>
-                  <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 2)">Победил 2</button>
+                  ${(e.event_type || 'standard') === 'exact_score' ? `
+                    <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 0, true)">Задать счёт</button>
+                  ` : `
+                    <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 1)">Победил 1</button>
+                    <button style="padding:5px 10px; background:#666666; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 3)">Ничья</button>
+                    <button style="padding:5px 10px; background:#0088cc; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'finished', 2)">Победил 2</button>
+                  `}
                 ` : ''}
                 ${e.status === 'finished' ? `<button style="padding:5px 10px; background:#9b59b6; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminAction(${e.event_id}, 'paid')">Выплачено</button>` : ''}
                 <button style="padding:5px 10px; background:#ff4444; border:none; border-radius:5px; color:white; cursor:pointer;" onclick="totAdminDeleteEvent(${e.event_id})">🗑 Удалить</button>
@@ -1767,13 +1808,22 @@
     });
   }
 
-  function totAdminAction(eventId, action, winner = 0) {
+  function totAdminAction(eventId, action, winner = 0, isExactScore = false) {
     if (!confirm(`Подтверждаете действие '${action}' для события #${eventId}?`)) return;
+
+    let resultScore = null;
+    if (isExactScore && action === 'finished') {
+      resultScore = prompt('Введите точный счёт в формате 2:1');
+      if (!resultScore || !/^\d+:\d+$/.test(resultScore)) {
+        tg.showAlert('Введите счёт в формате 2:1');
+        return;
+      }
+    }
     
     fetch('/api/admin/tot/status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
-      body: JSON.stringify({ userId: getUserId(), eventId: eventId, action: action, winner: winner })
+      body: JSON.stringify({ userId: getUserId(), eventId: eventId, action: action, winner: winner, result_score: resultScore })
     })
     .then(r => r.json())
     .then(res => {

@@ -287,7 +287,10 @@ def init_db():
                 draw_odds REAL DEFAULT 1.0,
                 start_time TEXT,
                 status TEXT DEFAULT 'draft', -- draft, active, locked, finished
-                winner INTEGER DEFAULT 0
+                winner INTEGER DEFAULT 0,
+                event_type TEXT DEFAULT 'standard', -- standard, exact_score
+                exact_score_odds REAL DEFAULT 1.0,
+                result_score TEXT
             )
         ''')
 
@@ -298,6 +301,7 @@ def init_db():
                 event_id INTEGER,
                 user_id INTEGER,
                 side INTEGER,
+                prediction TEXT,
                 amount REAL,
                 currency TEXT DEFAULT 'CG',
                 status TEXT DEFAULT 'pending', -- pending, accepted, rejected, won, lost, paid
@@ -525,6 +529,15 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка image_url в tot_events")
         except Exception as e:
             logger.error(f"Ошибка миграции tot_events image_url: {e}")
+
+    if 'event_type' not in tot_events_cols:
+        try:
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN event_type TEXT DEFAULT 'standard'")
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN exact_score_odds REAL DEFAULT 1.0")
+            cursor.execute("ALTER TABLE tot_events ADD COLUMN result_score TEXT")
+            logger.info("Миграция: добавлены колонки exact_score в tot_events")
+        except Exception as e:
+            logger.error(f"Ошибка миграции tot_events exact_score: {e}")
             
     # Проверка tot_bets на наличие currency
     cursor.execute("PRAGMA table_info(tot_bets)")
@@ -535,6 +548,13 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка currency в tot_bets")
         except Exception as e:
             logger.error(f"Ошибка миграции tot_bets currency: {e}")
+
+    if 'prediction' not in tot_bets_cols:
+        try:
+            cursor.execute("ALTER TABLE tot_bets ADD COLUMN prediction TEXT")
+            logger.info("Миграция: добавлена колонка prediction в tot_bets")
+        except Exception as e:
+            logger.error(f"Ошибка миграции tot_bets prediction: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД"""
@@ -3038,10 +3058,14 @@ def api_tot_bet():
         if amount <= 0:
             return jsonify({'error': 'Сумма должна быть больше 0'}), 400
 
+        prediction = data.get('prediction') or data.get('score')
+        if event_id <= 0:
+            return jsonify({'error': 'eventId required'}), 400
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT status, start_time, title, side1_name, side2_name, draw_name FROM tot_events WHERE event_id = ?", (event_id,))
+        cursor.execute("SELECT status, start_time, title, side1_name, side2_name, draw_name, event_type, exact_score_odds FROM tot_events WHERE event_id = ?", (event_id,))
         event = cursor.fetchone()
         if not event:
             return jsonify({'error': 'Событие не существует'}), 400
@@ -3065,6 +3089,15 @@ def api_tot_bet():
         if status != 'active':
             return jsonify({'error': 'Событие неактивно или время ставок истекло'}), 400
 
+        if event['event_type'] == 'exact_score':
+            if not isinstance(prediction, str):
+                return jsonify({'error': 'prediction required'}), 400
+            prediction = prediction.strip().replace(' ', '')
+            if not prediction or not (prediction.count(':') == 1 and prediction.split(':')[0].isdigit() and prediction.split(':')[1].isdigit()):
+                return jsonify({'error': 'Введите счёт в формате 2:1'}), 400
+        else:
+            prediction = None
+
         cursor.execute("SELECT 1 FROM tot_bets WHERE event_id = ? AND user_id = ? AND status IN ('pending', 'accepted') LIMIT 1", (event_id, user_id))
         existing_bet = cursor.fetchone()
         if existing_bet:
@@ -3075,8 +3108,8 @@ def api_tot_bet():
             if not spend_result:
                 return jsonify({'error': 'Недостаточно шишек на балансе'}), 400
         
-        cursor.execute("INSERT INTO tot_bets (event_id, user_id, side, amount, currency, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-                       (event_id, user_id, side, amount, currency))
+        cursor.execute("INSERT INTO tot_bets (event_id, user_id, side, prediction, amount, currency, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
+                       (event_id, user_id, side, prediction, amount, currency))
         conn.commit()
         
         # Отправка уведомления администратору
@@ -3085,8 +3118,9 @@ def api_tot_bet():
             first_name = auth_user.get('first_name', 'Без_имени').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             
             side_name = event['side1_name'] if side == 1 else (event['side2_name'] if side == 2 else event['draw_name'])
+            selection_label = str(prediction or side_name or '—')
             safe_title = str(event['title']).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-            safe_side = str(side_name).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            safe_side = str(selection_label).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
             
             msg = (
                 f"🎲 <b>Новая заявка на ставку!</b>\n\n"
@@ -3120,7 +3154,7 @@ def api_tot_my_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.title, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds
+            SELECT b.*, e.title, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, e.event_type, e.exact_score_odds, e.result_score
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
             WHERE b.user_id = ?
@@ -3147,16 +3181,18 @@ def api_admin_tot_create():
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        event_type = data.get('event_type', 'standard')
         s1_odds = float(data.get('side1_odds') or 1.0)
         s2_odds = float(data.get('side2_odds') or 1.0)
         draw_odds = float(data.get('draw_odds') or 1.0)
+        exact_score_odds = float(data.get('exact_score_odds') or 1.0)
         image_url = data.get('image_url')
         
         cursor.execute('''
-            INSERT INTO tot_events (title, image_url, side1_name, side1_odds, side2_name, side2_odds, draw_name, draw_odds, start_time, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+            INSERT INTO tot_events (title, image_url, side1_name, side1_odds, side2_name, side2_odds, draw_name, draw_odds, start_time, status, event_type, exact_score_odds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)
         ''', (data.get('title'), image_url, data.get('side1_name'), s1_odds,
-              data.get('side2_name'), s2_odds, data.get('draw_name', 'Ничья'), draw_odds, data.get('start_time')))
+              data.get('side2_name'), s2_odds, data.get('draw_name', 'Ничья'), draw_odds, data.get('start_time'), event_type, exact_score_odds))
         event_id = cursor.lastrowid
         conn.commit()
         return jsonify({'status': 'ok', 'event_id': event_id})
@@ -3230,14 +3266,27 @@ def api_admin_tot_status():
             cursor.execute("DELETE FROM tot_bets WHERE event_id = ? AND status = 'pending'", (event_id,))
             cursor.execute("UPDATE tot_events SET status = 'locked' WHERE event_id = ?", (event_id,))
         elif action == 'finished':
-            cursor.execute("UPDATE tot_events SET status = 'finished', winner = ? WHERE event_id = ?", (winner, event_id))
-            cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND side = ?", (event_id, winner))
-            cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
+            result_score = data.get('result_score')
+            cursor.execute("SELECT event_type FROM tot_events WHERE event_id = ?", (event_id,))
+            event_row = cursor.fetchone()
+            if event_row and event_row['event_type'] == 'exact_score':
+                if not result_score:
+                    return jsonify({'error': 'result_score required'}), 400
+                cursor.execute("UPDATE tot_events SET status = 'finished', winner = 0, result_score = ? WHERE event_id = ?", (result_score, event_id))
+                cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND prediction = ?", (event_id, result_score))
+                cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND prediction != ?", (event_id, result_score))
+            else:
+                cursor.execute("UPDATE tot_events SET status = 'finished', winner = ?, result_score = NULL WHERE event_id = ?", (winner, event_id))
+                cursor.execute("UPDATE tot_bets SET status = 'won' WHERE event_id = ? AND status = 'accepted' AND side = ?", (event_id, winner))
+                cursor.execute("UPDATE tot_bets SET status = 'lost' WHERE event_id = ? AND status = 'accepted' AND side != ?", (event_id, winner))
         elif action == 'paid':
-            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, b.currency, e.side1_odds, e.side2_odds, e.draw_odds, e.winner FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
+            cursor.execute("SELECT b.bet_id, b.user_id, b.amount, b.currency, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, e.event_type, e.exact_score_odds FROM tot_bets b JOIN tot_events e ON b.event_id = e.event_id WHERE b.event_id = ? AND b.status = 'won'", (event_id,))
             bets = cursor.fetchall()
             for b in bets:
-                odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b['draw_odds'])
+                if b['event_type'] == 'exact_score':
+                    odds = b['exact_score_odds'] or 1.0
+                else:
+                    odds = b['side1_odds'] if b['winner'] == 1 else (b['side2_odds'] if b['winner'] == 2 else b['draw_odds'])
                 if b['currency'] == 'Шишки':
                     add_tokens(b['user_id'], int(b['amount'] * odds), f'tot_win:{event_id}')
             cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE event_id = ? AND status = 'won'", (event_id,))
@@ -3263,7 +3312,7 @@ def api_admin_tot_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, u.username
+            SELECT b.*, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, e.event_type, e.exact_score_odds, e.result_score, u.username
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
             JOIN users u ON b.user_id = u.user_id
@@ -3294,7 +3343,7 @@ def api_admin_tot_bet_status():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.user_id, b.amount, b.currency, b.status, b.side, e.title, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, b.event_id
+            SELECT b.user_id, b.amount, b.currency, b.status, b.side, b.prediction, e.title, e.side1_odds, e.side2_odds, e.draw_odds, e.winner, e.event_type, e.exact_score_odds, b.event_id
             FROM tot_bets b 
             JOIN tot_events e ON b.event_id = e.event_id 
             WHERE b.bet_id = ?
@@ -3314,7 +3363,10 @@ def api_admin_tot_bet_status():
                     msg_text = f"❌ Ваша ставка на <b>{bet['title']}</b> ОТКЛОНЕНА."
                 conn.commit()
             elif bet['status'] == 'won' and action == 'pay':
-                odds = bet['side1_odds'] if bet['winner'] == 1 else (bet['side2_odds'] if bet['winner'] == 2 else bet['draw_odds'])
+                if bet['event_type'] == 'exact_score':
+                    odds = bet['exact_score_odds'] or 1.0
+                else:
+                    odds = bet['side1_odds'] if bet['winner'] == 1 else (bet['side2_odds'] if bet['winner'] == 2 else bet['draw_odds'])
                 win_amount = int(bet['amount'] * odds)
                 cursor.execute("UPDATE tot_bets SET status = 'paid' WHERE bet_id = ?", (bet_id,))
                 conn.commit()
