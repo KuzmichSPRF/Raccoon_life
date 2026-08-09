@@ -1432,6 +1432,8 @@
       });
   }
 
+  let isAdmin = false;
+
   // ==================== SHOP (ANNOUNCEMENTS) ====================
   function openShop() {
     navigateTo('shop-screen');
@@ -1465,9 +1467,11 @@
 
   function loadShopItems() {
     const list = document.getElementById('shop-list-items');
-    fetch('/api/announcements')
+    fetch('/api/announcements?userId=' + getUserId())
       .then(res => res.json())
       .then(data => {
+        isAdmin = data.is_admin || false;
+
         if (data.status === 'ok' && data.announcements) {
           if (data.announcements.length === 0) {
             list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Нет доступных товаров.</div>';
@@ -1478,12 +1482,17 @@
             const safeTitle = escapeHTML(item.title);
             const safeDesc = escapeHTML(item.description);
             const itemJsonString = escapeHTML(JSON.stringify(item));
+            const adminButton = isAdmin ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.7rem; width: auto; margin-top: 10px; background: var(--accent);" onclick='hideShopItem(${item.id}, this)'>Скрыть</button>` : '';
+
             html += `
               <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                 ${item.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="Image" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 12px; margin-bottom: 5px;">` : ''}
                 <div style="font-weight: 800; font-size: 1.1rem; color: var(--primary);">${safeTitle}</div>
                 <div style="font-size: 0.9rem; color: var(--text-sec);">${safeDesc}</div>
-                <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; width: auto; margin-top: 10px;" onclick='shareShopItem(${itemJsonString})'>📢 Опубликовать</button>
+                <div style="display: flex; gap: 10px; align-items: center; width: 100%; justify-content: space-between;">
+                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; width: auto; margin-top: 10px;" onclick='shareShopItem(${itemJsonString})'>📢 Опубликовать</button>
+                    ${adminButton}
+                </div>
               </div>`;
           });
           list.innerHTML = html;
@@ -1499,6 +1508,37 @@
     const botUrl = `https://t.me/Raccoon_Life_bot/app`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
     tg.openTelegramLink(shareUrl);
+  }
+
+  function hideShopItem(announcementId, buttonElement) {
+    if (!confirm('Вы уверены, что хотите скрыть это объявление из магазина?')) {
+        return;
+    }
+
+    fetch('/api/admin/announcements/hide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+        body: JSON.stringify({
+            userId: getUserId(),
+            announcementId: announcementId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            tg.HapticFeedback.notificationOccurred('success');
+            const itemCard = buttonElement.closest('.list-item');
+            if (itemCard) {
+                itemCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                itemCard.style.opacity = '0';
+                itemCard.style.transform = 'scale(0.95)';
+                setTimeout(() => itemCard.remove(), 300);
+            }
+        } else {
+            tg.showAlert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(err => tg.showAlert('Сетевая ошибка'));
   }
 
   // ==================== TOTALIZATOR ====================

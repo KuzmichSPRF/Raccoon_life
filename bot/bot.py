@@ -337,6 +337,13 @@ def init_db():
             )
         ''')
 
+        # Таблица для скрытых объявлений из магазина
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS hidden_announcements (
+                announcement_id INTEGER PRIMARY KEY
+            )
+        ''')
+
         # Инициализация босса
         cursor.execute('''
             INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count)
@@ -2601,9 +2608,24 @@ def api_get_announcements():
     """
     Получает список объявлений из базы данных второго бота (salebot).
     """
+    user_id = request.args.get('userId', 0, type=int)
+    is_admin = (user_id == ADMIN_ID)
+
     sale_conn = get_salebot_db_connection()
     if not sale_conn:
         return jsonify({'status': 'error', 'error': 'Не удалось связаться с сервером объявлений.'}), 503
+
+    # Получаем ID скрытых объявлений из локальной БД
+    hidden_ids = set()
+    local_conn = get_db_connection()
+    try:
+        local_cursor = local_conn.cursor()
+        local_cursor.execute("SELECT announcement_id FROM hidden_announcements")
+        hidden_ids = {row['announcement_id'] for row in local_cursor.fetchall()}
+    except Exception as e:
+        logger.error(f"❌ Ошибка получения скрытых объявлений: {e}")
+    finally:
+        local_conn.close()
 
     try:
         cursor = sale_conn.cursor()
@@ -2612,12 +2634,16 @@ def api_get_announcements():
             FROM announcements 
             WHERE status = 'approved' 
             ORDER BY approved_at DESC 
-            LIMIT 50
+            LIMIT 100
         """)
         rows = cursor.fetchall()
         
         announcements = []
         for row in rows:
+            # Отфильтровываем скрытые объявления
+            if row['id'] in hidden_ids:
+                continue
+
             caption_lines = row['caption'].split('\n', 1)
             title = caption_lines[0].strip()
             description = caption_lines[1].strip() if len(caption_lines) > 1 else ''
@@ -2630,7 +2656,7 @@ def api_get_announcements():
                 "image_url": image_url
             })
             
-        return jsonify({'status': 'ok', 'announcements': announcements})
+        return jsonify({'status': 'ok', 'announcements': announcements, 'is_admin': is_admin})
 
     except Exception as e:
         logger.error(f"❌ Ошибка в api_get_announcements: {e}")
@@ -2638,6 +2664,39 @@ def api_get_announcements():
     finally:
         if sale_conn:
             sale_conn.close()
+
+
+@app.route('/api/admin/announcements/hide', methods=['POST'])
+def api_admin_hide_announcement():
+    """Скрывает объявление из магазина (только для админа)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        
+        data = request.get_json()
+        user_id = int(data.get('userId', 0))
+        announcement_id = int(data.get('announcementId', 0))
+
+        if user_id != ADMIN_ID:
+            security_logger.warning(f"🚨 UNAUTHORIZED HIDE ATTEMPT: user_id={user_id} tried to hide announcement_id={announcement_id}")
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        if not announcement_id:
+            return jsonify({'error': 'announcementId is required'}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT OR IGNORE INTO hidden_announcements (announcement_id) VALUES (?)", (announcement_id,))
+            conn.commit()
+            logger.info(f"🙈 Объявление #{announcement_id} скрыто админом {user_id}")
+            return jsonify({'status': 'ok'})
+        finally:
+            conn.close()
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_admin_hide_announcement: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ==================== СОВМЕСТНЫЙ КРАФТ (COOP CRAFT) ====================
 
