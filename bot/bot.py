@@ -466,6 +466,13 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats quests: {e}")
 
+    if 'tutorials_seen' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN tutorials_seen TEXT DEFAULT '[]'")
+            logger.info("Миграция: добавлена колонка tutorials_seen в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.tutorials_seen: {e}")
+
     if 'last_news_submit' not in user_stats_cols:
         try:
             cursor.execute("ALTER TABLE user_stats ADD COLUMN last_news_submit TIMESTAMP")
@@ -785,14 +792,21 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             ensure_user_exists(user_id)
         
         # Получаем текущие квесты, чтобы предотвратить их удаление при сбросе кэша клиента
-        cursor.execute('SELECT quests FROM user_stats WHERE user_id = ?', (user_id,))
+        cursor.execute('SELECT quests, tutorials_seen FROM user_stats WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()
         existing_quests = []
-        if row and row['quests']:
-            try:
-                existing_quests = json.loads(row['quests'])
-            except json.JSONDecodeError:
-                pass
+        existing_tutorials = []
+        if row:
+            if row['quests']:
+                try:
+                    existing_quests = json.loads(row['quests'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            if row['tutorials_seen']:
+                try:
+                    existing_tutorials = json.loads(row['tutorials_seen'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
                 
         incoming_quests = stats_data.get('quests', [])
         merged_quests = list(set(existing_quests + incoming_quests))
@@ -803,6 +817,13 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         
         # Для рейтинга считаем только реальные квесты (ID начинается на qt)
         actual_quests_count = len([q for q in merged_quests if q.startswith('qt')])
+
+        # Объединяем просмотренные туториалы
+        incoming_tutorials = stats_data.get('tutorials_seen', [])
+        if isinstance(incoming_tutorials, list):
+            merged_tutorials = list(set(existing_tutorials + incoming_tutorials))
+        else:
+            merged_tutorials = existing_tutorials
 
         # Обновляем статистику
         cursor.execute(f'''
@@ -818,7 +839,8 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 roulette_cones_won = MAX(roulette_cones_won, ?),
                 roulette_cones_lost = MAX(roulette_cones_lost, ?),
                 quests = ?,
-                quests_completed = ?
+                quests_completed = ?,
+                tutorials_seen = ?
                 {time_update_sql}
             WHERE user_id = ?
         ''', (
@@ -834,6 +856,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('roulette_cones_lost', 0)),
             json.dumps(merged_quests),
             actual_quests_count,
+            json.dumps(merged_tutorials),
             user_id
         ))
         
@@ -957,7 +980,7 @@ def get_player_stats(user_id: int) -> dict:
     try:
         cursor.execute('''
             SELECT clown_games, clown_wins, vladeos_games, vladeos_wins,
-                   tower_max_level, tower_total_levels, quests,
+                   tower_max_level, tower_total_levels, quests, tutorials_seen,
                    roulette_games, roulette_wins,
                    roulette_cones_won, roulette_cones_lost
             FROM user_stats WHERE user_id = ?
@@ -976,7 +999,8 @@ def get_player_stats(user_id: int) -> dict:
                 'roulette_wins': row['roulette_wins'],
                 'roulette_cones_won': row['roulette_cones_won'],
                 'roulette_cones_lost': row['roulette_cones_lost'],
-                'quests': json.loads(row['quests']) if row['quests'] else []
+                'quests': json.loads(row['quests']) if row['quests'] else [],
+                'tutorials_seen': json.loads(row['tutorials_seen']) if row['tutorials_seen'] else []
             }
         return {}
         
@@ -2299,7 +2323,8 @@ def handle_sync_stats(data: dict):
         'roulette_wins': validate_integer(data.get('roulette_wins', 0), min_val=0, max_val=1000000),
         'roulette_cones_won': validate_integer(data.get('roulette_cones_won', 0), min_val=0, max_val=1000000000),
         'roulette_cones_lost': validate_integer(data.get('roulette_cones_lost', 0), min_val=0, max_val=1000000000),
-        'quests': validate_list(data.get('quests', []), default=[])
+        'quests': validate_list(data.get('quests', []), default=[]),
+        'tutorials_seen': validate_list(data.get('tutorials_seen', []), default=[])
     }
 
     logger.info(f"📊 Данные статистики: {stats_data}")

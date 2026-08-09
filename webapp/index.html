@@ -844,7 +844,8 @@
     vladeos_wins: 0,
     tower_max_level: 0,
     tower_total_levels: 0,
-    quests: []
+    quests: [],
+    tutorials_seen: []
   };
 
   function loadStats() {
@@ -900,12 +901,14 @@
   }
 
   function hasSeenTutorial(category) {
-    const seen = localStorage.getItem('rl_tutorial_' + category);
-    return seen === 'true';
+    return stats.tutorials_seen.includes(category);
   }
 
   function markTutorialSeen(category) {
-    localStorage.setItem('rl_tutorial_' + category, 'true');
+    if (!stats.tutorials_seen.includes(category)) {
+        stats.tutorials_seen.push(category);
+        syncStats(); // This will send the updated list to the server
+    }
   }
 
   function showTutorial(category) {
@@ -1043,7 +1046,8 @@
       vladeos_wins: stats.vladeos_wins,
       tower_max_level: stats.tower_max_level,
       tower_total_levels: stats.tower_total_levels,
-      quests: stats.quests
+      quests: stats.quests,
+      tutorials_seen: stats.tutorials_seen
     };
 
     console.log('📊 Syncing stats:', data);
@@ -1159,6 +1163,10 @@
         const mergedQuests = Array.from(new Set([...localQuests, ...serverQuests]));
         localStorage.setItem('completed_items', JSON.stringify(mergedQuests));
         stats.quests = mergedQuests;
+
+        // Загружаем просмотренные туториалы с сервера
+        stats.tutorials_seen = data.stats.tutorials_seen || [];
+        console.log('📚 Tutorials seen from server:', stats.tutorials_seen);
       }
     })
     .catch(err => console.error('Ошибка загрузки статистики с сервера:', err));
