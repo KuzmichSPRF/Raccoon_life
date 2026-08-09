@@ -579,7 +579,7 @@
       </div>
       <div class="menu-card" onclick="openShop()">
         <span class="menu-card-icon">🛒</span>
-        <span class="menu-card-title" data-i18n="menu_shop">Магазин</span>
+        <span class="menu-card-title" data-i18n="menu_shop">Рынок</span>
       </div>
       <div class="menu-card" onclick="showLeaderboard()">
         <span class="menu-card-icon">🏆</span>
@@ -620,7 +620,7 @@
   </div>
 
   <div id="shop-screen" class="screen">
-    <h2 class="section-title" data-i18n="menu_shop">Магазин</h2>
+    <h2 class="section-title" data-i18n="menu_shop">Рынок</h2>
     <div id="shop-list" style="padding-bottom: 20px;"></div>
   </div>
 
@@ -705,7 +705,7 @@
       menu_support: "Поддержать",
       menu_craft: "Крафт",
       menu_tot: "Тотализатор",
-      menu_shop: "Магазин",
+      menu_shop: "Рынок",
       menu_roulette: "Енотная Рулетка",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
@@ -917,7 +917,7 @@
       shop: {
         icon: '🛒',
         title: currentLang === 'ru' ? '🛒 Рынок' : '🛒 Shop',
-        desc: currentLang === 'ru' ? 'Публикуйте объявления из магазина в свои группы и каналы.' : 'Publish announcements from the shop to your groups and channels.'
+        desc: currentLang === 'ru' ? 'Публикуйте объявления из Рынка в свои группы и каналы.' : 'Publish announcements from the shop to your groups and channels.'
       },
     };
   }
@@ -1511,7 +1511,7 @@
   }
 
   function hideShopItem(announcementId, buttonElement) {
-    if (!confirm('Вы уверены, что хотите скрыть это объявление из магазина?')) {
+    if (!confirm('Вы уверены, что хотите скрыть это объявление из Рынка?')) {
         return;
     }
 
