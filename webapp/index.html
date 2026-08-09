@@ -546,6 +546,14 @@
       </div>
     </div>
     <div class="main-menu-grid">
+      <div class="menu-card" onclick="renderCategory('quests')">
+        <span class="menu-card-icon">❓</span>
+        <span class="menu-card-title" data-i18n="menu_quests">Квесты</span>
+      </div>
+      <div class="menu-card" onclick="renderCategory('games')">
+        <span class="menu-card-icon">🎮</span>
+        <span class="menu-card-title" data-i18n="menu_games">Мини-игры</span>
+      </div>
       <div class="menu-card" onclick="renderCategory('newspapers')">
         <span class="menu-card-icon">📰</span>
         <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
@@ -554,18 +562,13 @@
         <span class="menu-card-icon">🎲</span>
         <span class="menu-card-title" data-i18n="menu_tot">Тотализатор</span>
       </div>
+      <!-- Временно скрытый крафт -->
+      <!--
       <div class="menu-card" onclick="window.location.href='coop_craft.html'">
         <span class="menu-card-icon">🛠</span>
         <span class="menu-card-title" data-i18n="menu_craft">Крафт</span>
       </div>
-      <div class="menu-card" onclick="renderCategory('quests')">
-        <span class="menu-card-icon">❓</span>
-        <span class="menu-card-title" data-i18n="menu_quests">Квесты</span>
-      </div>
-      <div class="menu-card" onclick="renderCategory('games')">
-        <span class="menu-card-icon">🎮</span>
-        <span class="menu-card-title" data-i18n="menu_games">Игры</span>
-      </div>
+      -->
       <div class="menu-card" onclick="renderCategory('partners')">
         <span class="menu-card-icon">🤝</span>
         <span class="menu-card-title" data-i18n="menu_partners">Партнеры</span>
@@ -683,7 +686,7 @@
       cones_plural: "Шишек",
       menu_news: "Газеты",
       menu_quests: "Квесты",
-      menu_games: "Игры",
+      menu_games: "Мини-игры",
       menu_partners: "Партнеры",
       menu_rating: "Рейтинг",
       menu_support: "Поддержать",
@@ -727,7 +730,7 @@
       cones_plural: "Cones",
       menu_news: "News",
       menu_quests: "Quests",
-      menu_games: "Games",
+      menu_games: "Mini-games",
       menu_partners: "Partners",
       menu_rating: "Rating",
       menu_support: "Support",
@@ -880,8 +883,8 @@
       },
       games: {
         icon: '🎮',
-        title: currentLang === 'ru' ? '🎮 Игры' : '🎮 Games',
-        desc: currentLang === 'ru' ? 'Играйте и зарабатывайте! Морской Бой и Vladeos — 100 Шишек за победу.' : 'Play and earn! Battleship and @curt3311 — 100 Cones per win.'
+        title: currentLang === 'ru' ? '🎮 Мини-игры' : '🎮 Mini-games',
+        desc: currentLang === 'ru' ? 'Играйте в мини-игры и зарабатывайте! За победу в некоторых играх можно получить шишки.' : 'Play mini-games and earn! You can get cones for winning in some games.'
       },
       partners: {
         icon: '🤝',
@@ -1995,6 +1998,7 @@
       newspapers: {
         title: t.menu_news,
         items: [
+          { id: "caps_news_6", title: currentLang === 'ru' ? "CapsGame Times №6: июль 2026" : "CapsGame Times #6: July 2026", desc: "CapsGame Times", url: "https://telegra.ph/CapsGame-Times-6---Iyul-2026-07-31", type: "link" },
           { id: "news_20", title: currentLang === 'ru' ? "Выпуск #20" : "Issue #20", desc: "The Raccoon Times", url: "https://telegra.ph/THE-RACCOON-TIMES-July-2026-2026-RU-07-04", type: "link" },
           { id: "caps_news_5", title: currentLang === 'ru' ? "CapsGame Times №5: июнь 2026" : "CapsGame Times #5: June 2026", desc: "CapsGame Times", url: "https://telegra.ph/CapsGame-Times-5---Iyun-2026-06-29", type: "link" },
           { id: "caps_news_4", title: currentLang === 'ru' ? "CapsGame Times №4: май 2026" : "CapsGame Times #4: May 2026", desc: "CapsGame Times", url: currentLang === 'ru' ? "https://telegra.ph/CapsGame-Times-4---Maj-2026-05-30" : "https://telegra.ph/CapsGame-Times-4---May-2026-05-31", type: "link" },
@@ -2058,9 +2062,7 @@
         items: [
           { title: "The Raccoon Times", desc: currentLang === 'ru' ? "Канал лучшей газеты" : "The best newspaper channel", url: "https://t.me/the_raccoon_times", type: "external" },
           { title: "CapsGame", desc: currentLang === 'ru' ? "Игра про фишки" : "Game about caps", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" },
-          { title: currentLang === 'ru' ? "Клёмпус" : "Kljompus", desc: currentLang === 'ru' ? "Братство, питоны, мотоциклы" : "Brotherhood, pythons, motorcycles", url: "https://www.youtube.com/@Kljompus", type: "link" },
-          { title: "Telemitz", desc: currentLang === 'ru' ? "Лучшее приложение для связи" : "Best communication app", url: "https://t.me/telemitzbot", type: "external" },
-          { title: "Rabbit Games", desc: currentLang === 'ru' ? "Лучшие стримы" : "Best streams", url: "https://t.me/Her0gau", type: "external" }
+          { title: "Клёмпус", desc: currentLang === 'ru' ? "Криптомедиа • Аналитика • Расследования" : "Crypto media • Analytics • Investigations", url: "https://kljompus.com/", type: "link" }
         ]
       }
     };
