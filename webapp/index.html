@@ -554,6 +554,10 @@
         <span class="menu-card-icon">🎮</span>
         <span class="menu-card-title" data-i18n="menu_games">Мини-игры</span>
       </div>
+      <div class="menu-card" onclick="handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette })">
+        <span class="menu-card-icon">🎰</span>
+        <span class="menu-card-title" data-i18n="menu_roulette">Енотная Рулетка</span>
+      </div>
       <div class="menu-card" onclick="renderCategory('newspapers')">
         <span class="menu-card-icon">📰</span>
         <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
@@ -692,6 +696,7 @@
       menu_support: "Поддержать",
       menu_craft: "Крафт",
       menu_tot: "Тотализатор",
+      menu_roulette: "Енотная Рулетка",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
@@ -736,6 +741,7 @@
       menu_support: "Support",
       menu_craft: "Craft",
       menu_tot: "Betting",
+      menu_roulette: "Raccoon Roulette",
       reader_title: "Viewer",
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
@@ -2058,7 +2064,6 @@
         items: [
           { title: currentLang === 'ru' ? "🎯 Найди Фишку" : "🎯 Find the Chip", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "find_chip.html", type: "iframe" },
           { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" },
-          { title: currentLang === 'ru' ? "🎰 Енотная Рулетка" : "🎰 Raccoon Roulette", desc: currentLang === 'ru' ? "Казино на шишки" : "Casino for cones", url: "casino_roulette.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },
           { title: currentLang === 'ru' ? "Башня 3.0" : "Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
           { title: currentLang === 'ru' ? "PVP: Vladeos" : "PVP: @curt3311", desc: currentLang === 'ru' ? "100 Шишек (5% шанс)" : "100 Cones (5% chance)", url: "vladeos_pvp.html", type: "iframe" },
