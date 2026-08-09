@@ -100,7 +100,6 @@ limiter = Limiter(
 
 def get_moscow_now():
     """Текущее время в Москве."""
-    return datetime.now(ZoneInfo("Europe/Moscow"))
     try:
         return datetime.now(ZoneInfo("Europe/Moscow"))
     except ZoneInfoNotFoundError:
@@ -121,7 +120,6 @@ def parse_moscow_datetime(value):
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
         try:
             parsed = datetime.strptime(text, fmt)
-            return parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
             return parsed.replace(tzinfo=tz) if tz else parsed
         except ValueError:
             continue
@@ -133,8 +131,6 @@ def parse_moscow_datetime(value):
 
     
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
-    return parsed.astimezone(ZoneInfo("Europe/Moscow"))
         parsed = parsed.replace(tzinfo=tz) if tz else parsed
     return parsed.astimezone(tz) if tz else parsed
 
