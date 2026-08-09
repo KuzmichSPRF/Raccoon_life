@@ -11,13 +11,13 @@ import hmac
 import hashlib
 import time
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -43,6 +43,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
+
+# Переменные для интеграции с ботом объявлений
+SALEBOT_TOKEN = os.getenv("SALEBOT_TOKEN")
+SALEBOT_DB_PATH = os.getenv("SALEBOT_DB_PATH", str(BOT_DIR / "salebot.db"))
 
 # Настройка логирования
 logging.basicConfig(
@@ -94,11 +98,19 @@ limiter = Limiter(
 
 def get_moscow_now():
     """Текущее время в Москве."""
-    return datetime.now(ZoneInfo("Europe/Moscow"))
+    try:
+        return datetime.now(ZoneInfo("Europe/Moscow"))
+    except ZoneInfoNotFoundError:
+        return datetime.now() # Fallback
 
 
 def parse_moscow_datetime(value):
     """Парсит строку времени как московское время."""
+    try:
+        tz = ZoneInfo("Europe/Moscow")
+    except ZoneInfoNotFoundError:
+        tz = None # Fallback
+
     if not value:
         return None
 
@@ -106,7 +118,7 @@ def parse_moscow_datetime(value):
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
         try:
             parsed = datetime.strptime(text, fmt)
-            return parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
+            return parsed.replace(tzinfo=tz) if tz else parsed
         except ValueError:
             continue
 
@@ -114,10 +126,10 @@ def parse_moscow_datetime(value):
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
         return None
-
+    
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
-    return parsed.astimezone(ZoneInfo("Europe/Moscow"))
+        parsed = parsed.replace(tzinfo=tz) if tz else parsed
+    return parsed.astimezone(tz) if tz else parsed
 
 
 # Обработчик ошибок rate limit
@@ -162,6 +174,17 @@ def log_response_info(response):
 def get_db_connection():
     """Создает подключение к базе данных"""
     conn = sqlite3.connect(str(DB_PATH), timeout=10.0)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def get_salebot_db_connection():
+    """Создает подключение к базе данных salebot в режиме только для чтения."""
+    if not os.path.exists(SALEBOT_DB_PATH):
+        logger.error(f"🚨 База данных salebot не найдена по пути: {SALEBOT_DB_PATH}")
+        return None
+    # Открываем в режиме "только для чтения" (uri=True, mode=ro) для безопасности
+    conn = sqlite3.connect(f"file:{SALEBOT_DB_PATH}?mode=ro", uri=True, timeout=10.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -2532,6 +2555,86 @@ def handle_spend_tokens(data: dict):
     else:
         return jsonify({'status': 'error', 'message': 'Insufficient tokens'}), 400
 
+
+@app.route('/api/announcement_image/<path:file_id>')
+def api_announcement_image(file_id):
+    """
+    Прокси для получения изображения объявления по его file_id.
+    Делает запрос к Telegram API второго бота и редиректит на URL файла.
+    """
+    if not SALEBOT_TOKEN:
+        logger.error("🚨 SALEBOT_TOKEN не настроен! Не могу получить изображение.")
+        return "Server configuration error: SALEBOT_TOKEN is not set.", 500
+
+    try:
+        # 1. Получаем информацию о файле от Telegram
+        get_file_url = f"https://api.telegram.org/bot{SALEBOT_TOKEN}/getFile"
+        response = requests.get(get_file_url, params={'file_id': file_id}, timeout=5)
+        response.raise_for_status()
+        
+        file_data = response.json()
+        if not file_data.get('ok'):
+            logger.error(f"❌ Telegram API (getFile) error: {file_data.get('description')}")
+            return "File not found on Telegram", 404
+            
+        file_path = file_data['result']['file_path']
+        
+        # 2. Формируем URL для скачивания и делаем редирект
+        image_url = f"https://api.telegram.org/file/bot{SALEBOT_TOKEN}/{file_path}"
+        
+        # Редирект пользователя на прямой URL файла в Telegram
+        return redirect(image_url, code=302)
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Ошибка сети при получении файла объявления: {e}")
+        return "Network error while fetching image", 503
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_announcement_image: {e}")
+        return "Internal server error", 500
+
+
+@app.route('/api/announcements', methods=['GET'])
+def api_get_announcements():
+    """
+    Получает список объявлений из базы данных второго бота (salebot).
+    """
+    sale_conn = get_salebot_db_connection()
+    if not sale_conn:
+        return jsonify({'status': 'error', 'error': 'Не удалось связаться с сервером объявлений.'}), 503
+
+    try:
+        cursor = sale_conn.cursor()
+        cursor.execute("""
+            SELECT id, caption, photo_file_id 
+            FROM announcements 
+            WHERE status = 'approved' 
+            ORDER BY approved_at DESC 
+            LIMIT 50
+        """)
+        rows = cursor.fetchall()
+        
+        announcements = []
+        for row in rows:
+            caption_lines = row['caption'].split('\n', 1)
+            title = caption_lines[0].strip()
+            description = caption_lines[1].strip() if len(caption_lines) > 1 else ''
+            image_url = f"/api/announcement_image/{row['photo_file_id']}" if row['photo_file_id'] else None
+            
+            announcements.append({
+                "id": row['id'],
+                "title": title,
+                "description": description,
+                "image_url": image_url
+            })
+            
+        return jsonify({'status': 'ok', 'announcements': announcements})
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_get_announcements: {e}")
+        return jsonify({'status': 'error', 'error': 'Внутренняя ошибка сервера.'}), 500
+    finally:
+        if sale_conn:
+            sale_conn.close()
 
 # ==================== СОВМЕСТНЫЙ КРАФТ (COOP CRAFT) ====================
 
