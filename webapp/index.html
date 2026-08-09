@@ -577,6 +577,10 @@
         <span class="menu-card-icon">🤝</span>
         <span class="menu-card-title" data-i18n="menu_partners">Партнеры</span>
       </div>
+      <div class="menu-card" onclick="openShop()">
+        <span class="menu-card-icon">🛒</span>
+        <span class="menu-card-title" data-i18n="menu_shop">Магазин</span>
+      </div>
       <div class="menu-card" onclick="showLeaderboard()">
         <span class="menu-card-icon">🏆</span>
         <span class="menu-card-title" data-i18n="menu_rating">Рейтинг</span>
@@ -613,6 +617,11 @@
       <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin()" style="background: #5c1a1a; border-color: #ff4444; display: none;">Админ</button>
     </div>
     <div id="tot-content" style="padding-bottom: 20px;"></div>
+  </div>
+
+  <div id="shop-screen" class="screen">
+    <h2 class="section-title" data-i18n="menu_shop">Магазин</h2>
+    <div id="shop-list" style="padding-bottom: 20px;"></div>
   </div>
 
   <div id="reader-screen" class="screen">
@@ -696,6 +705,7 @@
       menu_support: "Поддержать",
       menu_craft: "Крафт",
       menu_tot: "Тотализатор",
+      menu_shop: "Магазин",
       menu_roulette: "Енотная Рулетка",
       reader_title: "Просмотр",
       btn_understood: "Понятно!",
@@ -741,6 +751,7 @@
       menu_support: "Support",
       menu_craft: "Craft",
       menu_tot: "Betting",
+      menu_shop: "Shop",
       menu_roulette: "Raccoon Roulette",
       reader_title: "Viewer",
       btn_understood: "Got it!",
@@ -903,6 +914,11 @@
         title: currentLang === 'ru' ? '🎲 Тотализатор' : '🎲 Betting',
         desc: currentLang === 'ru' ? 'Делайте ставки на события и выигрывайте шишки!' : 'Place bets on events and win cones!'
       }
+      shop: {
+        icon: '🛒',
+        title: currentLang === 'ru' ? '🛒 Магазин' : '🛒 Shop',
+        desc: currentLang === 'ru' ? 'Публикуйте объявления из магазина в свои группы и каналы.' : 'Publish announcements from the shop to your groups and channels.'
+      },
     };
   }
 
@@ -1196,6 +1212,8 @@
       navigateTo('cover-screen');
     } else if (current === 'tot-screen') {
       navigateTo('main-menu');
+    } else if (current === 'shop-screen') {
+      navigateTo('main-menu');
     }
   }
 
@@ -1412,6 +1430,75 @@
         console.error('Ошибка загрузки рейтинга:', err);
         list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
       });
+  }
+
+  // ==================== SHOP (ANNOUNCEMENTS) ====================
+  function openShop() {
+    navigateTo('shop-screen');
+    const list = document.getElementById('shop-list');
+    list.innerHTML = `
+      <div class="list-item" style="background: linear-gradient(135deg, var(--primary), #005588); margin-bottom: 20px; flex-direction: column; align-items: flex-start;">
+        <div class="list-item-title" style="color: white;">Добавить бота в группу</div>
+        <div class="list-item-desc" style="color: #eee; margin-top: 5px; margin-bottom: 10px;">Чтобы публиковать объявления прямо в чат вашей группы, добавьте Raccoon Life Bot как администратора.</div>
+        <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; width: auto; margin: 0;" onclick="addBotToGroup()">
+          ➕ Добавить в группу
+        </button>
+      </div>
+      <div id="shop-list-items">
+          <div style="text-align:center;color:var(--text-sec);padding:20px;">Загрузка...</div>
+      </div>
+    `;
+    loadShopItems();
+
+    if (!hasSeenTutorial('shop')) {
+      showTutorial('shop');
+      markTutorialSeen('shop');
+    }
+  }
+
+  function addBotToGroup() {
+    const botUsername = 'Raccoon_Life_bot';
+    // Запрашиваем права на отправку сообщений
+    const url = `https://t.me/${botUsername}?startgroup=true&admin=post_messages`;
+    tg.openTelegramLink(url);
+  }
+
+  function loadShopItems() {
+    const list = document.getElementById('shop-list-items');
+    fetch('/api/announcements')
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.announcements) {
+          if (data.announcements.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:var(--text-sec);padding:20px;">Нет доступных товаров.</div>';
+            return;
+          }
+          let html = '';
+          data.announcements.forEach(item => {
+            const safeTitle = escapeHTML(item.title);
+            const safeDesc = escapeHTML(item.description);
+            const itemJsonString = escapeHTML(JSON.stringify(item));
+            html += `
+              <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                ${item.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="Image" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 12px; margin-bottom: 5px;">` : ''}
+                <div style="font-weight: 800; font-size: 1.1rem; color: var(--primary);">${safeTitle}</div>
+                <div style="font-size: 0.9rem; color: var(--text-sec);">${safeDesc}</div>
+                <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; width: auto; margin-top: 10px;" onclick='shareShopItem(${itemJsonString})'>📢 Опубликовать</button>
+              </div>`;
+          });
+          list.innerHTML = html;
+        } else {
+          list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка: ${data.error || 'Не удалось загрузить товары'}</div>`;
+        }
+      })
+      .catch(err => list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">Ошибка сети</div>`);
+  }
+
+  function shareShopItem(item) {
+    let text = `📢 *${item.title}*\n\n${item.description}`;
+    const botUrl = `https://t.me/Raccoon_Life_bot/app`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
+    tg.openTelegramLink(shareUrl);
   }
 
   // ==================== TOTALIZATOR ====================

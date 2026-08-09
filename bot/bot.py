@@ -11,12 +11,14 @@ import hmac
 import hashlib
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
 import requests
+from flask import Flask, jsonify, request, send_from_directory
 from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -98,6 +100,7 @@ limiter = Limiter(
 
 def get_moscow_now():
     """Текущее время в Москве."""
+    return datetime.now(ZoneInfo("Europe/Moscow"))
     try:
         return datetime.now(ZoneInfo("Europe/Moscow"))
     except ZoneInfoNotFoundError:
@@ -118,6 +121,7 @@ def parse_moscow_datetime(value):
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
         try:
             parsed = datetime.strptime(text, fmt)
+            return parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
             return parsed.replace(tzinfo=tz) if tz else parsed
         except ValueError:
             continue
@@ -126,8 +130,11 @@ def parse_moscow_datetime(value):
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
         return None
+
     
     if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ZoneInfo("Europe/Moscow"))
+    return parsed.astimezone(ZoneInfo("Europe/Moscow"))
         parsed = parsed.replace(tzinfo=tz) if tz else parsed
     return parsed.astimezone(tz) if tz else parsed
 
