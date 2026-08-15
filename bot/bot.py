@@ -11,6 +11,7 @@ import hmac
 import hashlib
 import html
 import time
+import base64
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -18,6 +19,7 @@ import asyncio
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
+from io import BytesIO
 import requests
 from flask import Flask, jsonify, request, send_from_directory
 from flask import Flask, jsonify, request, send_from_directory, redirect
@@ -1820,7 +1822,7 @@ def api_submit_news():
 
         data = request.get_json()
         user_id = data.get('userId') or data.get('user_id')
-        text = sanitize_string(data.get('text', ''), max_length=280)
+        text = sanitize_string(data.get('text', ''), max_length=1024)
         topic = sanitize_string(data.get('topic', 'Другое'), max_length=100)
         is_anonymous = bool(data.get('isAnonymous', False))
 
@@ -1865,33 +1867,58 @@ def api_submit_news():
         finally:
             conn.close()
 
-        
-        escaped_text = text.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-        
-        msg = f"📰 <b>Новое сообщение от игрока!</b>\n"
-        msg += f"🏷 <b>Тема:</b> {topic}\n\n"
-        msg += f"<i>{escaped_text}</i>\n\n"
-        msg += f"➖➖➖➖➖➖\n"
+        # Формируем системную часть сообщения
+        system_info = f"📰 <b>Новое сообщение от игрока!</b>\n"
+        system_info += f"🏷 <b>Тема:</b> {html.escape(topic)}\n"
+        system_info += f"➖➖➖➖➖➖\n"
         
         if is_anonymous:
-            msg += "🕵️‍♂️ <b>Отправитель:</b> Анонимно"
+            system_info += "🕵️‍♂️ <b>Отправитель:</b> Анонимно"
         else:
-            username = auth_user.get('username', 'Нет_юзернейма').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-            first_name = auth_user.get('first_name', 'Без_имени').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-            msg += f"👤 <b>Отправитель:</b> {first_name} (@{username})\n🆔 <b>ID:</b> <code>{user_id}</code>"
+            username = html.escape(auth_user.get('username', 'Нет_юзернейма'))
+            first_name = html.escape(auth_user.get('first_name', 'Без_имени'))
+            system_info += f"👤 <b>Отправитель:</b> {first_name} (@{username})\n🆔 <b>ID:</b> <code>{user_id}</code>"
 
         reply_markup = {
             "inline_keyboard": [[
                 {"text": "✅ Опубликовать", "callback_data": "publish_news"}
             ]]
         }
-
-        response = requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
-            json={"chat_id": ADMIN_ID, "text": msg, "parse_mode": "HTML", "reply_markup": reply_markup},
-            timeout=10
-        )
         
+        photo_to_send = None
+        if image_base64:
+            try:
+                image_bytes = base64.b64decode(image_base64)
+                photo_to_send = BytesIO(image_bytes)
+            except Exception as e:
+                logger.error(f"Ошибка декодирования изображения: {e}")
+                photo_to_send = None
+
+        api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/"
+        
+        if photo_to_send:
+            # Отправляем фото с подписью
+            files = {'photo': ('news_image.jpg', photo_to_send, 'image/jpeg')}
+            # Текст новости становится подписью
+            caption = f"{html.escape(text)}\n\n{system_info}" if text else system_info
+            payload = {
+                "chat_id": ADMIN_ID, 
+                "caption": caption, 
+                "parse_mode": "HTML", 
+                "reply_markup": json.dumps(reply_markup)
+            }
+            response = requests.post(api_url + "sendPhoto", data=payload, files=files, timeout=20)
+        else:
+            # Отправляем только текст
+            full_text = f"{html.escape(text)}\n\n{system_info}"
+            payload = {
+                "chat_id": ADMIN_ID, 
+                "text": full_text, 
+                "parse_mode": "HTML", 
+                "reply_markup": reply_markup
+            }
+            response = requests.post(api_url + "sendMessage", json=payload, timeout=10)
+
         if response.status_code != 200:
             logger.error(f"Telegram API Error (submit_news): {response.text}")
             return jsonify({'error': f'Сбой Telegram API: {response.status_code}'}), 500
@@ -1900,7 +1927,6 @@ def api_submit_news():
     except Exception as e:
         logger.error(f"Ошибка api_submit_news: {e}")
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/boss/attack', methods=['POST'])
 @limiter.limit("120 per minute")
@@ -4870,28 +4896,44 @@ async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer("Публикуем...")
 
     try:
-        # Получаем HTML-код сообщения
-        text_html = query.message.text_html
-
-        # Разделяем по нашему разделителю, чтобы отсечь системную инфу об отправителе
-        if "➖➖➖➖➖➖" in text_html:
-            publish_text = text_html.split("➖➖➖➖➖➖")[0].strip()
+        # Получаем сообщение, к которому привязана кнопка
+        message = query.message
+        photo_id = message.photo[-1].file_id if message.photo else None
+        
+        # Получаем текст (из подписи или из тела сообщения)
+        text_to_publish = ""
+        original_text_html = ""
+        if photo_id:
+            original_text_html = message.caption_html
+            if "➖➖➖➖➖➖" in original_text_html:
+                text_to_publish = original_text_html.split("➖➖➖➖➖➖")[0].strip()
+            else:
+                text_to_publish = original_text_html
         else:
-            publish_text = text_html
+            original_text_html = message.text_html
+            if "➖➖➖➖➖➖" in original_text_html:
+                text_to_publish = original_text_html.split("➖➖➖➖➖➖")[0].strip()
+            else:
+                text_to_publish = original_text_html
 
         # Публикуем в канал/группу
-        await context.bot.send_message(
-            chat_id="@the_raccoon_times_group",
-            text=publish_text,
-            parse_mode=ParseMode.HTML
-        )
+        if photo_id:
+            await context.bot.send_photo(
+                chat_id="@the_raccoon_times_group",
+                photo=photo_id,
+                caption=text_to_publish,
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            await context.bot.send_message(
+                chat_id="@the_raccoon_times_group",
+                text=text_to_publish,
+                parse_mode=ParseMode.HTML
+            )
 
         # Обновляем сообщение админа: убираем кнопку и пишем, что опубликовано
-        await query.edit_message_text(
-            text=text_html + "\n\n✅ <b>Опубликовано в группе!</b>",
-            parse_mode=ParseMode.HTML,
-            reply_markup=None
-        )
+        await query.edit_message_reply_markup(reply_markup=None)
+        
     except Exception as e:
         logger.error(f"Ошибка при публикации новости: {e}")
         await query.answer("❌ Ошибка при публикации!", show_alert=True)

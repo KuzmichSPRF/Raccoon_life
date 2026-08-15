@@ -499,7 +499,14 @@
         <option value="Другое" data-i18n="topic_other">Другое</option>
       </select>
 
-      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..." maxlength="280"></textarea>
+      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..." maxlength="1024"></textarea>
+      
+      <!-- Image Upload -->
+      <div style="margin-bottom: 15px;">
+        <input type="file" id="news-image-input" accept="image/jpeg, image/png" style="display: none;" onchange="previewNewsImage()">
+        <button class="btn-primary" style="width:100%; padding: 10px; font-size: 0.8rem; background: #333; border: 1px dashed var(--primary);" onclick="document.getElementById('news-image-input').click()" data-i18n="submit_news_image_btn">🖼️ Прикрепить картинку</button>
+        <img id="news-image-preview" src="" alt="Preview" style="max-width: 100%; border-radius: 8px; margin-top: 10px; display: none;">
+      </div>
       
       <label class="anon-toggle">
         <input type="checkbox" id="news-anon-checkbox"> <span data-i18n="submit_news_anon">Отправить анонимно</span>
@@ -732,6 +739,7 @@
       news_sent_success: "Новость успешно отправлена в редакцию!",
       news_empty_error: "Пожалуйста, напишите текст новости.",
       topic_gossip: "Сплетни",
+      submit_news_image_btn: "🖼️ Прикрепить картинку",
       topic_ideas: "Идеи для бота",
       topic_bugs: "Жалобы/Баги",
       topic_other: "Другое",
@@ -778,6 +786,7 @@
       news_sent_success: "News successfully sent to the editors!",
       news_empty_error: "Please write the news text.",
       topic_gossip: "Gossip",
+      submit_news_image_btn: "🖼️ Attach Image",
       topic_ideas: "Bot Ideas",
       topic_bugs: "Complaints/Bugs",
       topic_other: "Other",
@@ -2209,9 +2218,19 @@
   }
   
   // ==================== NEWS SUBMISSION ====================
+  let newsImageBase64 = null;
   function openNewsModal() {
       document.getElementById('news-text').value = '';
       document.getElementById('news-anon-checkbox').checked = false;
+      // Reset image
+      const imageInput = document.getElementById('news-image-input');
+      const imagePreview = document.getElementById('news-image-preview');
+      if (imageInput) imageInput.value = '';
+      if (imagePreview) {
+          imagePreview.src = '';
+          imagePreview.style.display = 'none';
+      }
+      newsImageBase64 = null;
       document.getElementById('news-submit-overlay').classList.add('active');
   }
   
@@ -2219,14 +2238,36 @@
       document.getElementById('news-submit-overlay').classList.remove('active');
   }
   
+  function previewNewsImage() {
+      const input = document.getElementById('news-image-input');
+      const preview = document.getElementById('news-image-preview');
+      const file = input.files[0];
+      if (file) {
+          // Check file size (e.g., 5MB limit)
+          if (file.size > 5 * 1024 * 1024) {
+              tg.showAlert(currentLang === 'ru' ? 'Файл слишком большой! Максимум 5 МБ.' : 'File is too large! Max 5 MB.');
+              input.value = ''; // Reset input
+              return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = function() {
+              preview.src = reader.result;
+              preview.style.display = 'block';
+              // Store base64 string without the data URL prefix
+              newsImageBase64 = reader.result.split(',')[1];
+          }
+          reader.readAsDataURL(file);
+      }
+  }
+
   function submitNews() {
       const text = document.getElementById('news-text').value.trim();
       const topic = document.getElementById('news-topic').value;
       const isAnonymous = document.getElementById('news-anon-checkbox').checked;
       const btn = document.getElementById('news-send-btn');
       
-      if (!text) {
-          tg.showAlert(i18n[currentLang].news_empty_error);
+      if (!text && !newsImageBase64) {
+          tg.showAlert(currentLang === 'ru' ? 'Пожалуйста, напишите текст новости или прикрепите картинку.' : 'Please write news text or attach an image.');
           return;
       }
       
@@ -2239,7 +2280,13 @@
               'Content-Type': 'application/json',
               'X-Telegram-Init-Data': tg.initData || ''
           },
-          body: JSON.stringify({ userId: getUserId(), topic: topic, text: text, isAnonymous: isAnonymous })
+          body: JSON.stringify({ 
+              userId: getUserId(), 
+              topic: topic, 
+              text: text, 
+              isAnonymous: isAnonymous,
+              image: newsImageBase64
+          })
       })
       .then(res => res.json())
       .then(data => {
