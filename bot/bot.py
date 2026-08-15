@@ -9,6 +9,7 @@ import random
 import json
 import hmac
 import hashlib
+import html
 import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -4050,6 +4051,73 @@ async def ban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
 
+async def give_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /give <amount> [reason] (ответ на сообщение)
+    Начисляет шишки пользователю.
+    """
+    # Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # Проверка, является ли команда ответом на сообщение
+    if not update.effective_message.reply_to_message:
+        await update.message.reply_text("❌ Эта команда должна быть ответом на сообщение пользователя, которому вы хотите начислить шишки.")
+        return
+
+    # Получаем ID получателя из сообщения, на которое ответили
+    recipient_user = update.effective_message.reply_to_message.from_user
+    recipient_id = recipient_user.id
+    recipient_name = recipient_user.username or f"{recipient_user.first_name} {recipient_user.last_name}".strip() or f"Игрок #{recipient_id}"
+
+    # Проверка аргументов (количество шишек)
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text("❌ Укажите количество шишек для начисления.")
+        return
+
+    try:
+        amount = int(context.args[0])
+        reason_parts = context.args[1:]
+        reason = ' '.join(reason_parts) if reason_parts else 'Начисление админом'
+    except ValueError:
+        await update.message.reply_text("❌ Количество шишек должно быть числом.")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ Количество шишек должно быть больше 0.")
+        return
+
+    # Начисляем шишки получателю
+    add_result = add_tokens(recipient_id, amount, reason=f'admin_grant:{reason}')
+
+    if add_result:
+        # Отправляем уведомление админу
+        await update.message.reply_text(
+            f"✅ Успешно!\n"
+            f"💰 Начислено: {amount} Шишек\n"
+            f"➡️ Получателю: {recipient_name} (ID: {recipient_id})\n"
+            f"💳 Баланс получателя: {add_result['balance']} Шишек"
+        )
+
+        # Отправляем уведомление получателю
+        try:
+            await context.bot.send_message(
+                chat_id=recipient_id,
+                text=(
+                    f"🎉 <b>Вам начислены шишки!</b>\n\n"
+                    f"💰 Сумма: <b>+{amount} Шишек</b>\n"
+                    f"📝 Причина: {reason}\n"
+                    f"💳 Ваш баланс: {add_result['balance']} Шишек"
+                ),
+                parse_mode=ParseMode.HTML
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось отправить уведомление получателю {recipient_id}: {e}")
+    else:
+        await update.message.reply_text("❌ Произошла ошибка при начислении шишек получателю. Пожалуйста, проверьте логи.")
+
+
 async def unban_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /unban <username|user_id>
@@ -4367,6 +4435,89 @@ async def tot_bet_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
 
+async def shend_tokens_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для пользователей в группах: /shend <amount> (ответ на сообщение)
+    Передает шишки от одного пользователя другому.
+    """
+    # Проверка, является ли команда ответом на сообщение
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❌ Эта команда должна быть ответом на сообщение пользователя, которому вы хотите передать шишки.")
+        return
+
+    sender = update.effective_user
+    recipient = update.message.reply_to_message.from_user
+
+    # Проверка на само-перевод
+    if sender.id == recipient.id:
+        await update.message.reply_text("❌ Нельзя передать шишки самому себе!")
+        return
+    
+    # Проверка, что получатель не бот
+    if recipient.is_bot:
+        await update.message.reply_text("❌ Нельзя передать шишки боту!")
+        return
+
+    # Парсинг суммы
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text("❌ Укажите количество шишек для передачи.\nПример: /shend 100")
+        return
+
+    try:
+        amount = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Количество шишек должно быть целым положительным числом.")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ Количество шишек должно быть больше 0.")
+        return
+
+    # Выполнение транзакции
+    spend_result = spend_tokens(sender.id, amount, reason=f'user_transfer_to:{recipient.id}')
+
+    if not spend_result:
+        sender_balance = get_user_tokens(sender.id).get('balance', 0)
+        await update.message.reply_text(f"❌ У вас недостаточно шишек! Ваш баланс: {sender_balance} 🌲")
+        return
+
+    add_result = add_tokens(recipient.id, amount, reason=f'user_transfer_from:{sender.id}')
+
+    if not add_result:
+        # Возврат средств в случае ошибки
+        add_tokens(sender.id, amount, reason=f'refund_failed_transfer_to:{recipient.id}')
+        await update.message.reply_text("❌ Произошла ошибка при начислении шишек получателю. Средства возвращены вам.")
+        logger.error(f"Critical error: failed to add tokens to {recipient.id}, but tokens were spent from {sender.id}. REFUNDED.")
+        return
+
+    # Успешное сообщение в группе
+    sender_name = sender.first_name or sender.username or f"Игрок #{sender.id}"
+    recipient_name = recipient.first_name or recipient.username or f"Игрок #{recipient.id}"
+    
+    sender_name_safe = html.escape(sender_name)
+    recipient_name_safe = html.escape(recipient_name)
+    
+    await update.message.reply_text(
+        f"✅ <b>Перевод выполнен!</b>\n\n"
+        f"<b>От:</b> {sender_name_safe}\n"
+        f"<b>Кому:</b> {recipient_name_safe}\n"
+        f"<b>Сумма:</b> {amount} 🌲\n\n"
+        f"<i>Балансы обновлены.</i>",
+        parse_mode=ParseMode.HTML
+    )
+
+    # Опционально: уведомления в ЛС
+    try:
+        await context.bot.send_message(chat_id=sender.id, text=f"💸 Вы успешно перевели <b>{amount} 🌲</b> пользователю {recipient_name_safe}.\n💳 Ваш новый баланс: {spend_result['balance']} 🌲", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.warning(f"Не удалось отправить ЛС-уведомление отправителю {sender.id}: {e}")
+
+    try:
+        await context.bot.send_message(chat_id=recipient.id, text=f"🎉 Вам поступил перевод <b>{amount} 🌲</b> от пользователя {sender_name_safe}!\n💳 Ваш новый баланс: {add_result['balance']} 🌲", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.warning(f"Не удалось отправить ЛС-уведомление получателю {recipient.id}: {e}")
+
+
 async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /delete <username|user_id>
@@ -4602,10 +4753,12 @@ async def post_init(application: Application):
         # Устанавливаем список команд для меню
         commands = [
             BotCommand('start', '🚀 Запустить бота'),
+            BotCommand('shend', '💸 Передать шишки (в группе)'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
             BotCommand('ban', '⛔️ Забанить пользователя (админ)'),
+            BotCommand('give', '💸 Передать шишки игроку (админ)'),
             BotCommand('broadcast', '📢 Рассылка всем (админ)'),
             BotCommand('unban', '✅ Разбанить пользователя (админ)'),
             BotCommand('delete', '🗑️ Удалить пользователя (админ)'),
@@ -4656,10 +4809,12 @@ def main():
 
     # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("shend", shend_tokens_user, filters=filters.ChatType.GROUPS))
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
     telegram_app.add_handler(CommandHandler("balance", get_balance_admin))
     telegram_app.add_handler(CommandHandler("spend", spend_tokens_admin))
     telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
+    telegram_app.add_handler(CommandHandler("give", give_tokens_admin))
     telegram_app.add_handler(CommandHandler("unban", unban_user_admin))
     telegram_app.add_handler(CommandHandler("delete", delete_user_admin))
     telegram_app.add_handler(CommandHandler("notime", reset_news_cooldown_admin))
