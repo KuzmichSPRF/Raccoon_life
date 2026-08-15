@@ -4556,7 +4556,7 @@ async def farsh_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Команда для пользователей в группах: /farsh <сумма> <кол-во_пользователей>
     Списывает <сумма> шишек с отправителя и делит их случайным образом 
     между <кол-во_пользователей> случайными пользователями (макс. 10).
-    Каждый победитель получает от 1% до 50% от общей суммы.
+    Общая сумма выигрыша равна заявленной.
     """
     if not context.args or len(context.args) != 2:
         await update.message.reply_text("❌ Использование: /farsh <сумма> <кол-во_пользователей>\nПример: /farsh 1000 5")
@@ -4604,36 +4604,59 @@ async def farsh_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Случайный выбор победителей
     winners = random.sample(potential_recipients, num_users)
     
+    # --- Новая логика случайного распределения с сохранением суммы ---
+    if amount < num_users:
+        add_tokens(sender.id, amount, reason='farsh_refund:amount_too_small')
+        await update.message.reply_text(f"❌ Сумма {amount} Шишек слишком мала для разделения на {num_users} пользователей. Шишки возвращены.")
+        return
+
+    prizes = []
+    remaining_amount = amount
+
+    for i in range(num_users - 1):
+        # Оставляем как минимум 1 шишку для каждого оставшегося участника
+        max_prize = remaining_amount - (num_users - 1 - i)
+        # Убедимся, что можем раздать хотя бы по 1
+        if max_prize < 1:
+            # Эта ситуация не должна возникать при amount >= num_users, но для надежности
+            win_amount = 1
+        else:
+            win_amount = random.randint(1, max_prize)
+        
+        prizes.append(win_amount)
+        remaining_amount -= win_amount
+
+    # Последний получает весь остаток
+    prizes.append(remaining_amount)
+    
+    # Перемешиваем призы, чтобы не было предвзятости к последнему
+    random.shuffle(prizes)
+    # --- Конец новой логики ---
+    
     total_distributed = 0
     winner_details = []
 
     # Начисление победителям
-    for winner_row in winners:
-        # Каждый победитель получает случайный процент от 1 до 50 от ОБЩЕЙ суммы
-        win_percentage = random.randint(1, 50) / 100.0
-        win_amount = int(amount * win_percentage)
+    for i, winner_row in enumerate(winners):
+        # Пропускаем, если по какой-то причине приз оказался нулевым
+        if i >= len(prizes) or prizes[i] <= 0:
+            continue
         
-        # Гарантируем, что победитель получит хотя бы 1 шишку
-        if win_amount == 0:
-            win_amount = 1
+        win_amount = prizes[i]
             
         add_tokens(winner_row['user_id'], win_amount, reason=f'farsh_win_from:{sender.id}')
         total_distributed += win_amount
         
         winner_name = html.escape(f"@{winner_row['username']}" if winner_row['username'] else (winner_row['first_name'] or f"Игрок #{winner_row['user_id']}"))
         
-        winner_details.append({
-            'id': winner_row['user_id'],
-            'name': winner_name,
-            'amount': win_amount
-        })
+        winner_details.append({'id': winner_row['user_id'], 'name': winner_name, 'amount': win_amount})
         
         try:
             await context.bot.send_message(chat_id=winner_row['user_id'], text=f"🎉 Вы выиграли в фарше!\n\nВам начислено <b>{win_amount} Шишек</b> от пользователя {html.escape(sender.first_name)}!", parse_mode=ParseMode.HTML)
         except Exception as e:
             logger.warning(f"Не удалось отправить ЛС-уведомление о фарше победителю {winner_row['user_id']}: {e}")
 
-    # Возвращаем остаток, если он есть
+    # Возвращаем остаток, если он есть (из-за ошибок, в теории не должно быть)
     remainder = amount - total_distributed
     if remainder > 0:
         add_tokens(sender.id, remainder, reason='farsh_remainder_refund')
