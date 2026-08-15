@@ -504,8 +504,11 @@
       <!-- Image Upload -->
       <div style="margin-bottom: 15px;">
         <input type="file" id="news-image-input" accept="image/jpeg, image/png" style="display: none;" onchange="previewNewsImage()">
-        <button class="btn-primary" style="width:100%; padding: 10px; font-size: 0.8rem; background: #333; border: 1px dashed var(--primary);" onclick="document.getElementById('news-image-input').click()" data-i18n="submit_news_image_btn">🖼️ Прикрепить картинку</button>
-        <img id="news-image-preview" src="" alt="Preview" style="max-width: 100%; border-radius: 8px; margin-top: 10px; display: none;">
+        <button class="btn-primary" id="news-image-btn" style="width:100%; padding: 10px; font-size: 0.8rem; background: #333; border: 1px dashed var(--primary);" onclick="document.getElementById('news-image-input').click()" data-i18n="submit_news_image_btn">🖼️ Прикрепить картинку</button>
+        <div id="news-image-info" style="display: none; margin-top: 10px; padding: 10px; background: rgba(0,136,204,0.1); border-radius: 8px; font-size: 0.8rem; color: var(--text-sec); text-align: left; display: flex; justify-content: space-between; align-items: center;">
+            <span id="news-image-filename"></span>
+            <span onclick="removeNewsImage()" style="cursor: pointer; color: var(--accent); font-weight: bold; font-size: 1.2rem; line-height: 1;" data-i18n-title="remove_image_tooltip" title="Удалить картинку">&times;</span>
+        </div>
       </div>
       
       <label class="anon-toggle">
@@ -739,6 +742,9 @@
       news_sent_success: "Новость успешно отправлена в редакцию!",
       news_empty_error: "Пожалуйста, напишите текст новости.",
       topic_gossip: "Сплетни",
+      file_attached: "Файл прикреплен:",
+      remove_image_tooltip: "Удалить картинку",
+      change_image_btn: "🖼️ Заменить картинку",
       submit_news_image_btn: "🖼️ Прикрепить картинку",
       topic_ideas: "Идеи для бота",
       topic_bugs: "Жалобы/Баги",
@@ -786,6 +792,9 @@
       news_sent_success: "News successfully sent to the editors!",
       news_empty_error: "Please write the news text.",
       topic_gossip: "Gossip",
+      file_attached: "File attached:",
+      remove_image_tooltip: "Remove image",
+      change_image_btn: "🖼️ Change Image",
       submit_news_image_btn: "🖼️ Attach Image",
       topic_ideas: "Bot Ideas",
       topic_bugs: "Complaints/Bugs",
@@ -799,6 +808,14 @@
       const key = el.getAttribute('data-i18n');
       if (i18n[currentLang] && i18n[currentLang][key]) {
         el.innerText = i18n[currentLang][key];
+      }
+    });
+    
+    // New part for title attributes
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      if (i18n[currentLang] && i18n[currentLang][key]) {
+        el.title = i18n[currentLang][key];
       }
     });
     
@@ -2221,38 +2238,50 @@
   let newsImageBase64 = null;
   function openNewsModal() {
       document.getElementById('news-text').value = '';
+      document.getElementById('news-topic').value = 'Сплетни';
       document.getElementById('news-anon-checkbox').checked = false;
-      // Reset image
-      const imageInput = document.getElementById('news-image-input');
-      const imagePreview = document.getElementById('news-image-preview');
-      if (imageInput) imageInput.value = '';
-      if (imagePreview) {
-          imagePreview.src = '';
-          imagePreview.style.display = 'none';
-      }
-      newsImageBase64 = null;
+      removeNewsImage(); // Сбрасываем картинку
       document.getElementById('news-submit-overlay').classList.add('active');
   }
   
   function closeNewsModal() {
       document.getElementById('news-submit-overlay').classList.remove('active');
   }
+
+  function removeNewsImage() {
+      const imageInput = document.getElementById('news-image-input');
+      const imageInfo = document.getElementById('news-image-info');
+      const imageBtn = document.getElementById('news-image-btn');
+
+      if (imageInput) imageInput.value = '';
+      if (imageInfo) imageInfo.style.display = 'none';
+      if (imageBtn) {
+          imageBtn.innerHTML = i18n[currentLang].submit_news_image_btn;
+          imageBtn.setAttribute('data-i18n', 'submit_news_image_btn');
+      }
+      newsImageBase64 = null;
+  }
   
   function previewNewsImage() {
       const input = document.getElementById('news-image-input');
-      const preview = document.getElementById('news-image-preview');
+      const imageInfo = document.getElementById('news-image-info');
+      const filenameSpan = document.getElementById('news-image-filename');
+      const imageBtn = document.getElementById('news-image-btn');
       const file = input.files[0];
+
       if (file) {
           // Check file size (e.g., 5MB limit)
           if (file.size > 5 * 1024 * 1024) {
               tg.showAlert(currentLang === 'ru' ? 'Файл слишком большой! Максимум 5 МБ.' : 'File is too large! Max 5 MB.');
-              input.value = ''; // Reset input
+              removeNewsImage();
               return;
           }
           const reader = new FileReader();
           reader.onloadend = function() {
-              preview.src = reader.result;
-              preview.style.display = 'block';
+              filenameSpan.textContent = `${i18n[currentLang].file_attached} ${file.name}`;
+              imageInfo.style.display = 'flex';
+              imageBtn.innerHTML = i18n[currentLang].change_image_btn;
+              imageBtn.removeAttribute('data-i18n');
               // Store base64 string without the data URL prefix
               newsImageBase64 = reader.result.split(',')[1];
           }
