@@ -3784,7 +3784,7 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_id = user_info['user_id']
-    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+    user_name = f"@{user_info['username']}" if user_info['username'] else (f"{user_info['first_name']} {user_info['last_name']}".strip() or f"Игрок #{user_id}")
 
     logger.info(f"💰 Начисление шишек: user_id={user_id}, amount={amount}, reason={reason}")
 
@@ -3795,7 +3795,7 @@ async def add_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Отправляем уведомление админу
         await update.message.reply_text(
             f"✅ Успешно!\n"
-            f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"👤 Пользователь: {user_name}\n"
             f"🆔 ID: {user_id}\n"
             f"💰 Начислено: {amount} Шишек\n"
             f"📝 Причина: {reason}\n"
@@ -3857,14 +3857,14 @@ async def get_balance_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_id = user_info['user_id']
-    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+    user_name = f"@{user_info['username']}" if user_info['username'] else (f"{user_info['first_name']} {user_info['last_name']}".strip() or f"Игрок #{user_id}")
 
     # Получаем баланс
     tokens = get_user_tokens(user_id)
 
     await update.message.reply_text(
         f"💳 <b>Баланс пользователя</b>\n\n"
-        f"👤 {user_name} (@{user_info['username'] or 'нет'})\n"
+        f"👤 {user_name}\n"
         f"🆔 ID: {user_id}\n"
         f"💰 Баланс: <b>{tokens['balance']} Шишек</b>\n"
         f"📊 Всего заработано: {tokens['total_earned']} Шишек\n"
@@ -3915,7 +3915,7 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     user_id = user_info['user_id']
-    user_name = user_info['username'] or f"{user_info['first_name']} {user_info['last_name']}" or f"Игрок #{user_id}"
+    user_name = f"@{user_info['username']}" if user_info['username'] else (f"{user_info['first_name']} {user_info['last_name']}".strip() or f"Игрок #{user_id}")
 
     # Списываем шишки
     result = spend_tokens(user_id, amount, f'admin_spend:{reason}')
@@ -3924,7 +3924,7 @@ async def spend_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Отправляем уведомление админу
         await update.message.reply_text(
             f"✅ Успешно!\n"
-            f"👤 Пользователь: {user_name} (@{user_info['username'] or 'нет'})\n"
+            f"👤 Пользователь: {user_name}\n"
             f"🆔 ID: {user_id}\n"
             f"💰 Списано: {amount} Шишек\n"
             f"📝 Причина: {reason}\n"
@@ -4069,7 +4069,7 @@ async def give_tokens_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Получаем ID получателя из сообщения, на которое ответили
     recipient_user = update.effective_message.reply_to_message.from_user
     recipient_id = recipient_user.id
-    recipient_name = recipient_user.username or f"{recipient_user.first_name} {recipient_user.last_name}".strip() or f"Игрок #{recipient_id}"
+    recipient_name = f"@{recipient_user.username}" if recipient_user.username else (f"{recipient_user.first_name} {recipient_user.last_name}".strip() or f"Игрок #{recipient_id}")
 
     # Проверка аргументов (количество шишек)
     if not context.args or len(context.args) < 1:
@@ -4478,7 +4478,7 @@ async def shend_tokens_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not spend_result:
         sender_balance = get_user_tokens(sender.id).get('balance', 0)
-        await update.message.reply_text(f"❌ У вас недостаточно шишек! Ваш баланс: {sender_balance} 🌲")
+        await update.message.reply_text(f"❌ У вас недостаточно шишек! Ваш баланс: {sender_balance} Шишек")
         return
 
     add_result = add_tokens(recipient.id, amount, reason=f'user_transfer_from:{sender.id}')
@@ -4491,8 +4491,8 @@ async def shend_tokens_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Успешное сообщение в группе
-    sender_name = sender.first_name or sender.username or f"Игрок #{sender.id}"
-    recipient_name = recipient.first_name or recipient.username or f"Игрок #{recipient.id}"
+    sender_name = f"@{sender.username}" if sender.username else (sender.first_name or f"Игрок #{sender.id}")
+    recipient_name = f"@{recipient.username}" if recipient.username else (recipient.first_name or f"Игрок #{recipient.id}")
     
     sender_name_safe = html.escape(sender_name)
     recipient_name_safe = html.escape(recipient_name)
@@ -4501,19 +4501,19 @@ async def shend_tokens_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ <b>Перевод выполнен!</b>\n\n"
         f"<b>От:</b> {sender_name_safe}\n"
         f"<b>Кому:</b> {recipient_name_safe}\n"
-        f"<b>Сумма:</b> {amount} 🌲\n\n"
+        f"<b>Сумма:</b> {amount} Шишек\n\n"
         f"<i>Балансы обновлены.</i>",
         parse_mode=ParseMode.HTML
     )
 
     # Опционально: уведомления в ЛС
     try:
-        await context.bot.send_message(chat_id=sender.id, text=f"💸 Вы успешно перевели <b>{amount} 🌲</b> пользователю {recipient_name_safe}.\n💳 Ваш новый баланс: {spend_result['balance']} 🌲", parse_mode=ParseMode.HTML)
+        await context.bot.send_message(chat_id=sender.id, text=f"💸 Вы успешно перевели <b>{amount} Шишек</b> пользователю {recipient_name_safe}.\n💳 Ваш новый баланс: {spend_result['balance']} Шишек", parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.warning(f"Не удалось отправить ЛС-уведомление отправителю {sender.id}: {e}")
 
     try:
-        await context.bot.send_message(chat_id=recipient.id, text=f"🎉 Вам поступил перевод <b>{amount} 🌲</b> от пользователя {sender_name_safe}!\n💳 Ваш новый баланс: {add_result['balance']} 🌲", parse_mode=ParseMode.HTML)
+        await context.bot.send_message(chat_id=recipient.id, text=f"🎉 Вам поступил перевод <b>{amount} Шишек</b> от пользователя {sender_name_safe}!\n💳 Ваш новый баланс: {add_result['balance']} Шишек", parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.warning(f"Не удалось отправить ЛС-уведомление получателю {recipient.id}: {e}")
 
