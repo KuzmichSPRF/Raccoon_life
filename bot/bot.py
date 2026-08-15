@@ -300,6 +300,15 @@ def init_db():
             )
         ''')
 
+        # Таблица активности в чатах
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chat_activity (
+                chat_id INTEGER,
+                user_id INTEGER,
+                last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (chat_id, user_id)
+            )
+        ''')
         # Таблица событий тотализатора
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tot_events (
@@ -4518,6 +4527,133 @@ async def shend_tokens_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.warning(f"Не удалось отправить ЛС-уведомление получателю {recipient.id}: {e}")
 
 
+async def track_chat_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отслеживает активность пользователей в чатах для будущих розыгрышей."""
+    if not update.effective_chat or not update.effective_user or update.effective_user.is_bot:
+        return
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+
+    # Убедимся, что пользователь есть в основной таблице
+    ensure_user_exists(user.id, {'username': user.username, 'first_name': user.first_name, 'last_name': user.last_name})
+
+    # Обновляем запись об активности
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO chat_activity (chat_id, user_id, last_message_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(chat_id, user_id) DO UPDATE SET last_message_at = CURRENT_TIMESTAMP
+        ''', (chat_id, user.id))
+        conn.commit()
+    finally:
+        conn.close()
+
+async def farsh_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для пользователей в группах: /farsh <сумма> <кол-во_пользователей>
+    Списывает <сумма> шишек с отправителя и делит их случайным образом 
+    между <кол-во_пользователей> случайными пользователями (макс. 10).
+    Каждый победитель получает от 1% до 50% от общей суммы.
+    """
+    if not context.args or len(context.args) != 2:
+        await update.message.reply_text("❌ Использование: /farsh <сумма> <кол-во_пользователей>\nПример: /farsh 1000 5")
+        return
+
+    try:
+        amount = int(context.args[0])
+        num_users = int(context.args[1])
+    except ValueError:
+        await update.message.reply_text("❌ Сумма и количество пользователей должны быть целыми числами.")
+        return
+
+    if amount <= 0 or num_users <= 0:
+        await update.message.reply_text("❌ Сумма и количество пользователей должны быть больше 0.")
+        return
+        
+    if num_users > 10:
+        await update.message.reply_text("❌ Максимальное количество пользователей для фарша - 10.")
+        return
+
+    sender = update.effective_user
+    chat_id = update.effective_chat.id
+
+    # Проверка баланса и списание
+    spend_result = spend_tokens(sender.id, amount, reason=f'farsh_initiated:{num_users}_users')
+    if not spend_result:
+        sender_balance = get_user_tokens(sender.id).get('balance', 0)
+        await update.message.reply_text(f"❌ У вас недостаточно шишек для такого фарша! (Нужно {amount} Шишек)\nВаш баланс: {sender_balance} Шишек")
+        return
+
+    # Получение списка получателей
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT user_id, username, first_name FROM users WHERE is_banned = 0 AND user_id != ?", (sender.id,))
+        potential_recipients = cursor.fetchall()
+    finally:
+        conn.close()
+
+    if len(potential_recipients) < num_users:
+        add_tokens(sender.id, amount, reason='farsh_refund:not_enough_users')
+        await update.message.reply_text(f"❌ Недостаточно пользователей в боте для раздачи ({len(potential_recipients)}). Нужно {num_users}. Шишки возвращены.")
+        return
+
+    # Случайный выбор победителей
+    winners = random.sample(potential_recipients, num_users)
+    
+    total_distributed = 0
+    winner_details = []
+
+    # Начисление победителям
+    for winner_row in winners:
+        # Каждый победитель получает случайный процент от 1 до 50 от ОБЩЕЙ суммы
+        win_percentage = random.randint(1, 50) / 100.0
+        win_amount = int(amount * win_percentage)
+        
+        # Гарантируем, что победитель получит хотя бы 1 шишку
+        if win_amount == 0:
+            win_amount = 1
+            
+        add_tokens(winner_row['user_id'], win_amount, reason=f'farsh_win_from:{sender.id}')
+        total_distributed += win_amount
+        
+        winner_name = html.escape(f"@{winner_row['username']}" if winner_row['username'] else (winner_row['first_name'] or f"Игрок #{winner_row['user_id']}"))
+        
+        winner_details.append({
+            'id': winner_row['user_id'],
+            'name': winner_name,
+            'amount': win_amount
+        })
+        
+        try:
+            await context.bot.send_message(chat_id=winner_row['user_id'], text=f"🎉 Вы выиграли в фарше!\n\nВам начислено <b>{win_amount} Шишек</b> от пользователя {html.escape(sender.first_name)}!", parse_mode=ParseMode.HTML)
+        except Exception as e:
+            logger.warning(f"Не удалось отправить ЛС-уведомление о фарше победителю {winner_row['user_id']}: {e}")
+
+    # Возвращаем остаток, если он есть
+    remainder = amount - total_distributed
+    if remainder > 0:
+        add_tokens(sender.id, remainder, reason='farsh_remainder_refund')
+
+    # Уведомление в чат
+    sender_name_safe = html.escape(sender.first_name or sender.username)
+    
+    winner_lines = []
+    for winner in winner_details:
+        winner_lines.append(f"• <a href='tg://user?id={winner['id']}'>{winner['name']}</a> получает <b>{winner['amount']} Шишек</b>")
+
+    message = (
+        f"🥩 <b>{sender_name_safe} запустил(а) ФАРШ!</b>\n\n"
+        f"Общая сумма <b>{amount} Шишек</b> была случайным образом разделена между {num_users} счастливчиками!\n\n"
+        f"<b>Победители:</b>\n" + "\n".join(winner_lines)
+    )
+    if remainder > 0: message += f"\n\n<i>(Остаток {remainder} Шишек возвращен отправителю)</i>"
+    await update.message.reply_text(message, parse_mode=ParseMode.HTML)
+
+
 async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /delete <username|user_id>
@@ -4754,6 +4890,7 @@ async def post_init(application: Application):
         commands = [
             BotCommand('start', '🚀 Запустить бота'),
             BotCommand('shend', '💸 Передать шишки (в группе)'),
+            BotCommand('farsh', '🥩 Разделить шишки между игроками'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
@@ -4810,7 +4947,11 @@ def main():
     # Регистрируем обработчики
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CommandHandler("shend", shend_tokens_user, filters=filters.ChatType.GROUPS))
+    telegram_app.add_handler(CommandHandler("farsh", farsh_command, filters=filters.ChatType.GROUPS))
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
+    # Обработчик для отслеживания активности в чатах, должен идти после команд
+    # чтобы не срабатывать на них. group=10 для низкого приоритета.
+    telegram_app.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), track_chat_activity), group=10)
     telegram_app.add_handler(CommandHandler("balance", get_balance_admin))
     telegram_app.add_handler(CommandHandler("spend", spend_tokens_admin))
     telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
