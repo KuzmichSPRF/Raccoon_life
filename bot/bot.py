@@ -1825,8 +1825,9 @@ def api_submit_news():
         text = sanitize_string(data.get('text', ''), max_length=1024)
         topic = sanitize_string(data.get('topic', 'Другое'), max_length=100)
         is_anonymous = bool(data.get('isAnonymous', False))
+        image_base64 = data.get('image')
 
-        if not user_id or not text:
+        if not user_id or (not text and not image_base64):
             return jsonify({'error': 'Missing data'}), 400
 
         user_id = int(user_id)
