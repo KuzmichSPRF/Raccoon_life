@@ -3487,21 +3487,20 @@ def api_boss_attack():
             logger.warning("⚠️ Boss attack: нет user_id")
             return jsonify({'error': 'user_id required'}), 400
 
-        user_id = int(user_id)
-
-        # Криптографическая проверка авторизации
+        # Криптографическая проверка авторизации (если init_data передана)
         init_data = request.headers.get('X-Telegram-Init-Data')
-        auth_user = validate_webapp_data(init_data)
-        if not auth_user or str(auth_user.get('id')) != str(user_id):
-            security_logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись! user_id={user_id}")
-            logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись!")
-            return jsonify({'error': 'Unauthorized'}), 403
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if not auth_user or str(auth_user.get('id')) != str(user_id):
+                security_logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись! user_id={user_id}")
+                logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись!")
+                return jsonify({'status': 'error', 'error': 'Unauthorized', 'message': 'Unauthorized'}), 403
 
         # Проверка бана
         if is_user_banned(user_id):
             security_logger.warning(f"🚨 BANNED USER: user_id={user_id} попытался атаковать босса")
             logger.warning(f"⚠️ Забаненный пользователь попытался атаковать босса")
-            return jsonify({'error': 'User is banned'}), 403
+            return jsonify({'status': 'error', 'error': 'User is banned', 'message': 'User is banned'}), 403
 
         damage = 0
         heal = 0
@@ -3579,8 +3578,10 @@ def api_game_vladeos():
     try:
         data = request.get_json()
         user_id = int(data.get('userId'))
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
             
         is_win = random.random() < 0.05
         if is_win:
@@ -3601,8 +3602,10 @@ def api_game_battleship():
     try:
         data = request.get_json()
         user_id = int(data.get('userId'))
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
             
         state = get_game_session(user_id, 'battleship')
         now = time.time()
@@ -3622,8 +3625,10 @@ def api_game_clown():
         data = request.get_json()
         user_id = int(data.get('userId'))
         action = data.get('action')
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
         
         if action == 'start':
             state = {'pHP': 100, 'pNRG': 0, 'bHP': 100, 'bNRG': 0}

@@ -419,12 +419,6 @@
 
     applyLang(lang);
 
-    window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'language_changed') {
-        applyLang(e.data.lang);
-      }
-    });
-
     const API_URL = '/api/boss_hp';
     let bossHP = 1000000000;
     let bossMaxHP = 1000000000;
@@ -433,58 +427,85 @@
     let playerMaxHP = 100;
     let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
     let gameActive = true;
+    let tgUserId = null;
+    let tgInitData = '';
 
     function getUserId() {
+      // 1. URL params
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const u = urlParams.get('userId');
+        if (u) return parseInt(u, 10);
+      } catch (e) {}
+
+      // 2. localStorage
       let id = localStorage.getItem('rl_user_id');
       if (id && id !== 'undefined' && id !== 'null') {
         const parsed = parseInt(id, 10);
-        if (!isNaN(parsed)) return parsed;
+        if (!isNaN(parsed) && parsed > 0) return parsed;
       }
+
+      // 3. Parent window
       try {
         if (window.parent && window.parent.getUserId) {
-          return window.parent.getUserId();
+          const pid = window.parent.getUserId();
+          if (pid) return parseInt(pid, 10);
         }
-      } catch (e) {
-        if (typeof logSecurityEvent === 'function') {
-          logSecurityEvent('AUTH_ERROR', 'Failed to get user ID from parent', { error: e.message });
+      } catch (e) {}
+
+      // 4. Telegram WebApp directly
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+          return window.Telegram.WebApp.initDataUnsafe.user.id;
         }
-      }
+      } catch (e) {}
+
       return null;
     }
 
-    // Проверка что Telegram WebApp загружен
-    let tgUserId = null;
-    try {
-      if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tgUserId = tg.initDataUnsafe?.user?.id;
-        console.log('Telegram WebApp ready, userId:', tgUserId);
-      }
-    } catch (e) {
-      console.log('Telegram WebApp not available:', e);
-    }
-
-    if (!tgUserId) {
-        tgUserId = getUserId();
-    }
-
-    // Если ID пользователя не найден (например, при тесте в браузере),
-    // генерируем случайный ID и сохраняем его, чтобы урон засчитывался.
-    if (!tgUserId) {
-        let storedId = localStorage.getItem('rl_temp_user_id');
-        if (!storedId) {
-            storedId = Math.floor(Math.random() * 1000000) + 100000;
-            localStorage.setItem('rl_temp_user_id', storedId);
+    function getInitData() {
+      if (tgInitData) return tgInitData;
+      try {
+        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initData) {
+          return window.parent.Telegram.WebApp.initData;
         }
-        tgUserId = parseInt(storedId);
-        console.log('Using fallback userId:', tgUserId);
+      } catch (e) {}
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+          return window.Telegram.WebApp.initData;
+        }
+      } catch (e) {}
+      return '';
     }
+
+    // Инициализация ID
+    tgUserId = getUserId();
+    tgInitData = getInitData();
+
+    // Слушатель сообщений от родительского окна (Mini App)
+    window.addEventListener('message', (e) => {
+      if (!e.data) return;
+      if (e.data.type === 'init_game') {
+        if (e.data.userId) {
+          tgUserId = parseInt(e.data.userId, 10);
+          localStorage.setItem('rl_user_id', tgUserId);
+        }
+        if (e.data.initData) {
+          tgInitData = e.data.initData;
+        }
+        if (e.data.lang) {
+          applyLang(e.data.lang);
+        }
+        loadPlayerStats();
+        loadBossHP();
+      } else if (e.data.type === 'language_changed') {
+        applyLang(e.data.lang);
+      }
+    });
 
     // Загрузка HP босса с сервера
     async function loadBossHP() {
       try {
-        // Добавляем timestamp (t=...) чтобы гарантированно обойти любой кэш
         const res = await fetch(API_URL + '?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         if (data.status === 'ok' && data.boss) {
@@ -500,39 +521,57 @@
     // Загрузка статистики игрока с сервера
     async function loadPlayerStats() {
       try {
-        const url = tgUserId ? `/api/player_stats?userId=${tgUserId}` : '/api/player_stats';
-        const response = await fetch(url);
+        const uid = tgUserId || getUserId();
+        if (!uid) return;
+        const headers = {};
+        const curInit = getInitData();
+        if (curInit) headers['X-Telegram-Init-Data'] = curInit;
+
+        const response = await fetch(`/api/player_stats?userId=${uid}&t=${Date.now()}`, { headers: headers });
         const data = await response.json();
-        playerStats.totalDamage = data.total_damage || 0;
-        playerStats.hits = data.hits || 0;
-        playerStats.crits = data.crits || 0;
-        updateStatsUI();
-        console.log('Player stats loaded:', playerStats);
+        if (data.status === 'ok') {
+          if (data.boss_damage) {
+            playerStats.totalDamage = data.boss_damage.total_damage || 0;
+            playerStats.hits = data.boss_damage.hits || 0;
+          } else if (data.stats) {
+            playerStats.totalDamage = data.stats.boss_damage || 0;
+          }
+          if (data.crits !== undefined) playerStats.crits = data.crits;
+          updateStatsUI();
+        }
       } catch (e) {
         console.error('Failed to load player stats:', e);
       }
     }
 
     function formatNumber(num) {
+      if (num === undefined || num === null || isNaN(num)) return '0';
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function updateBossHP() {
       const percent = Math.max(0, (bossHP / bossMaxHP) * 100);
-      document.getElementById('boss-hp-fill').style.width = percent + '%';
-      document.getElementById('boss-hp-text').innerText = formatNumber(Math.ceil(bossHP)) + ' HP';
+      const fillEl = document.getElementById('boss-hp-fill');
+      const textEl = document.getElementById('boss-hp-text');
+      if (fillEl) fillEl.style.width = percent + '%';
+      if (textEl) textEl.innerText = formatNumber(Math.ceil(bossHP)) + ' HP';
     }
 
     function updatePlayerHP() {
       const percent = Math.max(0, (playerHP / playerMaxHP) * 100);
-      document.getElementById('p-hp').style.width = percent + '%';
-      document.getElementById('p-hp-text').innerText = Math.max(0, Math.floor(playerHP));
+      const hpEl = document.getElementById('p-hp');
+      const hpTextEl = document.getElementById('p-hp-text');
+      if (hpEl) hpEl.style.width = percent + '%';
+      if (hpTextEl) hpTextEl.innerText = Math.max(0, Math.floor(playerHP));
     }
 
     function updateStatsUI() {
-      document.getElementById('total-dmg').innerText = formatNumber(playerStats.totalDamage);
-      document.getElementById('hits-count').innerText = playerStats.hits;
-      document.getElementById('crit-count').innerText = playerStats.crits;
+      const dmgEl = document.getElementById('total-dmg');
+      const hitsEl = document.getElementById('hits-count');
+      const critEl = document.getElementById('crit-count');
+      if (dmgEl) dmgEl.innerText = formatNumber(playerStats.totalDamage);
+      if (hitsEl) hitsEl.innerText = formatNumber(playerStats.hits);
+      if (critEl) critEl.innerText = formatNumber(playerStats.crits);
     }
 
     function updateEnergy() {
@@ -541,228 +580,142 @@
       const btnStrong = document.getElementById('btn-sp1');
       const btnUlt = document.getElementById('btn-sp2');
       const btnHeal = document.getElementById('btn-sp3');
+      const stdBtns = document.querySelectorAll('.btn-std');
 
-      // Сначала разблокируем все кнопки (включая базовую атаку и печеньку)
       if (gameActive) {
-        document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+        stdBtns.forEach(btn => btn.disabled = false);
       }
 
-      energyFill.style.width = playerEnergy + '%';
-      energyText.innerText = Math.floor(playerEnergy);
-      btnStrong.disabled = playerEnergy < 40;
-      btnUlt.disabled = playerEnergy < 80;
-      btnHeal.disabled = playerEnergy < 50;
-      
-      console.log('updateEnergy:', playerEnergy, '| Buttons:', {
-        strong: !btnStrong.disabled,
-        ult: !btnUlt.disabled,
-        heal: !btnHeal.disabled
-      });
+      if (energyFill) energyFill.style.width = Math.max(0, Math.min(100, playerEnergy)) + '%';
+      if (energyText) energyText.innerText = Math.floor(playerEnergy);
+      if (btnStrong) btnStrong.disabled = !gameActive || playerEnergy < 40;
+      if (btnUlt) btnUlt.disabled = !gameActive || playerEnergy < 80;
+      if (btnHeal) btnHeal.disabled = !gameActive || playerEnergy < 50;
     }
 
     function showDamageNumber(damage, isCrit, isPlayer) {
       const target = document.getElementById(isPlayer ? 'player-cap' : 'boss');
+      if (!target) return;
       const rect = target.getBoundingClientRect();
       const el = document.createElement('div');
       el.className = 'damage-number';
       el.innerText = isCrit ? '💥' + damage : '-' + damage;
-      el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 80) + 'px';
+      el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 60) + 'px';
       el.style.top = (rect.top + rect.height / 2) + 'px';
-      if (isCrit) { el.style.fontSize = '2rem'; el.style.color = '#ffcc00'; }
+      if (isCrit) { el.style.fontSize = '2rem'; el.style.color = '#ffd700'; }
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 1000);
     }
 
     function buyCookie() {
-      if (!gameActive) {
-        console.log('buyCookie: game not active');
+      if (!gameActive) return;
+      
+      const uid = tgUserId || getUserId();
+      if (!uid) {
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет ID пользователя." : "❌ Error: no user ID.";
         return;
       }
       
-      // Используем tgUserId который уже инициализирован при старте
-      const userId = tgUserId;
-      console.log('buyCookie: userId =', userId);
-      
-      if (!userId) {
-        document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет user_id. Перезапустите игру." : "❌ Error: no user_id. Restart the game.";
-        return;
-      }
-      
-      // Проверяем текущий баланс пользователя перед покупкой
-      fetch(`/api/tokens?userId=${userId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-cache'
+      const cookieBtn = document.getElementById('btn-cookie');
+      if (cookieBtn) cookieBtn.disabled = true;
+      document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
+
+      const headers = { 'Content-Type': 'application/json' };
+      const curInit = getInitData();
+      if (curInit) headers['X-Telegram-Init-Data'] = curInit;
+
+      // Списываем 100 шишек через /api/sync
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          type: 'spend_tokens',
+          userId: uid,
+          amount: 100,
+          reason: 'cookie_heal'
+        })
       })
-      .then(r => {
-        console.log('Token API status:', r.status);
-        return r.json();
-      })
-      .then(tokenData => {
-        console.log('Token balance:', tokenData);
-        const balance = tokenData.tokens?.balance || 0;
-        
-        if (balance < 100) {
-          document.getElementById('log').innerText = lang === 'ru' ? `❌ Недостаточно шишек! Баланс: ${balance} Шишек (нужно 100)` : `❌ Not enough cones! Balance: ${balance} (need 100)`;
-          const cookieBtn = document.getElementById('btn-cookie');
-          setTimeout(() => { cookieBtn.disabled = false; }, 500);
-          return;
+      .then(r => r.json())
+      .then(result => {
+        if (result.status === 'ok') {
+          if (result.tokens && result.tokens.balance !== undefined) {
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
+          }
+
+          playerHP = playerMaxHP;
+          updatePlayerHP();
+          document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
+
+          const cap = document.getElementById('player-cap');
+          if (cap) {
+            cap.classList.add('heal-effect');
+            setTimeout(() => cap.classList.remove('heal-effect'), 400);
+          }
+        } else {
+          const errorMsg = result.message || (lang === 'ru' ? 'Недостаточно шишек!' : 'Not enough cones!');
+          document.getElementById('log').innerText = "❌ " + errorMsg;
         }
-        
-        // Блокируем кнопку на время запроса
-        const cookieBtn = document.getElementById('btn-cookie');
-        cookieBtn.disabled = true;
-        
-        document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
-        
-        // Списываем 100 шишек
-        return fetch('/api/sync', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-          },
-          body: JSON.stringify({
-            type: 'spend_tokens',
-            userId: userId,
-            amount: 100,
-            reason: 'cookie_heal'
-          })
-        })
-        .then(r => {
-          console.log('Spend tokens status:', r.status);
-          return r.json();
-        })
-        .then(result => {
-          console.log('Spend result:', result);
-          
-          // Проверяем статус ответа
-          if (result.status === 'error') {
-            const errorMsg = result.message || (lang === 'ru' ? 'Ошибка сервера' : 'Server error');
-            console.error('API Error:', errorMsg);
-            document.getElementById('log').innerText = "❌ " + errorMsg;
-            return;
-          }
-          
-          if (result.status === 'ok') {
-            if (result.tokens && result.tokens.balance !== undefined) {
-              window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
-            }
-
-            // Восстанавливаем 100% здоровья
-            playerHP = playerMaxHP;
-            updatePlayerHP();
-            document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
-
-            // Логирование покупки
-            if (typeof logGameAction === 'function') {
-              logGameAction('COOKIE_PURCHASE', { game: 'boss', userId: tgUserId });
-            }
-
-            // Анимация лечения
-            const cap = document.getElementById('player-cap');
-            if (cap) {
-              cap.classList.add('heal-effect');
-              setTimeout(() => cap.classList.remove('heal-effect'), 400);
-            }
-          } else if (result.status === 'error') {
-            // Обработка ошибки
-            const errorMsg = result.message || (lang === 'ru' ? 'Ошибка сервера' : 'Server error');
-            document.getElementById('log').innerText = "❌ " + errorMsg;
-            
-            if (typeof logApiError === 'function') {
-              logApiError('/api/sync', errorMsg, null);
-            }
-          } else {
-            document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
-          }
-        });
       })
       .catch(err => {
         console.error('❌ Network Error:', err);
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
-        
-        if (typeof logApiError === 'function') {
-          logApiError('/api/sync', err, null);
-        }
       })
       .finally(() => {
         setTimeout(() => {
-          const cookieBtn = document.getElementById('btn-cookie');
-          if (cookieBtn) cookieBtn.disabled = false;
+          if (cookieBtn && gameActive) cookieBtn.disabled = false;
         }, 500);
       });
     }
 
     async function attack(type) {
-      if (!gameActive) {
-        console.log('⚠️ Game not active, attack blocked');
+      if (!gameActive) return;
+
+      if (type === 'strong' && playerEnergy < 40) return;
+      if (type === 'ultimate' && playerEnergy < 80) return;
+      if (type === 'heal' && playerEnergy < 50) return;
+
+      const uid = tgUserId || getUserId();
+      if (!uid) {
+        document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка: нет ID игрока" : "❌ Error: no player ID";
+        updateEnergy();
         return;
       }
 
-      // Локальная проверка энергии, чтобы не спамить сервер
-      if (type === 'strong' && playerEnergy < 40) {
-        console.log('⚠️ Not enough energy for strong attack');
-        return;
-      }
-      if (type === 'ultimate' && playerEnergy < 80) {
-        console.log('⚠️ Not enough energy for ultimate');
-        return;
-      }
-      if (type === 'heal' && playerEnergy < 50) {
-        console.log('⚠️ Not enough energy for heal');
-        return;
-      }
-
-      console.log('🎯 Starting attack:', type, '| Energy:', playerEnergy);
-
-      // Блокируем кнопки на время атаки
+      // Блокируем кнопки на время хода
       const buttons = document.querySelectorAll('.btn');
       buttons.forEach(btn => btn.disabled = true);
       document.getElementById('msg').innerText = lang === 'ru' ? "Атакуем..." : "Attacking...";
 
       try {
-        console.log('📡 Sending attack request to /api/boss/attack');
-        
-        // Логирование атаки
-        if (typeof logGameAction === 'function') {
-          logGameAction('BOSS_ATTACK', { action: type, energy: playerEnergy });
-        }
-        
+        const headers = { 'Content-Type': 'application/json' };
+        const curInit = getInitData();
+        if (curInit) headers['X-Telegram-Init-Data'] = curInit;
+
         const res = await fetch('/api/boss/attack', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-          },
-          body: JSON.stringify({ userId: tgUserId, action: type })
+          headers: headers,
+          body: JSON.stringify({ userId: uid, action: type })
         });
 
-        console.log('📥 Response status:', res.status);
         const data = await res.json();
-        console.log('📦 Response data:', data);
 
-        if (data.status === 'error') {
-            const errorMsg = data.message || (lang === 'ru' ? 'Сбой API' : 'API failure');
+        if (data.status === 'error' || data.error) {
+            const errorMsg = data.message || data.error || (lang === 'ru' ? 'Сбой API' : 'API failure');
             console.error('❌ API Error:', errorMsg);
             document.getElementById('msg').innerText = (lang === 'ru' ? "❌ Ошибка: " : "❌ Error: ") + errorMsg;
             updateEnergy();
-            // Разблокируем кнопки при ошибке
-            buttons.forEach(btn => btn.disabled = false);
             return;
         }
 
-        let damage = data.damage;
-        let heal = data.heal;
-        let isCrit = data.is_crit;
-        let bossDamage = data.boss_damage;
-        let energyChange = data.energy_change;
+        let damage = data.damage || 0;
+        let heal = data.heal || 0;
+        let isCrit = !!data.is_crit;
+        let bossDamage = data.boss_damage || 0;
+        let energyChange = data.energy_change || 0;
         let tokensEarned = data.tokens_earned || 0;
         let message = '';
 
-        // Применяем серверные данные
         playerEnergy = Math.max(0, Math.min(100, playerEnergy + energyChange));
-        console.log('⚡ Energy change:', energyChange, '| New energy:', playerEnergy);
 
         if (type === 'basic') message = lang === 'ru' ? 'Обычный удар! +20 эн' : 'Basic attack! +20 en';
         else if (type === 'strong') message = lang === 'ru' ? 'Сильная атака! -40 эн' : 'Strong attack! -40 en';
@@ -775,38 +728,43 @@
 
         if (type !== 'heal') {
           if (isCrit) {
-            playerStats.crits++;
+            playerStats.crits = (playerStats.crits || 0) + 1;
             message = (lang === 'ru' ? '💥 КРИТ! ' : '💥 CRIT! ') + message;
           }
-          bossHP = data.boss_hp;
-          playerStats.totalDamage += damage;
-          playerStats.hits++;
+          if (data.boss_hp !== undefined) {
+            bossHP = data.boss_hp;
+          }
+          playerStats.totalDamage = (playerStats.totalDamage || 0) + damage;
+          playerStats.hits = (playerStats.hits || 0) + 1;
 
           showDamageNumber(damage, isCrit, false);
           const boss = document.getElementById('boss');
-          boss.classList.remove('hit');
-          void boss.offsetWidth;
-          boss.classList.add('hit');
+          if (boss) {
+            boss.classList.remove('hit');
+            void boss.offsetWidth;
+            boss.classList.add('hit');
+          }
 
           const playerCap = document.getElementById('player-cap');
-          playerCap.classList.add('animate-attack');
-          setTimeout(() => playerCap.classList.remove('animate-attack'), 400);
+          if (playerCap) {
+            playerCap.classList.add('animate-attack');
+            setTimeout(() => playerCap.classList.remove('animate-attack'), 400);
+          }
         }
 
         if (tokensEarned > 0) {
           message += (lang === 'ru' ? ` (+${tokensEarned} Шишек!)` : ` (+${tokensEarned} Cones!)`);
         }
 
-        // Обновляем UI с нашим ударом сразу
         updateStatsUI();
         updateBossHP();
         document.getElementById('msg').innerText = message;
         document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
 
-        // Ответ босса
+        // Ответный удар босса
         if (bossDamage > 0) {
           setTimeout(() => {
-            playerHP -= bossDamage;
+            playerHP = Math.max(0, playerHP - bossDamage);
             updatePlayerHP();
             
             let counterMsg = (lang === 'ru' ? '💥 Босс ответил на ' : '💥 Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
@@ -815,42 +773,33 @@
             showDamageNumber(bossDamage, false, true);
 
             const bossEl = document.getElementById('boss');
-            bossEl.classList.add('animate-boss-attack');
-            setTimeout(() => bossEl.classList.remove('animate-boss-attack'), 300);
+            if (bossEl) {
+              bossEl.classList.add('animate-boss-attack');
+              setTimeout(() => bossEl.classList.remove('animate-boss-attack'), 300);
+            }
 
             const playerCap = document.getElementById('player-cap');
-            playerCap.classList.add('hit');
-            setTimeout(() => playerCap.classList.remove('hit'), 300);
+            if (playerCap) {
+              playerCap.classList.add('hit');
+              setTimeout(() => playerCap.classList.remove('hit'), 300);
+            }
 
             if (playerHP <= 0) {
-              console.log('💀 Player died, game over');
               gameOver();
               return;
             }
             
-            // Разблокируем кнопки после ответа босса
             updateEnergy();
-          }, 300); // Задержка 0.3 секунды
+          }, 300);
         } else {
-          // Если ответа нет - разблокируем кнопки сразу
           updateEnergy();
         }
-
-        updateStatsUI();
-        updateBossHP();
-        document.getElementById('msg').innerText = message;
-        document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
-        console.log('✅ Attack completed, message:', message);
 
       } catch (err) {
         console.error('❌ Attack error:', err);
         document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
         updateEnergy();
       }
-
-      // Разблокируем кнопки после атаки
-      console.log('🔓 Unlocking buttons');
-      updateEnergy();
     }
 
     function gameOver() {
@@ -860,24 +809,20 @@
       document.getElementById('msg').style.color = 'var(--accent)';
       document.getElementById('log').innerText = lang === 'ru' ? 'Возврат в меню игры...' : 'Returning to menu...';
 
-      // Блокируем кнопки
       document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
 
-      // Возврат в меню через 2 секунды
       setTimeout(() => {
         window.parent.postMessage({ type: 'game_over', game: 'boss' }, window.location.origin);
       }, 2000);
     }
 
-    // Инициализация
+    // Инициализация игры
     window.addEventListener('DOMContentLoaded', () => {
-        console.log('=== GAME INIT ===');
+        console.log('=== BOSS GAME INIT ===');
         gameActive = true;
         
         loadPlayerStats();
         loadBossHP();
-        
-        // Обновлять HP каждые 5 секунд
         setInterval(loadBossHP, 5000);
         
         updateEnergy();

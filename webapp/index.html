@@ -2108,7 +2108,7 @@
   
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.08.30.2';
+  const APP_VERSION = '2026.08.30.3';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
@@ -3670,25 +3670,32 @@
 
       document.getElementById('reader-header-title').innerText = item.title || 'Просмотр';
       const iframe = document.getElementById('reader-iframe');
-      iframe.src = item.url;
+      const userId = getUserId();
+      let targetUrl = item.url;
+      if (targetUrl && (targetUrl.endsWith('.html') || targetUrl.includes('.html?'))) {
+        const sep = targetUrl.includes('?') ? '&' : '?';
+        targetUrl = `${targetUrl}${sep}userId=${userId || ''}&lang=${currentLang}`;
+      }
+      iframe.src = targetUrl;
       navigateTo('reader-screen');
 
-      // Передаём баланс и user_id в iframe при загрузке (для рулетки)
-      setTimeout(() => {
-        const balanceEl = document.getElementById('token-balance');
-        const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
-        const userId = getUserId();
+      // Передаём баланс, user_id и initData в iframe при загрузке
+      const sendIframeInit = () => {
+        try {
+          const balanceEl = document.getElementById('token-balance');
+          const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
+          iframe.contentWindow.postMessage({
+            type: 'init_game',
+            balance: currentBalance,
+            userId: userId,
+            initData: tg.initData || '',
+            lang: currentLang
+          }, window.location.origin);
+        } catch (e) {}
+      };
 
-        // Безопасная отправка сообщения с указанием конкретного origin
-        iframe.contentWindow.postMessage({
-          type: 'init_game',
-          balance: currentBalance,
-          userId: userId,
-          lang: currentLang
-        }, window.location.origin);
-
-        console.log('📤 Передаём баланс в iframe:', { balance: currentBalance, userId, lang: currentLang });
-      }, 500);
+      setTimeout(sendIframeInit, 200);
+      setTimeout(sendIframeInit, 600);
     } else if (item.type === 'link') {
       setTimeout(() => tg.openLink(item.url), 150);
     } else if (item.type === 'external') {
