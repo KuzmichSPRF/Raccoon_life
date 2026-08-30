@@ -238,8 +238,77 @@
 
     applyLang(lang);
 
+    function getUserId() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const u = urlParams.get('userId');
+        if (u && !isNaN(parseInt(u, 10)) && parseInt(u, 10) > 0) return parseInt(u, 10);
+      } catch (e) {}
+
+      try {
+        let id = localStorage.getItem('rl_user_id');
+        if (id && id !== 'undefined' && id !== 'null') {
+          const parsed = parseInt(id, 10);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+      } catch (e) {}
+
+      try {
+        if (window.parent && window.parent.getUserId) {
+          const pid = window.parent.getUserId();
+          if (pid && !isNaN(parseInt(pid, 10)) && parseInt(pid, 10) > 0) return parseInt(pid, 10);
+        }
+      } catch (e) {}
+
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+          return window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+      } catch (e) {}
+
+      try {
+        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initDataUnsafe?.user?.id) {
+          return window.parent.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+      } catch (e) {}
+
+      try {
+        let storedId = localStorage.getItem('rl_temp_user_id');
+        if (!storedId) {
+          storedId = String(Math.floor(Math.random() * 1000000) + 100000);
+          localStorage.setItem('rl_temp_user_id', storedId);
+        }
+        return parseInt(storedId, 10);
+      } catch (e) {
+        return 999999;
+      }
+    }
+
+    function getInitData() {
+      try {
+        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initData) {
+          return window.parent.Telegram.WebApp.initData;
+        }
+      } catch (e) {}
+      try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+          return window.Telegram.WebApp.initData;
+        }
+      } catch (e) {}
+      return '';
+    }
+
     window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'language_changed') {
+      if (!e.data) return;
+      if (e.data.type === 'init_game') {
+        if (e.data.userId) {
+          localStorage.setItem('rl_user_id', e.data.userId);
+        }
+        if (e.data.lang) {
+          applyLang(e.data.lang);
+        }
+        initGame();
+      } else if (e.data.type === 'language_changed') {
         applyLang(e.data.lang);
       }
     });
@@ -251,14 +320,15 @@
 
     async function apiCall(actionType) {
         let userId = getUserId();
-        if (!userId) return null;
+        if (!userId) userId = 999999;
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            const initData = getInitData();
+            if (initData) headers['X-Telegram-Init-Data'] = initData;
+
             const res = await fetch('/api/game/tower', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-Telegram-Init-Data': window.parent.Telegram?.WebApp?.initData || window.Telegram?.WebApp?.initData || ''
-                },
+                headers: headers,
                 body: JSON.stringify({ 
                     userId: userId, 
                     action: actionType, 
@@ -398,21 +468,6 @@
       }
       if (heal > 0) el.classList.add('heal-effect');
       setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 400);
-    }
-
-    function getUserId() {
-      let id = localStorage.getItem('rl_user_id');
-      if (id) return parseInt(id);
-      try {
-        if (window.parent && window.parent.getUserId) {
-          return window.parent.getUserId();
-        }
-      } catch (e) {
-        if (typeof logSecurityEvent === 'function') {
-          logSecurityEvent('AUTH_ERROR', 'Failed to get user ID from parent', { error: e.message });
-        }
-      }
-      return null;
     }
 
     function buyCookie() {

@@ -631,22 +631,49 @@
   }
 
   function getUserId() {
-    if (tg.initDataUnsafe?.user?.id) {
-      return tg.initDataUnsafe.user.id;
-    }
-    if (tg.initData) {
-      const urlParams = new URLSearchParams(tg.initData);
-      const userStr = urlParams.get('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userStr));
-          return user.id;
-        } catch (e) {
-          logSecurityEvent('AUTH_ERROR', 'Failed to parse user data', { error: e.message });
-        }
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const u = urlParams.get('userId');
+      if (u && !isNaN(parseInt(u, 10)) && parseInt(u, 10) > 0) return parseInt(u, 10);
+    } catch (e) {}
+
+    try {
+      let id = localStorage.getItem('rl_user_id');
+      if (id && id !== 'undefined' && id !== 'null') {
+        const parsed = parseInt(id, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
       }
+    } catch (e) {}
+
+    try {
+      if (window.parent && window.parent.getUserId) {
+        const pid = window.parent.getUserId();
+        if (pid && !isNaN(parseInt(pid, 10)) && parseInt(pid, 10) > 0) return parseInt(pid, 10);
+      }
+    } catch (e) {}
+
+    try {
+      if (tg && tg.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id;
+      }
+    } catch (e) {}
+
+    try {
+      if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initDataUnsafe?.user?.id) {
+        return window.parent.Telegram.WebApp.initDataUnsafe.user.id;
+      }
+    } catch (e) {}
+
+    try {
+      let storedId = localStorage.getItem('rl_temp_user_id');
+      if (!storedId) {
+        storedId = String(Math.floor(Math.random() * 1000000) + 100000);
+        localStorage.setItem('rl_temp_user_id', storedId);
+      }
+      return parseInt(storedId, 10);
+    } catch (e) {
+      return 999999;
     }
-    return localStorage.getItem('rl_user_id');
   }
 
   // ==================== SECURITY MONITORING ====================

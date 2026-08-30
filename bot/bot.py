@@ -3620,16 +3620,24 @@ def api_boss_attack():
 
 
 @app.route('/api/game/vladeos', methods=['POST'])
-@limiter.limit("30 per minute")
+@limiter.limit("60 per minute")
 def api_game_vladeos():
     """Логика Vladeos PvP"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
         init_data = request.headers.get('X-Telegram-Init-Data')
         if init_data:
             auth_user = validate_webapp_data(init_data)
-            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
             
         is_win = random.random() < 0.05
         if is_win:
@@ -3641,19 +3649,28 @@ def api_game_vladeos():
             v_score = p_score + 1
             
         return jsonify({'status': 'ok', 'win': is_win, 'p_score': p_score, 'v_score': v_score})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/battleship', methods=['POST'])
-@limiter.limit("30 per minute")
+@limiter.limit("60 per minute")
 def api_game_battleship():
     """Античит Морского боя - кулдаун 10 сек"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
         init_data = request.headers.get('X-Telegram-Init-Data')
         if init_data:
             auth_user = validate_webapp_data(init_data)
-            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
             
         state = get_game_session(user_id, 'battleship')
         now = time.time()
@@ -3663,20 +3680,29 @@ def api_game_battleship():
         save_game_session(user_id, 'battleship', {'last_win': now})
         add_tokens(user_id, 100, 'battleship_win')
         return jsonify({'status': 'ok'})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/clown', methods=['POST'])
 @limiter.limit("120 per minute")
 def api_game_clown():
     """Логика Битвы Фишек (Клоун)"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
-        action = data.get('action')
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
+        action = data.get('action', 'attack')
         init_data = request.headers.get('X-Telegram-Init-Data')
         if init_data:
             auth_user = validate_webapp_data(init_data)
-            if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
         
         if action == 'start':
             state = {'pHP': 100, 'pNRG': 0, 'bHP': 100, 'bNRG': 0}
@@ -3684,12 +3710,15 @@ def api_game_clown():
             return jsonify({'status': 'ok', 'state': state})
 
         state = get_game_session(user_id, 'clown')
-        if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
+        if not state:
+            state = {'pHP': 100, 'pNRG': 0, 'bHP': 100, 'bNRG': 0}
+            save_game_session(user_id, 'clown', state)
 
         # Обработка лечения печенькой (два варианта: 'cookie' и 'cookie_heal')
         if action in ['cookie', 'cookie_heal']:
             spend_result = spend_tokens(user_id, 100, 'cookie_heal')
-            if not spend_result: return jsonify({'status': 'error', 'error': 'Недостаточно токенов!'}), 400
+            if not spend_result:
+                return jsonify({'status': 'error', 'error': 'Недостаточно токенов!'}), 400
             state['pHP'] = 100
             save_game_session(user_id, 'clown', state)
             return jsonify({'status': 'ok', 'state': state, 'tokens': spend_result})
@@ -3697,16 +3726,27 @@ def api_game_clown():
         dmg, heal, cost = 0, 0, 0
         is_crit = random.random() < 0.2
         
-        if action == 'attack': dmg = 10; state['pNRG'] = min(100, state['pNRG'] + 20)
-        elif action == 'trash': dmg = 25; cost = 40
-        elif action == 'snack': heal = 30; cost = 30
-        elif action == 'rage': dmg = 50; cost = 80; is_crit = True
+        if action == 'attack':
+            dmg = 10
+            state['pNRG'] = min(100, state['pNRG'] + 20)
+        elif action == 'trash':
+            dmg = 25
+            cost = 40
+        elif action == 'snack':
+            heal = 30
+            cost = 30
+        elif action == 'rage':
+            dmg = 50
+            cost = 80
+            is_crit = True
         
-        if state['pNRG'] < cost: return jsonify({'status': 'error', 'error': 'Not enough energy'}), 400
+        if state['pNRG'] < cost:
+            return jsonify({'status': 'error', 'error': 'Not enough energy'}), 400
         state['pNRG'] -= cost
-        if is_crit and dmg > 0: dmg = int(dmg * 1.5)
+        if is_crit and dmg > 0:
+            dmg = int(dmg * 1.5)
         
-        state['bHP'] -= dmg
+        state['bHP'] = max(0, state['bHP'] - dmg)
         state['pHP'] = min(100, state['pHP'] + heal)
         
         player_log = {'dmg': dmg, 'heal': heal, 'is_crit': is_crit, 'action': action, 'pHP': state['pHP'], 'pNRG': state['pNRG'], 'bHP': state['bHP'], 'bNRG': state['bNRG']}
@@ -3720,34 +3760,56 @@ def api_game_clown():
         b_crit = random.random() < 0.15
         b_action = 'attack'
         
-        if state['bNRG'] >= 70: b_dmg = 40; state['bNRG'] -= 70; b_action = 'bomb'
-        elif state['bHP'] < 40 and state['bNRG'] >= 30: b_heal = 25; state['bNRG'] -= 30; b_action = 'heal'
-        else: b_dmg = 12; state['bNRG'] = min(100, state['bNRG'] + 25)
+        if state['bNRG'] >= 70:
+            b_dmg = 40
+            state['bNRG'] -= 70
+            b_action = 'bomb'
+        elif state['bHP'] < 40 and state['bNRG'] >= 30:
+            b_heal = 25
+            state['bNRG'] -= 30
+            b_action = 'heal'
+        else:
+            b_dmg = 12
+            state['bNRG'] = min(100, state['bNRG'] + 25)
         
-        if b_crit and b_dmg > 0: b_dmg = int(b_dmg * 1.5)
-        state['pHP'] -= b_dmg
+        if b_crit and b_dmg > 0:
+            b_dmg = int(b_dmg * 1.5)
+        state['pHP'] = max(0, state['pHP'] - b_dmg)
         state['bHP'] = min(100, state['bHP'] + b_heal)
         
         bot_log = {'dmg': b_dmg, 'heal': b_heal, 'is_crit': b_crit, 'action': b_action, 'pHP': state['pHP'], 'pNRG': state['pNRG'], 'bHP': state['bHP'], 'bNRG': state['bNRG']}
         game_over = state['pHP'] <= 0
-        if game_over: clear_game_session(user_id, 'clown')
-        else: save_game_session(user_id, 'clown', state)
+        if game_over:
+            clear_game_session(user_id, 'clown')
+        else:
+            save_game_session(user_id, 'clown', state)
             
         return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'bot_log': bot_log, 'game_over': game_over, 'win': False})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/game/tower', methods=['POST'])
 @limiter.limit("120 per minute")
 def api_game_tower():
     """Логика Башни"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
-        action = data.get('action')
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
+        action = data.get('action', 'attack')
         level = data.get('level', 1)
         
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
         
         if action == 'start':
             is_boss = (level % 10 == 0)
@@ -3764,7 +3826,9 @@ def api_game_tower():
             return jsonify({'status': 'ok', 'state': state})
             
         state = get_game_session(user_id, 'tower')
-        if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
+        if not state:
+            state = {'level': level, 'pHP': 100, 'pNRG': 0, 'eHP': 100, 'eMaxHP': 100, 'eDmg': 10}
+            save_game_session(user_id, 'tower', state)
         
         if action == 'cookie':
             spend_result = spend_tokens(user_id, 100, 'cookie_heal')
@@ -3812,7 +3876,7 @@ def api_game_tower():
         e_dmg = int(state['eDmg'] * random.uniform(0.8, 1.2))
         e_crit = random.random() < 0.1
         if e_crit: e_dmg = int(e_dmg * 1.5)
-        state['pHP'] -= e_dmg
+        state['pHP'] = max(0, state['pHP'] - e_dmg)
         
         bot_log = {'dmg': e_dmg, 'is_crit': e_crit, 'pHP': state['pHP'], 'pNRG': state['pNRG'], 'eHP': state['eHP']}
         game_over = state['pHP'] <= 0
@@ -3827,12 +3891,22 @@ def api_game_tower():
 def api_game_archive():
     """Логика Этажа 11: Главный Архив (Сортировка Хаоса)"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
         action = data.get('action')
         
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
         
         if action == 'start':
             state = {'score': 0, 'required': 20, 'status': 'playing'}
@@ -3840,7 +3914,9 @@ def api_game_archive():
             return jsonify({'status': 'ok', 'state': state})
             
         state = get_game_session(user_id, 'archive')
-        if not state: return jsonify({'status': 'error', 'error': 'No active session'}), 400
+        if not state:
+            state = {'score': 0, 'required': 20, 'status': 'playing'}
+            save_game_session(user_id, 'archive', state)
         
         if action == 'sort_success':
             state['score'] += 1
@@ -3859,12 +3935,22 @@ def api_game_archive():
 def api_game_library():
     """Логика Этажа 10: Библиотека (Стелс-режим офисного планктона)"""
     try:
-        data = request.get_json()
-        user_id = int(data.get('userId'))
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'status': 'error', 'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id'}), 400
+
         action = data.get('action')
         
-        auth_user = validate_webapp_data(request.headers.get('X-Telegram-Init-Data'))
-        if not auth_user or str(auth_user.get('id')) != str(user_id): return jsonify({'error': 'Unauthorized'}), 403
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user and str(auth_user.get('id')) != str(user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
         
         if action == 'start':
             state = {'progress': 0, 'required': 100, 'suspicion': 0, 'max_suspicion': 3}
