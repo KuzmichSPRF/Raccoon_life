@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Raccoon Life</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -1289,6 +1290,37 @@
     </div>
   </div>
 
+  <!-- TON Wallet Actions Modal -->
+  <div id="wallet-actions-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal" style="width: 90%; max-width: 380px; position: relative; padding: 20px 18px;">
+      <button class="close-modal-btn" onclick="closeWalletActionsModal()">✕</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+        <span style="font-size: 1.6rem;">💎</span>
+        <div>
+          <h3 class="tutorial-title" style="margin: 0; text-align: left; font-size: 1.15rem;" data-i18n="wallet_title">TON Кошелёк</h3>
+          <div style="font-size: 0.75rem; color: #00ff88; font-weight: 600;" data-i18n="wallet_connected">Подключен к аккаунту</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.4); border: 0.5px solid var(--border-subtle); border-radius: 12px; padding: 12px; margin-bottom: 15px; word-break: break-all;">
+        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="wallet_address_label">Адрес кошелька:</div>
+        <div id="wallet-modal-full-address" style="font-family: monospace; font-size: 0.85rem; color: #fff; font-weight: 700;">—</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="button button-type-secondary" style="width: 100%; border-radius: 12px; padding: 10px;" onclick="copyWalletAddress()">
+          📋 <span id="wallet-copy-text" data-i18n="copy_address">Копировать адрес</span>
+        </button>
+        <button class="button button-type-secondary" style="width: 100%; border-radius: 12px; padding: 10px;" onclick="openTonExplorer()">
+          🔍 <span data-i18n="view_in_explorer">Открыть в Tonviewer</span>
+        </button>
+        <button class="button" style="width: 100%; border-radius: 12px; padding: 10px; background: rgba(229,57,53,0.15); color: #ff5252; border: 0.5px solid rgba(229,57,53,0.4); font-weight: 700; margin-top: 4px;" onclick="disconnectTonWallet()">
+          🚪 <span data-i18n="disconnect_wallet">Отключить кошелёк</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Top App Header (CapsGame Header Bar) -->
   <header id="app-header" class="home__title" style="display: none;">
     <div class="home__user">
@@ -1315,9 +1347,9 @@
     </div>
 
     <div class="home__title-badges">
-      <button class="badge-icon-button" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0'); triggerHaptic('light');" aria-label="Wallet">
-        <span class="badge-icon-button__icon">👛</span>
-        <div class="badge-icon-button__badge">TON</div>
+      <button class="badge-icon-button" id="header-wallet-btn" onclick="handleTonWalletButtonClick(); triggerHaptic('selection');" aria-label="Wallet">
+        <span class="badge-icon-button__icon" id="header-wallet-icon">👛</span>
+        <div class="badge-icon-button__badge" id="header-wallet-badge">TON</div>
       </button>
       <button class="badge-icon-button" onclick="toggleLanguage(); triggerHaptic('light');" aria-label="Lang">
         <span class="badge-icon-button__icon">🌐</span>
@@ -1765,7 +1797,17 @@
       minigames_stats: "Мини-игры",
       quests_and_community: "Квесты и активность",
       registered_date: "В игре с",
-      rank_label: "Место"
+      rank_label: "Место",
+      wallet_title: "TON Кошелёк",
+      wallet_connected: "Подключен к аккаунту",
+      wallet_address_label: "Адрес кошелька:",
+      copy_address: "Копировать адрес",
+      copied: "Скопировано!",
+      view_in_explorer: "Открыть в Tonviewer",
+      disconnect_wallet: "Отключить кошелёк",
+      connect_wallet: "Подключить TON Кошелёк",
+      wallet_not_connected: "Не привязан",
+      wallet_linked: "Привязан"
     },
     en: {
       lang_btn: "EN",
@@ -1876,7 +1918,17 @@
       minigames_stats: "Mini-games",
       quests_and_community: "Quests & Activity",
       registered_date: "Playing since",
-      rank_label: "Rank"
+      rank_label: "Rank",
+      wallet_title: "TON Wallet",
+      wallet_connected: "Connected to account",
+      wallet_address_label: "Wallet address:",
+      copy_address: "Copy address",
+      copied: "Copied!",
+      view_in_explorer: "View on Tonviewer",
+      disconnect_wallet: "Disconnect Wallet",
+      connect_wallet: "Connect TON Wallet",
+      wallet_not_connected: "Not linked",
+      wallet_linked: "Linked"
     }
   };
 
@@ -2834,6 +2886,11 @@
       totBets = tot.total_bets || 0;
       totAmount = tot.total_amount || 0;
       totWon = tot.won_bets || 0;
+
+      if (profileData.user && profileData.user.wallet_address) {
+        currentWalletAddress = profileData.user.wallet_address;
+        updateWalletUI(currentWalletAddress);
+      }
     } else {
       overallScore = (stats.overall_score !== undefined && stats.overall_score !== null) ? stats.overall_score : calculateLocalOverallScore();
       const balanceEl = document.getElementById('token-balance');
@@ -2950,6 +3007,34 @@
         </div>
       </div>
 
+      <!-- TON Wallet Card -->
+      <div class="profile-stat-box" style="border-color: ${currentWalletAddress ? 'rgba(0, 136, 204, 0.4)' : 'var(--border-subtle)'}; background: ${currentWalletAddress ? 'linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 0, 0, 0.3))' : 'var(--bg-primary)'};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-weight: 700; font-size: 0.82rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+            <span>💎</span> <span>${i18n[currentLang].wallet_title || 'TON Кошелёк'}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: ${currentWalletAddress ? '#00ff88' : '#aaa'}; font-weight: 600;">
+            ${currentWalletAddress ? (i18n[currentLang].wallet_linked || 'Привязан') : (i18n[currentLang].wallet_not_connected || 'Не привязан')}
+          </div>
+        </div>
+        ${currentWalletAddress ? `
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 10px; margin-bottom: 8px;">
+            <div style="font-family: monospace; font-size: 0.8rem; color: #fff; font-weight: 700;">${formatTonAddress(currentWalletAddress)}</div>
+            <button class="button button-type-secondary" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 8px;" onclick="copyWalletAddress()">📋</button>
+          </div>
+          <button class="button button-type-secondary" style="width: 100%; padding: 8px; font-size: 0.8rem; border-radius: 10px;" onclick="openWalletActionsModal()">
+            ⚙️ ${i18n[currentLang].wallet_title || 'Управление кошельком'}
+          </button>
+        ` : `
+          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px;">
+            ${currentLang === 'ru' ? 'Подключите свой TON кошелёк (Tonkeeper, @wallet, MyTonWallet) для авторизации и наград.' : 'Connect your TON wallet (Tonkeeper, @wallet, MyTonWallet) for authorization and rewards.'}
+          </div>
+          <button class="button button-type-primary button-color-red" style="width: 100%; padding: 8px; font-size: 0.82rem; border-radius: 10px;" onclick="if(tonConnectUI) tonConnectUI.openModal(); else initTonConnect();">
+            💎 ${i18n[currentLang].connect_wallet || 'Подключить TON Кошелёк'}
+          </button>
+        `}
+      </div>
+
       <!-- Quests & Social Card -->
       <div class="profile-stat-box">
         <div style="font-weight: 700; font-size: 0.82rem; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
@@ -2975,6 +3060,156 @@
         </div>
       </div>
     `;
+  }
+
+  // ==================== TON CONNECT 2.0 ====================
+  let tonConnectUI = null;
+  let currentWalletAddress = null;
+
+  function formatTonAddress(address) {
+    if (!address) return '';
+    if (address.length <= 12) return address;
+    return address.slice(0, 4) + '...' + address.slice(-4);
+  }
+
+  function initTonConnect() {
+    try {
+      if (typeof TON_CONNECT_UI === 'undefined') {
+        console.warn('TON Connect UI SDK еще не загружен');
+        return;
+      }
+      if (tonConnectUI) return;
+
+      const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
+      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: manifestUrl
+      });
+
+      tonConnectUI.onStatusChange(wallet => {
+        if (wallet) {
+          const rawAddress = wallet.account.address;
+          try {
+            currentWalletAddress = TON_CONNECT_UI.toUserFriendlyAddress(rawAddress);
+          } catch (e) {
+            currentWalletAddress = rawAddress;
+          }
+          updateWalletUI(currentWalletAddress, wallet);
+          syncWalletWithBackend(currentWalletAddress);
+        } else {
+          currentWalletAddress = null;
+          updateWalletUI(null);
+          syncWalletWithBackend(null);
+        }
+      });
+    } catch (e) {
+      console.error('Ошибка инициализации TON Connect:', e);
+    }
+  }
+
+  function updateWalletUI(address, wallet) {
+    const badge = document.getElementById('header-wallet-badge');
+    const icon = document.getElementById('header-wallet-icon');
+    const fullAddressEl = document.getElementById('wallet-modal-full-address');
+
+    if (address) {
+      if (badge) badge.innerText = formatTonAddress(address);
+      if (icon) icon.innerText = '💎';
+      if (fullAddressEl) fullAddressEl.innerText = address;
+    } else {
+      if (badge) badge.innerText = 'TON';
+      if (icon) icon.innerText = '👛';
+      if (fullAddressEl) fullAddressEl.innerText = '—';
+    }
+  }
+
+  function handleTonWalletButtonClick() {
+    if (!tonConnectUI) {
+      initTonConnect();
+    }
+    if (currentWalletAddress || (tonConnectUI && tonConnectUI.connected)) {
+      openWalletActionsModal();
+    } else {
+      if (tonConnectUI) {
+        tonConnectUI.openModal();
+      }
+    }
+  }
+
+  function openWalletActionsModal() {
+    const overlay = document.getElementById('wallet-actions-overlay');
+    if (!overlay) return;
+    const fullAddressEl = document.getElementById('wallet-modal-full-address');
+    if (fullAddressEl) fullAddressEl.innerText = currentWalletAddress || '—';
+    overlay.classList.add('active');
+    triggerHaptic('light');
+  }
+
+  function closeWalletActionsModal() {
+    const overlay = document.getElementById('wallet-actions-overlay');
+    if (overlay) overlay.classList.remove('active');
+    triggerHaptic('light');
+  }
+
+  function copyWalletAddress() {
+    if (!currentWalletAddress) return;
+    navigator.clipboard.writeText(currentWalletAddress).then(() => {
+      const copyBtn = document.getElementById('wallet-copy-text');
+      if (copyBtn) copyBtn.innerText = i18n[currentLang].copied || 'Скопировано!';
+      setTimeout(() => {
+        if (copyBtn) copyBtn.innerText = i18n[currentLang].copy_address || 'Копировать адрес';
+      }, 2000);
+      triggerHaptic('impact');
+    }).catch(err => {
+      console.error('Ошибка копирования адреса:', err);
+    });
+  }
+
+  function openTonExplorer() {
+    if (!currentWalletAddress) return;
+    const url = `https://tonviewer.com/${currentWalletAddress}`;
+    tg.openLink(url);
+    triggerHaptic('light');
+  }
+
+  async function disconnectTonWallet() {
+    try {
+      if (tonConnectUI && tonConnectUI.connected) {
+        await tonConnectUI.disconnect();
+      }
+    } catch (e) {
+      console.warn('Ошибка при вызове tonConnectUI.disconnect:', e);
+    }
+    currentWalletAddress = null;
+    updateWalletUI(null);
+    syncWalletWithBackend(null);
+    closeWalletActionsModal();
+    const profileOverlay = document.getElementById('profile-stats-overlay');
+    if (profileOverlay && profileOverlay.classList.contains('active')) {
+      renderPlayerProfileModal();
+    }
+    triggerHaptic('impact');
+  }
+
+  async function syncWalletWithBackend(address) {
+    const userId = getUserId();
+    if (!userId) return;
+    try {
+      if (address) {
+        await fetch('/api/wallet/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+          body: JSON.stringify({ userId: userId, wallet_address: address })
+        });
+      } else {
+        await fetch('/api/wallet/disconnect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+          body: JSON.stringify({ userId: userId })
+        });
+      }
+    } catch (e) {
+      console.error('Ошибка синхронизации кошелька с сервером:', e);
+    }
   }
 
   function showLeaderboard() {
@@ -4168,6 +4403,8 @@
           });
         }
       }
+
+      initTonConnect();
 
       setTimeout(() => {
         updateUserInfo();

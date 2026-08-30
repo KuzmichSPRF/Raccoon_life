@@ -524,6 +524,16 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
 
+    # Проверка users на наличие wallet_address
+    cursor.execute("PRAGMA table_info(users)")
+    users_cols = {row[1] for row in cursor.fetchall()}
+    if 'wallet_address' not in users_cols:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN wallet_address TEXT")
+            logger.info("Миграция: добавлена колонка wallet_address в users")
+        except Exception as e:
+            logger.error(f"Ошибка миграции users.wallet_address: {e}")
+
     # Проверка coop_craft_stages на наличие item/gum contributor_id
     cursor.execute("PRAGMA table_info(coop_craft_stages)")
     coop_stages_cols = {row[1] for row in cursor.fetchall()}
@@ -1925,6 +1935,46 @@ def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
         conn.close()
 
 
+def set_user_wallet_address(user_id: int, wallet_address: str = None) -> bool:
+    """
+    Привязывает или отвязывает TON кошелек пользователя
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO users (user_id, wallet_address)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET wallet_address = excluded.wallet_address
+        ''', (user_id, wallet_address))
+        conn.commit()
+        logger.info(f"💎 Обновлен TON кошелек для user_id={user_id}: {wallet_address or 'отвязан'}")
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка set_user_wallet_address: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
+def get_user_wallet_address(user_id: int) -> str:
+    """
+    Получает привязанный TON кошелек пользователя
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT wallet_address FROM users WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        return row['wallet_address'] if row and row['wallet_address'] else None
+    except Exception as e:
+        logger.error(f"Ошибка get_user_wallet_address: {e}")
+        return None
+    finally:
+        conn.close()
+
+
 # ==================== API ROUTES ====================
 
 @app.route('/')
@@ -2005,6 +2055,64 @@ def api_get_user_full_profile():
         })
     except Exception as e:
         logger.error(f"Ошибка api_get_user_full_profile: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/tonconnect-manifest.json', methods=['GET'])
+def tonconnect_manifest_route():
+    """Отдача манифеста TON Connect 2.0"""
+    response = app.send_static_file('tonconnect-manifest.json')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    return response
+
+
+@app.route('/api/wallet/link', methods=['POST'])
+def api_link_wallet():
+    """Привязка TON кошелька к профилю пользователя"""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        wallet_address = data.get('wallet_address', '').strip()
+
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+        if not wallet_address:
+            return jsonify({'error': 'wallet_address required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        success = set_user_wallet_address(user_id, wallet_address)
+        if success:
+            return jsonify({'status': 'ok', 'wallet_address': wallet_address})
+        else:
+            return jsonify({'error': 'Failed to save wallet address'}), 500
+    except Exception as e:
+        logger.error(f"Ошибка api_link_wallet: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/wallet/disconnect', methods=['POST'])
+def api_disconnect_wallet():
+    """Отвязка TON кошелька"""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        set_user_wallet_address(user_id, None)
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        logger.error(f"Ошибка api_disconnect_wallet: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -5518,11 +5626,15 @@ async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     r_tokens = f"#{profile['rank_tokens']}" if profile['rank_tokens'] else "—"
     r_quests = f"#{profile['rank_quests']}" if profile['rank_quests'] else "—"
 
+    wallet_raw = u.get('wallet_address')
+    wallet_str = f"<code>{html.escape(wallet_raw)}</code>" if wallet_raw else "<i>не привязан</i>"
+
     msg = (
         f"{notice_text}"
         f"{header_title}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 <b>ID:</b> <code>{u['user_id']}</code>\n"
+        f"💎 <b>TON Кошелёк:</b> {wallet_str}\n"
         f"📌 <b>Статус:</b> {status_str}\n"
         f"📅 <b>Регистрация:</b> {reg_date}\n\n"
 
