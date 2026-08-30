@@ -2399,6 +2399,27 @@ def api_stars_create_invoice():
         return jsonify({'error': str(e)}), 500
 
 
+def notify_admin(text: str):
+    """Отправляет служебное уведомление администратору в Telegram"""
+    if not ADMIN_ID or not BOT_TOKEN:
+        logger.warning("⚠️ notify_admin: ADMIN_ID или BOT_TOKEN не заданы")
+        return
+    try:
+        api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": ADMIN_ID,
+            "text": text,
+            "parse_mode": "HTML"
+        }
+        resp = requests.post(api_url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            logger.info("📬 Уведомление админу успешно доставлено")
+        else:
+            logger.error(f"⚠️ Ошибка отправки уведомления админу: {resp.text}")
+    except Exception as e:
+        logger.error(f"⚠️ Ошибка notify_admin: {e}")
+
+
 @app.route('/api/ton/offers', methods=['GET'])
 def api_get_ton_offers():
     """Получить список оферов на шишки за TON и адрес кошелька получателя"""
@@ -2447,6 +2468,35 @@ def api_ton_notify_payment():
         # Начисляем шишки пользователю
         result = add_tokens(user_id, cones_amount, f'ton_purchase:{pack_id}:{ton_amount}TON')
         logger.info(f"💎 Успешная покупка за TON: {user_id} получил {cones_amount} шишек за {ton_amount} TON")
+
+        # Получаем данные пользователя для отчета админу
+        user_name = f"Игрок #{user_id}"
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+            u_row = cursor.fetchone()
+            if u_row:
+                user_name = f"@{u_row['username']}" if u_row['username'] else (f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip() or f"Игрок #{user_id}")
+        finally:
+            conn.close()
+
+        # Отправляем уведомление администратору
+        admin_text = (
+            f"💎 <b>НОВАЯ ОПЛАТА TON!</b>\n\n"
+            f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+            f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+            f"📦 <b>Пакет:</b> {selected_pack['title_ru']}\n"
+            f"💎 <b>Сумма:</b> {ton_amount} TON\n"
+            f"🌲 <b>Начислено:</b> +{cones_amount:,} Шишек\n"
+            f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек\n"
+            f"👛 <b>Кошелек получения:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+            f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
+        )
+        if tx_boc:
+            admin_text += f"\n🔗 <b>BOC:</b> <code>{html.escape(tx_boc[:48])}...</code>"
+
+        notify_admin(admin_text)
 
         return jsonify({
             'status': 'ok',
@@ -6111,7 +6161,7 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
 
     if payload and payload.startswith("cones_10000_"):
         # Начисляем 10,000 шишек игроку
-        add_tokens(user_id, 10000, reason="stars_100_purchase")
+        result = add_tokens(user_id, 10000, reason="stars_100_purchase")
         logger.info(f"🌟 Успешная покупка 10,000 шишек за 100 Звёзд пользователем {user_id}")
 
         await update.message.reply_text(
@@ -6120,6 +6170,24 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
             "Приятной игры в <b>Raccoon Life</b>! 🦝",
             parse_mode=ParseMode.HTML
         )
+
+        # Отправляем уведомление администратору
+        if ADMIN_ID and context.bot:
+            user = update.effective_user
+            user_name = f"@{user.username}" if user.username else (f"{user.first_name or ''} {user.last_name or ''}".strip() or f"Игрок #{user_id}")
+            admin_text = (
+                f"🌟 <b>НОВАЯ ОПЛАТА TELEGRAM STARS!</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"⭐ <b>Оплачено:</b> 100 Звёзд (XTR)\n"
+                f"🌲 <b>Начислено:</b> +10,000 Шишек\n"
+                f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек"
+            )
+            try:
+                await context.bot.send_message(chat_id=ADMIN_ID, text=admin_text, parse_mode=ParseMode.HTML)
+                logger.info(f"📬 Уведомление о Stars оплате отправлено админу {ADMIN_ID}")
+            except Exception as e:
+                logger.error(f"⚠️ Ошибка отправки Stars уведомления админу: {e}")
 
 
 async def post_init(application: Application):
