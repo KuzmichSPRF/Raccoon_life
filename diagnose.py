@@ -16,6 +16,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
+# Обеспечиваем корректную работу UTF-8 на Windows-консоли
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # Настройка цветов для вывода
 class Colors:
     RESET = '\033[0m'
@@ -140,7 +147,9 @@ def check_database_structure():
     """Проверка структуры базы данных"""
     print_subheader("Структура базы данных")
     
-    db_path = Path("bot/raccoon_main.db")
+    db_path = Path("bot/users.db")
+    if not db_path.exists() and Path("users.db").exists():
+        db_path = Path("users.db")
     print_info(f"Путь к БД: {db_path.absolute()}")
     
     if not db_path.exists():
@@ -157,7 +166,7 @@ def check_database_structure():
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]
         
-        expected_tables = ['users', 'user_stats', 'boss_damage', 'boss_global']
+        expected_tables = ['users', 'user_stats', 'boss_damage', 'boss_global', 'user_tokens']
         
         for table in expected_tables:
             if table in tables:
@@ -405,7 +414,7 @@ def generate_report():
     if not os.getenv("WEBAPP_URL"):
         issues.append("⚠️ Установите WEBAPP_URL для работы WebApp")
     
-    if not Path("bot/raccoon_main.db").exists():
+    if not Path("bot/users.db").exists() and not Path("users.db").exists():
         issues.append("ℹ️ База данных будет создана при первом запуске бота")
     
     if issues:

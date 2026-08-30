@@ -13,15 +13,14 @@ import html
 import time
 import base64
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import asyncio
+import traceback
 from urllib.parse import parse_qsl
 from pathlib import Path
 from threading import Thread
 from io import BytesIO
 import requests
-from flask import Flask, jsonify, request, send_from_directory
 from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -665,7 +664,7 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
 
 def validate_webapp_data(init_data: str) -> dict:
     """Проверяет подлинность данных от Telegram WebApp"""
-    if not init_data:
+    if not init_data or not BOT_TOKEN:
         return None
     try:
         parsed_data = dict(parse_qsl(init_data))
@@ -854,21 +853,32 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                     pass
                 
         incoming_quests = stats_data.get('quests', [])
-        merged_quests = list(set(existing_quests + incoming_quests))
+        if not isinstance(incoming_quests, list):
+            incoming_quests = []
+        if not isinstance(existing_quests, list):
+            existing_quests = []
+
+        existing_quests = [str(q) for q in existing_quests if q is not None]
+        incoming_quests = [str(q) for q in incoming_quests if q is not None]
+        merged_quests = list(dict.fromkeys(existing_quests + incoming_quests))
         
         # Если квестов стало больше, обновляем время
         quests_updated = len(merged_quests) > len(existing_quests)
         time_update_sql = ", last_quest_time = CURRENT_TIMESTAMP" if quests_updated else ""
         
         # Для рейтинга считаем только реальные квесты (ID начинается на qt)
-        actual_quests_count = len([q for q in merged_quests if q.startswith('qt')])
+        actual_quests_count = len([q for q in merged_quests if isinstance(q, str) and q.startswith('qt')])
 
         # Объединяем просмотренные туториалы
         incoming_tutorials = stats_data.get('tutorials_seen', [])
-        if isinstance(incoming_tutorials, list):
-            merged_tutorials = list(set(existing_tutorials + incoming_tutorials))
-        else:
-            merged_tutorials = existing_tutorials
+        if not isinstance(incoming_tutorials, list):
+            incoming_tutorials = []
+        if not isinstance(existing_tutorials, list):
+            existing_tutorials = []
+
+        existing_tutorials = [str(t) for t in existing_tutorials if t is not None]
+        incoming_tutorials = [str(t) for t in incoming_tutorials if t is not None]
+        merged_tutorials = list(dict.fromkeys(existing_tutorials + incoming_tutorials))
 
         # Обновляем статистику
         cursor.execute(f'''
@@ -3224,6 +3234,7 @@ def api_craft_delete():
 @app.route('/api/tot/events', methods=['GET'])
 def api_tot_events():
     """Список активных событий для пользователей"""
+    conn = None
     try:
         user_id = request.args.get('userId', 0)
         try:
@@ -3262,12 +3273,14 @@ def api_tot_events():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/tot/bet', methods=['POST'])
 @limiter.limit("10 per minute")
 def api_tot_bet():
     """Сделать ставку"""
+    conn = None
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
@@ -3371,11 +3384,13 @@ def api_tot_bet():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/tot/my_bets', methods=['GET'])
 def api_tot_my_bets():
     """История ставок пользователя"""
+    conn = None
     try:
         user_id = int(request.args.get('userId', 0))
         conn = get_db_connection()
@@ -3392,11 +3407,13 @@ def api_tot_my_bets():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/create', methods=['POST'])
 def api_admin_tot_create():
     """Создать событие (Админ)"""
+    conn = None
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
@@ -3426,11 +3443,13 @@ def api_admin_tot_create():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/events', methods=['GET'])
 def api_admin_tot_events():
     """Список всех событий (Админ)"""
+    conn = None
     try:
         user_id = int(request.args.get('userId', 0))
         if user_id != ADMIN_ID:
@@ -3465,11 +3484,13 @@ def api_admin_tot_events():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/status', methods=['POST'])
 def api_admin_tot_status():
     """Изменить статус события (Админ)"""
+    conn = None
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
@@ -3478,7 +3499,7 @@ def api_admin_tot_status():
         if user_id != ADMIN_ID:
             return jsonify({'error': 'Unauthorized'}), 403
 
-        event_id = int(data.get('eventId'))
+        event_id = int(data.get('eventId', 0))
         action = data.get('action')
         winner = int(data.get('winner', 0))
 
@@ -3529,11 +3550,13 @@ def api_admin_tot_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/bets', methods=['GET'])
 def api_admin_tot_bets():
     """Список ставок (Админ)"""
+    conn = None
     try:
         user_id = int(request.args.get('userId', 0))
         status = request.args.get('status', 'pending')
@@ -3555,11 +3578,13 @@ def api_admin_tot_bets():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/bet_status', methods=['POST'])
 def api_admin_tot_bet_status():
     """Одобрить/Отклонить ставку (Админ)"""
+    conn = None
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
@@ -3568,7 +3593,7 @@ def api_admin_tot_bet_status():
         if user_id != ADMIN_ID:
             return jsonify({'error': 'Unauthorized'}), 403
 
-        bet_id = int(data.get('betId'))
+        bet_id = int(data.get('betId', 0))
         action = data.get('action')
 
         conn = get_db_connection()
@@ -3628,11 +3653,13 @@ def api_admin_tot_bet_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/admin/tot/delete', methods=['POST'])
 def api_admin_tot_delete():
     """Удалить событие и все его ставки (Админ)"""
+    conn = None
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
@@ -3641,7 +3668,7 @@ def api_admin_tot_delete():
         if user_id != ADMIN_ID:
             return jsonify({'error': 'Unauthorized'}), 403
 
-        event_id = int(data.get('eventId'))
+        event_id = int(data.get('eventId', 0))
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -3660,7 +3687,8 @@ def api_admin_tot_delete():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 # ==================== TELEGRAM BOT ====================
 
@@ -3757,7 +3785,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"Играйте в игры, выполняйте квесты и зарабатывайте ещё больше шишек! 💰\n\n"
                         f"Нажмите кнопку ниже, чтобы начать:",
                         reply_markup=InlineKeyboardMarkup([[
-                            InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
+                            InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL)) if WEBAPP_URL else InlineKeyboardButton(text="📰 Играть!", url="https://t.me")
                         ]]),
                         parse_mode=ParseMode.HTML
                     )
@@ -3768,7 +3796,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Кнопка для запуска WebApp
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL))
+        InlineKeyboardButton(text="📰 Играть!", web_app=WebAppInfo(url=WEBAPP_URL)) if WEBAPP_URL else InlineKeyboardButton(text="📰 Играть!", url="https://t.me")
     ]])
 
     await update.message.reply_text(
@@ -4942,14 +4970,15 @@ async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
-    try:
-        # Устанавливаем кнопку меню
-        await application.bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
-        )
-        logger.info("✅ Menu button set")
-    except Exception as e:
-        logger.error(f"⚠️ Ошибка установки кнопки меню: {e}")
+    if WEBAPP_URL:
+        try:
+            # Устанавливаем кнопку меню
+            await application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="Играть", web_app=WebAppInfo(url=WEBAPP_URL))
+            )
+            logger.info("✅ Menu button set")
+        except Exception as e:
+            logger.error(f"⚠️ Ошибка установки кнопки меню: {e}")
 
     try:
         # Устанавливаем список команд для меню

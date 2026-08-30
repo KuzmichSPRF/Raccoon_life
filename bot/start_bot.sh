@@ -5,6 +5,8 @@ BOT_DIR="/home/botuser/my_bot/bot"
 LOG_FILE="/home/botuser/my_bot/bot.log"
 PID_FILE="/home/botuser/my_bot/bot.pid"
 
+FLASK_PORT="${FLASK_PORT:-5000}"
+
 echo "🦝 Raccoon Life Bot - Запуск"
 
 # 1. Остановить старых ботов
@@ -47,10 +49,11 @@ if ps -p "$NEW_PID" > /dev/null 2>&1; then
     echo "✅ Бот работает (PID $NEW_PID)"
     
     # Проверка Flask
-    if curl -s http://localhost:$FLASK_PORT/api/boss_hp | grep -q "status"; then
+    if curl -s "http://localhost:$FLASK_PORT/api/boss_hp" | grep -q "status"; then
         echo "✅ Flask API работает"
     else
-        echo "❌ Flas
+        echo "❌ Flask API не отвечает"
+    fi
 else
     echo "❌ Бот не запустился! Смотрите лог:"
     tail -20 "$LOG_FILE"
