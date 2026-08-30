@@ -3695,6 +3695,9 @@
 
       setTimeout(sendIframeInit, 200);
       setTimeout(sendIframeInit, 600);
+      iframe.onload = () => {
+        sendIframeInit();
+      };
     } else if (item.type === 'link') {
       setTimeout(() => tg.openLink(item.url), 150);
     } else if (item.type === 'external') {
