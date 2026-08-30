@@ -2122,9 +2122,8 @@
     }
 
     try {
-      const preserveKeys = ['rl_lang', APP_VERSION_KEY];
       Object.keys(localStorage).forEach(key => {
-        if (!preserveKeys.includes(key)) {
+        if (!key.startsWith('rl_')) {
           localStorage.removeItem(key);
         }
       });
