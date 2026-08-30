@@ -165,22 +165,23 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: var(--bg-secondary);
       border-bottom: 0.5px solid var(--border-subtle);
       position: sticky;
       top: 0;
       z-index: 50;
+      min-height: 52px;
     }
     .home__user {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .cap__element-wrapper {
       position: relative;
-      width: 42px;
-      height: 42px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-gold), var(--btn-red));
       padding: 2px;
@@ -197,7 +198,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       cursor: pointer;
     }
     .cap__element img {
@@ -209,13 +210,13 @@
     .home-leaderboard {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
     .home-leaderboard__username {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #FFFFFF;
-      max-width: 110px;
+      max-width: 90px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -223,19 +224,19 @@
     .home-leaderboard__score {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       cursor: pointer;
     }
     .home-leaderboard__score-img {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     .home-leaderboard__score-points {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--accent-gold);
     }
     .home-leaderboard__progress {
-      width: 60px;
+      width: 50px;
       height: 3px;
       background: var(--bg-elevated);
       border-radius: 3px;
@@ -247,26 +248,57 @@
       background: linear-gradient(90deg, var(--accent-gold), var(--accent-green));
       border-radius: 3px;
     }
+    
+    /* Header Persistent Resource Badges */
+    .header-resources {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg-elevated);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 4px 6px;
+    }
+    .header-resource-item {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      padding: 2px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .header-resource-icon {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+    .header-resource-val {
+      color: var(--accent-gold);
+    }
+
     .home__title-badges {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
-    /* Currency / Resource Buttons Bar */
+    /* Currency / Resource Buttons Bar (Home Screen) */
     .home__profile-buttons {
       display: flex;
       gap: 6px;
-      padding: 10px 14px 2px;
+      padding: 8px 12px 2px;
       width: 100%;
       justify-content: space-between;
+      flex-shrink: 0;
     }
     .home__profile {
       flex: 1;
       background-color: var(--bg-secondary);
       border: 0.5px solid var(--border-subtle);
       border-radius: 14px;
-      padding: 8px 8px;
+      padding: 7px 6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -278,7 +310,7 @@
       transition: transform 0.125s ease-in-out, border-color 0.15s;
     }
     .home__profile:active { transform: scale(0.96); border-color: var(--border-focus); }
-    .profile-pill-icon { font-size: 1.1rem; }
+    .profile-pill-icon { font-size: 1.05rem; }
     .home-energy__block {
       display: flex;
       flex-direction: column;
@@ -303,30 +335,42 @@
       background: var(--accent-green);
     }
 
-    /* Center Container & Badges Layout */
+    /* Center Container & Badges Layout (Fully Responsive) */
+    #main-menu.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: calc(100dvh - var(--nav-height) - 52px);
+      max-height: calc(100dvh - var(--nav-height) - 52px);
+      min-height: 0;
+      padding-bottom: 0;
+      overflow: hidden;
+    }
+
     .home__bottom-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 14px;
+      padding: 6px 12px;
       position: relative;
-      min-height: 270px;
       flex: 1;
+      min-height: 0;
+      width: 100%;
     }
     .home__bottom-left-column, .home__bottom-right {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       z-index: 2;
     }
     .offer-badge {
       position: relative;
       background: var(--bg-secondary);
       border: 0.5px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 6px 4px;
-      width: 62px;
-      height: 62px;
+      border-radius: 14px;
+      padding: 4px 2px;
+      width: clamp(48px, 13vw, 60px);
+      height: clamp(48px, 13vw, 60px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -337,22 +381,22 @@
     .offer-badge:active { transform: scale(0.92); border-color: var(--btn-red); }
     .offer-badge__timer {
       position: absolute;
-      top: -5px;
-      right: -3px;
+      top: -4px;
+      right: -2px;
       background: var(--bg-elevated);
       color: var(--text-muted);
-      font-size: 8px;
+      font-size: 7.5px;
       font-weight: 800;
-      padding: 1px 4px;
-      border-radius: 6px;
+      padding: 1px 3px;
+      border-radius: 5px;
       border: 0.5px solid rgba(255, 255, 255, 0.15);
       letter-spacing: 0.03em;
     }
     .offer-badge__timer--live { background: var(--btn-red); color: #FFFFFF; box-shadow: 0 0 6px rgba(229, 57, 53, 0.6); }
     .offer-badge__timer--hot { background: var(--accent-orange); color: #FFFFFF; box-shadow: 0 0 6px rgba(255, 149, 0, 0.6); }
     .offer-badge__timer--gold { background: var(--accent-gold); color: #121214; }
-    .offer-badge__icon { font-size: 1.45rem; line-height: 1; }
-    .offer-badge__label { font-size: 9px; font-weight: 600; color: var(--text-secondary); margin-top: 3px; text-align: center; }
+    .offer-badge__icon { font-size: clamp(1.2rem, 3.5vh, 1.45rem); line-height: 1; }
+    .offer-badge__label { font-size: 8.5px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; text-align: center; }
 
     /* Center Mascot */
     .home__center-mascot {
@@ -367,14 +411,15 @@
       cursor: pointer;
       z-index: 1;
       text-align: center;
+      pointer-events: auto;
     }
     .mascot-ambient-glow {
       position: absolute;
-      width: 150px;
-      height: 150px;
+      width: clamp(100px, 25vh, 150px);
+      height: clamp(100px, 25vh, 150px);
       background: radial-gradient(circle, rgba(229, 57, 53, 0.2) 0%, rgba(255, 215, 0, 0.12) 45%, transparent 70%);
       border-radius: 50%;
-      filter: blur(24px);
+      filter: blur(20px);
       animation: pulseGlow 4s infinite alternate ease-in-out;
     }
     @keyframes pulseGlow {
@@ -382,40 +427,42 @@
       to { transform: scale(1.15); opacity: 1; }
     }
     .mascot-character {
-      font-size: 5.5rem;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7));
+      font-size: clamp(3.2rem, 10vh, 5.2rem);
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
       animation: floatMascot 4s ease-in-out infinite;
     }
     @keyframes floatMascot {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-7px); }
+      50% { transform: translateY(-5px); }
     }
     .mascot-season-tag {
-      margin-top: 4px;
-      font-size: 9px;
+      margin-top: 2px;
+      font-size: 8px;
       font-weight: 800;
       color: var(--text-secondary);
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       background: var(--bg-secondary);
-      padding: 3px 8px;
+      padding: 2px 7px;
       border-radius: 10px;
       border: 0.5px solid var(--border-subtle);
       white-space: nowrap;
     }
 
-    /* Home Bottom Action Bar */
+    /* Home Bottom Action Bar (Always Locked & Visible) */
     .home__bottom {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 14px 12px;
-      gap: 10px;
+      padding: 6px 12px 10px;
+      gap: 8px;
       width: 100%;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(18, 18, 20, 0.95) 40%);
     }
     .home__bottom-btn {
-      width: 50px;
-      height: 50px;
-      border-radius: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
       background-color: var(--bg-secondary);
       border: 0.5px solid var(--border-subtle);
       display: flex;
@@ -426,15 +473,40 @@
       transition: transform 0.125s ease-in-out, border-color 0.15s;
     }
     .home__bottom-btn:active { transform: scale(0.92); border-color: var(--btn-red); }
-    .home__bottom-icon { font-size: 1.3rem; line-height: 1; }
+    .home__bottom-icon { font-size: 1.25rem; line-height: 1; }
     .home__bottom-btn-label { font-size: 8px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
     .home__play-main-btn {
       flex: 1;
-      height: 50px;
-      border-radius: 18px;
-      font-size: 17px;
+      height: 48px;
+      border-radius: 16px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: 0.05em;
+    }
+
+    /* Responsive Adaptation for Small/Tall Devices */
+    @media (max-height: 650px) {
+      .home__title { padding: 4px 10px; min-height: 46px; }
+      .home__profile-buttons { padding: 4px 10px 0; gap: 4px; }
+      .home__profile { padding: 5px 4px; font-size: 11px; }
+      .home__bottom-container { padding: 2px 10px; }
+      .home__bottom-left-column, .home__bottom-right { gap: 5px; }
+      .offer-badge { width: 46px; height: 46px; }
+      .offer-badge__icon { font-size: 1.15rem; }
+      .offer-badge__label { font-size: 7.5px; }
+      .mascot-character { font-size: 3rem; }
+      .mascot-season-tag { font-size: 7px; padding: 1px 4px; }
+      .home__bottom { padding: 4px 10px 6px; gap: 6px; }
+      .home__bottom-btn { width: 42px; height: 42px; border-radius: 12px; }
+      .home__play-main-btn { height: 42px; font-size: 15px; }
+    }
+    @media (max-height: 540px) {
+      .home-leaderboard { display: none; }
+      .offer-badge { width: 38px; height: 38px; }
+      .offer-badge__label { display: none; }
+      .mascot-character { font-size: 2.4rem; }
+      .home__bottom-btn { width: 36px; height: 36px; }
+      .home__play-main-btn { height: 36px; font-size: 14px; }
     }
 
     /* CapsGame Bottom Sheet (Play Sheet & Modals) */
@@ -1086,6 +1158,23 @@
         </div>
       </div>
     </div>
+    
+    <!-- Persistent Live Resource Pills in Header -->
+    <div class="header-resources">
+      <div class="header-resource-item" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек">
+        <span class="header-resource-icon">🌰</span>
+        <span class="header-resource-val" id="header-token-balance">0</span>
+      </div>
+      <div class="header-resource-item" onclick="renderCategory('quests'); triggerHaptic('light');" title="Квесты">
+        <span class="header-resource-icon">📜</span>
+        <span class="header-resource-val" id="header-quests-pill">0/7</span>
+      </div>
+      <div class="header-resource-item" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия">
+        <span class="header-resource-icon">⚡</span>
+        <span class="header-resource-val" id="header-energy-pill">30/30</span>
+      </div>
+    </div>
+
     <div class="home__title-badges">
       <button class="badge-icon-button" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0'); triggerHaptic('light');" aria-label="Wallet">
         <span class="badge-icon-button__icon">👛</span>
@@ -1124,7 +1213,7 @@
         <span id="token-balance">0</span>
       </button>
       <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');" title="Прогресс квестов">
-        <span class="profile-pill-icon">❓</span>
+        <span class="profile-pill-icon">📜</span>
         <span id="quests-progress-pill">0/7</span>
       </button>
       <button class="home-energy home__profile" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия">
@@ -1132,7 +1221,7 @@
         <div class="home-energy__block">
           <div><span class="home-energy__num">30</span>/30</div>
           <div class="home-energy__progress">
-            <div class="home-energy__progress-fill" id="header-user-progress" style="width: 100%;"></div>
+            <div class="home-energy__progress-fill" id="home-energy-bar" style="width: 100%;"></div>
           </div>
         </div>
       </button>
@@ -1582,6 +1671,8 @@
 
     const questsPill = document.getElementById('quests-progress-pill');
     if (questsPill) questsPill.innerText = `${doneCount}/7`;
+    const headerQuestsPill = document.getElementById('header-quests-pill');
+    if (headerQuestsPill) headerQuestsPill.innerText = `${doneCount}/7`;
 
     if (scoreEl) {
       scoreEl.innerText = `${doneCount * 10}K`;
@@ -3363,12 +3454,12 @@
       }
     }
 
-    // Синхронизация баланса шишек от рулетки
     if (data.type === 'token_balance') {
       const balanceEl = document.getElementById('token-balance');
-      if (balanceEl) {
-        balanceEl.innerText = data.balance.toLocaleString('ru-RU');
-      }
+      const headerBalanceEl = document.getElementById('header-token-balance');
+      const formatted = (data.balance || 0).toLocaleString('ru-RU');
+      if (balanceEl) balanceEl.innerText = formatted;
+      if (headerBalanceEl) headerBalanceEl.innerText = formatted;
       console.log('🌰 Sync token balance:', data.balance);
       
       // Дополнительно загружаем с сервера для актуальности

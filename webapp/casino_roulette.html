@@ -8,25 +8,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #FF3B30;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      --game-green: #00ff88;
-      --game-yellow: #ffcc00;
-      --gold: #ffd700;
-      --win: #00ff88;
-      --lose: #ff4444;
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --game-green: #33BD1C;
+      --game-yellow: #FFD700;
+      --gold: #FFD700;
+      --win: #33BD1C;
+      --lose: #E53935;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0;
-      padding: 10px;
+      padding: 12px 14px;
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
@@ -36,21 +41,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
-      padding: 8px 12px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
       background: var(--card-bg);
-      border-radius: 15px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 14px;
+      border: var(--border-subtle);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .balance-badge {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--gold);
     }
-    .balance-icon { font-size: 1.3rem; }
+    .balance-icon { font-size: 1.1rem; }
 
     .roulette-container {
       position: relative;
@@ -62,25 +68,24 @@
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 3px solid var(--gold);
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+      border: 3px solid rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
       position: relative;
       overflow: hidden;
       transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-      /* Градиент для сегментов будет установлен через JS */
     }
     .wheel-pointer {
       position: absolute;
-      top: -12px;
+      top: -10px;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 12px solid transparent;
-      border-right: 12px solid transparent;
-      border-top: 24px solid var(--accent);
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 20px solid var(--accent);
       z-index: 10;
-      filter: drop-shadow(0 0 8px var(--accent));
+      filter: drop-shadow(0 2px 6px rgba(255, 59, 48, 0.8));
     }
     .wheel-center {
       position: absolute;
@@ -89,24 +94,25 @@
       transform: translate(-50%, -50%);
       width: 50px;
       height: 50px;
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      background: var(--card-bg);
       border-radius: 50%;
-      border: 2px solid var(--gold);
+      border: 2px solid rgba(255, 215, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
-      line-height: 1; /* Fix for emoji vertical alignment */
+      line-height: 1;
       z-index: 5;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
     }
 
     .bet-controls {
       background: var(--card-bg);
-      border-radius: 20px;
-      padding: 15px;
-      margin: 15px 0;
-      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 14px 0;
+      border: var(--border-subtle);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     .bet-input-group {
       display: flex;
@@ -117,21 +123,20 @@
       flex-wrap: wrap;
     }
     .bet-input {
-      background: #121214;
-      border: 2px solid var(--primary);
+      background: var(--card-elevated);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 12px;
-      padding: 10px 15px;
+      padding: 9px 14px;
       color: white;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 700;
       width: 100px;
       text-align: center;
-      font-family: 'Montserrat', sans-serif;
     }
     .bet-input:focus {
       outline: none;
-      border-color: var(--gold);
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(229, 57, 53, 0.35);
     }
     .bet-buttons {
       display: grid;
@@ -140,81 +145,81 @@
       margin-bottom: 12px;
     }
     .bet-btn {
-      padding: 14px 8px;
+      padding: 12px 6px;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
       color: white;
       font-size: 0.75rem;
-      font-family: 'Montserrat', sans-serif;
       text-transform: uppercase;
       transition: transform 0.1s, box-shadow 0.1s;
-      min-height: 50px;
+      min-height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .bet-btn:active { transform: scale(0.95); }
+    .bet-btn:active { transform: scale(0.96); }
     .bet-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .bet-btn-red { background: linear-gradient(145deg, #ff4444, #cc0000); }
-    .bet-btn-black { background: linear-gradient(145deg, #333333, #1a1a1a); }
-    .bet-btn-green { background: linear-gradient(145deg, #00ff88, #00cc66); }
-    .bet-btn-half { background: var(--primary); grid-column: span 3; }
+    .bet-btn-red { background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); box-shadow: 0 2px 8px rgba(229, 57, 53, 0.35); }
+    .bet-btn-black { background: var(--card-elevated); border: var(--border-subtle); }
+    .bet-btn-green { background: linear-gradient(180deg, #33BD1C 0%, #289916 100%); box-shadow: 0 2px 8px rgba(51, 189, 28, 0.35); color: #fff; }
 
     .spin-btn {
-      background: linear-gradient(145deg, var(--gold), #ffaa00);
-      color: #000;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      color: #fff;
       border: none;
-      border-radius: 50px;
-      padding: 14px 50px;
-      font-size: 1.1rem;
+      border-radius: 12px;
+      padding: 13px 40px;
+      font-size: 1rem;
       font-weight: 800;
       text-transform: uppercase;
       cursor: pointer;
-      font-family: 'Montserrat', sans-serif;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-      transition: transform 0.1s, box-shadow 0.1s;
-      min-height: 55px;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      transition: transform 0.1s, opacity 0.1s;
+      width: 100%;
+      min-height: 48px;
     }
-    .spin-btn:active { transform: scale(0.95); }
-    .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spin-btn:active { transform: scale(0.96); }
+    .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
     
     .result-box {
       background: var(--card-bg);
-      border-radius: 15px;
+      border-radius: 14px;
       padding: 12px;
       margin: 10px 0;
-      min-height: 50px;
+      min-height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1rem;
-      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.95rem;
+      border: var(--border-subtle);
     }
     .result-win {
       color: var(--win);
-      border-color: var(--win);
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+      border-color: rgba(51, 189, 28, 0.4);
+      background: linear-gradient(145deg, rgba(51, 189, 28, 0.12), var(--card-bg));
     }
     .result-lose {
       color: var(--lose);
-      border-color: var(--lose);
+      border-color: rgba(229, 57, 53, 0.4);
+      background: linear-gradient(145deg, rgba(229, 57, 53, 0.12), var(--card-bg));
     }
 
     .history {
       background: var(--card-bg);
-      border-radius: 15px;
+      border-radius: 16px;
       padding: 12px;
-      margin-top: 15px;
-      border: 1px solid rgba(255,255,255,0.05);
+      margin-top: 14px;
+      border: var(--border-subtle);
     }
     .history-title {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-sec);
       text-transform: uppercase;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      font-weight: 600;
     }
     .history-list {
       display: flex;
@@ -223,8 +228,8 @@
       flex-wrap: wrap;
     }
     .history-item {
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -233,7 +238,6 @@
       font-size: 0.75rem;
     }
 
-    /* Медиа-запросы для маленьких экранов */
     @media (max-width: 360px) {
       .roulette-container {
         width: 180px;
@@ -246,34 +250,34 @@
       }
       .bet-btn {
         font-size: 0.7rem;
-        padding: 12px 6px;
-        min-height: 45px;
+        padding: 10px 4px;
+        min-height: 42px;
       }
       .spin-btn {
-        padding: 12px 40px;
-        font-size: 1rem;
-        min-height: 50px;
+        padding: 12px 30px;
+        font-size: 0.95rem;
       }
       .stats {
         grid-template-columns: 1fr;
         gap: 8px;
       }
     }
-    .history-red { background: #ff4444; }
-    .history-black { background: #333; }
-    .history-green { background: #00ff88; color: #000; }
+    .history-red { background: #E53935; color: #fff; }
+    .history-black { background: #222224; border: 1px solid rgba(255,255,255,0.15); color: #fff; }
+    .history-green { background: #33BD1C; color: #fff; }
     .history-jackpot { background: #ffd700; color: #000; }
     
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 15px;
+      gap: 8px;
+      margin-top: 12px;
     }
     .stat-card {
-      background: #121214;
-      border-radius: 10px;
+      background: var(--card-elevated);
+      border-radius: 12px;
       padding: 10px;
+      border: var(--border-subtle);
     }
     .stat-value {
       font-size: 1.1rem;
@@ -281,18 +285,19 @@
       color: var(--gold);
     }
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--text-sec);
       text-transform: uppercase;
+      font-weight: 600;
     }
     
     .info-box {
-      background: rgba(255, 215, 0, 0.1);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 14px;
       padding: 10px;
-      margin-top: 15px;
-      font-size: 0.8rem;
+      margin-top: 14px;
+      font-size: 0.75rem;
       color: var(--text-sec);
     }
     .info-box strong { color: var(--gold); }
@@ -307,8 +312,8 @@
   <div class="header">
     <span style="font-weight: 800;">🎰 Енотная Рулетка</span>
     <div class="balance-badge">
-      <span class="balance-icon">💰</span>
-      <span id="balance">0</span> Шишек
+      <span class="balance-icon">🌰</span>
+      <span id="balance">0</span>
     </div>
   </div>
 
@@ -378,7 +383,7 @@
     const lang = localStorage.getItem('rl_lang') || 'ru';
     const t = {
       ru: {
-        t1: "🎰 Енотная Рулетка", t2: " Шишек", r: "Сделайте ставку и крутите колесо!",
+        t1: "🎰 Енотная Рулетка", t2: " 🌰", r: "Сделайте ставку и крутите колесо!",
         l1: "Ставка:", b1: "🔴 Красное (x2)", b2: "🟢 Зеро (x14)", b3: "⚫ Чёрное (x2)",
         c: "Выбор: ", s: "🎲 Крутить!", st1: "Побед", st2: "Всего ставок", st3: "Выиграно 🌰", st4: "Проиграно 🌰", h: "📊 История",
         info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 🟢 0, 🔴 1-7, ⚫ 8-14<br>💎 Шанс <strong>0.1%</strong> на Джекпот <strong>x100</strong>!",
@@ -386,7 +391,7 @@
         noCones: "❌ Недостаточно шишек!", win: "🎉 Победа! +", lose: "😢 Проигрыш -"
       },
       en: {
-        t1: "🎰 Raccoon Roulette", t2: " Cones", r: "Place your bet and spin the wheel!",
+        t1: "🎰 Raccoon Roulette", t2: " 🌰", r: "Place your bet and spin the wheel!",
         l1: "Bet:", b1: "🔴 Red (x2)", b2: "🟢 Zero (x14)", b3: "⚫ Black (x2)",
         c: "Choice: ", s: "🎲 Spin!", st1: "Wins", st2: "Total Bet", st3: "Won 🌰", st4: "Lost 🌰", h: "📊 History",
         info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 🟢 0, 🔴 1-7, ⚫ 8-14<br>💎 <strong>0.1%</strong> chance for <strong>x100</strong> Jackpot!",
