@@ -446,12 +446,40 @@ def init_db():
         if not cursor.fetchone():
             cursor.execute('''
                 CREATE TABLE game_sessions (
-                    user_id INTEGER PRIMARY KEY,
-                    game_type TEXT,
+                    user_id INTEGER NOT NULL,
+                    game_type TEXT NOT NULL,
                     state TEXT,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, game_type)
                 )
             ''')
+        else:
+            # Миграция существующей таблицы: пересоздаём с составным ключом если нужно
+            cursor.execute("PRAGMA table_info(game_sessions)")
+            cols_info = cursor.fetchall()
+            pk_cols = [row[1] for row in cols_info if row[5] > 0]  # row[5] = pk index
+            if pk_cols == ['user_id']:  # старый схема с одним PK
+                try:
+                    cursor.execute('ALTER TABLE game_sessions RENAME TO game_sessions_old')
+                    cursor.execute('''
+                        CREATE TABLE game_sessions (
+                            user_id INTEGER NOT NULL,
+                            game_type TEXT NOT NULL,
+                            state TEXT,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            PRIMARY KEY (user_id, game_type)
+                        )
+                    ''')
+                    # Переносим данные из старой таблицы (без дубликатов)
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO game_sessions (user_id, game_type, state, updated_at)
+                        SELECT user_id, COALESCE(game_type, 'clown'), state, updated_at
+                        FROM game_sessions_old
+                    ''')
+                    cursor.execute('DROP TABLE game_sessions_old')
+                    logger.info("✅ Миграция game_sessions: PRIMARY KEY обновлён до (user_id, game_type)")
+                except Exception as e:
+                    logger.error(f"Ошибка миграции game_sessions: {e}")
 
         # Создаём записи в user_tokens для всех пользователей у которых их нет
         cursor.execute('''
@@ -968,8 +996,7 @@ def save_game_session(user_id: int, game_type: str, state: dict):
         cursor.execute('''
             INSERT INTO game_sessions (user_id, game_type, state, updated_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id) DO UPDATE SET
-                game_type = excluded.game_type,
+            ON CONFLICT(user_id, game_type) DO UPDATE SET
                 state = excluded.state,
                 updated_at = CURRENT_TIMESTAMP
         ''', (user_id, game_type, json.dumps(state)))
