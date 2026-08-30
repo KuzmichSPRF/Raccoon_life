@@ -464,6 +464,9 @@
     .offer-badge__timer--live { background: var(--btn-red); color: #FFFFFF; box-shadow: 0 0 6px rgba(229, 57, 53, 0.6); }
     .offer-badge__timer--hot { background: var(--accent-orange); color: #FFFFFF; box-shadow: 0 0 6px rgba(255, 149, 0, 0.6); }
     .offer-badge__timer--gold { background: var(--accent-gold); color: #121214; }
+    .offer-badge__timer--stars { background: linear-gradient(135deg, #ffd700, #ff9500); color: #000000; font-weight: 900; box-shadow: 0 0 8px rgba(255, 215, 0, 0.7); }
+    .offer-badge--stars { border-color: rgba(255, 215, 0, 0.4); background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(24, 24, 26, 0.85)); }
+    .offer-badge--stars:active { border-color: #ffd700; }
     .offer-badge__icon { font-size: clamp(1.4rem, 3.8vh, 1.65rem); line-height: 1; }
     .offer-badge__label { font-size: 8.5px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-align: center; }
 
@@ -1321,6 +1324,44 @@
     </div>
   </div>
 
+  <!-- Stars Offer Modal -->
+  <div id="stars-offer-overlay" class="profile-modal-overlay" onclick="if(event.target===this) closeStarsOffer()">
+    <div class="profile-modal-sheet" style="max-height: 85vh; border: 1px solid rgba(255, 215, 0, 0.35); background: linear-gradient(180deg, #1f1a14 0%, #121214 100%);">
+      <div class="profile-modal-header" style="border-bottom: 1px solid rgba(255, 215, 0, 0.2);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">⭐</span>
+          <span style="font-weight: 800; font-size: 1.05rem; color: #ffd700;" data-i18n="stars_offer_title">Шишки за Telegram Stars</span>
+        </div>
+        <button class="profile-modal-close" onclick="closeStarsOffer()">✕</button>
+      </div>
+
+      <div class="profile-modal-body" style="text-align: center; padding: 16px 12px;">
+        <!-- Banner Card -->
+        <div style="background: radial-gradient(circle at center, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 16px; padding: 20px 14px; margin-bottom: 16px; position: relative; overflow: hidden;">
+          <div style="font-size: 2.8rem; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.5));">
+            🌰 ✨ ⭐
+          </div>
+          <div style="font-size: 1.4rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.4);">
+            +10,000 <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px; vertical-align: middle;" alt="🌰">
+          </div>
+          <div style="font-size: 0.85rem; color: #ffd700; font-weight: 700; margin-top: 4px;" data-i18n="stars_pack_label">
+            Пакет «Большой Запас»
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;" data-i18n="stars_offer_desc">
+            Мгновенное пополнение баланса шишек прямо через Telegram Stars. Шишки сразу доступны для рулетки, крафтов и ставок!
+          </div>
+        </div>
+
+        <!-- Buy Button -->
+        <button id="buy-stars-btn" class="button button-type-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 800; border-radius: 14px; background: linear-gradient(135deg, #ffd700, #ff9500); color: #000; box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4); border: none;" onclick="buyConesWithStars()">
+          ⭐ <span data-i18n="btn_buy_stars">Купить за 100 Звёзд</span>
+        </button>
+
+        <div id="stars-status-msg" style="margin-top: 10px; font-size: 0.8rem; color: #aaa; min-height: 20px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Top App Header (CapsGame Header Bar) -->
   <header id="app-header" class="home__title" style="display: none;">
     <div class="home__user">
@@ -1402,6 +1443,11 @@
     <div class="home__bottom-container">
       <!-- Left Column Badges -->
       <div class="home__bottom-left-column">
+        <button class="offer-badge offer-badge--stars" onclick="openStarsOffer(); triggerHaptic('light');" title="Купить шишки за Звёзды" data-i18n-title="stars_offer_tooltip">
+          <div class="offer-badge__timer offer-badge__timer--stars">100⭐</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));">⭐</span>
+          <div class="offer-badge__label" style="color: #ffd700; font-weight: 800;" data-i18n="stars_offer_badge">10k 🌰</div>
+        </button>
         <button class="offer-badge" onclick="renderCategory('newspapers'); triggerHaptic('light');">
           <div class="offer-badge__timer">NEWS</div>
           <span class="offer-badge__icon">📰</span>
@@ -1809,7 +1855,13 @@
       wallet_not_connected: "Не привязан",
       wallet_linked: "Привязан",
       not_enough_energy: "⚡ Недостаточно энергии! Энергия восстанавливается по 1 ед. каждые 5 минут.",
-      energy_regen_time: "+1 через"
+      energy_regen_time: "+1 через",
+      stars_offer_tooltip: "Купить шишки за Звёзды",
+      stars_offer_badge: "10k 🌰",
+      stars_offer_title: "Шишки за Telegram Stars",
+      stars_pack_label: "Пакет «Большой Запас»",
+      stars_offer_desc: "Мгновенное пополнение баланса шишек прямо через Telegram Stars. Шишки сразу доступны для рулетки, крафтов и ставок!",
+      btn_buy_stars: "Купить за 100 Звёзд"
     },
     en: {
       lang_btn: "EN",
@@ -1932,7 +1984,13 @@
       wallet_not_connected: "Not linked",
       wallet_linked: "Linked",
       not_enough_energy: "⚡ Not enough energy! Energy recovers 1 point every 5 minutes.",
-      energy_regen_time: "+1 in"
+      energy_regen_time: "+1 in",
+      stars_offer_tooltip: "Buy cones with Stars",
+      stars_offer_badge: "10k 🌰",
+      stars_offer_title: "Pinecones with Telegram Stars",
+      stars_pack_label: "«Big Supply» Pack",
+      stars_offer_desc: "Instant pinecone balance top-up directly via Telegram Stars. Cones are immediately available for roulette, crafts, and bets!",
+      btn_buy_stars: "Buy for 100 Stars"
     }
   };
 
@@ -3353,6 +3411,99 @@
       }
     } catch (e) {
       console.error('Ошибка синхронизации кошелька с сервером:', e);
+    }
+  }
+
+  // ==================== TELEGRAM STARS OFFER ====================
+  function openStarsOffer() {
+    const overlay = document.getElementById('stars-offer-overlay');
+    if (overlay) overlay.classList.add('active');
+    triggerHaptic('light');
+  }
+
+  function closeStarsOffer() {
+    const overlay = document.getElementById('stars-offer-overlay');
+    if (overlay) overlay.classList.remove('active');
+    const msg = document.getElementById('stars-status-msg');
+    if (msg) msg.innerText = '';
+    triggerHaptic('light');
+  }
+
+  function openShop() {
+    openStarsOffer();
+  }
+
+  async function buyConesWithStars() {
+    const btn = document.getElementById('buy-stars-btn');
+    const statusMsg = document.getElementById('stars-status-msg');
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
+
+    if (!userId) {
+      tg.showAlert(currentLang === 'ru' ? 'Ошибка: не удалось определить Telegram ID' : 'Error: cannot determine Telegram ID');
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    if (statusMsg) {
+      statusMsg.innerText = currentLang === 'ru' ? '⏳ Формируем счет в Telegram...' : '⏳ Creating Telegram invoice...';
+      statusMsg.style.color = '#ffd700';
+    }
+    triggerHaptic('selection');
+
+    try {
+      const res = await fetch('/api/stars/create_invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+        body: JSON.stringify({ userId: userId, lang: currentLang })
+      });
+      const data = await res.json();
+
+      if (data.status === 'ok' && data.invoice_link) {
+        if (btn) btn.disabled = false;
+        if (statusMsg) statusMsg.innerText = '';
+
+        if (tg && typeof tg.openInvoice === 'function') {
+          tg.openInvoice(data.invoice_link, (status) => {
+            console.log('⭐️ Telegram Invoice status:', status);
+            if (status === 'paid') {
+              triggerHaptic('success');
+              tg.showAlert(currentLang === 'ru' ? '🎉 Оплата 100 Звёзд прошла успешно!\nВам начислено 10,000 шишек!' : '🎉 Payment successful!\nYou received 10,000 cones!');
+              closeStarsOffer();
+              setTimeout(() => {
+                loadTokenBalance();
+                fetchEnergyFromServer();
+                syncStats();
+              }, 500);
+            } else if (status === 'cancelled') {
+              if (statusMsg) {
+                statusMsg.innerText = currentLang === 'ru' ? 'Оплата отменена' : 'Payment cancelled';
+                statusMsg.style.color = '#aaa';
+              }
+            } else if (status === 'failed') {
+              if (statusMsg) {
+                statusMsg.innerText = currentLang === 'ru' ? '❌ Ошибка при оплате звёздами' : '❌ Payment error';
+                statusMsg.style.color = '#ff5252';
+              }
+            }
+          });
+        } else {
+          tg.openTelegramLink(data.invoice_link);
+        }
+      } else {
+        if (btn) btn.disabled = false;
+        if (statusMsg) {
+          statusMsg.innerText = data.error || (currentLang === 'ru' ? 'Ошибка создания счёта' : 'Failed to create invoice');
+          statusMsg.style.color = '#ff5252';
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка buyConesWithStars:', e);
+      if (btn) btn.disabled = false;
+      if (statusMsg) {
+        statusMsg.innerText = currentLang === 'ru' ? 'Ошибка сети' : 'Network error';
+        statusMsg.style.color = '#ff5252';
+      }
     }
   }
 

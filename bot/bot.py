@@ -27,7 +27,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler, PreCheckoutQueryHandler
 from telegram import BotCommand
 from telegram.error import RetryAfter
 from dotenv import load_dotenv
@@ -2307,6 +2307,53 @@ def api_consume_energy():
         return response
     except Exception as e:
         logger.error(f"Ошибка api_consume_energy: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/stars/create_invoice', methods=['POST'])
+def api_stars_create_invoice():
+    """Создать ссылку на оплату 100 Telegram Stars за 10,000 шишек"""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        lang = data.get('lang', 'ru')
+
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        title = "10,000 Шишек" if lang == 'ru' else "10,000 Pinecones"
+        desc = "Пакет 10,000 шишек в игре Raccoon Life" if lang == 'ru' else "10,000 pinecones pack in Raccoon Life"
+        payload = f"cones_10000_{user_id}_{int(time.time())}"
+
+        tg_url = f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink"
+        body = {
+            "title": title,
+            "description": desc,
+            "payload": payload,
+            "currency": "XTR",
+            "prices": [{"label": title, "amount": 100}],
+            "provider_token": ""
+        }
+
+        resp = requests.post(tg_url, json=body, timeout=10)
+        tg_res = resp.json()
+
+        if tg_res.get('ok'):
+            invoice_link = tg_res.get('result')
+            logger.info(f"🌟 Создан инвойс Stars на 100 Звёзд для user_id={user_id}")
+            response = jsonify({'status': 'ok', 'invoice_link': invoice_link})
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return response
+        else:
+            logger.error(f"Ошибка создания invoice link: {tg_res}")
+            return jsonify({'error': tg_res.get('description', 'Failed to create invoice link')}), 400
+
+    except Exception as e:
+        logger.error(f"Ошибка api_stars_create_invoice: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -5945,6 +5992,34 @@ async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TY
         await query.answer("❌ Ошибка при публикации!", show_alert=True)
 
 
+async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Ответ на pre_checkout_query (подтверждение платежа Telegram Stars)"""
+    query = update.pre_checkout_query
+    if query.invoice_payload and query.invoice_payload.startswith("cones_10000_"):
+        await query.answer(ok=True)
+    else:
+        await query.answer(ok=False, error_message="Неизвестный заказ.")
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка успешной оплаты Telegram Stars"""
+    payment = update.message.successful_payment
+    payload = payment.invoice_payload
+    user_id = update.effective_user.id
+
+    if payload and payload.startswith("cones_10000_"):
+        # Начисляем 10,000 шишек игроку
+        add_tokens(user_id, 10000, reason="stars_100_purchase")
+        logger.info(f"🌟 Успешная покупка 10,000 шишек за 100 Звёзд пользователем {user_id}")
+
+        await update.message.reply_text(
+            "🌟 <b>Оплата 100 Звёзд прошла успешно!</b>\n\n"
+            "🌰 На ваш игровой баланс зачислено <b>10,000 Шишек</b>!\n"
+            "Приятной игры в <b>Raccoon Life</b>! 🦝",
+            parse_mode=ParseMode.HTML
+        )
+
+
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
     if WEBAPP_URL:
@@ -6045,6 +6120,10 @@ def main():
     telegram_app.add_handler(CommandHandler("tot_finish", tot_finish_cmd))
     telegram_app.add_handler(CommandHandler("tot_pay", tot_pay_cmd))
     telegram_app.add_handler(CallbackQueryHandler(tot_bet_callback, pattern="^tot_(accept|reject)_"))
+
+    # Telegram Stars (XTR) платежи
+    telegram_app.add_handler(PreCheckoutQueryHandler(pre_checkout_callback))
+    telegram_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
 
     # Шпион работает в группе 1, чтобы читать сообщения параллельно командам
     telegram_app.add_handler(MessageHandler(filters.ALL, debug_all_updates), group=1)
