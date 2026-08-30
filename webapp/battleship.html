@@ -357,6 +357,19 @@
       font-size: 1.8rem;
       font-weight: 800;
       color: #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .cone-icon {
+      display: inline-block;
+      width: 1.2em;
+      height: 1.2em;
+      vertical-align: -0.2em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
     }
     
     .overlay {
@@ -498,7 +511,7 @@
   <div class="reward-popup" id="reward-popup" style="display: none;">
     <div class="reward-icon" id="popup-icon">🎉</div>
     <div class="reward-text" id="popup-title">Победа!</div>
-    <div class="reward-amount" id="popup-amount">+100 🌰</div>
+    <div class="reward-amount" id="popup-amount">+100 <img src="cone.png" class="cone-icon" alt="🌰"></div>
     <button class="btn btn-primary" id="popup-btn" onclick="continueAfterWin()" style="margin-top: 20px;">▶️ Продолжить</button>
   </div>
 
@@ -1275,8 +1288,8 @@
       icon.innerText = '🎉';
       title.innerText = t.win;
       title.style.color = '#ffd700';
-      amount.style.display = 'block';
-      amount.textContent = '+100 🌰';
+      amount.style.display = 'flex';
+      amount.innerHTML = '+100 <img src="cone.png" class="cone-icon" alt="🌰">';
       popup.style.borderColor = '#ffd700';
       btn.innerText = t.cont;
     } else {

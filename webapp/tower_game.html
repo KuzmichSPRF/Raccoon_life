@@ -99,6 +99,14 @@
       grid-column: span 2; font-size: 1rem; padding: 14px; display: none; color: #fff; 
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
+    .cone-icon {
+      display: inline-block;
+      width: 1.2em;
+      height: 1.2em;
+      vertical-align: -0.2em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
+    }
 
     .log { font-size: 0.75rem; margin-top: 12px; color: var(--text-sec); min-height: 1.2em;}
   </style>
@@ -138,7 +146,7 @@
     <button class="btn btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>Мусор (40)</button>
     <button class="btn btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>Снэк (30)</button>
     <button class="btn btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>УЛЬТА (80)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100% HP (100 🌰)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</button>
     <button class="btn btn-next" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
   </div>
   
@@ -149,12 +157,12 @@
     const t = {
       ru: {
         title: "Башня 3.0", msgSt: "Новый противник!", enL: "Энергия",
-        btnA: "Удар (+20 Эн)", btnS1: "Мусор (40)", btnS2: "Снэк (30)", btnS3: "УЛЬТА (80)", btnC: "🍪 100% HP (100 🌰)",
+        btnA: "Удар (+20 Эн)", btnS1: "Мусор (40)", btnS2: "Снэк (30)", btnS3: "УЛЬТА (80)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         btnN: "СЛЕДУЮЩИЙ УРОВЕНЬ ➜", enemy: "Враг"
       },
       en: {
         title: "Tower 3.0", msgSt: "New Enemy!", enL: "Energy",
-        btnA: "Attack (+20 En)", btnS1: "Trash (40)", btnS2: "Snack (30)", btnS3: "ULT (80)", btnC: "🍪 100% HP (100 🌰)",
+        btnA: "Attack (+20 En)", btnS1: "Trash (40)", btnS2: "Snack (30)", btnS3: "ULT (80)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         btnN: "NEXT LEVEL ➜", enemy: "Enemy"
       }
     }[lang];
@@ -166,7 +174,7 @@
     document.getElementById('btn-sp1').innerText = t.btnS1;
     document.getElementById('btn-sp2').innerText = t.btnS2;
     document.getElementById('btn-sp3').innerText = t.btnS3;
-    document.getElementById('btn-cookie').innerText = t.btnC;
+    document.getElementById('btn-cookie').innerHTML = t.btnC;
     document.getElementById('btn-next').innerText = t.btnN;
     document.getElementById('e-name').innerText = t.enemy;
 

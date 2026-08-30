@@ -118,7 +118,15 @@
     }
     .reward-icon { font-size: 3rem; margin-bottom: 8px; }
     .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 6px; }
-    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; }
+    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .cone-icon {
+      display: inline-block;
+      width: 1.2em;
+      height: 1.2em;
+      vertical-align: -0.2em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
+    }
     .btn-continue {
       margin-top: 18px; padding: 13px 32px; 
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
@@ -162,7 +170,7 @@
     <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
     <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
     <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100 HP (100 🌰)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</button>
   </div>
 
   <!-- Reward Popup -->
@@ -170,7 +178,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+10 🌰</div>
+      <div class="reward-amount" id="popup-amount">+10 <img src="cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -182,12 +190,12 @@
     const t = {
       ru: {
         msgStart: "Твой ход, Енот! <br>Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун",
-        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: "🍪 100 HP (100 🌰)",
+        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Битва началась..."
       },
       en: {
         msgStart: "Your turn, Raccoon! <br>Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Clown",
-        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: "🍪 100 HP (100 🌰)",
+        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Battle started..."
       }
     }[lang];
@@ -201,7 +209,7 @@
     document.getElementById('sp1').innerText = t.btnS1;
     document.getElementById('sp2').innerText = t.btnS2;
     document.getElementById('sp3').innerText = t.btnS3;
-    document.getElementById('btn-cookie').innerText = t.btnC;
+    document.getElementById('btn-cookie').innerHTML = t.btnC;
     document.getElementById('log').innerText = t.logSt;
 
     let pHP = 100, pNRG = 0;

@@ -364,6 +364,19 @@
       font-weight: 800;
       color: var(--chip-found);
       margin: 12px 0 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .cone-icon {
+      display: inline-block;
+      width: 1.2em;
+      height: 1.2em;
+      vertical-align: -0.2em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
     }
 
     .btn-continue {
@@ -466,7 +479,7 @@
           <span class="reward-stat-value" id="stat-missed">0</span>
         </div>
       </div>
-      <div class="reward-amount" id="popup-amount">+100 🌰</div>
+      <div class="reward-amount" id="popup-amount">+100 <img src="cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
     </div>
   </div>
@@ -768,8 +781,8 @@
       document.getElementById('stat-missed').innerText = gameState.missed;
 
       if (win) {
-        amountEl.style.display = 'block';
-        amountEl.textContent = `+${REWARD} 🌰`;
+        amountEl.style.display = 'flex';
+        amountEl.innerHTML = `+${REWARD} <img src="cone.png" class="cone-icon" alt="🌰">`;
         btn.innerText = t('continue');
       } else {
         amountEl.style.display = 'none';
