@@ -1839,8 +1839,52 @@
     }
   }
 
+  function calculateLocalOverallScore() {
+    // 1. Наличие шишек (баланс)
+    const balanceEl = document.getElementById('token-balance');
+    let balance = 0;
+    if (balanceEl && balanceEl.innerText !== '---' && balanceEl.innerText !== '?') {
+      balance = parseInt(balanceEl.innerText.replace(/[^0-9]/g, '')) || 0;
+    } else if (stats.balance) {
+      balance = stats.balance;
+    }
+
+    // 2. Пройденные квесты * 10 000
+    const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
+    const qt2Quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7'];
+    const questsCompletedCount = qt2Quests.filter(q => completed.includes(q)).length;
+    const questsPoints = questsCompletedCount * 10000;
+
+    // 3. Каждая сыгранная игра * 100
+    const totalGames = (stats.clown_games || 0) + (stats.vladeos_games || 0) + (stats.tower_total_levels || 0) + (stats.roulette_games || 0);
+    const gamesPoints = totalGames * 100;
+
+    // 4. Ставки игрока в рулетке
+    const rouletteBets = stats.roulette_total_bets || ((stats.roulette_cones_lost || 0) + (stats.roulette_games || 0) * 10);
+
+    // 5. За каждый прочитанный номер газеты 500 очков
+    const newspapersRead = completed.filter(id => typeof id === 'string' && (id.startsWith('news_') || id.startsWith('caps_news'))).length;
+    const newspapersPoints = newspapersRead * 500;
+
+    return balance + questsPoints + gamesPoints + rouletteBets + newspapersPoints;
+  }
+
+  function formatOverallScore(score) {
+    if (score === undefined || score === null || isNaN(score)) return '0';
+    if (score >= 1000000) {
+      return (score / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (score >= 100000) {
+      return (score / 1000).toFixed(0) + 'K';
+    }
+    if (score >= 10000) {
+      return (score / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return score.toLocaleString('ru-RU');
+  }
+
   function updateUserInfo() {
-    const user = tg.initDataUnsafe?.user;
+    const user = getUserObject();
     const nameEl = document.getElementById('header-user-name');
     const avatarEl = document.getElementById('header-avatar');
     const scoreEl = document.getElementById('header-user-score');
@@ -1854,8 +1898,14 @@
     const headerQuestsPill = document.getElementById('header-quests-pill');
     if (headerQuestsPill) headerQuestsPill.innerText = `${doneCount}/7`;
 
+    // Отображаем общий рейтинг возле кубка 🏆
+    const overallScore = (stats.overall_score !== undefined && stats.overall_score !== null)
+      ? stats.overall_score
+      : calculateLocalOverallScore();
+
     if (scoreEl) {
-      scoreEl.innerText = `${doneCount * 10}K`;
+      scoreEl.innerText = formatOverallScore(overallScore);
+      scoreEl.title = `${currentLang === 'ru' ? 'Общий рейтинг' : 'Overall rating'}: ${overallScore.toLocaleString('ru-RU')}`;
     }
 
     if (user) {
@@ -2278,6 +2328,9 @@
           const headerBalanceEl = document.getElementById('header-token-balance');
           if (balanceEl) balanceEl.innerText = formatted;
           if (headerBalanceEl) headerBalanceEl.innerText = formatted;
+          stats.balance = data.tokens.balance || 0;
+          stats.overall_score = calculateLocalOverallScore();
+          updateUserInfo();
           console.log('✅ Баланс обновлён:', data.tokens.balance);
         } else {
           console.error('❌ Ошибка в ответе сервера:', data);
@@ -2307,7 +2360,8 @@
     .then(res => res.json())
     .then(data => {
       if (data.status === 'ok' && data.stats) {
-        const serverQuests = data.stats.quests || [];
+        const s = data.stats;
+        const serverQuests = s.quests || [];
         let localQuests = JSON.parse(localStorage.getItem('completed_items') || '[]');
         
         // Объединяем локальные и серверные квесты
@@ -2315,9 +2369,22 @@
         localStorage.setItem('completed_items', JSON.stringify(mergedQuests));
         stats.quests = mergedQuests;
 
+        if (s.clown_games !== undefined) stats.clown_games = s.clown_games;
+        if (s.clown_wins !== undefined) stats.clown_wins = s.clown_wins;
+        if (s.vladeos_games !== undefined) stats.vladeos_games = s.vladeos_games;
+        if (s.vladeos_wins !== undefined) stats.vladeos_wins = s.vladeos_wins;
+        if (s.tower_total_levels !== undefined) stats.tower_total_levels = s.tower_total_levels;
+        if (s.tower_max_level !== undefined) stats.tower_max_level = s.tower_max_level;
+        if (s.roulette_games !== undefined) stats.roulette_games = s.roulette_games;
+        if (s.roulette_total_bets !== undefined) stats.roulette_total_bets = s.roulette_total_bets;
+        if (s.roulette_cones_lost !== undefined) stats.roulette_cones_lost = s.roulette_cones_lost;
+        if (s.overall_score !== undefined) stats.overall_score = s.overall_score;
+        if (s.balance !== undefined) stats.balance = s.balance;
+
         // Загружаем просмотренные туториалы с сервера
-        stats.tutorials_seen = data.stats.tutorials_seen || [];
+        stats.tutorials_seen = s.tutorials_seen || [];
         console.log('📚 Tutorials seen from server:', stats.tutorials_seen);
+        updateUserInfo();
       }
     })
     .catch(err => console.error('Ошибка загрузки статистики с сервера:', err));
@@ -3661,6 +3728,8 @@
         setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
       }
       saveStatsLocal();
+      stats.overall_score = calculateLocalOverallScore();
+      updateUserInfo();
       if (userId) syncStats();
     }
 
@@ -3672,12 +3741,16 @@
         setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
       }
       saveStatsLocal();
+      stats.overall_score = calculateLocalOverallScore();
+      updateUserInfo();
       if (userId) syncStats();
     }
     
     // Battleship game
     if (data.type === 'game_complete' && data.game === 'battleship') {
       setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
+      stats.overall_score = calculateLocalOverallScore();
+      updateUserInfo();
     }
 
     // Find the Chip game
@@ -3685,7 +3758,8 @@
       if (data.win && data.reward) {
         earnTokens(data.reward, 'find_chip_win');
       }
-      // Баланс будет обновлен автоматически внутри earnTokens после ответа API
+      stats.overall_score = calculateLocalOverallScore();
+      updateUserInfo();
     }
 
     // Tower progress
@@ -3697,6 +3771,8 @@
         stats.tower_total_levels++;
         saveStatsLocal();
         setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом
+        stats.overall_score = calculateLocalOverallScore();
+        updateUserInfo();
         if (userId) syncStats();
       }
     }
