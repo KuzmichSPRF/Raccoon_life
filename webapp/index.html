@@ -162,7 +162,7 @@
       min-height: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
+      padding: 12px 14px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 36px);
       box-sizing: border-box;
     }
     .screen.active {
@@ -2019,18 +2019,18 @@
   </div>
 
   <!-- List Screen (Quests / Games / Newspapers / Partners) -->
-  <div id="list-screen" class="screen" style="padding: 12px 14px;">
+  <div id="list-screen" class="screen">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
       <h2 id="category-title" class="section-title" data-i18n="section_title_default">Раздел</h2>
       <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary" style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
         ← <span data-i18n="btn_back">Назад</span>
       </button>
     </div>
-    <div id="category-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+    <div id="category-list" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 28px;"></div>
   </div>
 
   <!-- Rating Screen -->
-  <div id="rating-screen" class="screen" style="padding: 12px 14px;">
+  <div id="rating-screen" class="screen">
     <h2 class="section-title" style="text-align: center; margin-bottom: 10px;" data-i18n="menu_rating">Рейтинг</h2>
     <div class="rating-tabs">
       <button class="rating-tab active" id="tab-overall" onclick="loadLeaderboard('overall'); triggerHaptic('selection');" data-i18n="tab_overall">Общий</button>
@@ -2038,7 +2038,7 @@
       <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests'); triggerHaptic('selection');" data-i18n="tab_quests">Квесты</button>
     </div>
     <div id="user-leaderboard-card"></div>
-    <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
+    <div id="leaderboard-list" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 28px;"></div>
   </div>
 
   <!-- Totalizator Screen -->
@@ -2052,15 +2052,15 @@
       <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets(); triggerHaptic('selection');" data-i18n="tab_tot_mybets">Мои ставки</button>
       <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin(); triggerHaptic('selection');" style="background: #5c1a1a; border-color: #ff4444; display: none;" data-i18n="tab_tot_admin">Админ</button>
     </div>
-    <div id="tot-content" style="padding-bottom: 20px;"></div>
+    <div id="tot-content" style="padding-bottom: 28px;"></div>
   </div>
 
   <!-- Shop Screen -->
-  <div id="shop-screen" class="screen" style="padding: 12px 14px;">
+  <div id="shop-screen" class="screen">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
       <h2 class="section-title" data-i18n="menu_shop">Рынок</h2>
     </div>
-    <div id="shop-list" style="padding-bottom: 20px;"></div>
+    <div id="shop-list" style="padding-bottom: 28px;"></div>
   </div>
 
   <!-- Reader Screen -->
@@ -2108,7 +2108,7 @@
   
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.08.30.1';
+  const APP_VERSION = '2026.08.30.2';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
