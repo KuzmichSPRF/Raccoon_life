@@ -5651,6 +5651,7 @@ async def post_init(application: Application):
         except Exception as e:
             logger.error(f"⚠️ Ошибка установки кнопки меню: {e}")
 
+    try:
         commands = [
             BotCommand('start', '🚀 Запустить бота'),
             BotCommand('stats', '📊 Моя статистика и профиль'),
