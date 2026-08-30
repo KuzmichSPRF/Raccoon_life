@@ -1390,7 +1390,7 @@
       <button class="home-energy home__profile" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия" data-i18n-title="energy_tooltip">
         <span class="profile-pill-icon">⚡</span>
         <div class="home-energy__block">
-          <div><span class="home-energy__num">30</span>/30</div>
+          <div><span class="home-energy__num" id="home-energy-val">30</span>/30</div>
           <div class="home-energy__progress">
             <div class="home-energy__progress-fill" id="home-energy-bar" style="width: 100%;"></div>
           </div>
@@ -1475,7 +1475,7 @@
         <div class="play-bottom-sheet__block">
           <div class="play-bottom-sheet__energy">
             <div data-i18n="energy_accumulation">⚡ Накопление энергии</div>
-            <span data-i18n="energy_full">30/30 (Полная)</span>
+            <span id="play-sheet-energy-text" data-i18n="energy_full">30/30 (Полная)</span>
           </div>
         </div>
 
@@ -1807,7 +1807,9 @@
       disconnect_wallet: "Отключить кошелёк",
       connect_wallet: "Подключить TON Кошелёк",
       wallet_not_connected: "Не привязан",
-      wallet_linked: "Привязан"
+      wallet_linked: "Привязан",
+      not_enough_energy: "⚡ Недостаточно энергии! Энергия восстанавливается по 1 ед. каждые 5 минут.",
+      energy_regen_time: "+1 через"
     },
     en: {
       lang_btn: "EN",
@@ -1928,7 +1930,9 @@
       disconnect_wallet: "Disconnect Wallet",
       connect_wallet: "Connect TON Wallet",
       wallet_not_connected: "Not linked",
-      wallet_linked: "Linked"
+      wallet_linked: "Linked",
+      not_enough_energy: "⚡ Not enough energy! Energy recovers 1 point every 5 minutes.",
+      energy_regen_time: "+1 in"
     }
   };
 
@@ -2735,7 +2739,136 @@
     }
   }
 
-  function handleItemClick(item) {
+  // ==================== ENERGY SYSTEM (SERVER-SIDE) ====================
+  const MAX_ENERGY = 30;
+  const ENERGY_REGEN_INTERVAL_MS = 5 * 60 * 1000; // 5 минут (1 пункт раз в 5 минут)
+
+  function getEnergyState() {
+    const now = Date.now();
+    let energy = parseInt(localStorage.getItem('rl_energy'));
+    let lastUpdate = parseInt(localStorage.getItem('rl_energy_last_update'));
+
+    if (isNaN(energy) || isNaN(lastUpdate)) {
+      energy = MAX_ENERGY;
+      lastUpdate = now;
+      localStorage.setItem('rl_energy', energy);
+      localStorage.setItem('rl_energy_last_update', lastUpdate);
+    } else if (energy < MAX_ENERGY) {
+      const elapsed = now - lastUpdate;
+      const recovered = Math.floor(elapsed / ENERGY_REGEN_INTERVAL_MS);
+      if (recovered > 0) {
+        energy = Math.min(MAX_ENERGY, energy + recovered);
+        lastUpdate = lastUpdate + (recovered * ENERGY_REGEN_INTERVAL_MS);
+        if (energy >= MAX_ENERGY) {
+          lastUpdate = now;
+        }
+        localStorage.setItem('rl_energy', energy);
+        localStorage.setItem('rl_energy_last_update', lastUpdate);
+      }
+    }
+    return { energy, lastUpdate };
+  }
+
+  function updateEnergyUI() {
+    const { energy, lastUpdate } = getEnergyState();
+    const homeValEl = document.getElementById('home-energy-val');
+    const homeBarEl = document.getElementById('home-energy-bar');
+    const sheetTextEl = document.getElementById('play-sheet-energy-text');
+
+    if (homeValEl) homeValEl.innerText = energy;
+    if (homeBarEl) {
+      const pct = Math.max(0, Math.min(100, (energy / MAX_ENERGY) * 100));
+      homeBarEl.style.width = pct + '%';
+    }
+
+    if (sheetTextEl) {
+      if (energy >= MAX_ENERGY) {
+        sheetTextEl.innerText = i18n[currentLang].energy_full || '30/30 (Полная)';
+      } else {
+        const now = Date.now();
+        const elapsed = now - lastUpdate;
+        const remainingMs = Math.max(0, ENERGY_REGEN_INTERVAL_MS - (elapsed % ENERGY_REGEN_INTERVAL_MS));
+        const totalSec = Math.floor(remainingMs / 1000);
+        const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const ss = String(totalSec % 60).padStart(2, '0');
+        const regenPrefix = i18n[currentLang].energy_regen_time || '+1 через';
+        sheetTextEl.innerText = `${energy}/${MAX_ENERGY} (${regenPrefix} ${mm}:${ss})`;
+      }
+    }
+  }
+
+  function isGameUrl(url) {
+    if (!url) return false;
+    // Рулетка НЕ требует энергии (исключена)
+    if (url.includes('casino_roulette.html')) return false;
+    const gameUrls = ['find_chip.html', 'battleship.html', 'boss_game.html', 'tower_game.html', 'vladeos_pvp.html', 'game.html'];
+    return gameUrls.some(g => url.includes(g));
+  }
+
+  async function fetchEnergyFromServer() {
+    const userId = getUserId();
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/energy?userId=${userId}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        localStorage.setItem('rl_energy', data.energy);
+        const elapsedInCurrentSlot = (ENERGY_REGEN_INTERVAL_MS - ((data.seconds_to_next || 0) * 1000));
+        localStorage.setItem('rl_energy_last_update', Date.now() - elapsedInCurrentSlot);
+        updateEnergyUI();
+      }
+    } catch (e) {
+      console.warn('⚠️ Ошибка загрузки энергии с сервера:', e);
+    }
+  }
+
+  async function consumeEnergyServer(gameName = '') {
+    const userId = getUserId();
+    if (!userId) {
+      return consumeEnergy(1);
+    }
+    try {
+      const res = await fetch('/api/energy/consume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId, amount: 1, game: gameName })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        if (data.success) {
+          localStorage.setItem('rl_energy', data.energy);
+          const elapsedInCurrentSlot = (ENERGY_REGEN_INTERVAL_MS - ((data.seconds_to_next || 0) * 1000));
+          localStorage.setItem('rl_energy_last_update', Date.now() - elapsedInCurrentSlot);
+          updateEnergyUI();
+          return true;
+        } else {
+          localStorage.setItem('rl_energy', data.energy);
+          updateEnergyUI();
+          return false;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Ошибка вызова api_consume_energy:', e);
+    }
+    return consumeEnergy(1); // fallback
+  }
+
+  function consumeEnergy(amount = 1) {
+    const { energy } = getEnergyState();
+    if (energy < amount) {
+      return false;
+    }
+    const newEnergy = energy - amount;
+    const now = Date.now();
+    localStorage.setItem('rl_energy', newEnergy);
+    if (energy === MAX_ENERGY) {
+      localStorage.setItem('rl_energy_last_update', now);
+    }
+    updateEnergyUI();
+    return true;
+  }
+
+  async function handleItemClick(item) {
     if ((item.type === 'link' || item.type === 'external') && item.id) {
       markAsCompleted(item.id);
     }
@@ -2744,6 +2877,17 @@
     } else if (item.type === 'alert') {
       tg.showAlert(item.msg);
     } else if (item.type === 'iframe' || (!item.type && item.url && item.url.endsWith('.html'))) {
+      // Серверная проверка и списание энергии для всех игр кроме рулетки
+      if (isGameUrl(item.url)) {
+        const hasEnergy = await consumeEnergyServer(item.title || item.url);
+        if (!hasEnergy) {
+          const msg = i18n[currentLang].not_enough_energy || '⚡ Недостаточно энергии! Энергия восстанавливается по 1 ед. каждые 5 минут.';
+          tg.showAlert(msg);
+          triggerHaptic('impact');
+          return;
+        }
+      }
+
       const activeEl = document.querySelector('.screen.active');
       const activeScreen = activeEl ? activeEl.id : 'main-menu';
       readerPreviousScreen = (activeScreen === 'reader-screen') ? 'main-menu' : activeScreen;
@@ -4405,11 +4549,17 @@
       }
 
       initTonConnect();
+      updateEnergyUI();
+      fetchEnergyFromServer();
+      setInterval(updateEnergyUI, 1000);
+      setInterval(fetchEnergyFromServer, 60000); // Синхронизация с сервером каждую минуту
 
       setTimeout(() => {
         updateUserInfo();
         loadTokenBalance();
         loadStatsFromServer();
+        fetchEnergyFromServer();
+        updateEnergyUI();
         checkWelcomeBonus();
         console.log('🦝 Raccoon Life WebApp ready!');
         console.log('👤 User ID:', getUserId());

@@ -12,7 +12,7 @@ import hashlib
 import html
 import time
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import asyncio
 import traceback
@@ -523,6 +523,21 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка last_news_submit в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats last_news_submit: {e}")
+
+    if 'energy' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN energy INTEGER DEFAULT 30")
+            logger.info("Миграция: добавлена колонка energy в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.energy: {e}")
+
+    if 'energy_last_updated' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN energy_last_updated TIMESTAMP")
+            cursor.execute("UPDATE user_stats SET energy_last_updated = CURRENT_TIMESTAMP WHERE energy_last_updated IS NULL")
+            logger.info("Миграция: добавлена колонка energy_last_updated в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.energy_last_updated: {e}")
 
     # Проверка users на наличие wallet_address
     cursor.execute("PRAGMA table_info(users)")
@@ -1975,6 +1990,139 @@ def get_user_wallet_address(user_id: int) -> str:
         conn.close()
 
 
+MAX_ENERGY = 30
+ENERGY_REGEN_SECONDS = 300  # 5 минут = 300 секунд
+
+def parse_db_timestamp(ts_str):
+    """Парсинг временной метки из БД"""
+    if not ts_str:
+        return datetime.now(timezone.utc)
+    if isinstance(ts_str, datetime):
+        return ts_str if ts_str.tzinfo else ts_str.replace(tzinfo=timezone.utc)
+    ts_str = str(ts_str).replace('T', ' ')
+    try:
+        dt = datetime.strptime(ts_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
+        return dt.replace(tzinfo=timezone.utc)
+    except Exception:
+        return datetime.now(timezone.utc)
+
+
+def get_user_energy(user_id: int) -> dict:
+    """
+    Получает актуальное количество энергии пользователя с серверным расчетом восстановления (1 ед. каждые 5 мин)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute('SELECT energy, energy_last_updated FROM user_stats WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+
+        now = datetime.now(timezone.utc)
+
+        if not row or row['energy'] is None:
+            cursor.execute('''
+                INSERT INTO user_stats (user_id, energy, energy_last_updated)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET 
+                    energy = COALESCE(user_stats.energy, excluded.energy),
+                    energy_last_updated = COALESCE(user_stats.energy_last_updated, excluded.energy_last_updated)
+            ''', (user_id, MAX_ENERGY))
+            conn.commit()
+            return {
+                'energy': MAX_ENERGY,
+                'max_energy': MAX_ENERGY,
+                'seconds_to_next': 0
+            }
+
+        current_energy = row['energy'] if row['energy'] is not None else MAX_ENERGY
+        last_updated = parse_db_timestamp(row['energy_last_updated'])
+        elapsed_seconds = int((now - last_updated).total_seconds())
+
+        if current_energy < MAX_ENERGY and elapsed_seconds > 0:
+            recovered = elapsed_seconds // ENERGY_REGEN_SECONDS
+            if recovered > 0:
+                new_energy = min(MAX_ENERGY, current_energy + recovered)
+                if new_energy >= MAX_ENERGY:
+                    cursor.execute('''
+                        UPDATE user_stats SET energy = ?, energy_last_updated = CURRENT_TIMESTAMP WHERE user_id = ?
+                    ''', (MAX_ENERGY, user_id))
+                    conn.commit()
+                    return {
+                        'energy': MAX_ENERGY,
+                        'max_energy': MAX_ENERGY,
+                        'seconds_to_next': 0
+                    }
+                else:
+                    new_last_updated_dt = last_updated.timestamp() + (recovered * ENERGY_REGEN_SECONDS)
+                    new_last_updated_str = datetime.fromtimestamp(new_last_updated_dt, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                    cursor.execute('''
+                        UPDATE user_stats SET energy = ?, energy_last_updated = ? WHERE user_id = ?
+                    ''', (new_energy, new_last_updated_str, user_id))
+                    conn.commit()
+                    current_energy = new_energy
+                    last_updated = datetime.fromtimestamp(new_last_updated_dt, tz=timezone.utc)
+                    elapsed_seconds = int((now - last_updated).total_seconds())
+
+        seconds_to_next = 0
+        if current_energy < MAX_ENERGY:
+            seconds_to_next = max(0, ENERGY_REGEN_SECONDS - (elapsed_seconds % ENERGY_REGEN_SECONDS))
+
+        return {
+            'energy': current_energy,
+            'max_energy': MAX_ENERGY,
+            'seconds_to_next': seconds_to_next
+        }
+    except Exception as e:
+        logger.error(f"Ошибка get_user_energy: {e}")
+        return {'energy': MAX_ENERGY, 'max_energy': MAX_ENERGY, 'seconds_to_next': 0}
+    finally:
+        conn.close()
+
+
+def consume_user_energy(user_id: int, amount: int = 1, game: str = '') -> dict:
+    """
+    Списывает энергию на сервере
+    """
+    state = get_user_energy(user_id)
+    if state['energy'] < amount:
+        return {
+            'success': False,
+            'energy': state['energy'],
+            'max_energy': MAX_ENERGY,
+            'seconds_to_next': state['seconds_to_next'],
+            'message': 'Недостаточно энергии'
+        }
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        new_energy = state['energy'] - amount
+        if state['energy'] == MAX_ENERGY:
+            cursor.execute('''
+                UPDATE user_stats SET energy = ?, energy_last_updated = CURRENT_TIMESTAMP WHERE user_id = ?
+            ''', (new_energy, user_id))
+        else:
+            cursor.execute('''
+                UPDATE user_stats SET energy = ? WHERE user_id = ?
+            ''', (new_energy, user_id))
+        conn.commit()
+        logger.info(f"⚡ Сервер: списана энергия (-{amount}) для user_id={user_id} (игра: {game}), осталось={new_energy}")
+
+        return {
+            'success': True,
+            'energy': new_energy,
+            'max_energy': MAX_ENERGY,
+            'seconds_to_next': ENERGY_REGEN_SECONDS if state['energy'] == MAX_ENERGY else state['seconds_to_next']
+        }
+    except Exception as e:
+        logger.error(f"Ошибка consume_user_energy: {e}")
+        conn.rollback()
+        return {'success': False, 'energy': state['energy'], 'max_energy': MAX_ENERGY, 'seconds_to_next': state['seconds_to_next']}
+    finally:
+        conn.close()
+
+
 # ==================== API ROUTES ====================
 
 @app.route('/')
@@ -2113,6 +2261,52 @@ def api_disconnect_wallet():
         return jsonify({'status': 'ok'})
     except Exception as e:
         logger.error(f"Ошибка api_disconnect_wallet: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/energy', methods=['GET'])
+def api_get_energy():
+    """Получить актуальную энергию пользователя (серверный расчет)"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        energy_data = get_user_energy(user_id)
+        response = jsonify({'status': 'ok', **energy_data})
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+    except Exception as e:
+        logger.error(f"Ошибка api_get_energy: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/energy/consume', methods=['POST'])
+def api_consume_energy():
+    """Списать энергию при запуске игры (серверный контроль)"""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        amount = int(data.get('amount', 1))
+        game = str(data.get('game', ''))
+
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        res = consume_user_energy(user_id, amount=amount, game=game)
+        response = jsonify({'status': 'ok', **res})
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+    except Exception as e:
+        logger.error(f"Ошибка api_consume_energy: {e}")
         return jsonify({'error': str(e)}), 500
 
 
