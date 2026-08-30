@@ -1177,7 +1177,7 @@ def add_boss_damage(user_id: int, damage: int) -> dict:
 
 
 def get_boss_hp() -> dict:
-    """Получает текущее HP босса"""
+    """Получает текущее состояние единого мирового босса и статистику рейда"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -1185,17 +1185,60 @@ def get_boss_hp() -> dict:
         cursor.execute('SELECT current_hp, max_hp, kill_count FROM boss_global WHERE id = 1')
         row = cursor.fetchone()
         
-        if row:
-            return {
-                'current_hp': row['current_hp'],
-                'max_hp': row['max_hp'],
-                'kill_count': row['kill_count']
-            }
-        return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
+        current_hp = row['current_hp'] if row else 1000000000
+        max_hp = row['max_hp'] if row else 1000000000
+        kill_count = row['kill_count'] if row else 0
+
+        # Статистика участников рейда
+        cursor.execute('SELECT COUNT(*) as cnt, COALESCE(SUM(total_damage), 0) as total_dmg FROM boss_damage WHERE total_damage > 0')
+        stat_row = cursor.fetchone()
+        total_fighters = stat_row['cnt'] if stat_row else 0
+        total_raid_damage = stat_row['total_dmg'] if stat_row else 0
+
+        # Топ-5 дамагеров по боссу
+        cursor.execute('''
+            SELECT bd.user_id, bd.total_damage, bd.hits,
+                   u.username, u.first_name, u.last_name
+            FROM boss_damage bd
+            LEFT JOIN users u ON bd.user_id = u.user_id
+            WHERE bd.total_damage > 0
+            ORDER BY bd.total_damage DESC
+            LIMIT 5
+        ''')
+        top_rows = cursor.fetchall()
+        top_damagers = []
+        for r in top_rows:
+            name = r['first_name'] or ''
+            if r['last_name']: name += f" {r['last_name']}"
+            if not name.strip() and r['username']: name = f"@{r['username']}"
+            if not name.strip(): name = f"Игрок #{r['user_id']}"
+            top_damagers.append({
+                'user_id': r['user_id'],
+                'name': name.strip(),
+                'username': r['username'] or '',
+                'total_damage': r['total_damage'],
+                'hits': r['hits']
+            })
+
+        return {
+            'current_hp': current_hp,
+            'max_hp': max_hp,
+            'kill_count': kill_count,
+            'total_fighters': total_fighters,
+            'total_raid_damage': total_raid_damage,
+            'top_damagers': top_damagers
+        }
         
     except Exception as e:
         logger.error(f"Ошибка get_boss_hp: {e}")
-        return {'current_hp': 1000000000, 'max_hp': 1000000000, 'kill_count': 0}
+        return {
+            'current_hp': 1000000000,
+            'max_hp': 1000000000,
+            'kill_count': 0,
+            'total_fighters': 0,
+            'total_raid_damage': 0,
+            'top_damagers': []
+        }
     finally:
         conn.close()
 

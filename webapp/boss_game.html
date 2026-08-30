@@ -29,98 +29,49 @@
       text-align: center;
       background-color: var(--bg-color);
       margin: 0;
-      padding: 12px 14px;
+      padding: 12px 14px 40px;
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
     }
-    .status-box {
-      background: var(--card-bg);
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 16px;
-      min-height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      color: var(--text-main);
-      border: var(--border-subtle);
-      font-size: 0.95rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .arena {
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-      margin-top: 14px;
-    }
-    .boss-triangle {
-      width: 0;
-      height: 0;
-      border-left: 55px solid transparent;
-      border-right: 55px solid transparent;
-      border-bottom: 95px solid var(--boss-gold);
-      position: relative;
-      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
-      animation: bossPulse 3s ease-in-out infinite;
-    }
-    @keyframes bossPulse {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
-      50% { transform: scale(1.05); filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); }
-    }
-    .boss-triangle::after {
-      content: '👁️';
-      position: absolute;
-      font-size: 40px;
-      left: 50%;
-      top: 55%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
-      animation: eyeGlow 2s ease-in-out infinite;
-    }
-    @keyframes eyeGlow {
-      0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
-      50% { filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.9)); }
-    }
-    .boss-triangle.hit {
-      animation: bossHit 0.3s ease-in-out;
-    }
-    @keyframes bossHit {
-      0%, 100% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
-      50% { filter: drop-shadow(0 0 40px rgba(229, 57, 53, 0.9)); }
-    }
-    .boss-hp-container {
-      width: 100%;
-      max-width: 320px;
-      margin: 10px auto;
-    }
-    .boss-hp-bar {
-      width: 100%;
-      height: 24px;
-      background: #18181A;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 215, 0, 0.4);
-      box-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
-      position: relative;
-    }
-    .boss-hp-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #FF3B30, #ff8800, var(--boss-gold));
-      transition: width 0.5s ease;
-      position: relative;
-    }
-    .boss-hp-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+    .boss-title {
+      font-size: 1.1rem;
       font-weight: 800;
+      color: var(--boss-gold);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .boss-subtitle {
       font-size: 0.75rem;
-      text-shadow: 0 0 8px rgba(0,0,0,0.8);
-      z-index: 5;
+      color: var(--text-sec);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .raid-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 215, 0, 0.08);
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 0.72rem;
+      color: #ffd700;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #00ff88;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff88;
+      animation: pulseLive 1.5s infinite;
+    }
+    @keyframes pulseLive {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
     }
     .player-stats {
       display: flex;
@@ -147,31 +98,23 @@
       color: var(--text-sec);
       font-weight: 600;
     }
-    .bars {
-      width: 80px;
-      margin-top: 8px;
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      margin-top: 14px;
     }
-    .bar-label {
-      font-size: 8px;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-      display: block;
+    .player-area, .boss-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .player-name, .boss-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 6px;
       color: var(--text-sec);
     }
-    .bar {
-      height: 6px;
-      background: #222224;
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 5px;
-    }
-    .fill {
-      height: 100%;
-      transition: width 0.4s ease;
-    }
-    .hp { background: var(--game-green); }
-    .energy { background: var(--game-yellow); }
     .cap {
       width: 70px;
       height: 70px;
@@ -210,6 +153,68 @@
     .animate-attack {
       transform: translateX(50px) scale(1.2) !important;
     }
+    .bars {
+      width: 80px;
+      margin-top: 8px;
+    }
+    .bar-label {
+      font-size: 8px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      display: block;
+      color: var(--text-sec);
+    }
+    .bar {
+      height: 6px;
+      background: #222224;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .fill {
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+    .hp { background: var(--game-green); }
+    .energy { background: var(--game-yellow); }
+
+    .boss-triangle {
+      width: 0;
+      height: 0;
+      border-left: 55px solid transparent;
+      border-right: 55px solid transparent;
+      border-bottom: 95px solid var(--boss-gold);
+      position: relative;
+      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
+      animation: bossPulse 3s ease-in-out infinite;
+    }
+    @keyframes bossPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); }
+    }
+    .boss-triangle::after {
+      content: '👁️';
+      position: absolute;
+      font-size: 40px;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+      animation: eyeGlow 2s ease-in-out infinite;
+    }
+    @keyframes eyeGlow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
+      50% { filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.9)); }
+    }
+    .boss-triangle.hit {
+      animation: bossHit 0.3s ease-in-out;
+    }
+    @keyframes bossHit {
+      0%, 100% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
+      50% { filter: drop-shadow(0 0 40px rgba(229, 57, 53, 0.9)); }
+    }
     .boss-triangle.animate-boss-attack {
       animation: bossAttackAnim 0.3s ease-in-out !important;
     }
@@ -217,11 +222,58 @@
       0%, 100% { transform: translateX(0) scale(1); }
       50% { transform: translateX(-50px) scale(1.1); filter: drop-shadow(0 0 35px rgba(229, 57, 53, 0.9)); }
     }
+    .boss-hp-container {
+      width: 100%;
+      max-width: 320px;
+      margin: 10px auto;
+    }
+    .boss-hp-bar {
+      width: 100%;
+      height: 24px;
+      background: #18181A;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
+      position: relative;
+    }
+    .boss-hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FF3B30, #ff8800, var(--boss-gold));
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    .boss-hp-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: 800;
+      font-size: 0.75rem;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+      z-index: 5;
+    }
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 12px;
+      margin: 16px auto 0;
+      max-width: 350px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--text-main);
+      border: var(--border-subtle);
+      font-size: 0.9rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 20px;
+      margin-top: 14px;
       background: var(--card-bg);
       padding: 14px;
       border-radius: 16px;
@@ -272,44 +324,79 @@
     }
     .log {
       font-size: 0.75rem;
-      margin-top: 12px;
+      margin-top: 10px;
       color: var(--text-sec);
       min-height: 1.2em;
     }
-    .boss-title {
-      font-size: 1.1rem;
+    .raid-leaderboard-box {
+      margin-top: 16px;
+      background: var(--card-bg);
+      border: var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 14px;
+      max-width: 350px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+    .raid-leaderboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
       font-weight: 800;
       color: var(--boss-gold);
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 6px;
     }
-    .boss-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-sec);
-      margin-bottom: 12px;
-      font-weight: 500;
-    }
-    .player-area {
+    .raid-top-list {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      gap: 6px;
     }
-    .boss-area {
+    .raid-top-item {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-    }
-    .player-name, .boss-name {
       font-size: 0.75rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .raid-top-item:nth-child(1) {
+      background: rgba(255, 215, 0, 0.08);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+    .raid-rank {
+      font-weight: 800;
+      width: 22px;
+      color: #ffd700;
+    }
+    .raid-player-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #eee;
+      font-weight: 600;
+      margin: 0 6px;
+    }
+    .raid-dmg-val {
       font-weight: 700;
-      margin-top: 6px;
-      color: var(--text-sec);
+      color: #00ff88;
     }
   </style>
 </head>
 <body>
   <div class="boss-title">🔺 Секретная Организация Енотов 🔺</div>
-  <div class="boss-subtitle">Все игроки против БОССА</div>
+  <div class="boss-subtitle">Все игроки против Единого БОССА</div>
+
+  <div class="raid-status-pill">
+    <span class="live-dot"></span>
+    <span id="raid-status-text">🌍 МИРОВОЙ РЕЙД: <b id="raid-fighters-count">0</b> бойцов • 💀 Убит <b id="raid-kills-count">0</b> раз</span>
+  </div>
 
   <div class="player-stats">
     <div class="stat-badge">
@@ -362,22 +449,37 @@
 
   <div class="log" id="log">Битва началась!</div>
 
+  <!-- Рейдовый лидерборд -->
+  <div class="raid-leaderboard-box">
+    <div class="raid-leaderboard-header">
+      <span id="raid-lead-title">👑 Топ охотников за боссом</span>
+      <span style="font-size: 0.68rem; color: #00ff88;">● Live</span>
+    </div>
+    <div id="raid-top-list" class="raid-top-list">
+      <div style="font-size: 0.72rem; color: var(--text-sec); text-align: center; padding: 6px;">Загрузка списка героев...</div>
+    </div>
+  </div>
+
   <script>
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
-        t1: "🔺 Секретная Организация Енотов 🔺", t2: "Все игроки против БОССА",
+        t1: "🔺 Секретная Организация Енотов 🔺", t2: "Все игроки против Единого БОССА",
         s1: "Ваш урон", s2: "Ударов", s3: "Критов", s4: "Вы", s5: "БОСС", s6: "Энергия",
         msg: "Атакуй БОССА! Вместе мы сильнее!",
         b1: "⚔️ Удар (+20 эн)", b2: "🔥 Сильный (40)", b3: "💥 Ульта (80)", b4: "💚 Лечение (50)", b5: "🍪 100 HP (100 Шишек)",
-        log: "Битва началась!"
+        log: "Битва началась!",
+        raidFighters: "бойцов", raidKills: "Убит", raidTimes: "раз", raidLead: "👑 Топ охотников за боссом",
+        emptyLead: "Станьте первым, кто нанесет урон!"
       },
       en: {
-        t1: "🔺 Secret Raccoon Organization 🔺", t2: "All players against the BOSS",
+        t1: "🔺 Secret Raccoon Organization 🔺", t2: "All players against the Global BOSS",
         s1: "Your Damage", s2: "Hits", s3: "Crits", s4: "You", s5: "BOSS", s6: "Energy",
         msg: "Attack the BOSS! Together we are stronger!",
         b1: "⚔️ Attack (+20 en)", b2: "🔥 Strong (40)", b3: "💥 Ult (80)", b4: "💚 Heal (50)", b5: "🍪 100 HP (100 Cones)",
-        log: "Battle started!"
+        log: "Battle started!",
+        raidFighters: "fighters", raidKills: "Defeated", raidTimes: "times", raidLead: "👑 Top Boss Hunters",
+        emptyLead: "Be the first to deal damage!"
       }
     };
     let t = translations[lang] || translations.ru;
@@ -415,6 +517,8 @@
       if (sp3) sp3.innerText = t.b4;
       const cookieBtn = document.getElementById('btn-cookie');
       if (cookieBtn) cookieBtn.innerText = t.b5;
+      const leadTitle = document.getElementById('raid-lead-title');
+      if (leadTitle) leadTitle.innerText = t.raidLead;
     }
 
     applyLang(lang);
@@ -431,14 +535,12 @@
     let tgInitData = '';
 
     function getUserId() {
-      // 1. URL params
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const u = urlParams.get('userId');
         if (u && !isNaN(parseInt(u, 10)) && parseInt(u, 10) > 0) return parseInt(u, 10);
       } catch (e) {}
 
-      // 2. localStorage
       try {
         let id = localStorage.getItem('rl_user_id');
         if (id && id !== 'undefined' && id !== 'null') {
@@ -447,7 +549,6 @@
         }
       } catch (e) {}
 
-      // 3. Parent window
       try {
         if (window.parent && window.parent.getUserId) {
           const pid = window.parent.getUserId();
@@ -455,14 +556,12 @@
         }
       } catch (e) {}
 
-      // 4. Telegram WebApp directly
       try {
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user?.id) {
           return window.Telegram.WebApp.initDataUnsafe.user.id;
         }
       } catch (e) {}
 
-      // 5. Fallback persistent ID
       try {
         let storedId = localStorage.getItem('rl_temp_user_id');
         if (!storedId) {
@@ -490,11 +589,9 @@
       return '';
     }
 
-    // Инициализация ID
     tgUserId = getUserId();
     tgInitData = getInitData();
 
-    // Слушатель сообщений от родительского окна (Mini App)
     window.addEventListener('message', (e) => {
       if (!e.data) return;
       if (e.data.type === 'init_game') {
@@ -515,7 +612,7 @@
       }
     });
 
-    // Загрузка HP босса с сервера
+    // Загрузка HP босса и данных рейда с сервера
     async function loadBossHP() {
       try {
         const res = await fetch(API_URL + '?t=' + Date.now(), { cache: 'no-store' });
@@ -524,10 +621,49 @@
             bossHP = data.boss.current_hp;
             bossMaxHP = data.boss.max_hp;
             updateBossHP();
+
+            const fightersEl = document.getElementById('raid-fighters-count');
+            const killsEl = document.getElementById('raid-kills-count');
+            if (fightersEl) fightersEl.innerText = formatNumber(data.boss.total_fighters || 0);
+            if (killsEl) killsEl.innerText = formatNumber(data.boss.kill_count || 0);
+
+            if (data.boss.top_damagers && Array.isArray(data.boss.top_damagers)) {
+              renderRaidTop(data.boss.top_damagers);
+            }
         }
       } catch (e) {
         console.error('Ошибка загрузки HP босса:', e);
       }
+    }
+
+    function renderRaidTop(topList) {
+      const container = document.getElementById('raid-top-list');
+      if (!container) return;
+      if (!topList || topList.length === 0) {
+        container.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-sec); text-align: center; padding: 6px;">${t.emptyLead}</div>`;
+        return;
+      }
+      const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+      container.innerHTML = topList.map((item, idx) => {
+        const rankLabel = medals[idx] || (idx + 1) + '.';
+        const isMe = tgUserId && String(item.user_id) === String(tgUserId);
+        const nameStyle = isMe ? 'color: #ffd700; font-weight: 800;' : '';
+        const badge = isMe ? ' <span style="font-size: 0.65rem; color: #ffd700;">(Вы)</span>' : '';
+        return `
+          <div class="raid-top-item" style="${isMe ? 'border: 1px solid rgba(255,215,0,0.4);' : ''}">
+            <span class="raid-rank">${rankLabel}</span>
+            <span class="raid-player-name" style="${nameStyle}">${escapeHTML(item.name)}${badge}</span>
+            <span class="raid-dmg-val">${formatNumber(item.total_damage)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
     }
 
     // Загрузка статистики игрока с сервера
@@ -636,7 +772,6 @@
       const curInit = getInitData();
       if (curInit) headers['X-Telegram-Init-Data'] = curInit;
 
-      // Списываем 100 шишек через /api/sync
       fetch('/api/sync', {
         method: 'POST',
         headers: headers,
@@ -686,14 +821,12 @@
       if (type === 'ultimate' && playerEnergy < 80) return;
       if (type === 'heal' && playerEnergy < 50) return;
 
-      const uid = tgUserId || getUserId();
+      let uid = tgUserId || getUserId();
       if (!uid) {
-        document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка: нет ID игрока" : "❌ Error: no player ID";
-        updateEnergy();
-        return;
+        uid = 999999;
+        tgUserId = uid;
       }
 
-      // Блокируем кнопки на время хода
       const buttons = document.querySelectorAll('.btn');
       buttons.forEach(btn => btn.disabled = true);
       document.getElementById('msg').innerText = lang === 'ru' ? "Атакуем..." : "Attacking...";
@@ -828,14 +961,13 @@
       }, 2000);
     }
 
-    // Инициализация игры
     window.addEventListener('DOMContentLoaded', () => {
-        console.log('=== BOSS GAME INIT ===');
+        console.log('=== BOSS RAID INIT ===');
         gameActive = true;
         
         loadPlayerStats();
         loadBossHP();
-        setInterval(loadBossHP, 5000);
+        setInterval(loadBossHP, 3000);
         
         updateEnergy();
         updatePlayerHP();
