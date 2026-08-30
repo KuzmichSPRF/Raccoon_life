@@ -3485,13 +3485,18 @@ def api_boss_attack():
 
         if not user_id:
             logger.warning("⚠️ Boss attack: нет user_id")
-            return jsonify({'error': 'user_id required'}), 400
+            return jsonify({'status': 'error', 'error': 'user_id required', 'message': 'user_id required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'error': 'invalid user_id', 'message': 'invalid user_id'}), 400
 
         # Криптографическая проверка авторизации (если init_data передана)
         init_data = request.headers.get('X-Telegram-Init-Data')
         if init_data:
             auth_user = validate_webapp_data(init_data)
-            if not auth_user or str(auth_user.get('id')) != str(user_id):
+            if auth_user and str(auth_user.get('id')) != str(user_id):
                 security_logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись! user_id={user_id}")
                 logger.warning(f"🚨 БЛОКИРОВКА Атаки: неверная подпись!")
                 return jsonify({'status': 'error', 'error': 'Unauthorized', 'message': 'Unauthorized'}), 403

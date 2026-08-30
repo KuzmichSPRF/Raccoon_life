@@ -353,7 +353,7 @@
   <div class="status-box" id="msg">Атакуй БОССА! Вместе мы сильнее!</div>
 
   <div class="controls">
-    <button class="btn btn-std" onclick="attack('basic')">⚔️ Удар (+20 эн)</button>
+    <button class="btn btn-std" id="btn-basic" onclick="attack('basic')">⚔️ Удар (+20 эн)</button>
     <button class="btn btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>🔥 Сильный (40)</button>
     <button class="btn btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>💥 Ульта (80)</button>
     <button class="btn btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>💚 Лечение (50)</button>
@@ -405,8 +405,8 @@
       }
       const msgEl = document.getElementById('msg');
       if (msgEl && gameActive) msgEl.innerText = t.msg;
-      const stdBtns = document.querySelectorAll('.btn-std');
-      if (stdBtns.length > 0) stdBtns[0].innerText = t.b1;
+      const btnBasic = document.getElementById('btn-basic');
+      if (btnBasic) btnBasic.innerText = t.b1;
       const sp1 = document.getElementById('btn-sp1');
       if (sp1) sp1.innerText = t.b2;
       const sp2 = document.getElementById('btn-sp2');
@@ -435,21 +435,23 @@
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const u = urlParams.get('userId');
-        if (u) return parseInt(u, 10);
+        if (u && !isNaN(parseInt(u, 10)) && parseInt(u, 10) > 0) return parseInt(u, 10);
       } catch (e) {}
 
       // 2. localStorage
-      let id = localStorage.getItem('rl_user_id');
-      if (id && id !== 'undefined' && id !== 'null') {
-        const parsed = parseInt(id, 10);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
+      try {
+        let id = localStorage.getItem('rl_user_id');
+        if (id && id !== 'undefined' && id !== 'null') {
+          const parsed = parseInt(id, 10);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+      } catch (e) {}
 
       // 3. Parent window
       try {
         if (window.parent && window.parent.getUserId) {
           const pid = window.parent.getUserId();
-          if (pid) return parseInt(pid, 10);
+          if (pid && !isNaN(parseInt(pid, 10)) && parseInt(pid, 10) > 0) return parseInt(pid, 10);
         }
       } catch (e) {}
 
@@ -460,7 +462,17 @@
         }
       } catch (e) {}
 
-      return null;
+      // 5. Fallback persistent ID
+      try {
+        let storedId = localStorage.getItem('rl_temp_user_id');
+        if (!storedId) {
+          storedId = String(Math.floor(Math.random() * 1000000) + 100000);
+          localStorage.setItem('rl_temp_user_id', storedId);
+        }
+        return parseInt(storedId, 10);
+      } catch (e) {
+        return 999999;
+      }
     }
 
     function getInitData() {
@@ -577,14 +589,14 @@
     function updateEnergy() {
       const energyFill = document.getElementById('p-nrg');
       const energyText = document.getElementById('p-nrg-text');
+      const btnBasic = document.getElementById('btn-basic');
       const btnStrong = document.getElementById('btn-sp1');
       const btnUlt = document.getElementById('btn-sp2');
       const btnHeal = document.getElementById('btn-sp3');
-      const stdBtns = document.querySelectorAll('.btn-std');
+      const cookieBtn = document.getElementById('btn-cookie');
 
-      if (gameActive) {
-        stdBtns.forEach(btn => btn.disabled = false);
-      }
+      if (btnBasic) btnBasic.disabled = !gameActive;
+      if (cookieBtn) cookieBtn.disabled = !gameActive;
 
       if (energyFill) energyFill.style.width = Math.max(0, Math.min(100, playerEnergy)) + '%';
       if (energyText) energyText.innerText = Math.floor(playerEnergy);
