@@ -314,7 +314,8 @@ def test_api_locally():
             'damage': 1000
         }
         
-        r = requests.post(f'{BASE_URL}/api/sync', json=damage_data, timeout=5)
+        headers = {'X-Telegram-Init-Data': 'query_id=test&user=%7B%22id%22%3A999999%7D'}
+        r = requests.post(f'{BASE_URL}/api/sync', json=damage_data, headers=headers, timeout=5)
         if r.status_code == 200:
             boss = r.json().get('boss', {})
             print_success(f"✅ /api/sync (damage) работает, HP босса: {boss.get('current_hp'):,}")

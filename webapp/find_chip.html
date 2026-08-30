@@ -7,24 +7,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #E53935;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      --game-green: #00ff88;
-      --game-yellow: #ffcc00;
-      --chip-found: #ffd700;
-      --chip-miss: #ff4444; 
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --game-green: #33BD1C;
+      --game-yellow: #FFD700;
+      --chip-found: #FFD700;
+      --chip-miss: #E53935;
+      --btn-red: #E53935;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0;
-      padding: 5px 10px;
+      padding: 12px 14px;
       color: var(--text-main);
       height: 100vh;
       overflow-x: hidden;
@@ -37,51 +43,55 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-bottom: 10px;
-      gap: 10px;
+      margin-bottom: 12px;
+      gap: 12px;
       flex-shrink: 0;
     }
 
     .target-display {
-      background: linear-gradient(135deg, var(--accent), #ff6688);
+      background: var(--card-bg);
       padding: 10px 20px;
-      border-radius: 20px;
+      border-radius: 24px;
       font-weight: 800;
-      font-size: 1.1rem;
-      box-shadow: 0 0 20px rgba(255,0,85,0.5);
-      border: 2px solid rgba(255,255,255,0.2);
+      font-size: 1rem;
+      border: 1px solid rgba(229, 57, 53, 0.4);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.15);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .target-chip-preview {
-      width: 50px;
-      height: 50px;
+      width: 46px;
+      height: 46px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--chip-found), #ffaa00);
+      background: linear-gradient(135deg, var(--chip-found), #ff9500);
       color: #000;
-      border: 3px solid #fff;
+      border: 2px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 800;
-      box-shadow: 0 0 20px var(--chip-found);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.4);
     }
 
     .status-box {
       background: var(--card-bg);
-      border-radius: 15px;
-      padding: 10px;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
+      font-weight: 700;
       color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.05);
+      border: var(--border-subtle);
       font-size: 0.9rem;
-      min-height: 40px;
+      min-height: 44px;
       flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
 
     .game-container {
@@ -89,12 +99,12 @@
       width: 100%;
       max-width: 200px;
       margin: 0 auto;
-      height: 240px;
-      background: linear-gradient(180deg, #1a1a20 0%, #0d0d10 100%);
-      border-radius: 20px;
+      height: 230px;
+      background: #0f0f11;
+      border-radius: 16px;
       overflow: hidden;
-      border: 2px solid rgba(255,255,255,0.1);
-      box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
       flex-shrink: 0;
     }
 
@@ -109,27 +119,27 @@
     .chip-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      padding: 5px;
-      height: 60px;
+      gap: 6px;
+      padding: 6px;
+      height: 58px;
       box-sizing: border-box;
     }
 
     .chip {
       width: 100%;
       height: 100%;
-      min-width: 50px;
+      min-width: 46px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 800;
       cursor: pointer;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       user-select: none;
-      border: 3px solid rgba(255,255,255,0.3);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
 
     .chip:active {
@@ -137,7 +147,7 @@
     }
 
     .chip.normal-chip {
-      background: linear-gradient(135deg, #4a4a5a, #2a2a3a);
+      background: linear-gradient(135deg, #2a2a2e, #1c1c20);
       color: var(--text-main);
     }
 
@@ -171,32 +181,32 @@
       font-size: 0.9rem;
       color: var(--text-sec);
       min-width: 80px;
+      font-weight: 700;
     }
 
     .scroll-btn {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.3);
-      background: linear-gradient(135deg, var(--primary), #006699);
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: var(--border-subtle);
+      background: var(--card-elevated);
       color: white;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       cursor: pointer;
       transition: all 0.15s;
-      box-shadow: 0 4px 15px rgba(0,136,204,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .scroll-btn:active {
-      transform: scale(0.9);
-      box-shadow: 0 2px 8px rgba(0,136,204,0.4);
+      transform: scale(0.92);
+      background: #2a2a2e;
     }
 
     .scroll-btn:disabled {
-      background: #333;
-      color: #666;
+      background: #18181A;
+      color: rgba(255,255,255,0.2);
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -209,10 +219,10 @@
 
     .stat-card {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 10px 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: var(--border-subtle);
     }
 
     .stat-label {
@@ -220,6 +230,7 @@
       color: var(--text-sec);
       text-transform: uppercase;
       margin-bottom: 3px;
+      font-weight: 600;
     }
 
     .stat-value {
@@ -239,38 +250,39 @@
     }
 
     .btn {
-      padding: 12px 25px;
+      padding: 13px 24px;
       border: none;
       border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
       color: white;
-      font-size: 0.9rem;
-      font-family: 'Montserrat', sans-serif;
+      font-size: 0.95rem;
       text-transform: uppercase;
       transition: transform 0.1s, box-shadow 0.1s;
     }
 
-    .btn:active { transform: scale(0.95); }
-    .btn:disabled { background: #333 !important; color: #666; opacity: 0.5; cursor: not-allowed; }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
 
     .btn-start {
-      background: linear-gradient(135deg, var(--game-green), #00cc6a);
-      box-shadow: 0 0 20px rgba(0,255,136,0.4);
-      color: #000;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      color: #fff;
+      width: 100%;
     }
 
     .btn-restart {
-      background: linear-gradient(135deg, var(--primary), #006699);
-      box-shadow: 0 0 20px rgba(0,136,204,0.4);
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
       display: none;
+      width: 100%;
     }
 
     .log {
       font-size: 0.75rem;
       margin-top: 5px;
       color: var(--text-sec);
-      font-style: italic;
       min-height: 1.2em;
       flex-shrink: 0;
     }
@@ -287,111 +299,104 @@
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(8px);
     }
 
     .reward-popup {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
-      border-radius: 25px;
-      padding: 40px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 28px 24px;
       text-align: center;
-      border: 3px solid var(--chip-found);
-      box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
-      animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-      max-width: 85%;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      max-width: 88%;
+      width: 320px;
     }
 
     @keyframes popIn {
-      from { transform: scale(0) rotate(-10deg); opacity: 0; }
-      to { transform: scale(1) rotate(0deg); opacity: 1; }
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
     .reward-icon {
-      font-size: 4rem;
-      margin-bottom: 15px;
-      animation: bounce 1s ease infinite;
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      font-size: 3.5rem;
+      margin-bottom: 10px;
     }
 
     .reward-title {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 800;
       color: var(--chip-found);
-      margin-bottom: 10px;
-      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      margin-bottom: 8px;
     }
 
     .reward-stats {
-      background: rgba(0,0,0,0.3);
-      border-radius: 15px;
-      padding: 15px;
-      margin: 20px 0;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 16px 0;
+      border: var(--border-subtle);
     }
 
     .reward-stat {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
 
     .reward-stat:last-child { border-bottom: none; }
 
     .reward-stat-label {
       color: var(--text-sec);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     .reward-stat-value {
       color: var(--text-main);
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
     }
 
     .reward-amount {
-      font-size: 2.2rem;
+      font-size: 1.8rem;
       font-weight: 800;
       color: var(--chip-found);
-      text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
-      margin: 15px 0;
+      margin: 12px 0 16px 0;
     }
 
     .btn-continue {
-      padding: 16px 50px;
-      background: linear-gradient(135deg, var(--primary), #006699);
+      padding: 14px 32px;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       color: white;
       border: none;
-      border-radius: 50px;
+      border-radius: 12px;
       font-weight: 800;
-      font-size: 1.1rem;
+      font-size: 1rem;
       cursor: pointer;
       text-transform: uppercase;
-      box-shadow: 0 0 25px rgba(0,136,204,0.5);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
       transition: all 0.2s;
+      width: 100%;
     }
 
-    .btn-continue:active { transform: scale(0.95); }
-    .btn-continue:hover { box-shadow: 0 0 35px rgba(0,136,204,0.7); }
+    .btn-continue:active { transform: scale(0.96); }
 
     .progress-bar {
       width: 100%;
-      height: 6px;
-      background: rgba(255,255,255,0.1);
+      height: 5px;
+      background: rgba(255,255,255,0.08);
       border-radius: 3px;
       overflow: hidden;
-      margin-top: 10px;
+      margin-top: 8px;
       flex-shrink: 0;
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--game-green));
+      background: linear-gradient(90deg, #FF3B30, #33BD1C);
       transition: width 0.3s;
-      box-shadow: 0 0 10px rgba(0,136,204,0.5);
     }
   </style>
 </head>
@@ -461,7 +466,7 @@
           <span class="reward-stat-value" id="stat-missed">0</span>
         </div>
       </div>
-      <div class="reward-amount" id="popup-amount">+1000 Шишек</div>
+      <div class="reward-amount" id="popup-amount">+100 🌰</div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
     </div>
   </div>
@@ -764,7 +769,7 @@
 
       if (win) {
         amountEl.style.display = 'block';
-        amountEl.textContent = `+${REWARD} ${t('cones')}`;
+        amountEl.textContent = `+${REWARD} 🌰`;
         btn.innerText = t('continue');
       } else {
         amountEl.style.display = 'none';

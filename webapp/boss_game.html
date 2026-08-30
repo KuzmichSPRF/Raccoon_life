@@ -8,66 +8,71 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #FF3B30;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      --game-green: #00ff88;
-      --game-yellow: #ffcc00;
-      --boss-gold: #ffd700;
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --game-green: #33BD1C;
+      --game-yellow: #FFD700;
+      --boss-gold: #FFD700;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0;
-      padding: 15px;
+      padding: 12px 14px;
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
     }
     .status-box {
       background: var(--card-bg);
-      border-radius: 15px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      min-height: 60px;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 16px;
+      min-height: 50px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
+      font-weight: 700;
       color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.05);
-      font-size: 1rem;
+      border: var(--border-subtle);
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .arena {
       display: flex;
       justify-content: space-around;
       align-items: flex-end;
-      margin-top: 20px;
+      margin-top: 14px;
     }
     .boss-triangle {
       width: 0;
       height: 0;
-      border-left: 60px solid transparent;
-      border-right: 60px solid transparent;
-      border-bottom: 100px solid var(--boss-gold);
+      border-left: 55px solid transparent;
+      border-right: 55px solid transparent;
+      border-bottom: 95px solid var(--boss-gold);
       position: relative;
-      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
       animation: bossPulse 3s ease-in-out infinite;
     }
     @keyframes bossPulse {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)); }
-      50% { transform: scale(1.05); filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8)); }
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); }
     }
     .boss-triangle::after {
       content: '👁️';
       position: absolute;
-      font-size: 45px;
+      font-size: 40px;
       left: 50%;
       top: 55%;
       transform: translate(-50%, -50%);
@@ -77,33 +82,33 @@
     }
     @keyframes eyeGlow {
       0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
-      50% { filter: drop-shadow(0 0 20px rgba(255, 0, 85, 0.9)); }
+      50% { filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.9)); }
     }
     .boss-triangle.hit {
       animation: bossHit 0.3s ease-in-out;
     }
     @keyframes bossHit {
-      0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6)); }
-      50% { filter: drop-shadow(0 0 50px rgba(255, 0, 85, 0.9)); }
+      0%, 100% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
+      50% { filter: drop-shadow(0 0 40px rgba(229, 57, 53, 0.9)); }
     }
     .boss-hp-container {
       width: 100%;
-      max-width: 300px;
+      max-width: 320px;
       margin: 10px auto;
     }
     .boss-hp-bar {
       width: 100%;
-      height: 25px;
-      background: #333;
+      height: 24px;
+      background: #18181A;
       border-radius: 12px;
       overflow: hidden;
-      border: 2px solid var(--boss-gold);
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
       position: relative;
     }
     .boss-hp-fill {
       height: 100%;
-      background: linear-gradient(90deg, #ff0055, #ff4400, #ff8800, var(--boss-gold));
+      background: linear-gradient(90deg, #FF3B30, #ff8800, var(--boss-gold));
       transition: width 0.5s ease;
       position: relative;
     }
@@ -120,18 +125,19 @@
     .player-stats {
       display: flex;
       justify-content: center;
-      gap: 15px;
-      margin-bottom: 15px;
+      gap: 10px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
     }
     .stat-badge {
       background: var(--card-bg);
-      border-radius: 10px;
-      padding: 8px 15px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 8px 14px;
+      border: var(--border-subtle);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .stat-badge .value {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: var(--primary);
     }
@@ -139,10 +145,11 @@
       font-size: 0.65rem;
       text-transform: uppercase;
       color: var(--text-sec);
+      font-weight: 600;
     }
     .bars {
       width: 80px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .bar-label {
       font-size: 8px;
@@ -154,7 +161,7 @@
     }
     .bar {
       height: 6px;
-      background: #333;
+      background: #222224;
       border-radius: 3px;
       overflow: hidden;
       margin-bottom: 5px;
@@ -163,26 +170,26 @@
       height: 100%;
       transition: width 0.4s ease;
     }
-    .hp { background: var(--game-green); box-shadow: 0 0 5px var(--game-green); }
-    .energy { background: var(--game-yellow); box-shadow: 0 0 5px var(--game-yellow); }
+    .hp { background: var(--game-green); }
+    .energy { background: var(--game-yellow); }
     .cap {
       width: 70px;
       height: 70px;
       border-radius: 50%;
-      border: 3px solid #333;
+      border: 2px solid rgba(255,255,255,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 35px;
-      background: #121214;
+      background: var(--card-bg);
       position: relative;
       transition: all 0.3s ease;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
     .cap.active {
       border-color: var(--primary);
-      transform: scale(1.1);
-      box-shadow: 0 0 20px rgba(0,136,204,0.4);
+      transform: scale(1.08);
+      box-shadow: 0 0 16px rgba(229, 57, 53, 0.4);
     }
     .cap.hit {
       animation: playerHit 0.3s ease-in-out;
@@ -192,13 +199,13 @@
       50% { filter: brightness(0.5) drop-shadow(0 0 10px red); }
     }
     .heal-effect {
-      border-color: #00ff88 !important;
-      box-shadow: 0 0 20px #00ff88 !important;
+      border-color: #33BD1C !important;
+      box-shadow: 0 0 20px #33BD1C !important;
       animation: playerHeal 0.4s ease-in-out;
     }
     @keyframes playerHeal {
       0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(1.3) drop-shadow(0 0 15px #00ff88); }
+      50% { filter: brightness(1.3) drop-shadow(0 0 15px #33BD1C); }
     }
     .animate-attack {
       transform: translateX(50px) scale(1.2) !important;
@@ -208,20 +215,21 @@
     }
     @keyframes bossAttackAnim {
       0%, 100% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(-50px) scale(1.1); filter: drop-shadow(0 0 40px rgba(255, 0, 85, 0.9)); }
+      50% { transform: translateX(-50px) scale(1.1); filter: drop-shadow(0 0 35px rgba(229, 57, 53, 0.9)); }
     }
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 25px;
+      margin-top: 20px;
       background: var(--card-bg);
-      padding: 15px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.05);
+      padding: 14px;
+      border-radius: 16px;
+      border: var(--border-subtle);
       max-width: 350px;
       margin-left: auto;
       margin-right: auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     .btn {
       padding: 12px;
@@ -231,22 +239,29 @@
       cursor: pointer;
       color: white;
       font-size: 0.75rem;
-      font-family: 'Montserrat', sans-serif;
       text-transform: uppercase;
       transition: transform 0.1s, box-shadow 0.1s;
     }
-    .btn:active { transform: scale(0.95); }
-    .btn:disabled { background: #333 !important; color: #666; opacity: 0.5; cursor: not-allowed; }
-    .btn-std { background: var(--primary); grid-column: span 2; font-size: 0.9rem; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
+    .btn-std {
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      grid-column: span 2;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+    }
     .btn-sp1 { background: #e67e22; }
     .btn-sp2 { background: #9b59b6; }
-    .btn-sp3 { background: var(--accent); box-shadow: 0 0 15px rgba(255,0,85,0.3); }
+    .btn-sp3 {
+      background: #E53935;
+      box-shadow: 0 0 12px rgba(229, 57, 53, 0.3);
+    }
     .damage-number {
       position: fixed;
       font-size: 1.8rem;
       font-weight: 800;
       color: var(--accent);
-      text-shadow: 0 0 10px rgba(255,0,85,0.8);
+      text-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
       pointer-events: none;
       animation: damageFloat 1s ease-out forwards;
       z-index: 1000;
@@ -256,10 +271,9 @@
       100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
     }
     .log {
-      font-size: 0.7rem;
-      margin-top: 15px;
+      font-size: 0.75rem;
+      margin-top: 12px;
       color: var(--text-sec);
-      font-style: italic;
       min-height: 1.2em;
     }
     .boss-title {
@@ -267,13 +281,13 @@
       font-weight: 800;
       color: var(--boss-gold);
       text-transform: uppercase;
-      margin-bottom: 5px;
-      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      margin-bottom: 4px;
     }
     .boss-subtitle {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       color: var(--text-sec);
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      font-weight: 500;
     }
     .player-area {
       display: flex;
@@ -286,9 +300,9 @@
       align-items: center;
     }
     .player-name, .boss-name {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      margin-top: 5px;
+      margin-top: 6px;
       color: var(--text-sec);
     }
   </style>

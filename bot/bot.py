@@ -664,7 +664,16 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
 
 def validate_webapp_data(init_data: str) -> dict:
     """Проверяет подлинность данных от Telegram WebApp"""
-    if not init_data or not BOT_TOKEN:
+    if not init_data:
+        return None
+    if not BOT_TOKEN:
+        # Dev fallback: parse user data without hash verification when token is not configured
+        try:
+            parsed_data = dict(parse_qsl(init_data))
+            if 'user' in parsed_data:
+                return json.loads(parsed_data['user'])
+        except Exception:
+            return None
         return None
     try:
         parsed_data = dict(parse_qsl(init_data))

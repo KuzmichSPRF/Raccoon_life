@@ -8,79 +8,83 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #E53935;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      --water: #1a3a5c;
-      --water-hover: #2a5a8c;
-      --ship: #4a6fa5;
-      --ship-preview: #6a8fc5;
-      --hit: #ff4444;
-      --miss: #888888;
-      --kill: #ff6b6b;
-      --valid: #00ff88;
-      --invalid: #ff4444;
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --water: #16202c;
+      --water-hover: #223246;
+      --ship: #334d70;
+      --ship-preview: #4a6c98;
+      --hit: #E53935;
+      --miss: #55555e;
+      --kill: #C62828;
+      --valid: #33BD1C;
+      --invalid: #E53935;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-main);
       min-height: 100vh;
-      padding: 10px;
+      padding: 12px 10px;
       overflow-x: hidden;
     }
     
     .game-container {
       max-width: 400px;
       margin: 0 auto;
-      padding: 10px;
+      padding: 0 4px;
     }
     
     .game-header {
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
     
     .game-title {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: 800;
-      color: var(--primary);
+      color: #ffffff;
       text-transform: uppercase;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
     
     .game-status {
       font-size: 0.85rem;
-      color: var(--text-sec);
-      padding: 10px;
+      color: var(--text-main);
+      padding: 12px;
       background: var(--card-bg);
-      border-radius: 10px;
+      border-radius: 14px;
       text-align: center;
-      margin-bottom: 10px;
-      min-height: 50px;
+      margin-bottom: 12px;
+      min-height: 46px;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: var(--border-subtle);
+      font-weight: 600;
     }
     
     .game-status.win {
-      background: linear-gradient(145deg, #1a5c3a, #0d3d22);
-      border: 1px solid #00ff88;
-      color: #00ff88;
+      background: linear-gradient(145deg, rgba(51, 189, 28, 0.15), var(--card-bg));
+      border: 1px solid var(--valid);
+      color: var(--valid);
     }
     
     .game-status.lose {
-      background: linear-gradient(145deg, #5c1a1a, #3d0d0d);
+      background: linear-gradient(145deg, rgba(229, 57, 53, 0.15), var(--card-bg));
       border: 1px solid var(--hit);
       color: var(--hit);
     }
     
     .game-status.enemy-turn {
-      background: linear-gradient(145deg, #5c3a1a, #3d220d);
+      background: linear-gradient(145deg, rgba(255, 170, 0, 0.15), var(--card-bg));
       border: 1px solid #ffaa00;
       color: #ffaa00;
       animation: pulse-border 1s infinite;
@@ -92,11 +96,11 @@
     }
     
     .board-container {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     
     .board-title {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
       color: var(--text-sec);
       margin-bottom: 8px;
@@ -109,17 +113,17 @@
       grid-template-columns: repeat(10, 1fr);
       gap: 2px;
       background: var(--card-bg);
-      padding: 5px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px;
+      border-radius: 14px;
+      border: var(--border-subtle);
     }
     
     .cell {
       aspect-ratio: 1;
       background: var(--water);
-      border-radius: 3px;
+      border-radius: 4px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -151,8 +155,8 @@
     }
     
     @keyframes valid-pulse {
-      0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
-      50% { box-shadow: 0 0 15px rgba(0, 255, 136, 0.9); }
+      0%, 100% { box-shadow: 0 0 5px rgba(51, 189, 28, 0.5); }
+      50% { box-shadow: 0 0 12px rgba(51, 189, 28, 0.9); }
     }
     
     .cell.hit {
@@ -206,40 +210,41 @@
     .controls {
       display: flex;
       gap: 10px;
-      margin-top: 15px;
+      margin-top: 14px;
     }
     
     .btn {
       flex: 1;
-      padding: 14px;
+      padding: 13px;
       border: none;
-      border-radius: 10px;
-      font-family: 'Montserrat', sans-serif;
+      border-radius: 12px;
       font-size: 0.9rem;
       font-weight: 700;
       text-transform: uppercase;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
     
     .btn:active {
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
     
     .btn-primary {
-      background: var(--primary);
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       color: white;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
     
     .btn-secondary {
-      background: var(--card-bg);
+      background: var(--card-elevated);
       color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.2);
+      border: var(--border-subtle);
     }
     
     .btn-success {
-      background: #00aa66;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       color: white;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
     
     .btn:disabled {
@@ -249,67 +254,70 @@
     
     .ship-selector {
       background: var(--card-bg);
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 15px;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
       text-align: center;
+      border: var(--border-subtle);
     }
     
     .ship-selector-title {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-sec);
       margin-bottom: 8px;
       text-transform: uppercase;
+      font-weight: 600;
     }
     
     .ship-buttons {
       display: flex;
-      gap: 5px;
+      gap: 6px;
       justify-content: center;
       flex-wrap: wrap;
     }
     
     .ship-btn {
       padding: 8px 12px;
-      border: 2px solid var(--primary);
-      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--card-elevated);
       color: var(--text-main);
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
     
     .ship-btn:hover {
-      background: var(--primary);
+      border-color: rgba(255,255,255,0.25);
     }
     
     .ship-btn.selected {
-      background: var(--primary);
-      box-shadow: 0 0 10px rgba(0, 136, 204, 0.5);
+      background: #E53935;
+      border-color: #FF3B30;
+      box-shadow: 0 0 12px rgba(229, 57, 53, 0.5);
     }
     
     .ship-btn.placed {
       opacity: 0.3;
-      border-color: var(--text-sec);
+      border-color: transparent;
       cursor: not-allowed;
     }
     
     .rotate-btn {
       margin-top: 10px;
-      padding: 10px 20px;
-      background: var(--card-bg);
-      border: 1px solid var(--primary);
-      color: var(--primary);
-      border-radius: 8px;
+      padding: 9px 18px;
+      background: var(--card-elevated);
+      border: 1px solid rgba(229, 57, 53, 0.4);
+      color: #fff;
+      border-radius: 10px;
       font-weight: 700;
+      font-size: 0.85rem;
       cursor: pointer;
     }
     
     .rotate-btn:active {
-      background: var(--primary);
-      color: white;
+      transform: scale(0.96);
     }
     
     .reward-popup {
@@ -317,15 +325,16 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0);
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      background: var(--card-bg);
       border-radius: 20px;
-      padding: 30px;
+      padding: 28px 24px;
       text-align: center;
       z-index: 1000;
-      border: 2px solid #ffd700;
-      box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-      animation: popIn 0.3s forwards;
-      max-width: 80%;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      max-width: 88%;
+      width: 300px;
     }
     
     @keyframes popIn {
@@ -334,21 +343,20 @@
     
     .reward-icon {
       font-size: 3rem;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     
     .reward-text {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: 800;
       color: #ffd700;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
     
     .reward-amount {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: 800;
       color: #ffd700;
-      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     }
     
     .overlay {
@@ -357,7 +365,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
       z-index: 999;
       display: none;
     }
@@ -371,8 +380,9 @@
       justify-content: space-around;
       padding: 10px;
       background: var(--card-bg);
-      border-radius: 10px;
-      margin-bottom: 10px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      border: var(--border-subtle);
     }
     
     .stat-item {
@@ -380,15 +390,16 @@
     }
     
     .stat-value {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: var(--primary);
     }
     
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--text-sec);
       text-transform: uppercase;
+      font-weight: 600;
     }
     
     .phase-indicator {
@@ -487,7 +498,7 @@
   <div class="reward-popup" id="reward-popup" style="display: none;">
     <div class="reward-icon" id="popup-icon">🎉</div>
     <div class="reward-text" id="popup-title">Победа!</div>
-    <div class="reward-amount" id="popup-amount">+100 Шишек</div>
+    <div class="reward-amount" id="popup-amount">+100 🌰</div>
     <button class="btn btn-primary" id="popup-btn" onclick="continueAfterWin()" style="margin-top: 20px;">▶️ Продолжить</button>
   </div>
 
@@ -1265,7 +1276,7 @@
       title.innerText = t.win;
       title.style.color = '#ffd700';
       amount.style.display = 'block';
-      amount.textContent = '+100 ' + t.cones;
+      amount.textContent = '+100 🌰';
       popup.style.borderColor = '#ffd700';
       btn.innerText = t.cont;
     } else {

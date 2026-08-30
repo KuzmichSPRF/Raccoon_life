@@ -8,20 +8,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #FF3B30;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --game-green: #33BD1C;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0;
-      padding: 15px;
+      padding: 14px;
       color: var(--text-main);
       display: flex;
       flex-direction: column;
@@ -30,34 +36,34 @@
       min-height: 100vh;
     }
     .status-box {
-      background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 30px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); min-height: 60px; display: flex;
-      align-items: center; justify-content: center; font-weight: bold; color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.05);
-      font-size: 1.1rem;
+      background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-height: 50px; display: flex;
+      align-items: center; justify-content: center; font-weight: 700; color: var(--text-main);
+      border: var(--border-subtle);
+      font-size: 1rem;
       width: 100%;
-      max-width: 400px;
+      max-width: 360px;
     }
     .arena {
-      display: flex; justify-content: center; align-items: center; gap: 30px;
-      margin-bottom: 40px;
+      display: flex; justify-content: center; align-items: center; gap: 24px;
+      margin-bottom: 30px;
       width: 100%;
     }
     .cap-wrapper {
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
     .cap {
-      width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333;
-      display: flex; align-items: center; justify-content: center; font-size: 45px;
-      background: #121214; position: relative; transition: all 0.3s ease;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      width: 88px; height: 88px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center; font-size: 40px;
+      background: var(--card-bg); position: relative; transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       z-index: 2;
     }
-    .cap.player { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,136,204,0.3); }
-    .cap.vladeos { border-color: var(--accent); box-shadow: 0 0 20px rgba(255,0,85,0.3); }
+    .cap.player { border-color: #E53935; box-shadow: 0 0 16px rgba(229,57,53,0.35); }
+    .cap.vladeos { border-color: #9b59b6; box-shadow: 0 0 16px rgba(155,89,182,0.35); }
     
     .score {
-      font-size: 2.5rem;
+      font-size: 2.2rem;
       font-weight: 800;
       color: var(--text-main);
       opacity: 0;
@@ -67,29 +73,28 @@
     .score.visible { opacity: 1; transform: scale(1); }
     
     .controls {
-      display: flex; flex-direction: column; gap: 12px;
-      width: 100%; max-width: 320px;
+      display: flex; flex-direction: column; gap: 10px;
+      width: 100%; max-width: 300px;
     }
     .btn {
-      padding: 16px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
-      color: white; font-size: 1rem; transition: transform 0.1s;
-      font-family: 'Montserrat', sans-serif;
+      padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+      color: white; font-size: 0.95rem; transition: transform 0.1s;
       text-transform: uppercase;
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .btn:active { transform: scale(0.96); }
     
     .btn-common { color: #a1a1aa; }
-    .btn-rare { color: #0088cc; border-color: #0088cc; }
-    .btn-epic { color: #9b59b6; border-color: #9b59b6; }
-    .btn-legend { color: #f1c40f; border-color: #f1c40f; }
+    .btn-rare { color: #0088cc; border-color: rgba(0,136,204,0.4); }
+    .btn-epic { color: #9b59b6; border-color: rgba(155,89,182,0.4); }
+    .btn-legend { color: #f1c40f; border-color: rgba(241,196,15,0.4); }
     .btn-diamond { 
-      background: linear-gradient(135deg, #00c6ff, #0072ff); 
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
       color: white; 
       border: none;
-      box-shadow: 0 0 20px rgba(0,198,255,0.4);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
 
     .hidden { display: none !important; }
@@ -97,12 +102,12 @@
     /* Animations */
     @keyframes clash-left {
       0% { transform: translateX(0); }
-      40% { transform: translateX(40px) rotate(10deg); }
+      40% { transform: translateX(35px) rotate(10deg); }
       100% { transform: translateX(0); }
     }
     @keyframes clash-right {
       0% { transform: translateX(0); }
-      40% { transform: translateX(-40px) rotate(-10deg); }
+      40% { transform: translateX(-35px) rotate(-10deg); }
       100% { transform: translateX(0); }
     }
     .anim-left { animation: clash-left 0.4s ease-in-out; }
@@ -111,26 +116,30 @@
     /* Reward Popup */
     .reward-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); display: none; align-items: center;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; align-items: center;
       justify-content: center; z-index: 1000;
     }
     .reward-popup {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
-      border-radius: 20px; padding: 30px; text-align: center;
-      border: 2px solid #ffd700; box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-      animation: popIn 0.3s forwards; max-width: 80%;
+      background: var(--card-bg);
+      border-radius: 20px; padding: 28px 24px; text-align: center;
+      border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; max-width: 88%;
+      width: 300px;
     }
     @keyframes popIn {
-      from { transform: scale(0); opacity: 0; }
+      from { transform: scale(0.85); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-    .reward-icon { font-size: 3rem; margin-bottom: 10px; }
-    .reward-text { font-size: 1.2rem; font-weight: 800; color: #ffd700; margin-bottom: 5px; }
-    .reward-amount { font-size: 2rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    .reward-icon { font-size: 3rem; margin-bottom: 8px; }
+    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 6px; }
+    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; }
     .btn-continue {
-      margin-top: 20px; padding: 14px 40px; background: var(--primary);
-      color: white; border: none; border-radius: 50px; font-weight: 800;
-      font-size: 1rem; cursor: pointer; text-transform: uppercase;
+      margin-top: 18px; padding: 13px 32px; 
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      color: white; border: none; border-radius: 12px; font-weight: 800;
+      font-size: 0.95rem; cursor: pointer; text-transform: uppercase;
+      width: 100%;
     }
   </style>
 </head>
@@ -163,7 +172,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+100 Шишек</div>
+      <div class="reward-amount" id="popup-amount">+100 🌰</div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>

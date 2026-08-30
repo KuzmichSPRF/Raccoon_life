@@ -8,42 +8,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
+      --primary: #E53935;
+      --accent: #FF3B30;
       --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      
-      --game-green: #00ff88;
-      --game-yellow: #ffcc00;
+      --card-bg: #18181A;
+      --card-elevated: #222224;
+      --text-main: #FFFFFF;
+      --text-sec: rgba(255, 255, 255, 0.6);
+      --game-green: #33BD1C;
+      --game-yellow: #FFD700;
+      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
     body { 
-      font-family: 'Montserrat', sans-serif; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
       text-align: center; 
       background-color: var(--bg-color); 
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
       margin: 0; 
-      padding: 15px; 
+      padding: 12px 14px; 
       color: var(--text-main); 
     }
     
     .status-box { 
-      background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); min-height: 80px; display: flex; 
-      align-items: center; justify-content: center; font-weight: bold; color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.05);
-      font-size: 1.1rem;
+      background: var(--card-bg); border-radius: 14px; padding: 12px; margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-height: 50px; display: flex; 
+      align-items: center; justify-content: center; font-weight: 700; color: var(--text-main);
+      border: var(--border-subtle);
+      font-size: 0.95rem;
     }
 
-    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; }
+    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 14px; }
     
-    .cap { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #333; 
-            display: flex; align-items: center; justify-content: center; font-size: 40px; 
-            background: #121214; position: relative; transition: all 0.3s ease; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+    .cap { width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); 
+            display: flex; align-items: center; justify-content: center; font-size: 38px; 
+            background: var(--card-bg); position: relative; transition: all 0.3s ease; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
     
-    .cap.active { border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 20px rgba(0,136,204,0.4), inset 0 0 10px rgba(0,0,0,0.5); }
+    .cap.active { border-color: var(--primary); transform: scale(1.08); box-shadow: 0 0 16px rgba(229, 57, 53, 0.4); }
     
     /* Анимации */
     @keyframes crit-shake { 0% {transform: rotate(0);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0);} }
@@ -54,33 +58,36 @@
     .animate-bot-attack { transform: translateX(-50px) scale(1.2) !important; }
 
     /* Полоски */
-    .bars { width: 100px; margin-top: 15px; }
-    .bar-label { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 3px; display: block; color: var(--text-sec); }
-    .bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; border: none; margin-bottom: 8px; }
+    .bars { width: 100px; margin-top: 10px; }
+    .bar-label { font-size: 8px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; color: var(--text-sec); }
+    .bar { height: 6px; background: #222224; border-radius: 3px; overflow: hidden; border: none; margin-bottom: 6px; }
     .fill { height: 100%; transition: width 0.4s ease; }
-    .hp { background: var(--game-green); box-shadow: 0 0 5px var(--game-green); }
-    .energy { background: var(--game-yellow); box-shadow: 0 0 5px var(--game-yellow); }
+    .hp { background: var(--game-green); }
+    .energy { background: var(--game-yellow); }
 
     /* Кнопки приемов */
     .controls { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; 
-      background: var(--card-bg); padding: 20px; border-radius: 20px; 
-      box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.05);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; 
+      background: var(--card-bg); padding: 14px; border-radius: 16px; 
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      border: var(--border-subtle);
     }
     .btn { 
-      padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
-      color: white; font-size: 0.85rem; transition: transform 0.1s;
-      font-family: 'Montserrat', sans-serif;
+      padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+      color: white; font-size: 0.8rem; transition: transform 0.1s;
       text-transform: uppercase;
     }
-    .btn:active { transform: scale(0.95); }
-    .btn:disabled { background: #333 !important; color: #666; opacity: 1; cursor: not-allowed; }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
 
-    .btn-std { background: var(--primary); grid-column: span 2; font-size: 1rem; padding: 16px; box-shadow: 0 0 15px rgba(0,136,204,0.3); }
+    .btn-std { 
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
+      grid-column: span 2; font-size: 0.95rem; padding: 14px; 
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45); 
+    }
     .btn-sp1 { background: #e67e22; }
     .btn-sp2 { background: #9b59b6; }
-    .btn-sp3 { background: var(--accent); box-shadow: 0 0 15px rgba(255,0,85,0.3); }
+    .btn-sp3 { background: var(--accent); box-shadow: 0 0 12px rgba(229, 57, 53, 0.3); }
 
     #restart-btn {
       animation: pulse 1.5s infinite;
@@ -90,31 +97,35 @@
       50% { transform: scale(1.05); }
     }
 
-    .log { font-size: 0.8rem; margin-top: 15px; color: var(--text-sec); font-style: italic; }
+    .log { font-size: 0.75rem; margin-top: 12px; color: var(--text-sec); }
     
     /* Reward Popup */
     .reward-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); display: none; align-items: center;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; align-items: center;
       justify-content: center; z-index: 1000;
     }
     .reward-popup {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
-      border-radius: 20px; padding: 30px; text-align: center;
-      border: 2px solid #ffd700; box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-      animation: popIn 0.3s forwards; max-width: 80%;
+      background: var(--card-bg);
+      border-radius: 20px; padding: 28px 24px; text-align: center;
+      border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; max-width: 88%;
+      width: 300px;
     }
     @keyframes popIn {
-      from { transform: scale(0); opacity: 0; }
+      from { transform: scale(0.85); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-    .reward-icon { font-size: 3rem; margin-bottom: 10px; }
-    .reward-text { font-size: 1.2rem; font-weight: 800; color: #ffd700; margin-bottom: 5px; }
-    .reward-amount { font-size: 2rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    .reward-icon { font-size: 3rem; margin-bottom: 8px; }
+    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 6px; }
+    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; }
     .btn-continue {
-      margin-top: 20px; padding: 14px 40px; background: var(--primary);
-      color: white; border: none; border-radius: 50px; font-weight: 800;
-      font-size: 1rem; cursor: pointer; text-transform: uppercase;
+      margin-top: 18px; padding: 13px 32px; 
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      color: white; border: none; border-radius: 12px; font-weight: 800;
+      font-size: 0.95rem; cursor: pointer; text-transform: uppercase;
+      width: 100%;
     }
   </style>
 </head>
@@ -151,7 +162,7 @@
     <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
     <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
     <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 Шишек)</button>
+    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100 HP (100 🌰)</button>
   </div>
 
   <!-- Reward Popup -->
@@ -159,7 +170,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+10 Шишек</div>
+      <div class="reward-amount" id="popup-amount">+10 🌰</div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -171,12 +182,12 @@
     const t = {
       ru: {
         msgStart: "Твой ход, Енот! <br>Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун",
-        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: "🍪 100 HP (100 Шишек)",
+        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: "🍪 100 HP (100 🌰)",
         logSt: "Битва началась..."
       },
       en: {
         msgStart: "Your turn, Raccoon! <br>Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Clown",
-        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: "🍪 100 HP (100 Cones)",
+        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: "🍪 100 HP (100 🌰)",
         logSt: "Battle started..."
       }
     }[lang];

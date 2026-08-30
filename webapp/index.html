@@ -8,297 +8,755 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #0088cc;
-      --accent: #ff0055;
-      --bg-color: #121214;
-      --card-bg: #1e1e24;
-      --text-main: #ffffff;
-      --text-sec: #a1a1aa;
-      --game-green: #00ff88;
+      --bg-primary: #121214;
+      --bg-secondary: #18181A;
+      --bg-elevated: #222224;
+      --bg-elevated-hover: #2c2c30;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(229, 57, 53, 0.6);
+      --text-primary: #FFFFFF;
+      --text-muted: #E5E5EA;
+      --text-secondary: #7D7D85;
+      --btn-red: #E53935;
+      --btn-red-active: #C62828;
+      --accent-green: #33BD1C;
+      --accent-gold: #FFD700;
+      --accent-orange: #FF9500;
+      --accent-blue: #0088cc;
+      --nav-height: 60px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Montserrat', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      min-height: 100vh;
-      background-image: radial-gradient(circle at top, #1e1e24 0%, #121214 100%);
-    }
-    #tot-screen {
-      background: transparent;
-      min-height: 100vh;
-      position: relative;
-      isolation: isolate;
-      overflow: hidden;
-    }
-    #tot-screen::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: url('/image/bgr_toto.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      z-index: 0;
-      transform: scale(1.02);
-    }
-    #tot-screen::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(7, 7, 10, 0.35);
-      z-index: 0;
-    }
-    #tot-screen .rating-tabs,
-    #tot-content {
-      background: transparent;
-      position: relative;
-      z-index: 1;
-    }
-    #tot-screen .rating-tab {
-      background: rgba(20, 20, 26, 0.82);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.14);
-    }
-    .tot-card {
-      background: rgba(24, 24, 30, 0.78);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-    }
-    .screen { display: none; padding: 5vh 16px 20px; flex-direction: column; gap: 12px; }
-    .active { display: flex; }
-    #cover-screen {
-      text-align: center; align-items: center; justify-content: center;
-      height: 100vh; gap: 20px;
-    }
-    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; }
-    p { font-size: 1.1rem; line-height: 1.6; color: var(--text-sec); max-width: 300px; }
-    .main-menu-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px;
-    }
-    .menu-card {
-      background: linear-gradient(145deg, #23232a, #1c1c21);
-      border-radius: 20px; padding: 20px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 12px; cursor: pointer; text-align: center;
-      box-shadow: 5px 5px 10px #0b0b0c, -5px -5px 10px #25252c;
-      border: 1px solid rgba(255,255,255,0.05); aspect-ratio: 1;
-    }
-    .menu-card:active { transform: scale(0.95); }
-    .menu-card-icon {
-      font-size: 2.5rem; background: #121214;
-      width: 70px; height: 70px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      border: 2px solid var(--primary);
-      box-shadow: 0 0 15px rgba(0, 136, 204, 0.2);
-    }
-    .menu-card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; }
-    .token-balance {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
-      border-radius: 15px; padding: 15px; margin-bottom: 15px;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
-    }
-    .token-icon { font-size: 1.8rem; }
-    .token-amount {
-      font-size: 1.5rem; font-weight: 800; color: #ffd700;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-    }
-    .token-label { font-size: 0.7rem; color: var(--text-sec); text-transform: uppercase; }
-    .section-title {
-      font-size: 1.8rem;
-      font-weight: 800;
-      margin-bottom: 12px;
-      color: #ffffff;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-      letter-spacing: 0.02em;
-    }
-    .list-item {
-      background: var(--card-bg); border-radius: 12px; padding: 16px;
-      display: flex; align-items: center; gap: 15px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 12px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .list-item.completed { border: 1px solid var(--game-green); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
-    .list-item.locked { opacity: 0.6; filter: grayscale(100%); cursor: not-allowed; border-color: #333; }
-    .list-item-title { font-size: 1.1rem; font-weight: 700; }
-    .list-item-desc { font-size: 0.9rem; color: var(--text-sec); }
-    .list-item.completed .list-item-title::before { content: '✅ '; }
-    #reader-screen { padding: 0; height: 100vh; flex-direction: column; }
-    #reader-topbar {
-      display: flex; align-items: center; padding: 10px 16px;
-      background: var(--card-bg); border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    #back-btn {
-      background: transparent; border: none; font-size: 1.5rem;
-      color: var(--text-main); padding: 5px 10px; cursor: pointer;
-    }
-    #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
-    .btn-primary {
-      background: var(--primary); color: white; border: none;
-      border-radius: 50px; padding: 16px; font-family: 'Montserrat', sans-serif;
-      font-size: 1.1rem; font-weight: 800; text-transform: uppercase;
-      cursor: pointer; width: 80%; max-width: 280px; margin: 0 auto;
-      box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
-    }
-    .btn-primary:active { transform: scale(0.95); }
-    
-    /* Language Switcher */
-    .lang-switcher { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
-    .lang-switcher:active { transform: scale(0.95); }
-    
-    /* Рейтинг Tabs */
-    .rating-tabs {
-      display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
-    }
-    #tot-screen {
-      padding-top: max(8px, 2vh);
-    }
-    #tot-screen .section-title {
-      margin-top: 0;
-      margin-bottom: 0;
-      padding: 0 8px;
-      position: relative;
-      z-index: 2;
-      display: block;
-      background: transparent;
-      border-radius: 0;
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
       padding: 0;
-      width: auto;
-      margin-left: auto;
-      margin-right: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', 'Montserrat', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-tap-highlight-color: transparent;
     }
-    #tot-screen .rating-tabs {
-      margin-top: 4px;
-      margin-bottom: 8px;
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
     }
-    .rating-tab {
-      flex: 1; padding: 12px; background: var(--card-bg); color: var(--text-sec);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer;
-      font-family: 'Montserrat', sans-serif; font-weight: 700; text-transform: uppercase;
-      font-size: 0.9rem; transition: 0.2s; text-align: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+
+    /* Text Color Modifiers (CapsGame) */
+    .trans--gold, .trans--yellow { color: var(--accent-gold); }
+    .trans--orange { color: var(--accent-orange); }
+    .trans--red { color: var(--btn-red); }
+    .trans--green { color: var(--accent-green); }
+    .trans--under { text-decoration: underline; }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
+
+    /* Button System (CapsGame) */
+    .button {
+      font-style: normal;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 20px;
+      text-align: center;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      transition: transform 0.125s ease-in-out, background-color 0.15s ease, box-shadow 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
-    .rating-tab.active {
-      background: var(--primary); color: white;
-      border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    .button:active { transform: scale(0.96); }
+    .button-size-large { height: 50px; width: 100%; font-size: 16px; font-weight: 800; }
+    .button-type-primary.button-color-red {
+      background-color: var(--btn-red);
+      color: #FFFFFF;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
-    .user-rank-card {
-      background: linear-gradient(135deg, rgba(0, 136, 204, 0.18), rgba(30, 30, 36, 0.95));
-      border: 1.5px solid rgba(0, 136, 204, 0.55);
-      border-radius: 12px;
-      padding: 14px 16px;
+    .button-type-primary.button-color-red:active {
+      background-color: var(--btn-red-active);
+    }
+    .button-type-secondary {
+      background-color: var(--bg-elevated);
+      color: var(--text-muted);
+      border: 0.5px solid var(--border-subtle);
+    }
+    .button-type-nonactive {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .button-full { width: 100%; }
+
+    /* Badge Icon Buttons */
+    .badge-icon-button {
+      position: relative;
+      cursor: pointer;
+      border: none;
+      background-color: unset;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.125s ease-in-out;
+    }
+    .badge-icon-button:active { transform: scale(0.92); }
+    .badge-icon-button__icon {
+      font-size: 1.4rem;
       display: flex;
       align-items: center;
-      gap: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.2);
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+    }
+    .badge-icon-button__badge {
+      margin-top: 2px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 2px 7px;
+      border-radius: 8px;
+      border: 0.5px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    /* Screen Management */
+    .screen {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-height) + 16px);
+      box-sizing: border-box;
+    }
+    .screen.active {
+      display: flex;
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Home Layout (CapsGame) */
+    .home {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+    }
+
+    /* Header Bar */
+    .home__title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 0.5px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .home__user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cap__element-wrapper {
       position: relative;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-gold), var(--btn-red));
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cap__element {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+    }
+    .cap__element img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .home-leaderboard {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .home-leaderboard__username {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FFFFFF;
+      max-width: 110px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .home-leaderboard__score {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .home-leaderboard__score-img {
+      font-size: 0.85rem;
+    }
+    .home-leaderboard__score-points {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-gold);
+    }
+    .home-leaderboard__progress {
+      width: 60px;
+      height: 3px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .home-leaderboard__progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-green));
+      border-radius: 3px;
+    }
+    .home__title-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Currency / Resource Buttons Bar */
+    .home__profile-buttons {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px 2px;
+      width: 100%;
+      justify-content: space-between;
+    }
+    .home__profile {
+      flex: 1;
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 8px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.125s ease-in-out, border-color 0.15s;
+    }
+    .home__profile:active { transform: scale(0.96); border-color: var(--border-focus); }
+    .profile-pill-icon { font-size: 1.1rem; }
+    .home-energy__block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .home-energy__num {
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+    .home-energy__progress {
+      width: 32px;
+      height: 3px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .home-energy__progress-bar {
+      height: 100%;
+      background: var(--accent-green);
+    }
+
+    /* Center Container & Badges Layout */
+    .home__bottom-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      position: relative;
+      min-height: 270px;
+      flex: 1;
+    }
+    .home__bottom-left-column, .home__bottom-right {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2;
+    }
+    .offer-badge {
+      position: relative;
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 6px 4px;
+      width: 62px;
+      height: 62px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.125s ease-in-out, border-color 0.15s;
+    }
+    .offer-badge:active { transform: scale(0.92); border-color: var(--btn-red); }
+    .offer-badge__timer {
+      position: absolute;
+      top: -5px;
+      right: -3px;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 6px;
+      border: 0.5px solid rgba(255, 255, 255, 0.15);
+      letter-spacing: 0.03em;
+    }
+    .offer-badge__timer--live { background: var(--btn-red); color: #FFFFFF; box-shadow: 0 0 6px rgba(229, 57, 53, 0.6); }
+    .offer-badge__timer--hot { background: var(--accent-orange); color: #FFFFFF; box-shadow: 0 0 6px rgba(255, 149, 0, 0.6); }
+    .offer-badge__timer--gold { background: var(--accent-gold); color: #121214; }
+    .offer-badge__icon { font-size: 1.45rem; line-height: 1; }
+    .offer-badge__label { font-size: 9px; font-weight: 600; color: var(--text-secondary); margin-top: 3px; text-align: center; }
+
+    /* Center Mascot */
+    .home__center-mascot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1;
+      text-align: center;
+    }
+    .mascot-ambient-glow {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(229, 57, 53, 0.2) 0%, rgba(255, 215, 0, 0.12) 45%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(24px);
+      animation: pulseGlow 4s infinite alternate ease-in-out;
+    }
+    @keyframes pulseGlow {
+      from { transform: scale(0.85); opacity: 0.6; }
+      to { transform: scale(1.15); opacity: 1; }
+    }
+    .mascot-character {
+      font-size: 5.5rem;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7));
+      animation: floatMascot 4s ease-in-out infinite;
+    }
+    @keyframes floatMascot {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+    .mascot-season-tag {
+      margin-top: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      background: var(--bg-secondary);
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 0.5px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    /* Home Bottom Action Bar */
+    .home__bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px 12px;
+      gap: 10px;
+      width: 100%;
+    }
+    .home__bottom-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.125s ease-in-out, border-color 0.15s;
+    }
+    .home__bottom-btn:active { transform: scale(0.92); border-color: var(--btn-red); }
+    .home__bottom-icon { font-size: 1.3rem; line-height: 1; }
+    .home__bottom-btn-label { font-size: 8px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
+    .home__play-main-btn {
+      flex: 1;
+      height: 50px;
+      border-radius: 18px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    /* CapsGame Bottom Sheet (Play Sheet & Modals) */
+    .bottom-sheet__wrapper {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: flex-end;
+    }
+    .bottom-sheet__wrapper.active {
+      display: flex;
+    }
+    .bottom-sheet__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .bottom-sheet__block {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      background-color: var(--bg-secondary);
+      border-radius: 24px 24px 0 0;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.12);
+      padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+      animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes sheetSlideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .bottom-sheet__divider {
+      width: 36px;
+      height: 4px;
+      background-color: var(--text-secondary);
+      border-radius: 2px;
+      margin: 0 auto 8px;
+      opacity: 0.5;
+    }
+    .bottom-sheet__hide {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: block;
+      margin: 0 auto 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .play-bottom-sheet__block {
+      margin-bottom: 12px;
+    }
+    .play-bottom-sheet__energy {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      padding: 10px 14px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .play-bottom-sheet__energy span {
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+    .play-bottom-sheet__grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .play-bottom-sheet__button {
+      width: 100%;
+      background-color: var(--bg-elevated);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.125s ease-in-out, border-color 0.15s, background-color 0.15s;
+    }
+    .play-bottom-sheet__button:active {
+      transform: scale(0.98);
+      border-color: var(--btn-red);
+      background-color: var(--bg-elevated-hover);
+    }
+    .play-bottom-sheet__title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .play-bottom-sheet__icon {
+      font-size: 1.2rem;
+      margin-right: 6px;
+    }
+    .play-bottom-sheet__fee {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .play-bottom-sheet__description {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    /* CapsGame Navigation Dock */
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background-color: var(--bg-primary);
+      border-top: 0.5px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4px env(safe-area-inset-bottom, 0px);
+      z-index: 100;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .nav__item {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex: 1;
+      padding: 6px 0;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      transition: all 0.15s ease-in-out;
+    }
+    .nav__item:active { transform: scale(0.92); }
+    .nav__item .nav-icon { font-size: 1.25rem; transition: transform 0.15s ease; }
+    .nav__item--active {
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+    .nav__item--active .nav-icon {
+      transform: translateY(-2px);
+      filter: drop-shadow(0 0 8px rgba(229, 57, 53, 0.7));
+    }
+
+    /* List Item Cards (Quests, Games, News) */
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+    .list-item {
+      background-color: var(--bg-secondary);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: transform 0.125s ease, border-color 0.15s;
+    }
+    .list-item:active {
+      transform: scale(0.98);
+      border-color: var(--btn-red);
+    }
+    .list-item.completed {
+      border-color: rgba(51, 189, 28, 0.4);
+      background-color: rgba(31, 110, 18, 0.12);
+    }
+    .list-item.locked {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: rgba(255,255,255,0.04);
+    }
+    .list-item-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .list-item-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .list-item-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+    .list-item-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      background: var(--bg-elevated);
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 0.5px solid rgba(255, 215, 0, 0.2);
+      margin-top: 3px;
+    }
+    .list-item.completed .list-item-badge {
+      color: var(--accent-green);
+      border-color: rgba(51, 189, 28, 0.2);
+    }
+
+    /* Rating (Leaderboard) */
+    .rating-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 14px;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .rating-tab {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 12px;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .rating-tab.active {
+      background: var(--btn-red);
+      color: white;
+      box-shadow: 0 2px 10px rgba(229, 57, 53, 0.4);
+    }
+    .user-rank-card {
+      background: linear-gradient(135deg, rgba(229, 57, 53, 0.15), var(--bg-secondary));
+      border: 1px solid rgba(229, 57, 53, 0.5);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
     .user-rank-badge {
-      font-size: 0.65rem;
+      font-size: 9px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: var(--primary);
+      background: var(--btn-red);
       color: white;
       padding: 2px 6px;
       border-radius: 4px;
       margin-left: 6px;
-      vertical-align: middle;
-    }
-    .tot-side-btn {
-      flex: 1;
-      padding: 10px 6px;
-      font-size: 0.8rem;
-      line-height: 1.2;
-      background: rgba(20, 20, 26, 0.82);
-      color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 12px;
-      cursor: pointer;
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 700;
-      text-transform: none;
-      text-align: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      backdrop-filter: blur(8px);
-      min-height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .tot-side-btn:active {
-      transform: scale(0.97);
-    }
-    .tot-side-btn.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: white;
-      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
-    }
-    .tot-brand {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin: 10px auto 10px;
-      padding: 8px 14px;
-      width: fit-content;
-      border-radius: 999px;
-      background: rgba(20, 20, 26, 0.82);
-      border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      backdrop-filter: blur(8px);
-      transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
-    }
-    .tot-brand-icon {
-      font-size: 1.2rem;
-      filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.35));
-      transition: filter 0.25s ease;
-    }
-    .tot-brand-text {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 800;
-      font-size: 1rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #ffd36a;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.45);
-      transition: text-shadow 0.25s ease, filter 0.25s ease;
-    }
-    .tot-brand.success {
-      transform: translateY(-1px);
-      background: rgba(34, 26, 8, 0.92);
-      border-color: rgba(255, 211, 106, 0.7);
-      box-shadow: 0 0 0 1px rgba(255, 211, 106, 0.25), 0 0 18px rgba(255, 211, 106, 0.45), 0 0 32px rgba(255, 176, 0, 0.28);
-      animation: tot-brand-glow 1.2s ease;
-    }
-    .tot-brand.success .tot-brand-icon,
-    .tot-brand.success .tot-brand-text {
-      filter: brightness(1.35) saturate(1.25);
-      text-shadow: 0 0 10px rgba(255, 211, 106, 0.8), 0 0 20px rgba(255, 176, 0, 0.45);
-    }
-    @keyframes tot-brand-glow {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.03); }
-      70% { transform: scale(0.98); }
-      100% { transform: scale(1); }
     }
 
-    /* Tutorial Modal Styles */
+    /* Reader Screen */
+    #reader-screen { padding: 0; height: 100vh; flex-direction: column; }
+    #reader-topbar {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 0.5px solid var(--border-subtle);
+      z-index: 10;
+    }
+    #back-btn {
+      background: var(--bg-elevated);
+      border: none;
+      font-size: 1rem;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    #reader-iframe { border: none; width: 100%; flex: 1; height: 100%; }
+
+    /* Modals (CapsGame info__wrapper style) */
     .tutorial-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -307,101 +765,138 @@
     }
     .tutorial-overlay.active { display: flex; }
     .tutorial-modal {
-      background: linear-gradient(145deg, #2a2a35, #1f1f28);
+      background: var(--bg-secondary);
       border-radius: 24px;
-      padding: 30px 20px;
-      max-width: 340px;
+      padding: 26px 20px;
+      max-width: 360px;
+      width: 100%;
       text-align: center;
-      border: 2px solid var(--primary);
-      box-shadow: 0 0 30px rgba(0, 136, 204, 0.3);
-      animation: tutorialSlideIn 0.3s ease-out;
+      border: 0.5px solid var(--border-subtle);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      animation: modalSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    @keyframes tutorialSlideIn {
-      from { transform: translateY(50px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    @keyframes modalSlideUp {
+      from { transform: translateY(30px) scale(0.96); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
     }
-    .tutorial-icon { font-size: 4rem; margin-bottom: 15px; display: block; }
-    .tutorial-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-    .tutorial-desc { font-size: 1rem; color: var(--text-sec); line-height: 1.5; margin-bottom: 20px; }
-    .tutorial-btn {
-      background: var(--primary);
+    .tutorial-icon { font-size: 3.5rem; margin-bottom: 10px; display: block; }
+    .tutorial-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; color: var(--text-primary); }
+    .tutorial-desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 18px; }
+
+    /* Form Fields */
+    .news-textarea, .news-select {
+      width: 100%;
+      background: var(--bg-primary);
       color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 14px 40px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      outline: none;
     }
-    .tutorial-btn:active { transform: scale(0.95); }
-    
-    /* News Submit specific styles */
-    .news-textarea {
-      width: 100%; height: 120px; background: #121214; color: white;
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
-      padding: 12px; font-family: 'Montserrat', sans-serif; resize: none;
-      margin-bottom: 15px; font-size: 0.9rem;
+    .news-textarea:focus, .news-select:focus {
+      border-color: var(--btn-red);
     }
-    .news-select {
-      width: 100%; background: #121214; color: white;
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
-      padding: 12px; font-family: 'Montserrat', sans-serif;
-      margin-bottom: 15px; font-size: 0.9rem; cursor: pointer;
-    }
-    .news-textarea:focus { outline: none; border-color: var(--primary); }
     .anon-toggle {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-      justify-content: center; cursor: pointer; color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
     }
     .close-modal-btn {
-      position: absolute; top: 10px; right: 15px; background: none; border: none;
-      color: var(--text-sec); font-size: 1.5rem; cursor: pointer;
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: var(--bg-elevated);
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
     }
 
-    /* Modal Input for Betting */
-    .bet-currency-tabs {
-      display: flex; gap: 10px; margin-bottom: 15px; width: 100%;
+    /* Totalizator (EnotXbet) */
+    #tot-screen {
+      background: transparent;
+      min-height: 100vh;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      padding: 0 16px 80px;
     }
-    .bet-currency-tab {
-      flex: 1; padding: 12px; background: #121214; color: var(--text-sec);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; cursor: pointer;
-      font-family: 'Montserrat', sans-serif; font-weight: 700; transition: 0.2s;
+    #tot-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('/image/bgr_toto.png');
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
     }
-    .bet-currency-tab.active {
-      background: var(--primary); color: white; border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
+    #tot-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 18, 20, 0.75);
+      z-index: 0;
     }
-    
-    /* New Totalizator Styles */
+    #tot-screen .rating-tabs,
+    #tot-content {
+      position: relative;
+      z-index: 1;
+    }
+    .tot-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px auto 12px;
+      padding: 6px 16px;
+      width: fit-content;
+      border-radius: 999px;
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--accent-gold);
+      position: relative;
+      z-index: 1;
+    }
+    .tot-brand-icon { font-size: 1.2rem; }
+    .tot-brand-text {
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-gold);
+    }
     .tot-card {
-      background: #1e1e24;
+      background: var(--bg-secondary);
       border-radius: 16px;
       padding: 12px;
-      margin-bottom: 16px;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      margin-bottom: 12px;
+      border: 0.5px solid var(--border-subtle);
     }
     .tot-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.75rem;
-      color: var(--text-sec);
+      color: var(--text-secondary);
       margin-bottom: 8px;
-      padding: 0 4px;
     }
     .tot-card-header .status-dot {
       width: 8px; height: 8px; border-radius: 50%;
-      background: var(--game-green);
-      box-shadow: 0 0 8px var(--game-green);
-      margin-right: 5px;
-    }
-    .tot-card-header .status-dot.locked {
-      background: #ff4444;
-      box-shadow: 0 0 8px #ff4444;
+      background: var(--accent-green);
+      display: inline-block;
+      margin-right: 4px;
     }
     .tot-card-teams {
       display: flex;
@@ -412,64 +907,70 @@
     .tot-team {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      font-size: 1rem;
-    }
-    .tot-team-flag {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(255,255,255,0.2);
-    }
-    .tot-vs {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--text-sec);
-    }
-    .tot-title {
+      gap: 6px;
       font-weight: 700;
       font-size: 0.9rem;
-      text-align: center;
-      margin-bottom: 10px;
+    }
+    .tot-team-flag {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .tot-vs {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-secondary);
     }
     .tot-odds-container {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-top: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 10px;
     }
     .tot-odds-btn {
-      background: rgba(0, 136, 204, 0.1);
-      border: 1px solid var(--primary);
-      color: var(--text-main);
-      border-radius: 12px;
-      padding: 10px 5px;
-      font-size: 0.8rem;
+      background: var(--bg-elevated);
+      border: 0.5px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-radius: 10px;
+      padding: 8px 4px;
+      font-size: 0.78rem;
       font-weight: 700;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 0 10px rgba(0, 136, 204, 0.2);
+      transition: all 0.15s;
     }
     .tot-odds-btn:active {
-      transform: scale(0.95);
-      background: var(--primary);
-    }
-    .tot-odds-btn.disabled {
-      background: rgba(255,255,255,0.05);
-      border-color: #444;
-      color: var(--text-sec);
-      cursor: not-allowed;
-      box-shadow: none;
+      background: var(--btn-red);
+      border-color: var(--btn-red);
     }
     .tot-odds-btn .odds-value {
-      color: var(--primary);
+      color: var(--accent-gold);
       font-size: 0.7rem;
+      display: block;
+      margin-top: 2px;
     }
-    .tot-odds-btn.disabled .odds-value { color: var(--text-sec); }
-
+    .bet-currency-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    .bet-currency-tab {
+      flex: 1;
+      padding: 8px;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .bet-currency-tab.active {
+      background: var(--btn-red);
+      color: white;
+      border-color: var(--btn-red);
+    }
   </style>
 </head>
 <body>
@@ -561,111 +1062,309 @@
     </div>
   </div>
 
-  <div id="cover-screen" class="screen active">
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
-      <button class="lang-switcher" onclick="toggleLanguage()" id="lang-btn">RU</button>
+  <!-- Top App Header (CapsGame Header Bar) -->
+  <header id="app-header" class="home__title" style="display: none;">
+    <div class="home__user">
+      <div class="badge-icon-button home__user-profile" onclick="showLeaderboard(); triggerHaptic('selection');">
+        <div class="cap__element-wrapper">
+          <button class="cap__element" id="header-avatar-btn">
+            <div id="header-avatar">🦝</div>
+          </button>
+        </div>
+        <div class="badge-icon-button__badge" data-i18n="badge_profile">Профиль</div>
+      </div>
+      <div class="home-leaderboard" onclick="showLeaderboard(); triggerHaptic('selection');">
+        <div class="home-leaderboard__username" id="header-user-name">EHOT</div>
+        <div class="home-leaderboard__score">
+          <span class="home-leaderboard__score-img">🏆</span>
+          <div class="home-leaderboard__score-points">
+            <span id="header-user-score">0</span>
+            <div class="home-leaderboard__progress">
+              <div class="home-leaderboard__progress-fill" id="header-user-progress" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div style="font-size: 5rem; filter: drop-shadow(0 0 20px rgba(0,136,204,0.5));">🦝</div>
-    <h1>Raccoon Life</h1>
-    <p data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
-    <button class="btn-primary" onclick="navigateTo('main-menu')" data-i18n="cover_btn">Открыть меню</button>
+    <div class="home__title-badges">
+      <button class="badge-icon-button" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0'); triggerHaptic('light');" aria-label="Wallet">
+        <span class="badge-icon-button__icon">👛</span>
+        <div class="badge-icon-button__badge">TON</div>
+      </button>
+      <button class="badge-icon-button" onclick="toggleLanguage(); triggerHaptic('light');" aria-label="Lang">
+        <span class="badge-icon-button__icon">🌐</span>
+        <div class="badge-icon-button__badge" id="lang-btn">RU</div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Cover Screen -->
+  <div id="cover-screen" class="screen active" style="text-align: center; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; gap: 20px;">
+    <div style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+      <button class="button button-type-secondary" style="padding: 6px 14px; font-size: 12px; border-radius: 12px;" onclick="toggleLanguage(); triggerHaptic('light');" id="cover-lang-btn">RU</button>
+    </div>
+    <div style="position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+      <div class="mascot-ambient-glow"></div>
+      <div class="mascot-character" style="font-size: 5rem;">🦝</div>
+    </div>
+    <div>
+      <div class="mascot-season-tag" style="display: inline-block; margin-bottom: 6px;">Season 2 • The Raccoon Times</div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: #ffffff;">Raccoon Life</h1>
+    </div>
+    <p style="font-size: 0.95rem; line-height: 1.5; color: var(--text-secondary); max-width: 290px;" data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
+    <button class="button button-size-large button-type-primary button-color-red" style="max-width: 280px;" onclick="navigateTo('main-menu'); triggerHaptic('impact');" data-i18n="cover_btn">Открыть меню</button>
   </div>
 
+  <!-- Main Menu Screen (CapsGame Home Hub) -->
   <div id="main-menu" class="screen">
-    <div class="token-balance">
-      <span class="token-icon">🌲</span>
-      <div>
-        <div class="token-amount" id="token-balance">0</div>
-        <div class="token-label" data-i18n="cones">Шишки</div>
+    <!-- Resource Pills Bar -->
+    <div class="home__profile-buttons">
+      <button class="home__profile" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек">
+        <span class="profile-pill-icon">🌰</span>
+        <span id="token-balance">0</span>
+      </button>
+      <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');" title="Прогресс квестов">
+        <span class="profile-pill-icon">❓</span>
+        <span id="quests-progress-pill">0/7</span>
+      </button>
+      <button class="home-energy home__profile" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия">
+        <span class="profile-pill-icon">⚡</span>
+        <div class="home-energy__block">
+          <div><span class="home-energy__num">30</span>/30</div>
+          <div class="home-energy__progress">
+            <div class="home-energy__progress-fill" id="header-user-progress" style="width: 100%;"></div>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Center Mascot & Floating Badges -->
+    <div class="home__bottom-container">
+      <!-- Left Column Badges -->
+      <div class="home__bottom-left-column">
+        <button class="offer-badge" onclick="renderCategory('newspapers'); triggerHaptic('light');">
+          <div class="offer-badge__timer">NEWS</div>
+          <span class="offer-badge__icon">📰</span>
+          <div class="offer-badge__label" data-i18n="menu_news">Газеты</div>
+        </button>
+        <button class="offer-badge" onclick="renderCategory('partners'); triggerHaptic('light');">
+          <div class="offer-badge__timer">NET</div>
+          <span class="offer-badge__icon">🤝</span>
+          <div class="offer-badge__label" data-i18n="menu_partners">Партнеры</div>
+        </button>
+        <button class="offer-badge" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0'); triggerHaptic('light');">
+          <div class="offer-badge__timer">TON</div>
+          <span class="offer-badge__icon">💎</span>
+          <div class="offer-badge__label" data-i18n="menu_support">Донат</div>
+        </button>
+      </div>
+
+      <!-- Center Mascot Character -->
+      <div class="home__center-mascot" onclick="triggerHaptic('impact');">
+        <div class="mascot-ambient-glow"></div>
+        <div class="mascot-character">🦝</div>
+        <div class="mascot-season-tag">SEASON 2 • RACCOON LIFE</div>
+      </div>
+
+      <!-- Right Column Badges -->
+      <div class="home__bottom-right">
+        <button class="offer-badge" onclick="openTotalizator(); triggerHaptic('light');">
+          <div class="offer-badge__timer offer-badge__timer--live">LIVE</div>
+          <span class="offer-badge__icon">🎲</span>
+          <div class="offer-badge__label" data-i18n="menu_tot">EnotXbet</div>
+        </button>
+        <button class="offer-badge" onclick="handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette }); triggerHaptic('light');">
+          <div class="offer-badge__timer offer-badge__timer--hot">HOT</div>
+          <span class="offer-badge__icon">🎰</span>
+          <div class="offer-badge__label" data-i18n="menu_roulette">Рулетка</div>
+        </button>
+        <button class="offer-badge" onclick="showLeaderboard(); triggerHaptic('light');">
+          <div class="offer-badge__timer offer-badge__timer--gold">ТОП</div>
+          <span class="offer-badge__icon">🏆</span>
+          <div class="offer-badge__label" data-i18n="menu_rating">Рейтинг</div>
+        </button>
       </div>
     </div>
-    <div class="main-menu-grid">
-      <div class="menu-card" onclick="renderCategory('quests')">
-        <span class="menu-card-icon">❓</span>
-        <span class="menu-card-title" data-i18n="menu_quests">Квесты</span>
-      </div>
-      <div class="menu-card" onclick="renderCategory('games')">
-        <span class="menu-card-icon">🎮</span>
-        <span class="menu-card-title" data-i18n="menu_games">Мини-игры</span>
-      </div>
-      <div class="menu-card" onclick="handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette })">
-        <span class="menu-card-icon">🎰</span>
-        <span class="menu-card-title" data-i18n="menu_roulette">Енотная Рулетка</span>
-      </div>
-      <div class="menu-card" onclick="renderCategory('newspapers')">
-        <span class="menu-card-icon">📰</span>
-        <span class="menu-card-title" data-i18n="menu_news">Газеты</span>
-      </div>
-      <div class="menu-card" onclick="openTotalizator()">
-        <span class="menu-card-icon">🎲</span>
-        <span class="menu-card-title" data-i18n="menu_tot">Тотализатор</span>
-      </div>
-      <!-- Временно скрытый крафт -->
-      <!--
-      <div class="menu-card" onclick="window.location.href='coop_craft.html'">
-        <span class="menu-card-icon">🛠</span>
-        <span class="menu-card-title" data-i18n="menu_craft">Крафт</span>
-      </div>
-      -->
-      <div class="menu-card" onclick="renderCategory('partners')">
-        <span class="menu-card-icon">🤝</span>
-        <span class="menu-card-title" data-i18n="menu_partners">Партнеры</span>
-      </div>
-      <div class="menu-card" onclick="openShop()">
-        <span class="menu-card-icon">🛒</span>
-        <span class="menu-card-title" data-i18n="menu_shop">Рынок</span>
-      </div>
-      <div class="menu-card" onclick="showLeaderboard()">
-        <span class="menu-card-icon">🏆</span>
-        <span class="menu-card-title" data-i18n="menu_rating">Рейтинг</span>
-      </div>
-      <div class="menu-card" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0')">
-        <span class="menu-card-icon">💎</span>
-        <span class="menu-card-title" data-i18n="menu_support">Поддержать</span>
+
+    <!-- Home Bottom Actions Bar -->
+    <div class="home__bottom">
+      <button class="home__bottom-btn" onclick="showTokenBonus(); triggerHaptic('light');" title="Бонус">
+        <span class="home__bottom-icon">🎁</span>
+        <span class="home__bottom-btn-label">Бонус</span>
+      </button>
+      <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" onclick="togglePlayBottomSheet(true); triggerHaptic('impact');">
+        <span>ИГРАТЬ</span>
+      </button>
+      <button class="home__bottom-btn" onclick="openShop(); triggerHaptic('light');" title="Рынок">
+        <span class="home__bottom-icon">🛒</span>
+        <span class="home__bottom-btn-label" data-i18n="menu_shop">Рынок</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Play Bottom Sheet (CapsGame Slide-up Modal) -->
+  <div id="play-bottom-sheet-wrapper" class="bottom-sheet__wrapper">
+    <div class="bottom-sheet__backdrop" onclick="togglePlayBottomSheet(false)"></div>
+    <div class="bottom-sheet__block">
+      <div class="bottom-sheet__divider"></div>
+      <button class="bottom-sheet__hide" onclick="togglePlayBottomSheet(false)">Скрыть</button>
+
+      <div class="play-bottom-sheet">
+        <div class="play-bottom-sheet__block">
+          <div class="play-bottom-sheet__energy">
+            <div>⚡ Накопление энергии</div>
+            <span>30/30 (Полная)</span>
+          </div>
+        </div>
+
+        <div class="play-bottom-sheet__grid">
+          <!-- Найди Фишку -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎯 Найди Фишку' : '🎯 Find the Chip', url: 'find_chip.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">🎯</span>Найди Фишку</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 🌰</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Угадай правильную фишку и забери шишки!</div>
+          </button>
+
+          <!-- Морской Бой -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">⚓</span>Морской Бой</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 🌰</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Классическая морская баталия против енота</div>
+          </button>
+
+          <!-- Босс Енотов -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🔺 Босс Енотов' : '🔺 Raccoon Boss', url: 'boss_game.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">🔺</span>Босс Енотов</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--red">1 млрд HP</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Сразись с Мировым Боссом вместе со всеми игроками!</div>
+          </button>
+
+          <!-- Башня 3.0 -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'Башня 3.0', url: 'tower_game.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">🏰</span>Башня 3.0</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 🌰/ур</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Покори этажи башни испытаний</div>
+          </button>
+
+          <!-- PVP: Vladeos -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'PVP: Vladeos', url: 'vladeos_pvp.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">⚔️</span>PVP: Vladeos</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--orange">5% шанс 100 🌰</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Сражение с легендарным противником</div>
+          </button>
+
+          <!-- Битва фишек -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'Битва фишек', url: 'game.html', type: 'iframe' });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">🎲</span>Битва фишек</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">+10 🌰</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Динамичные дуэли на фишках</div>
+          </button>
+
+          <!-- Енотная Рулетка -->
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette });">
+            <div class="play-bottom-sheet__title">
+              <div><span class="play-bottom-sheet__icon">🎰</span>Енотная Рулетка</div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">🔥 ДЖЕКПОТ</span></div>
+            </div>
+            <div class="play-bottom-sheet__description">Крути колесо фортуны и выигрывай кучу шишек!</div>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div id="list-screen" class="screen">
-    <h2 id="category-title" class="section-title">Раздел</h2>
-    <div id="category-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+  <!-- List Screen (Quests / Games / Newspapers / Partners) -->
+  <div id="list-screen" class="screen" style="padding: 12px 14px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <h2 id="category-title" class="section-title">Раздел</h2>
+      <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary" style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
+        ← <span data-i18n="btn_back">Назад</span>
+      </button>
+    </div>
+    <div id="category-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
   </div>
 
-  <div id="rating-screen" class="screen">
-    <h2 class="section-title" style="text-align: center;" data-i18n="menu_rating">Рейтинг</h2>
+  <!-- Rating Screen -->
+  <div id="rating-screen" class="screen" style="padding: 12px 14px;">
+    <h2 class="section-title" style="text-align: center; margin-bottom: 10px;" data-i18n="menu_rating">Рейтинг</h2>
     <div class="rating-tabs">
-      <button class="rating-tab active" id="tab-tokens" onclick="loadLeaderboard('tokens')" data-i18n="tab_tokens">Богачи</button>
-      <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests')" data-i18n="tab_quests">Квесты</button>
+      <button class="rating-tab active" id="tab-tokens" onclick="loadLeaderboard('tokens'); triggerHaptic('selection');" data-i18n="tab_tokens">Богачи</button>
+      <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests'); triggerHaptic('selection');" data-i18n="tab_quests">Квесты</button>
     </div>
     <div id="user-leaderboard-card"></div>
     <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
+  <!-- Totalizator Screen -->
   <div id="tot-screen" class="screen">
     <div class="tot-brand" aria-label="EnotXbet">
       <span class="tot-brand-icon">🦝</span>
       <span class="tot-brand-text">EnotXbet</span>
     </div>
     <div class="rating-tabs" style="flex-wrap: wrap;">
-      <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents()">События</button>
-      <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets()">Мои ставки</button>
-      <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin()" style="background: #5c1a1a; border-color: #ff4444; display: none;">Админ</button>
+      <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents(); triggerHaptic('selection');">События</button>
+      <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets(); triggerHaptic('selection');">Мои ставки</button>
+      <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin(); triggerHaptic('selection');" style="background: #5c1a1a; border-color: #ff4444; display: none;">Админ</button>
     </div>
     <div id="tot-content" style="padding-bottom: 20px;"></div>
   </div>
 
-  <div id="shop-screen" class="screen">
-    <h2 class="section-title" data-i18n="menu_shop">Рынок</h2>
+  <!-- Shop Screen -->
+  <div id="shop-screen" class="screen" style="padding: 12px 14px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <h2 class="section-title" data-i18n="menu_shop">Рынок</h2>
+    </div>
     <div id="shop-list" style="padding-bottom: 20px;"></div>
   </div>
 
+  <!-- Reader Screen -->
   <div id="reader-screen" class="screen">
     <div id="reader-topbar">
-      <button id="back-btn" onclick="handleBack()">✕</button>
+      <button id="back-btn" onclick="handleBack(); triggerHaptic('light');">✕</button>
       <b id="reader-header-title" data-i18n="reader_title">Просмотр</b>
     </div>
     <iframe id="reader-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" allow="autoplay; accelerometer; gyroscope; picture-in-picture"></iframe>
   </div>
+
+  <!-- CapsGame Bottom Navigation Dock -->
+  <nav id="bottom-nav" class="nav" style="display: none;">
+    <button class="nav__item nav__item--active" id="nav-home" onclick="navigateTo('main-menu'); triggerHaptic('selection');">
+      <span class="nav-icon">🏠</span>
+      <span data-i18n="nav_home">Дом</span>
+    </button>
+    <button class="nav__item" id="nav-quests" onclick="renderCategory('quests'); triggerHaptic('selection');">
+      <span class="nav-icon">❓</span>
+      <span data-i18n="menu_quests">Квесты</span>
+    </button>
+    <button class="nav__item" id="nav-games" onclick="togglePlayBottomSheet(true); triggerHaptic('selection');">
+      <span class="nav-icon">🎮</span>
+      <span data-i18n="menu_games">Игры</span>
+    </button>
+    <button class="nav__item" id="nav-news" onclick="renderCategory('newspapers'); triggerHaptic('selection');">
+      <span class="nav-icon">📰</span>
+      <span data-i18n="menu_news">Газеты</span>
+    </button>
+    <button class="nav__item" id="nav-rating" onclick="showLeaderboard(); triggerHaptic('selection');">
+      <span class="nav-icon">🏆</span>
+      <span data-i18n="menu_rating">Рейтинг</span>
+    </button>
+    <button class="nav__item" id="nav-shop" onclick="openShop(); triggerHaptic('selection');">
+      <span class="nav-icon">🛒</span>
+      <span data-i18n="menu_shop">Рынок</span>
+    </button>
+  </nav>
 </div>
 
 <script>
@@ -743,6 +1442,12 @@
       menu_shop: "Рынок",
       menu_roulette: "Енотная Рулетка",
       reader_title: "Просмотр",
+      nav_home: "Дом",
+      btn_sync: "Синхр.",
+      btn_back: "Назад",
+      badge_profile: "Профиль",
+      badge_completed: "Пройдено",
+      badge_available: "Доступно",
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
       bonus_desc: "Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!",
@@ -795,6 +1500,12 @@
       menu_shop: "Shop",
       menu_roulette: "Raccoon Roulette",
       reader_title: "Viewer",
+      nav_home: "Home",
+      btn_sync: "Sync",
+      btn_back: "Back",
+      badge_profile: "Profile",
+      badge_completed: "Completed",
+      badge_available: "Available",
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
       bonus_desc: "Welcome cones are already on your balance. Play, complete quests, and earn even more!",
@@ -832,6 +1543,74 @@
     }
   };
 
+  // ==================== HAPTIC & UI HELPERS ====================
+  function triggerHaptic(type = 'light') {
+    try {
+      if (tg && tg.HapticFeedback) {
+        if (type === 'selection') tg.HapticFeedback.selectionChanged();
+        else if (type === 'impact') tg.HapticFeedback.impactOccurred('medium');
+        else if (type === 'heavy') tg.HapticFeedback.impactOccurred('heavy');
+        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+        else if (type === 'warning') tg.HapticFeedback.notificationOccurred('warning');
+        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+        else tg.HapticFeedback.impactOccurred('light');
+      }
+    } catch (e) {}
+  }
+
+  function togglePlayBottomSheet(isOpen) {
+    const sheet = document.getElementById('play-bottom-sheet-wrapper');
+    if (!sheet) return;
+    if (isOpen) {
+      sheet.classList.add('active');
+      triggerHaptic('impact');
+    } else {
+      sheet.classList.remove('active');
+      triggerHaptic('light');
+    }
+  }
+
+  function updateUserInfo() {
+    const user = tg.initDataUnsafe?.user;
+    const nameEl = document.getElementById('header-user-name');
+    const avatarEl = document.getElementById('header-avatar');
+    const scoreEl = document.getElementById('header-user-score');
+
+    const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
+    const qt2Quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7'];
+    const doneCount = qt2Quests.filter(q => completed.includes(q)).length;
+
+    const questsPill = document.getElementById('quests-progress-pill');
+    if (questsPill) questsPill.innerText = `${doneCount}/7`;
+
+    if (scoreEl) {
+      scoreEl.innerText = `${doneCount * 10}K`;
+    }
+
+    if (user) {
+      const displayName = user.first_name || user.username || (currentLang === 'ru' ? 'EHOT' : 'Raccoon');
+      if (nameEl) nameEl.innerText = displayName;
+      if (avatarEl) {
+        if (user.photo_url) {
+          avatarEl.innerHTML = `<img src="${user.photo_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar" />`;
+        } else {
+          avatarEl.innerText = '🦝';
+        }
+      }
+    }
+  }
+
+  function updateBottomNav(activeNavId) {
+    const navItems = document.querySelectorAll('.nav .nav__item');
+    navItems.forEach(item => {
+      if (item.id === activeNavId) {
+        item.classList.add('nav__item--active');
+      } else {
+        item.classList.remove('nav__item--active');
+      }
+    });
+  }
+
   function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
@@ -840,7 +1619,6 @@
       }
     });
     
-    // New part for title attributes
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       const key = el.getAttribute('data-i18n-title');
       if (i18n[currentLang] && i18n[currentLang][key]) {
@@ -851,6 +1629,10 @@
     const langBtn = document.getElementById('lang-btn');
     if (langBtn) {
       langBtn.innerText = i18n[currentLang].lang_btn;
+    }
+    const coverLangBtn = document.getElementById('cover-lang-btn');
+    if (coverLangBtn) {
+      coverLangBtn.innerText = i18n[currentLang].lang_btn;
     }
     
     const newsTextarea = document.getElementById('news-text');
@@ -863,6 +1645,7 @@
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     localStorage.setItem('rl_lang', currentLang);
     applyTranslations();
+    updateUserInfo();
 
     // Send language change to iframe (game)
     const iframe = document.getElementById('reader-iframe');
@@ -1156,7 +1939,7 @@
       reason: reason
     };
 
-    console.log('🌲 Earning tokens:', data);
+    console.log('🌰 Earning tokens:', data);
     sendToAPI(data).then(() => {
       // Обновляем баланс в UI только после того, как сервер подтвердил зачисление
       loadTokenBalance();
@@ -1170,11 +1953,10 @@
     
     if (!userId) {
       console.warn('⚠️ Нет user_id, баланс не загружен');
-      // Пробуем получить баланс без userId (сервер вернёт ошибку)
       const balanceEl = document.getElementById('token-balance');
-      if (balanceEl) {
-        balanceEl.innerText = '---';
-      }
+      const headerBalanceEl = document.getElementById('header-token-balance');
+      if (balanceEl) balanceEl.innerText = '---';
+      if (headerBalanceEl) headerBalanceEl.innerText = '---';
       return;
     }
 
@@ -1189,22 +1971,17 @@
       }
     })
       .then(res => {
-        console.log('📥 Ответ сервера:', res.status);
-        if (!res.ok) {
-          throw new Error('HTTP error! status: ' + res.status);
-        }
+        if (!res.ok) throw new Error('HTTP error! status: ' + res.status);
         return res.json();
       })
       .then(data => {
-        console.log('📦 Данные:', data);
         if (data.status === 'ok' && data.tokens) {
+          const formatted = (data.tokens.balance || 0).toLocaleString('ru-RU');
           const balanceEl = document.getElementById('token-balance');
-          if (balanceEl) {
-            balanceEl.innerText = data.tokens.balance.toLocaleString('ru-RU');
-            console.log('✅ Баланс обновлён:', data.tokens.balance);
-          } else {
-            console.error('❌ Не найден элемент #token-balance');
-          }
+          const headerBalanceEl = document.getElementById('header-token-balance');
+          if (balanceEl) balanceEl.innerText = formatted;
+          if (headerBalanceEl) headerBalanceEl.innerText = formatted;
+          console.log('✅ Баланс обновлён:', data.tokens.balance);
         } else {
           console.error('❌ Ошибка в ответе сервера:', data);
         }
@@ -1212,9 +1989,9 @@
       .catch(err => {
         console.error('❌ Ошибка загрузки баланса:', err);
         const balanceEl = document.getElementById('token-balance');
-        if (balanceEl && balanceEl.innerText === '0') {
-          balanceEl.innerText = '?';
-        }
+        const headerBalanceEl = document.getElementById('header-token-balance');
+        if (balanceEl && balanceEl.innerText === '0') balanceEl.innerText = '?';
+        if (headerBalanceEl && headerBalanceEl.innerText === '0') headerBalanceEl.innerText = '?';
       });
   }
 
@@ -1251,18 +2028,20 @@
 
   // ==================== NAVIGATION ====================
   function handleBack() {
-    const current = document.querySelector('.screen.active').id;
+    const current = document.querySelector('.screen.active')?.id;
     if (current === 'reader-screen') {
       document.getElementById('reader-iframe').src = '';
       navigateTo('list-screen');
-      // Обновляем баланс при возврате из игры
       setTimeout(() => loadTokenBalance(), 500);
     } else if (current === 'rating-screen') {
       navigateTo('main-menu');
-      // Обновляем баланс при возврате на главное меню
       setTimeout(() => loadTokenBalance(), 500);
     } else if (current === 'list-screen') {
-      navigateTo('main-menu');
+      if (currentCategory === 'qt_2') {
+        renderCategory('quests');
+      } else {
+        navigateTo('main-menu');
+      }
     } else if (current === 'main-menu') {
       navigateTo('cover-screen');
     } else if (current === 'tot-screen') {
@@ -1274,19 +2053,52 @@
 
   function navigateTo(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) targetScreen.classList.add('active');
     window.scrollTo(0, 0);
+
+    const header = document.getElementById('app-header');
+    const bottomNav = document.getElementById('bottom-nav');
+
     tg.BackButton.offClick(handleBack);
+
     if (screenId === 'cover-screen') {
       tg.BackButton.hide();
-    } else {
+      if (header) header.style.display = 'none';
+      if (bottomNav) bottomNav.style.display = 'none';
+    } else if (screenId === 'reader-screen') {
       tg.BackButton.show();
       tg.BackButton.onClick(handleBack);
-    }
-    
-    // Обновляем баланс при переходе на главный экран
-    if (screenId === 'main-menu') {
-      setTimeout(() => loadTokenBalance(), 200);
+      if (header) header.style.display = 'none';
+      if (bottomNav) bottomNav.style.display = 'none';
+    } else {
+      if (header) header.style.display = 'flex';
+      if (bottomNav) bottomNav.style.display = 'flex';
+
+      if (screenId === 'main-menu') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+        updateBottomNav('nav-home');
+        setTimeout(() => loadTokenBalance(), 200);
+      } else if (screenId === 'rating-screen') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+        updateBottomNav('nav-rating');
+      } else if (screenId === 'shop-screen') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+        updateBottomNav('nav-shop');
+      } else if (screenId === 'tot-screen') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+        updateBottomNav('');
+      } else if (screenId === 'list-screen') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+        if (currentCategory === 'quests' || currentCategory === 'qt_2') updateBottomNav('nav-quests');
+        else if (currentCategory === 'games') updateBottomNav('nav-games');
+        else updateBottomNav('');
+      }
     }
   }
 
@@ -1296,6 +2108,8 @@
     currentCategory = catKey;
     const DATA = getDATA();
     const cat = DATA[catKey];
+    if (!cat) return;
+
     document.getElementById('category-title').innerText = cat.title;
     const list = document.getElementById('category-list');
     list.innerHTML = '';
@@ -1303,10 +2117,10 @@
     // Добавляем кнопку "Предложить новость" только в раздел Газеты
     if (catKey === 'newspapers') {
       const submitBtnContainer = document.createElement('div');
-      submitBtnContainer.style.marginBottom = '15px';
+      submitBtnContainer.style.marginBottom = '8px';
       submitBtnContainer.innerHTML = `
-        <button class="list-item" onclick="openNewsModal()" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--primary), #005588); border:none; cursor:pointer;">
-          <div class="list-item-title" style="color: white; text-align: center;">
+        <button class="list-item" onclick="openNewsModal(); triggerHaptic('light');" style="width: 100%; justify-content: center; background: linear-gradient(135deg, rgba(229, 57, 53, 0.2), var(--bg-secondary)); border: 1px solid rgba(229, 57, 53, 0.4); cursor:pointer; padding: 12px;">
+          <div class="list-item-title" style="color: #ffffff; text-align: center; margin: 0; font-weight: 800;">
             ${i18n[currentLang].submit_news_btn_main}
           </div>
         </button>
@@ -1315,7 +2129,6 @@
     }
 
     const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
-
     let previousCompleted = true;
 
     cat.items.forEach((item, index) => {
@@ -1331,34 +2144,56 @@
         }
       }
 
-      const isQuestCategory = catKey === 'qt_2'; // Блокировка по порядку только для квестов
+      const isQuestCategory = catKey === 'qt_2';
       const isLocked = isQuestCategory && index > 0 && !previousCompleted;
 
-      // Обновляем статус для следующей итерации
       if (isQuestCategory) {
         previousCompleted = isCompleted;
       }
 
       const div = document.createElement('div');
-      
       const safeTitle = escapeHTML(item.title);
       const safeDesc = escapeHTML(item.desc);
       const rightIcon = isLocked ? '🔒' : '›';
       
       div.className = 'list-item' + (isCompleted ? ' completed' : '') + (isLocked ? ' locked' : '');
 
+      let chipHTML = '';
+      if (isCompleted) {
+        chipHTML = `<span class="list-item-badge" style="color: var(--accent-green); border-color: rgba(51, 189, 28, 0.3);">✅ ${i18n[currentLang].badge_completed || 'Пройдено'}</span>`;
+      } else if (catKey === 'qt_2' || (catKey === 'quests' && !item.type.includes('folder'))) {
+        chipHTML = `<span class="list-item-badge">🌰 +10,000</span>`;
+      }
+
+      // Определение иконки для карточки
+      let icon = '📁';
+      if (catKey === 'newspapers') icon = '📰';
+      else if (catKey === 'quests' || catKey === 'qt_2') icon = '❓';
+      else if (catKey === 'games') icon = '🎮';
+      else if (catKey === 'partners') icon = '🤝';
+
       div.innerHTML = `
-        <div class="list-item-info" style="flex: 1;">
+        <div class="list-item-icon-box">
+          ${icon}
+        </div>
+        <div class="list-item-info" style="flex: 1; min-width: 0;">
           <div class="list-item-title">${safeTitle}</div>
           <div class="list-item-desc">${safeDesc}</div>
+          ${chipHTML}
         </div>
-        <div style="color: #ccc; font-size: ${isLocked ? '1.2rem' : '1.5rem'};">${rightIcon}</div>
+        <div style="color: ${isLocked ? '#ff6666' : 'var(--text-secondary)'}; font-size: ${isLocked ? '1.1rem' : '1.3rem'}; font-weight: bold;">${rightIcon}</div>
       `;
       
       if (isLocked) {
-        div.onclick = () => tg.showAlert(currentLang === 'ru' ? "Сначала пройдите предыдущий этап!" : "Complete the previous stage first!");
+        div.onclick = () => {
+          triggerHaptic('warning');
+          tg.showAlert(currentLang === 'ru' ? "Сначала пройдите предыдущий этап!" : "Complete the previous stage first!");
+        };
       } else {
-        div.onclick = () => handleItemClick(item);
+        div.onclick = () => {
+          triggerHaptic('light');
+          handleItemClick(item);
+        };
       }
       list.appendChild(div);
     });
@@ -2156,7 +2991,7 @@
     // Отображаем отдельной строкой позицию текущего игрока
     if (userCard) {
       if (userRank) {
-        let uRankColor = 'var(--primary)';
+        let uRankColor = 'var(--accent-gold)';
         let uRankIcon = userRank.rank ? '#' + userRank.rank : '—';
         if (userRank.rank === 1) { uRankColor = '#ffd700'; uRankIcon = '🥇'; }
         else if (userRank.rank === 2) { uRankColor = '#c0c0c0'; uRankIcon = '🥈'; }
@@ -2171,29 +3006,29 @@
           const earnedLabel = userRank.total_earned ? `(${i18n[currentLang].total_earned}: ${(userRank.total_earned || 0).toLocaleString('ru-RU')})` : '';
           userCard.innerHTML = `
             <div class="user-rank-card">
-              <div style="font-size: 1.5rem; font-weight: 800; color: ${uRankColor}; width: 50px; text-align:center;">${safeURankIcon}</div>
+              <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
                   <span class="user-rank-badge">${youText}</span>
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-sec); margin-top: 2px;">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">🌰 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
               </div>
-              <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedBalance)}</div>
             </div>
           `;
         } else if (type === 'quests') {
           userCard.innerHTML = `
             <div class="user-rank-card">
-              <div style="font-size: 1.5rem; font-weight: 800; color: ${uRankColor}; width: 50px; text-align:center;">${safeURankIcon}</div>
+              <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
                   <span class="user-rank-badge">${youText}</span>
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-sec); margin-top: 2px;">✅ ${i18n[currentLang].completed_quests}: ${userRank.quests_completed || 0}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">✅ ${i18n[currentLang].completed_quests}: ${userRank.quests_completed || 0}</div>
               </div>
-              <div style="font-size: 1.2rem; font-weight: 800; color: var(--game-green); text-align:right;">${userRank.quests_completed || 0}</div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-green); text-align:right;">${userRank.quests_completed || 0}</div>
             </div>
           `;
         }
@@ -2239,7 +3074,7 @@
             <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
-              <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+              <div style="font-size: 0.75rem; color: var(--text-sec);">🌰 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
             </div>
             <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
           `;
@@ -2534,7 +3369,7 @@
       if (balanceEl) {
         balanceEl.innerText = data.balance.toLocaleString('ru-RU');
       }
-      console.log('🌲 Sync token balance:', data.balance);
+      console.log('🌰 Sync token balance:', data.balance);
       
       // Дополнительно загружаем с сервера для актуальности
       setTimeout(() => loadTokenBalance(), 200);
@@ -2563,6 +3398,7 @@
 
       applyTranslations();
       loadStats();
+      updateUserInfo();
 
       const userId = getUserId();
       if (userId) {
@@ -2571,6 +3407,7 @@
       }
 
       setTimeout(() => {
+        updateUserInfo();
         loadTokenBalance();
         loadStatsFromServer();
         checkWelcomeBonus();
