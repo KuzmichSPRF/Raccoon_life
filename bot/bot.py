@@ -1076,7 +1076,7 @@ def get_boss_hp() -> dict:
 def calculate_overall_score(user_data_row: dict) -> dict:
     """
     Рассчитывает общий счет по формуле:
-    наличие шишек + пройденные квесты * 10 000 + каждая сыгранная игра * 100 + ставки игрока в рулетке + за каждый прочитанный номер газеты 500 очков
+    наличие шишек + пройденные квесты * 10 000 + каждая сыгранная игра * 100 + (ставки игрока в рулетке / 2) + за каждый прочитанный номер газеты 500 очков
     """
     # 1. Наличие шишек
     balance = user_data_row.get('balance') or 0
@@ -1093,11 +1093,11 @@ def calculate_overall_score(user_data_row: dict) -> dict:
     total_games = clown_games + vladeos_games + tower_total_levels + roulette_games
     games_points = total_games * 100
 
-    # 4. Ставки игрока в рулетке
+    # 4. Ставки игрока в рулетке (вес уменьшен вдвое: x0.5)
     roulette_total_bets = user_data_row.get('roulette_total_bets')
     if roulette_total_bets is None or roulette_total_bets == 0:
         roulette_total_bets = (user_data_row.get('roulette_cones_lost') or 0) + (user_data_row.get('roulette_games') or 0) * 10
-    roulette_bets_points = roulette_total_bets or 0
+    roulette_bets_points = int((roulette_total_bets or 0) * 0.5)
 
     # 5. За каждый прочитанный номер газеты 500 очков
     quests_json = user_data_row.get('quests') or '[]'
@@ -1119,6 +1119,7 @@ def calculate_overall_score(user_data_row: dict) -> dict:
         'quests_completed': quests_completed,
         'total_games': total_games,
         'roulette_bets': roulette_total_bets,
+        'roulette_bets_points': roulette_bets_points,
         'newspapers_read': newspapers_read
     }
 

@@ -1859,8 +1859,9 @@
     const totalGames = (stats.clown_games || 0) + (stats.vladeos_games || 0) + (stats.tower_total_levels || 0) + (stats.roulette_games || 0);
     const gamesPoints = totalGames * 100;
 
-    // 4. Ставки игрока в рулетке
-    const rouletteBets = stats.roulette_total_bets || ((stats.roulette_cones_lost || 0) + (stats.roulette_games || 0) * 10);
+    // 4. Ставки игрока в рулетке (вес уменьшен вдвое: x0.5)
+    const rawRouletteBets = stats.roulette_total_bets || ((stats.roulette_cones_lost || 0) + (stats.roulette_games || 0) * 10);
+    const rouletteBets = Math.floor(rawRouletteBets * 0.5);
 
     // 5. За каждый прочитанный номер газеты 500 очков
     const newspapersRead = completed.filter(id => typeof id === 'string' && (id.startsWith('news_') || id.startsWith('caps_news'))).length;
