@@ -1829,35 +1829,43 @@
     }
   }
 
-  // ==================== USER ID ====================
-  function getUserId() {
-    // Пробуем получить из initDataUnsafe
-    if (tg.initDataUnsafe?.user?.id) {
-      return tg.initDataUnsafe.user.id;
-    }
-    
-    // Пробуем распарсить initData
-    if (tg.initData) {
-      const urlParams = new URLSearchParams(tg.initData);
-      const userStr = urlParams.get('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userStr));
-          return user.id;
-        } catch (e) {
-          console.error('Failed to parse user:', e);
-        }
+  // ==================== USER IDENTIFICATION & STORAGE ====================
+  function getUserObject() {
+    let u = tg.initDataUnsafe?.user;
+    if (!u && tg.initData) {
+      try {
+        const urlParams = new URLSearchParams(tg.initData);
+        const userStr = urlParams.get('user');
+        if (userStr) u = JSON.parse(decodeURIComponent(userStr));
+      } catch (e) {
+        console.error('Failed to parse initData user:', e);
       }
     }
-    
-    // Fallback: пробуем из localStorage
+    if (u && u.id) {
+      localStorage.setItem('rl_user_id', u.id.toString());
+      if (u.username) localStorage.setItem('rl_username', u.username);
+      if (u.first_name) localStorage.setItem('rl_first_name', u.first_name);
+      if (u.last_name) localStorage.setItem('rl_last_name', u.last_name);
+      return u;
+    }
     const storedId = localStorage.getItem('rl_user_id');
     if (storedId && storedId !== 'undefined' && storedId !== 'null') {
       const parsed = parseInt(storedId, 10);
-      if (!isNaN(parsed)) return parsed;
+      if (!isNaN(parsed)) {
+        return {
+          id: parsed,
+          username: localStorage.getItem('rl_username') || '',
+          first_name: localStorage.getItem('rl_first_name') || '',
+          last_name: localStorage.getItem('rl_last_name') || ''
+        };
+      }
     }
-    
     return null;
+  }
+
+  function getUserId() {
+    const userObj = getUserObject();
+    return userObj ? userObj.id : null;
   }
 
   // ==================== STATS ====================
@@ -2019,7 +2027,8 @@
 
   // ==================== API ====================
   function sendToAPI(data) {
-    const userId = getUserId();
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
     if (!userId) {
       console.log('⚠️ No user_id, skipping API call');
       return Promise.resolve();
@@ -2028,6 +2037,11 @@
     // Добавляем userId если нет в data
     if (!data.userId && !data.user_id) {
       data.userId = userId;
+    }
+    if (userObj) {
+      if (!data.username && userObj.username) data.username = userObj.username;
+      if (!data.first_name && userObj.first_name) data.first_name = userObj.first_name;
+      if (!data.last_name && userObj.last_name) data.last_name = userObj.last_name;
     }
 
     console.log('📡 Sending to API:', data);
@@ -2057,18 +2071,16 @@
   }
 
   function syncStats() {
-    const userId = getUserId();
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
     if (!userId) return;
-
-    // Получаем данные пользователя из Telegram
-    const user = tg.initDataUnsafe?.user || {};
 
     const data = {
       type: 'sync_stats',
       userId: userId,
-      username: user.username || '',
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
+      username: userObj?.username || '',
+      first_name: userObj?.first_name || '',
+      last_name: userObj?.last_name || '',
       clown_games: stats.clown_games,
       clown_wins: stats.clown_wins,
       vladeos_games: stats.vladeos_games,
@@ -2784,11 +2796,22 @@
       }
     }
     
+    const userObj = getUserObject();
     tg.MainButton.showProgress();
     fetch('/api/tot/bet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
-      body: JSON.stringify({ userId: getUserId(), eventId: currentBetData.eventId, side: currentBetData.side, amount: amount, currency: currentBetCurrency, prediction: prediction })
+      body: JSON.stringify({
+        userId: getUserId(),
+        username: userObj?.username || '',
+        first_name: userObj?.first_name || '',
+        last_name: userObj?.last_name || '',
+        eventId: currentBetData.eventId,
+        side: currentBetData.side,
+        amount: amount,
+        currency: currentBetCurrency,
+        prediction: prediction
+      })
     })
     .then(res => res.json())
     .then(data => {
@@ -3569,10 +3592,21 @@
       loadStats();
       updateUserInfo();
 
-      const userId = getUserId();
+      const userObj = getUserObject();
+      const userId = userObj ? userObj.id : getUserId();
       if (userId) {
         localStorage.setItem('rl_user_id', userId);
         console.log('💾 User ID сохранён:', userId);
+        if (userObj) {
+          sendToAPI({
+            type: 'sync_stats',
+            userId: userId,
+            username: userObj.username || '',
+            first_name: userObj.first_name || '',
+            last_name: userObj.last_name || '',
+            ...stats
+          });
+        }
       }
 
       setTimeout(() => {

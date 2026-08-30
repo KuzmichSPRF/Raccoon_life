@@ -608,43 +608,46 @@ def _add_missing_columns(cursor):
             logger.error(f"Ошибка миграции tot_bets prediction: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
-    """Гарантирует существование пользователя в БД"""
+    """Гарантирует существование пользователя в БД и сохраняет его username/имя"""
+    if not user_id:
+        return
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
         # Проверяем существует ли пользователь
-        cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-        exists = cursor.fetchone()
+        cursor.execute("SELECT user_id, username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+        existing = cursor.fetchone()
 
-        if exists:
-            # Обновляем данные если есть
-            if user_data:
-                username = user_data.get('username', '')
-                first_name = user_data.get('first_name', '')
-                last_name = user_data.get('last_name', '')
+        clean_username = sanitize_string(user_data.get('username', ''), max_length=64) if user_data else ''
+        clean_first_name = sanitize_string(user_data.get('first_name', ''), max_length=128) if user_data else ''
+        clean_last_name = sanitize_string(user_data.get('last_name', ''), max_length=128) if user_data else ''
 
-                cursor.execute('''
-                    UPDATE users SET
-                        username = ?,
-                        first_name = ?,
-                        last_name = ?
-                    WHERE user_id = ?
-                ''', (username, first_name, last_name, user_id))
-                logger.debug(f"Пользователь {user_id} обновлён")
-            else:
-                logger.debug(f"Пользователь {user_id} уже существует")
+        if existing:
+            # Обновляем только непустые поля, не затирая уже сохраненные данные
+            updates = []
+            params = []
+            if clean_username and clean_username != (existing['username'] or ''):
+                updates.append("username = ?")
+                params.append(clean_username)
+            if clean_first_name and clean_first_name != (existing['first_name'] or ''):
+                updates.append("first_name = ?")
+                params.append(clean_first_name)
+            if clean_last_name and clean_last_name != (existing['last_name'] or ''):
+                updates.append("last_name = ?")
+                params.append(clean_last_name)
+
+            if updates:
+                params.append(user_id)
+                cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?", params)
+                logger.info(f"✅ Пользователь {user_id} обновлен: username='{clean_username or existing['username']}'")
         else:
             # Создаем нового пользователя
-            username = user_data.get('username', '') if user_data else ''
-            first_name = user_data.get('first_name', '') if user_data else ''
-            last_name = user_data.get('last_name', '') if user_data else ''
-
             cursor.execute('''
                 INSERT INTO users (user_id, username, first_name, last_name)
                 VALUES (?, ?, ?, ?)
-            ''', (user_id, username, first_name, last_name))
-            logger.debug(f"Пользователь {user_id} создан")
+            ''', (user_id, clean_username, clean_first_name, clean_last_name))
+            logger.info(f"✅ Новый пользователь {user_id} зарегистрирован: username='{clean_username}'")
 
         # Создаем запись статистики если нет
         cursor.execute('INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)', (user_id,))
@@ -781,6 +784,30 @@ def validate_list(value, default: list = None) -> list:
     except (json.JSONDecodeError, TypeError):
         pass
     return default
+
+@app.before_request
+def auto_register_user_from_request():
+    """Автоматически регистрирует или обновляет пользователя из X-Telegram-Init-Data или JSON тела при ЛЮБОМ запросе к API"""
+    if request.path.startswith('/api/'):
+        try:
+            init_data = request.headers.get('X-Telegram-Init-Data')
+            if init_data:
+                auth_user = validate_webapp_data(init_data)
+                if auth_user and auth_user.get('id'):
+                    ensure_user_exists(int(auth_user['id']), auth_user)
+            elif request.is_json:
+                data = request.get_json(silent=True)
+                if data:
+                    user_id = data.get('userId') or data.get('user_id')
+                    if user_id:
+                        user_info = {}
+                        if data.get('username'): user_info['username'] = data['username']
+                        if data.get('first_name'): user_info['first_name'] = data['first_name']
+                        if data.get('last_name'): user_info['last_name'] = data['last_name']
+                        if user_info:
+                            ensure_user_exists(int(user_id), user_info)
+        except Exception as e:
+            logger.debug(f"Auto-register before_request notice: {e}")
 
 # ==================== ИГРОВЫЕ СЕССИИ ====================
 
@@ -3475,6 +3502,8 @@ def api_tot_bet():
         if not auth_user or str(auth_user.get('id')) != str(user_id):
             return jsonify({'error': 'Unauthorized'}), 403
 
+        ensure_user_exists(user_id, auth_user)
+
         if amount <= 0:
             return jsonify({'error': 'Сумма должна быть больше 0'}), 400
 
@@ -3746,10 +3775,10 @@ def api_admin_tot_bets():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT b.*, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, e.event_type, e.exact_score_odds, e.result_score, u.username
+            SELECT b.*, e.side1_name, e.side2_name, e.draw_name, e.side1_odds, e.side2_odds, e.draw_odds, e.event_type, e.exact_score_odds, e.result_score, COALESCE(u.username, '') as username
             FROM tot_bets b
             JOIN tot_events e ON b.event_id = e.event_id
-            JOIN users u ON b.user_id = u.user_id
+            LEFT JOIN users u ON b.user_id = u.user_id
             WHERE b.status = ?
             ORDER BY b.created_at ASC
         ''', (status,))
