@@ -58,7 +58,7 @@
       overflow: hidden;
       position: relative;
       background-color: var(--bg-primary);
-      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.72) 0%, rgba(18, 18, 20, 0.85) 45%, rgba(18, 18, 20, 0.95) 100%), url('/image/bgr_main.jpg');
+      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.40) 0%, rgba(18, 18, 20, 0.55) 45%, rgba(18, 18, 20, 0.78) 100%), url('/image/bgr_main.jpg');
       background-size: cover;
       background-position: center top;
       background-repeat: no-repeat;
@@ -131,17 +131,17 @@
     }
     .badge-icon-button:active { transform: scale(0.92); }
     .badge-icon-button__icon {
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
     }
     .badge-icon-button__badge {
       margin-top: 2px;
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-muted);
       background: var(--bg-elevated);
       padding: 2px 7px;
@@ -183,7 +183,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 18px 24px;
-      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.45) 0%, rgba(18, 18, 20, 0.2) 35%, rgba(18, 18, 20, 0.95) 80%), url('/image/splash.jpg');
+      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.25) 0%, rgba(18, 18, 20, 0.10) 35%, rgba(18, 18, 20, 0.80) 80%), url('/image/splash.jpg');
       background-size: cover;
       background-position: center top;
       background-repeat: no-repeat;
@@ -232,7 +232,9 @@
       justify-content: space-between;
       align-items: center;
       padding: 6px 12px;
-      background: var(--bg-secondary);
+      background: rgba(24, 24, 26, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-bottom: 0.5px solid var(--border-subtle);
       position: sticky;
       top: 0;
@@ -251,8 +253,8 @@
     }
     .cap__element-wrapper {
       position: relative;
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-gold), var(--btn-red));
       padding: 2px;
@@ -270,7 +272,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.15rem;
+      font-size: 1.3rem;
       cursor: pointer;
     }
     .cap__element img {
@@ -302,7 +304,7 @@
       cursor: pointer;
     }
     .home-leaderboard__score-img {
-      font-size: 0.8rem;
+      font-size: 0.95rem;
     }
     .home-leaderboard__score-points {
       font-size: 10px;
@@ -342,22 +344,24 @@
     }
     .home__profile {
       flex: 1;
-      background-color: var(--bg-secondary);
+      background-color: rgba(24, 24, 26, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 0.5px solid var(--border-subtle);
       border-radius: 14px;
-      padding: 7px 6px;
+      padding: 8px 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 6px;
       color: #FFFFFF;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 800;
       cursor: pointer;
       transition: transform 0.125s ease-in-out, border-color 0.15s;
     }
     .home__profile:active { transform: scale(0.96); border-color: var(--border-focus); }
-    .profile-pill-icon { font-size: 1.05rem; }
+    .profile-pill-icon { font-size: 1.25rem; }
     .home-energy__block {
       display: flex;
       flex-direction: column;
@@ -414,12 +418,14 @@
     }
     .offer-badge {
       position: relative;
-      background: var(--bg-secondary);
+      background: rgba(24, 24, 26, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 0.5px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 2px 2px;
-      width: clamp(42px, 12vw, 54px);
-      height: clamp(42px, 12vw, 54px);
+      border-radius: 14px;
+      padding: 3px 2px;
+      width: clamp(48px, 13.5vw, 60px);
+      height: clamp(48px, 13.5vw, 60px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -434,7 +440,7 @@
       right: -2px;
       background: var(--bg-elevated);
       color: var(--text-muted);
-      font-size: 7px;
+      font-size: 7.5px;
       font-weight: 800;
       padding: 1px 3px;
       border-radius: 5px;
@@ -444,8 +450,8 @@
     .offer-badge__timer--live { background: var(--btn-red); color: #FFFFFF; box-shadow: 0 0 6px rgba(229, 57, 53, 0.6); }
     .offer-badge__timer--hot { background: var(--accent-orange); color: #FFFFFF; box-shadow: 0 0 6px rgba(255, 149, 0, 0.6); }
     .offer-badge__timer--gold { background: var(--accent-gold); color: #121214; }
-    .offer-badge__icon { font-size: clamp(1.15rem, 3.2vh, 1.35rem); line-height: 1; }
-    .offer-badge__label { font-size: 8px; font-weight: 600; color: var(--text-secondary); margin-top: 2px; text-align: center; }
+    .offer-badge__icon { font-size: clamp(1.4rem, 3.8vh, 1.65rem); line-height: 1; }
+    .offer-badge__label { font-size: 8.5px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-align: center; }
 
     /* Center Mascot */
     .home__center-mascot {
@@ -464,9 +470,9 @@
     }
     .mascot-ambient-glow {
       position: absolute;
-      width: clamp(90px, 22vh, 140px);
-      height: clamp(90px, 22vh, 140px);
-      background: radial-gradient(circle, rgba(229, 57, 53, 0.2) 0%, rgba(255, 215, 0, 0.12) 45%, transparent 70%);
+      width: clamp(110px, 25vh, 155px);
+      height: clamp(110px, 25vh, 155px);
+      background: radial-gradient(circle, rgba(229, 57, 53, 0.25) 0%, rgba(255, 215, 0, 0.15) 45%, transparent 70%);
       border-radius: 50%;
       filter: blur(20px);
       animation: pulseGlow 4s infinite alternate ease-in-out;
@@ -476,7 +482,7 @@
       to { transform: scale(1.15); opacity: 1; }
     }
     .mascot-character {
-      font-size: clamp(2.8rem, 8.5vh, 4.6rem);
+      font-size: clamp(3.4rem, 9.5vh, 5.0rem);
       filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
       animation: floatMascot 4s ease-in-out infinite;
     }
@@ -486,12 +492,12 @@
     }
     .mascot-season-tag {
       margin-top: 2px;
-      font-size: 7.5px;
+      font-size: 8px;
       font-weight: 800;
       color: var(--text-secondary);
       letter-spacing: 0.06em;
-      background: var(--bg-secondary);
-      padding: 2px 6px;
+      background: rgba(24, 24, 26, 0.88);
+      padding: 2px 7px;
       border-radius: 10px;
       border: 0.5px solid var(--border-subtle);
       white-space: nowrap;
@@ -506,7 +512,7 @@
       gap: 8px;
       width: 100%;
       flex-shrink: 0;
-      background: rgba(18, 18, 20, 0.95);
+      background: rgba(18, 18, 20, 0.92);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-top: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -514,10 +520,10 @@
       z-index: 20;
     }
     .home__bottom-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      background-color: var(--bg-secondary);
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      background-color: rgba(24, 24, 26, 0.82);
       border: 0.5px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
@@ -528,11 +534,11 @@
       transition: transform 0.125s ease-in-out, border-color 0.15s;
     }
     .home__bottom-btn:active { transform: scale(0.92); border-color: var(--btn-red); }
-    .home__bottom-icon { font-size: 1.25rem; line-height: 1; }
-    .home__bottom-btn-label { font-size: 8px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; }
+    .home__bottom-icon { font-size: 1.45rem; line-height: 1; }
+    .home__bottom-btn-label { font-size: 8.5px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; }
     .home__play-main-btn {
       flex: 1;
-      height: 48px;
+      height: 50px;
       border-radius: 16px;
       font-size: 17px;
       font-weight: 900;
@@ -586,24 +592,24 @@
     @media (max-height: 650px) {
       .home__title { padding: 4px 10px; min-height: 44px; }
       .home__profile-buttons { padding: 4px 10px 0; gap: 4px; }
-      .home__profile { padding: 5px 4px; font-size: 11px; }
+      .home__profile { padding: 6px 6px; font-size: 12px; }
       .home__bottom-container { padding: 2px 8px; }
       .home__bottom-left-column, .home__bottom-right { gap: 4px; }
-      .offer-badge { width: 40px; height: 40px; }
-      .offer-badge__icon { font-size: 1.05rem; }
-      .offer-badge__label { font-size: 7px; }
-      .mascot-character { font-size: 2.7rem; }
-      .mascot-season-tag { font-size: 6.5px; padding: 1px 4px; }
+      .offer-badge { width: 44px; height: 44px; }
+      .offer-badge__icon { font-size: 1.25rem; }
+      .offer-badge__label { font-size: 7.5px; }
+      .mascot-character { font-size: 3.0rem; }
+      .mascot-season-tag { font-size: 7px; padding: 1px 4px; }
       .home__bottom { padding: 4px 10px 4px; gap: 6px; }
-      .home__bottom-btn { width: 42px; height: 42px; border-radius: 12px; }
+      .home__bottom-btn { width: 44px; height: 44px; border-radius: 12px; }
       .home__play-main-btn { height: 44px; font-size: 15px; }
     }
     @media (max-height: 540px) {
       .home-leaderboard { display: none; }
-      .offer-badge { width: 36px; height: 36px; }
+      .offer-badge { width: 38px; height: 38px; }
       .offer-badge__label { display: none; }
-      .mascot-character { font-size: 2.2rem; }
-      .home__bottom-btn { width: 36px; height: 36px; }
+      .mascot-character { font-size: 2.4rem; }
+      .home__bottom-btn { width: 38px; height: 38px; }
       .home__play-main-btn { height: 38px; font-size: 14px; }
     }
 
@@ -627,18 +633,15 @@
     }
     .bottom-sheet__block {
       position: relative;
-      z-index: 1;
       width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
       background-color: var(--bg-secondary);
       border-radius: 24px 24px 0 0;
-      border-top: 0.5px solid rgba(255, 255, 255, 0.12);
-      padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      padding: 12px 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
       max-height: 85vh;
       overflow-y: auto;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
-      animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      border-top: 0.5px solid var(--border-subtle);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
+      animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes sheetSlideUp {
       from { transform: translateY(100%); }
@@ -647,16 +650,15 @@
     .bottom-sheet__divider {
       width: 36px;
       height: 4px;
-      background-color: var(--text-secondary);
-      border-radius: 2px;
-      margin: 0 auto 8px;
-      opacity: 0.5;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.2);
+      margin: 0 auto 12px;
     }
     .bottom-sheet__hide {
-      background: none;
+      background: transparent;
       border: none;
       color: var(--text-secondary);
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       display: block;
@@ -712,7 +714,7 @@
       margin-bottom: 3px;
     }
     .play-bottom-sheet__icon {
-      font-size: 1.2rem;
+      font-size: 1.35rem;
       margin-right: 6px;
     }
     .play-bottom-sheet__fee {
@@ -732,7 +734,9 @@
       left: 0;
       right: 0;
       height: var(--nav-height);
-      background-color: var(--bg-primary);
+      background-color: rgba(18, 18, 20, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-top: 0.5px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -753,15 +757,15 @@
       flex: 1;
       padding: 6px 0;
       cursor: pointer;
-      font-size: 10px;
-      font-weight: 500;
+      font-size: 10.5px;
+      font-weight: 600;
       transition: all 0.15s ease-in-out;
     }
     .nav__item:active { transform: scale(0.92); }
-    .nav__item .nav-icon { font-size: 1.25rem; transition: transform 0.15s ease; }
+    .nav__item .nav-icon { font-size: 1.4rem; transition: transform 0.15s ease; }
     .nav__item--active {
       color: #FFFFFF;
-      font-weight: 700;
+      font-weight: 800;
     }
     .nav__item--active .nav-icon {
       transform: translateY(-2px);
