@@ -465,10 +465,14 @@
     .offer-badge__timer--hot { background: var(--accent-orange); color: #FFFFFF; box-shadow: 0 0 6px rgba(255, 149, 0, 0.6); }
     .offer-badge__timer--gold { background: var(--accent-gold); color: #121214; }
     .offer-badge__timer--stars { background: linear-gradient(135deg, #ffd700, #ff9500); color: #000000; font-weight: 900; box-shadow: 0 0 8px rgba(255, 215, 0, 0.7); }
+    .offer-badge__timer--ton { background: linear-gradient(135deg, #0088cc, #00ff88); color: #000000; font-weight: 900; box-shadow: 0 0 6px rgba(0, 255, 136, 0.6); }
+    .offer-badge__timer--vip { background: linear-gradient(135deg, #9c27b0, #e91e63); color: #FFFFFF; font-weight: 900; box-shadow: 0 0 6px rgba(233, 30, 99, 0.7); }
     .offer-badge--stars { border-color: rgba(255, 215, 0, 0.4); background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(24, 24, 26, 0.85)); }
     .offer-badge--stars:active { border-color: #ffd700; }
-    .offer-badge__icon { font-size: clamp(1.4rem, 3.8vh, 1.65rem); line-height: 1; }
-    .offer-badge__label { font-size: 8.5px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-align: center; }
+    .offer-badge--ton { border-color: rgba(0, 136, 204, 0.4); background: linear-gradient(135deg, rgba(0, 136, 204, 0.08), rgba(24, 24, 26, 0.85)); }
+    .offer-badge--ton:active { border-color: #00ff88; }
+    .offer-badge__icon { font-size: clamp(1.3rem, 3.5vh, 1.55rem); line-height: 1; }
+    .offer-badge__label { font-size: 8px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-align: center; }
 
     /* Center Mascot */
     .home__center-mascot {
@@ -1394,42 +1398,42 @@
 
       <!-- Packs Grid -->
       <div id="ton-packs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
-        <!-- Pack 1: 0.2 TON -->
+        <!-- Pack 1: 2.0 TON -->
         <div class="ton-pack-card active" onclick="selectTonPack('pack_02')" id="ton-card-pack_02" style="background: rgba(20,28,38,0.9); border: 1.5px solid #00ff88; border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
           <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_02_title">Пакет «Старт»</div>
           <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+20,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
-          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">0.2 TON</div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">2.0 TON</div>
         </div>
 
-        <!-- Pack 2: 0.5 TON -->
+        <!-- Pack 2: 5.0 TON -->
         <div class="ton-pack-card" onclick="selectTonPack('pack_05')" id="ton-card-pack_05" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
           <div style="position: absolute; top: -6px; right: 6px; background: #ff9500; color: #000; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">+20%</div>
           <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_05_title">Пакет «Грибник»</div>
           <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+60,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
-          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">0.5 TON</div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">5.0 TON</div>
         </div>
 
-        <!-- Pack 3: 1.0 TON (Popular) -->
+        <!-- Pack 3: 10.0 TON (Popular) -->
         <div class="ton-pack-card" onclick="selectTonPack('pack_10')" id="ton-card-pack_10" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
           <div style="position: absolute; top: -6px; right: 6px; background: #e53935; color: #fff; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">🔥 ХИТ</div>
           <div style="font-size: 0.75rem; color: #ffd700; font-weight: 700;" data-i18n="ton_pack_10_title">«Богатый Енот»</div>
           <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+150,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
-          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">1.0 TON</div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">10.0 TON</div>
         </div>
 
-        <!-- Pack 4: 3.0 TON (VIP) -->
+        <!-- Pack 4: 30.0 TON (VIP) -->
         <div class="ton-pack-card" onclick="selectTonPack('pack_30')" id="ton-card-pack_30" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
           <div style="position: absolute; top: -6px; right: 6px; background: #9c27b0; color: #fff; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">👑 VIP</div>
           <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_30_title">«Хранилище Леса»</div>
           <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+500,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
-          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">3.0 TON</div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">30.0 TON</div>
         </div>
       </div>
 
       <!-- Action Buttons -->
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <button id="buy-ton-btn" class="button button-type-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #0088cc, #00ff88); color: #000; border: none; box-shadow: 0 4px 14px rgba(0, 136, 204, 0.4);" onclick="payTonSelectedPack()">
-          💎 <span id="buy-ton-btn-text">Оплатить 0.2 TON</span>
+          💎 <span id="buy-ton-btn-text">Оплатить 2.0 TON</span>
         </button>
 
         <button class="button button-type-secondary" style="width: 100%; padding: 10px; font-size: 0.82rem; border-radius: 10px;" onclick="openTonkeeperDeepLink()">
@@ -1524,27 +1528,41 @@
 
     <!-- Center Mascot & Floating Badges -->
     <div class="home__bottom-container">
-      <!-- Left Column Badges -->
+      <!-- Left Column Badges (Exclusively Offer Shortcuts) -->
       <div class="home__bottom-left-column">
-        <button class="offer-badge offer-badge--stars" onclick="openStarsOffer(); triggerHaptic('light');" title="Купить шишки за Звёзды" data-i18n-title="stars_offer_tooltip">
+        <!-- Offer 1: 100 Stars -> 10k -->
+        <button class="offer-badge offer-badge--stars" onclick="openStarsOffer(); triggerHaptic('light');" title="10,000 Шишек за 100 Звёзд" data-i18n-title="stars_offer_tooltip">
           <div class="offer-badge__timer offer-badge__timer--stars">100⭐</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));">⭐</span>
-          <div class="offer-badge__label" style="color: #ffd700; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">10k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="Шишки"></div>
+          <div class="offer-badge__label" style="color: #ffd700; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">10k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
-        <button class="offer-badge" onclick="renderCategory('newspapers'); triggerHaptic('light');">
-          <div class="offer-badge__timer">NEWS</div>
-          <span class="offer-badge__icon">📰</span>
-          <div class="offer-badge__label" data-i18n="menu_news">Газеты</div>
+
+        <!-- Offer 2: 2.0 TON -> 20k -->
+        <button class="offer-badge offer-badge--ton" onclick="openTonOffer('pack_02'); triggerHaptic('light');" title="20,000 Шишек за 2.0 TON">
+          <div class="offer-badge__timer offer-badge__timer--ton">2 TON</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">20k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
-        <button class="offer-badge" onclick="renderCategory('partners'); triggerHaptic('light');">
-          <div class="offer-badge__timer">NET</div>
-          <span class="offer-badge__icon">🤝</span>
-          <div class="offer-badge__label" data-i18n="menu_partners">Партнеры</div>
+
+        <!-- Offer 3: 5.0 TON -> 60k -->
+        <button class="offer-badge offer-badge--ton" onclick="openTonOffer('pack_05'); triggerHaptic('light');" title="60,000 Шишек за 5.0 TON (+20%)">
+          <div class="offer-badge__timer offer-badge__timer--hot">5 TON</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">60k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
-        <button class="offer-badge offer-badge--ton" onclick="openTonOffer(); triggerHaptic('light');" title="Купить шишки за TON" data-i18n-title="ton_offer_tooltip">
-          <div class="offer-badge__timer offer-badge__timer--live">TON💎</div>
-          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.7));">💎</span>
-          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800;" data-i18n="ton_offer_badge">Шишки TON</div>
+
+        <!-- Offer 4: 10.0 TON -> 150k (ХИТ) -->
+        <button class="offer-badge offer-badge--ton" onclick="openTonOffer('pack_10'); triggerHaptic('light');" title="150,000 Шишек за 10.0 TON (ХИТ)">
+          <div class="offer-badge__timer offer-badge__timer--live">10 TON</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.7));">💎</span>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">150k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+        </button>
+
+        <!-- Offer 5: 30.0 TON -> 500k (VIP) -->
+        <button class="offer-badge offer-badge--ton" onclick="openTonOffer('pack_30'); triggerHaptic('light');" title="500,000 Шишек за 30.0 TON (VIP)">
+          <div class="offer-badge__timer offer-badge__timer--vip">30 TON</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(156, 39, 176, 0.8));">💎</span>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">500k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
       </div>
 
@@ -3615,10 +3633,10 @@
   let selectedTonPackId = 'pack_02';
 
   const TON_PACKS_INFO = {
-    pack_02: { id: 'pack_02', ton: 0.2, cones: 20000, label: '0.2 TON' },
-    pack_05: { id: 'pack_05', ton: 0.5, cones: 60000, label: '0.5 TON' },
-    pack_10: { id: 'pack_10', ton: 1.0, cones: 150000, label: '1.0 TON' },
-    pack_30: { id: 'pack_30', ton: 3.0, cones: 500000, label: '3.0 TON' }
+    pack_02: { id: 'pack_02', ton: 2.0, cones: 20000, label: '2.0 TON' },
+    pack_05: { id: 'pack_05', ton: 5.0, cones: 60000, label: '5.0 TON' },
+    pack_10: { id: 'pack_10', ton: 10.0, cones: 150000, label: '10.0 TON' },
+    pack_30: { id: 'pack_30', ton: 30.0, cones: 500000, label: '30.0 TON' }
   };
 
   function openTonOffer(packId) {

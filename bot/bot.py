@@ -58,7 +58,7 @@ TON_RECIPIENT_WALLET = os.getenv("TON_RECIPIENT_WALLET", "UQCr6tyXHAXmxyexwgRltY
 TON_OFFERS = [
     {
         "id": "pack_02",
-        "ton": 0.2,
+        "ton": 2.0,
         "cones": 20000,
         "bonus": "",
         "popular": False,
@@ -67,7 +67,7 @@ TON_OFFERS = [
     },
     {
         "id": "pack_05",
-        "ton": 0.5,
+        "ton": 5.0,
         "cones": 60000,
         "bonus": "+20%",
         "popular": False,
@@ -76,7 +76,7 @@ TON_OFFERS = [
     },
     {
         "id": "pack_10",
-        "ton": 1.0,
+        "ton": 10.0,
         "cones": 150000,
         "bonus": "+50%",
         "popular": True,
@@ -85,7 +85,7 @@ TON_OFFERS = [
     },
     {
         "id": "pack_30",
-        "ton": 3.0,
+        "ton": 30.0,
         "cones": 500000,
         "bonus": "+66%",
         "popular": False,
