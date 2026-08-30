@@ -5602,8 +5602,7 @@
     if (data.type === 'game_over' && data.game === 'boss') {
       const current = document.querySelector('.screen.active').id;
       if (current === 'reader-screen') {
-        document.getElementById('reader-iframe').src = '';
-        navigateTo('list-screen');
+        handleBack();
       }
     }
 
