@@ -397,6 +397,20 @@ def init_db():
             )
         ''')
 
+        # Таблица обработанных платежей (для защиты от повторных начислений и истории транзакций)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS processed_payments (
+                payment_id TEXT PRIMARY KEY,
+                user_id INTEGER,
+                payment_type TEXT,
+                amount REAL,
+                cones_amount INTEGER,
+                tx_boc TEXT,
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         # Инициализация босса
         cursor.execute('''
             INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count)
@@ -2439,7 +2453,7 @@ def api_get_ton_offers():
 @app.route('/api/ton/notify_payment', methods=['POST'])
 @limiter.limit("15 per minute")
 def api_ton_notify_payment():
-    """Уведомление и зачисление шишек при оплате через TON"""
+    """Уведомление и автоматическое зачисление шишек при оплате через GRAM (TON)"""
     try:
         if not request.is_json:
             return jsonify({'error': 'Content-Type must be application/json'}), 400
@@ -2449,6 +2463,7 @@ def api_ton_notify_payment():
         pack_id = data.get('packId')
         tx_boc = data.get('txBoc', '')
         comment = data.get('comment', '')
+        payment_id = data.get('paymentId') or (tx_boc[:64] if tx_boc else f"tx_{user_id}_{pack_id}_{int(time.time())}")
 
         if not user_id or not pack_id:
             return jsonify({'error': 'userId and packId required'}), 400
@@ -2465,9 +2480,33 @@ def api_ton_notify_payment():
         cones_amount = selected_pack['cones']
         ton_amount = selected_pack['ton']
 
-        # Начисляем шишки пользователю
-        result = add_tokens(user_id, cones_amount, f'ton_purchase:{pack_id}:{ton_amount}TON')
-        logger.info(f"💎 Успешная покупка за TON: {user_id} получил {cones_amount} шишек за {ton_amount} TON")
+        # Проверяем, не была ли эта транзакция уже обработана
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            if tx_boc:
+                cursor.execute("SELECT payment_id FROM processed_payments WHERE tx_boc = ?", (tx_boc,))
+                if cursor.fetchone():
+                    logger.warning(f"⚠️ Повторная попытка обработки платежа с BOC: {tx_boc[:20]}...")
+                    user_tokens = get_user_tokens(user_id)
+                    return jsonify({
+                        'status': 'already_processed',
+                        'cones_added': 0,
+                        'balance': user_tokens['balance']
+                    })
+
+            # Записываем в таблицу processed_payments
+            cursor.execute('''
+                INSERT OR IGNORE INTO processed_payments (payment_id, user_id, payment_type, amount, cones_amount, tx_boc, comment)
+                VALUES (?, ?, 'gram', ?, ?, ?, ?)
+            ''', (payment_id, user_id, ton_amount, cones_amount, tx_boc, comment))
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Автоматически начисляем шишки игроку на баланс
+        result = add_tokens(user_id, cones_amount, f'gram_purchase:{pack_id}:{ton_amount}GRAM')
+        logger.info(f"💎 Автоматическое начисление: {user_id} получил {cones_amount} шишек за {ton_amount} GRAM")
 
         # Получаем данные пользователя для отчета админу
         user_name = f"Игрок #{user_id}"
@@ -2483,13 +2522,13 @@ def api_ton_notify_payment():
 
         # Отправляем уведомление администратору
         admin_text = (
-            f"💎 <b>НОВАЯ ОПЛАТА TON!</b>\n\n"
+            f"💎 <b>НОВАЯ ОПЛАТА GRAM!</b>\n\n"
             f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
             f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
             f"📦 <b>Пакет:</b> {selected_pack['title_ru']}\n"
-            f"💎 <b>Сумма:</b> {ton_amount} TON\n"
-            f"🌲 <b>Начислено:</b> +{cones_amount:,} Шишек\n"
-            f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек\n"
+            f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
+            f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+            f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
             f"👛 <b>Кошелек получения:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
             f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
         )
@@ -2497,6 +2536,23 @@ def api_ton_notify_payment():
             admin_text += f"\n🔗 <b>BOC:</b> <code>{html.escape(tx_boc[:48])}...</code>"
 
         notify_admin(admin_text)
+
+        # Отправляем подтверждение и поздравление игроку в Telegram
+        if BOT_TOKEN and user_id:
+            try:
+                user_msg = (
+                    f"💎 <b>Оплата {ton_amount} GRAM прошла успешно!</b>\n\n"
+                    f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
+                    f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
+                    f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                )
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={"chat_id": user_id, "text": user_msg, "parse_mode": "HTML"},
+                    timeout=6
+                )
+            except Exception as e:
+                logger.error(f"⚠️ Ошибка отправки Telegram сообщения игроку {user_id}: {e}")
 
         return jsonify({
             'status': 'ok',
@@ -2507,6 +2563,148 @@ def api_ton_notify_payment():
     except Exception as e:
         logger.error(f"Ошибка api_ton_notify_payment: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+def check_blockchain_incoming_transactions():
+    """
+    Проверяет блокчейн TON на наличие входящих транзакций на кошелек TON_RECIPIENT_WALLET.
+    При обнаружении транзакции с комментарием rl_{userId}_{packId}:
+    1. Проверяет хэш транзакции в processed_payments.
+    2. Если транзакция новая и сумма достаточна — автоматически начисляет шишки.
+    3. Отправляет подтверждение игроку в Telegram.
+    4. Отправляет уведомление администратору.
+    """
+    if not TON_RECIPIENT_WALLET:
+        return
+    try:
+        url = f"https://toncenter.com/api/v2/getTransactions?address={TON_RECIPIENT_WALLET}&limit=20"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            return
+        data = resp.json()
+        if not data.get('ok') or not data.get('result'):
+            return
+
+        txs = data['result']
+        for tx in txs:
+            try:
+                tx_id = tx.get('transaction_id', {})
+                tx_hash = tx_id.get('hash')
+                if not tx_hash:
+                    continue
+
+                in_msg = tx.get('in_msg', {})
+                raw_value = in_msg.get('value', 0)
+                try:
+                    nano_amount = int(raw_value)
+                except (ValueError, TypeError):
+                    nano_amount = 0
+
+                comment = in_msg.get('message', '').strip()
+                if not comment.startswith('rl_'):
+                    continue
+
+                # Формат комментария: rl_{userId}_{packId} (например rl_12345678_pack_02)
+                parts = comment.split('_')
+                if len(parts) < 3:
+                    continue
+
+                try:
+                    user_id = int(parts[1])
+                except ValueError:
+                    continue
+
+                pack_id = '_'.join(parts[2:]) # pack_02, pack_05, etc.
+                selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
+                if not selected_pack:
+                    continue
+
+                expected_nano = int(selected_pack['ton'] * 1e9)
+                if nano_amount < int(expected_nano * 0.95):  # с учетом допустимой погрешности комиссии
+                    continue
+
+                # Проверяем, обрабатывали ли мы уже этот tx_hash
+                conn = get_db_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT payment_id FROM processed_payments WHERE payment_id = ? OR tx_boc = ?", (tx_hash, tx_hash))
+                    if cursor.fetchone():
+                        continue # Уже обработан
+
+                    # Записываем транзакцию
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO processed_payments (payment_id, user_id, payment_type, amount, cones_amount, tx_boc, comment)
+                        VALUES (?, ?, 'gram_blockchain', ?, ?, ?, ?)
+                    ''', (tx_hash, user_id, selected_pack['ton'], selected_pack['cones'], tx_hash, comment))
+                    conn.commit()
+                finally:
+                    conn.close()
+
+                # Автоматически начисляем шишки игроку
+                cones_amount = selected_pack['cones']
+                ton_amount = selected_pack['ton']
+                result = add_tokens(user_id, cones_amount, f'blockchain_gram_purchase:{pack_id}:{ton_amount}GRAM')
+                logger.info(f"💎 [Блокчейн-верификатор] Успешно зачислено +{cones_amount} шишек игроку {user_id} (tx: {tx_hash[:16]}...)")
+
+                # Получаем данные пользователя для отчета админу
+                user_name = f"Игрок #{user_id}"
+                conn = get_db_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+                    u_row = cursor.fetchone()
+                    if u_row:
+                        user_name = f"@{u_row['username']}" if u_row['username'] else (f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip() or f"Игрок #{user_id}")
+                finally:
+                    conn.close()
+
+                # Уведомление админу
+                admin_text = (
+                    f"💎 <b>НОВАЯ ОПЛАТА GRAM (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
+                    f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                    f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                    f"📦 <b>Пакет:</b> {selected_pack['title_ru']}\n"
+                    f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
+                    f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+                    f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
+                    f"👛 <b>Кошелек получения:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                    f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
+                    f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
+                )
+                notify_admin(admin_text)
+
+                # Уведомление игроку в Telegram
+                if BOT_TOKEN and user_id:
+                    try:
+                        user_msg = (
+                            f"💎 <b>Оплата {ton_amount} GRAM подтверждена в блокчейне!</b>\n\n"
+                            f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
+                            f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
+                            f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                        )
+                        requests.post(
+                            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                            json={"chat_id": user_id, "text": user_msg, "parse_mode": "HTML"},
+                            timeout=6
+                        )
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки подтверждения игроку {user_id}: {e}")
+
+            except Exception as item_err:
+                logger.error(f"Ошибка обработки отдельной транзакции: {item_err}")
+
+    except Exception as e:
+        logger.debug(f"Ошибка check_blockchain_incoming_transactions: {e}")
+
+
+def ton_blockchain_watcher_thread():
+    """Фоновый поток для автоматической проверки входящих платежей в блокчейне TON"""
+    while True:
+        try:
+            check_blockchain_incoming_transactions()
+        except Exception as e:
+            logger.error(f"Ошибка в ton_blockchain_watcher_thread: {e}")
+        time.sleep(15)
 
 
 @app.route('/api/leaderboard', methods=['GET'])
@@ -6160,13 +6358,26 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     user_id = update.effective_user.id
 
     if payload and payload.startswith("cones_10000_"):
-        # Начисляем 10,000 шишек игроку
+        # Проверяем и записываем транзакцию
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR IGNORE INTO processed_payments (payment_id, user_id, payment_type, amount, cones_amount, comment)
+                VALUES (?, ?, 'stars', 100, 10000, ?)
+            ''', (payload, user_id, f"telegram_stars_100:{payment.telegram_payment_charge_id}"))
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Автоматически начисляем 10,000 шишек игроку
         result = add_tokens(user_id, 10000, reason="stars_100_purchase")
         logger.info(f"🌟 Успешная покупка 10,000 шишек за 100 Звёзд пользователем {user_id}")
 
         await update.message.reply_text(
             "🌟 <b>Оплата 100 Звёзд прошла успешно!</b>\n\n"
             "✨ На ваш игровой баланс зачислено <b>10,000 Шишек</b>!\n"
+            f"💳 Ваш баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
             "Приятной игры в <b>Raccoon Life</b>! 🦝",
             parse_mode=ParseMode.HTML
         )
@@ -6180,8 +6391,9 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
                 f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
                 f"⭐ <b>Оплачено:</b> 100 Звёзд (XTR)\n"
-                f"🌲 <b>Начислено:</b> +10,000 Шишек\n"
-                f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек"
+                f"🌲 <b>Начислено игроку:</b> +10,000 Шишек\n"
+                f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек\n"
+                f"🔖 <b>Charge ID:</b> <code>{html.escape(payment.telegram_payment_charge_id)}</code>"
             )
             try:
                 await context.bot.send_message(chat_id=ADMIN_ID, text=admin_text, parse_mode=ParseMode.HTML)
@@ -6243,6 +6455,11 @@ def main():
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     logger.info(f"🚀 Flask API server started on port {FLASK_PORT}")
+
+    # Запуск фонового блокчейн-верификатора входящих транзакций TON/GRAM
+    watcher_thread = Thread(target=ton_blockchain_watcher_thread, daemon=True)
+    watcher_thread.start()
+    logger.info("💎 TON/GRAM Blockchain watcher started")
 
     # Настройка Telegram бота
     builder = (
