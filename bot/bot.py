@@ -6014,7 +6014,7 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
 
         await update.message.reply_text(
             "🌟 <b>Оплата 100 Звёзд прошла успешно!</b>\n\n"
-            "🌰 На ваш игровой баланс зачислено <b>10,000 Шишек</b>!\n"
+            "✨ На ваш игровой баланс зачислено <b>10,000 Шишек</b>!\n"
             "Приятной игры в <b>Raccoon Life</b>! 🦝",
             parse_mode=ParseMode.HTML
         )
