@@ -3948,7 +3948,7 @@ def api_game_library():
         if init_data:
             auth_user = validate_webapp_data(init_data)
             if auth_user:
-                user_id = int(auth_user.get(\'id\'))
+                user_id = int(auth_user.get('id'))
         
         if action == 'start':
             state = {'progress': 0, 'required': 100, 'suspicion': 0, 'max_suspicion': 3}
