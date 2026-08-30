@@ -1982,6 +1982,32 @@ def api_get_player_stats():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/user_full_profile', methods=['GET'])
+def api_get_user_full_profile():
+    """Получить полное досье статистики игрока для WebApp"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        profile = get_full_user_profile_admin(str(user_id))
+        if not profile:
+            return jsonify({'error': 'User not found'}), 404
+
+        return jsonify({
+            'status': 'ok',
+            'profile': profile
+        })
+    except Exception as e:
+        logger.error(f"Ошибка api_get_user_full_profile: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/leaderboard', methods=['GET'])
 def api_get_leaderboard():
     """Получить рейтинг игроков"""
@@ -5408,29 +5434,46 @@ def get_full_user_profile_admin(identifier: str) -> dict:
 
 async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Команда для админа: /stats <username|user_id>
-    Выдает полную подробную статистику по игроку
+    Команда /stats (также /user, /player):
+    - Для любого игрока без аргументов: показывает свою подробную статистику
+    - Для админа с аргументами (@username/id) или ответом на сообщение: показывает досье указанного игрока
     """
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+    caller = update.effective_user
+    if not caller:
         return
 
+    caller_id = caller.id
+
+    # Гарантируем регистрацию вызывающего пользователя в БД
+    ensure_user_exists(caller_id, caller.username, caller.first_name, caller.last_name)
+
+    is_admin = (caller_id == ADMIN_ID)
     identifier = None
-    if context.args and len(context.args) > 0:
-        identifier = context.args[0].strip()
-    elif update.message.reply_to_message and update.message.reply_to_message.from_user:
-        identifier = str(update.message.reply_to_message.from_user.id)
+    notice_text = ""
 
-    if not identifier:
-        await update.message.reply_text(
-            "❌ <b>Использование:</b> <code>/stats &lt;@username | user_id&gt;</code>\n"
-            "<i>(или отправьте команду /stats ответом на сообщение пользователя)</i>\n\n"
-            "Примеры:\n"
-            "• <code>/stats @username</code>\n"
-            "• <code>/stats 123456789</code>",
-            parse_mode=ParseMode.HTML
-        )
-        return
+    # Проверяем аргументы или ответ на сообщение
+    if context.args and len(context.args) > 0:
+        target_arg = context.args[0].strip()
+        if is_admin:
+            identifier = target_arg
+        else:
+            # Обычный игрок пытается посмотреть чужую статистику
+            clean_username = (caller.username or '').lower().lstrip('@')
+            clean_arg = target_arg.lower().lstrip('@')
+            if clean_arg != str(caller_id) and clean_arg != clean_username:
+                notice_text = "ℹ️ <i>Просмотр статистики других игроков доступен только администраторам.\nНиже отображена ваша статистика:</i>\n\n"
+            identifier = str(caller_id)
+    elif update.message.reply_to_message and update.message.reply_to_message.from_user:
+        target_user = update.message.reply_to_message.from_user
+        if is_admin:
+            identifier = str(target_user.id)
+        else:
+            if target_user.id != caller_id:
+                notice_text = "ℹ️ <i>Просмотр статистики других игроков доступен только администраторам.\nНиже отображена ваша статистика:</i>\n\n"
+            identifier = str(caller_id)
+    else:
+        # Просмотр собственной статистики
+        identifier = str(caller_id)
 
     profile = get_full_user_profile_admin(identifier)
     if not profile:
@@ -5447,7 +5490,10 @@ async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tot = profile['tot']
     sc = profile['score_info']
 
+    is_self = (u['user_id'] == caller_id)
     user_name = html.escape(f"@{u['username']}" if u.get('username') else (f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or f"Игрок #{u['user_id']}"))
+    header_title = f"📊 <b>ВАША СТАТИСТИКА</b>: {user_name}" if is_self else f"📊 <b>ДОСЬЕ ИГРОКА</b>: {user_name}"
+    
     status_str = "⛔️ <b>ЗАБАНЕН</b>" if u.get('is_banned') else "🟢 <b>Активен</b>"
     if u.get('is_banned') and u.get('ban_reason'):
         status_str += f" <i>(Причина: {html.escape(u['ban_reason'])})</i>"
@@ -5473,7 +5519,8 @@ async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     r_quests = f"#{profile['rank_quests']}" if profile['rank_quests'] else "—"
 
     msg = (
-        f"📊 <b>ДОСЬЕ ИГРОКА</b>: {user_name}\n"
+        f"{notice_text}"
+        f"{header_title}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 <b>ID:</b> <code>{u['user_id']}</code>\n"
         f"📌 <b>Статус:</b> {status_str}\n"
@@ -5604,10 +5651,9 @@ async def post_init(application: Application):
         except Exception as e:
             logger.error(f"⚠️ Ошибка установки кнопки меню: {e}")
 
-    try:
-        # Устанавливаем список команд для меню
         commands = [
             BotCommand('start', '🚀 Запустить бота'),
+            BotCommand('stats', '📊 Моя статистика и профиль'),
             BotCommand('shend', '💸 Передать шишки (в группе)'),
             BotCommand('farsh', '🥩 Разделить шишки между игроками'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
@@ -5618,8 +5664,7 @@ async def post_init(application: Application):
             BotCommand('broadcast', '📢 Рассылка всем (админ)'),
             BotCommand('unban', '✅ Разбанить пользователя (админ)'),
             BotCommand('delete', '🗑️ Удалить пользователя (админ)'),
-            BotCommand('notime', '⏳ Сбросить лимит новостей (админ)'),
-            BotCommand('stats', '📊 Досье игрока (админ)')
+            BotCommand('notime', '⏳ Сбросить лимит новостей (админ)')
         ]
         await application.bot.set_my_commands(commands)
         logger.info("✅ Commands menu set")

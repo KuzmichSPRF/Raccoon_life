@@ -1143,10 +1143,46 @@
       cursor: pointer;
       font-weight: 700;
     }
-    .bet-currency-tab.active {
-      background: var(--btn-red);
-      color: white;
-      border-color: var(--btn-red);
+    .profile-stats-modal {
+      background: rgba(24, 24, 27, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .profile-stat-box {
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    .profile-score-hero {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 170, 0, 0.05));
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 16px;
+      padding: 14px;
+      text-align: center;
+    }
+    .profile-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .profile-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+    .profile-chip-title {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+    .profile-chip-val {
+      font-weight: 700;
+      color: var(--text-primary);
     }
   </style>
 </head>
@@ -1239,10 +1275,24 @@
     </div>
   </div>
 
+  <!-- Player Profile & Stats Modal -->
+  <div id="profile-stats-overlay" class="tutorial-overlay">
+    <div class="tutorial-modal profile-stats-modal" style="position: relative; width: 92%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; padding: 18px 16px 20px;">
+      <button class="close-modal-btn" onclick="closeProfileModal()">✕</button>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <span style="font-size: 1.4rem;">📊</span>
+        <h3 class="tutorial-title" style="margin: 0; text-align: left; font-size: 1.2rem;" data-i18n="profile_modal_title">Моя статистика</h3>
+      </div>
+      <div id="profile-modal-content" style="overflow-y: auto; overflow-x: hidden; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Dynamic Profile Content -->
+      </div>
+    </div>
+  </div>
+
   <!-- Top App Header (CapsGame Header Bar) -->
   <header id="app-header" class="home__title" style="display: none;">
     <div class="home__user">
-      <div class="badge-icon-button home__user-profile" onclick="showLeaderboard(); triggerHaptic('selection');">
+      <div class="badge-icon-button home__user-profile" onclick="openProfileModal(); triggerHaptic('selection');">
         <div class="cap__element-wrapper">
           <button class="cap__element" id="header-avatar-btn">
             <div id="header-avatar">🦝</div>
@@ -1706,7 +1756,16 @@
       welcome_desc: "Здесь вы найдете много интересного",
       balance_tooltip: "Баланс шишек",
       quests_progress_tooltip: "Прогресс квестов",
-      energy_tooltip: "Энергия"
+      energy_tooltip: "Энергия",
+      profile_modal_title: "Моя статистика",
+      profile_view_full: "Подробное досье",
+      overall_score_title: "Общий рейтинг",
+      overall_score_breakdown: "Детализация общего рейтинга",
+      economy_stats: "Экономика шишек",
+      minigames_stats: "Мини-игры",
+      quests_and_community: "Квесты и активность",
+      registered_date: "В игре с",
+      rank_label: "Место"
     },
     en: {
       lang_btn: "EN",
@@ -1808,7 +1867,16 @@
       welcome_desc: "Here you will find a lot of interesting things",
       balance_tooltip: "Cones Balance",
       quests_progress_tooltip: "Quests Progress",
-      energy_tooltip: "Energy"
+      energy_tooltip: "Energy",
+      profile_modal_title: "My Statistics",
+      profile_view_full: "Detailed dossier",
+      overall_score_title: "Overall Score",
+      overall_score_breakdown: "Overall Score Breakdown",
+      economy_stats: "Pinecone Economy",
+      minigames_stats: "Mini-games",
+      quests_and_community: "Quests & Activity",
+      registered_date: "Playing since",
+      rank_label: "Rank"
     }
   };
 
@@ -2657,6 +2725,258 @@
     }
   }
 
+  function openProfileModal() {
+    const overlay = document.getElementById('profile-stats-overlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    renderPlayerProfileModal();
+    triggerHaptic('light');
+
+    const userId = getUserId();
+    if (userId) {
+      fetch(`/api/user_full_profile?userId=${userId}`, {
+        headers: { 'X-Telegram-Init-Data': tg.initData || '' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.profile) {
+          renderPlayerProfileModal(data.profile);
+        }
+      })
+      .catch(e => console.error('Ошибка загрузки полного профиля:', e));
+    }
+  }
+
+  function closeProfileModal() {
+    const overlay = document.getElementById('profile-stats-overlay');
+    if (overlay) overlay.classList.remove('active');
+    triggerHaptic('light');
+  }
+
+  function renderPlayerProfileModal(profileData) {
+    const container = document.getElementById('profile-modal-content');
+    if (!container) return;
+
+    const user = getUserObject();
+    const uName = (profileData && profileData.user && (profileData.user.first_name || profileData.user.username)) || user.first_name || user.username || (currentLang === 'ru' ? 'EHOT' : 'Raccoon');
+    const uHandle = (profileData && profileData.user && profileData.user.username) ? '@' + profileData.user.username : (user.username ? '@' + user.username : '');
+    const uId = (profileData && profileData.user && profileData.user.user_id) || getUserId() || '—';
+    const regDate = profileData && profileData.user && profileData.user.registered_at ? profileData.user.registered_at.split(' ')[0] : '—';
+    
+    // Overall score
+    let overallScore = 0;
+    let balance = 0;
+    let questsCompleted = 0;
+    let totalGames = 0;
+    let rouletteBets = 0;
+    let roulettePoints = 0;
+    let newspapersRead = 0;
+    let rankOverall = '—';
+    let totalEarned = 0;
+    let totalSpent = 0;
+
+    // Mini-games
+    let clownGames = stats.clown_games || 0;
+    let clownWins = stats.clown_wins || 0;
+    let vladeosGames = stats.vladeos_games || 0;
+    let vladeosWins = stats.vladeos_wins || 0;
+    let towerMax = stats.tower_max_level || 0;
+    let towerLevels = stats.tower_total_levels || 0;
+    let rouletteGames = stats.roulette_games || 0;
+    let rouletteWon = stats.roulette_cones_won || 0;
+    let rouletteLost = stats.roulette_cones_lost || 0;
+    let bossDamage = 0;
+    let bossHits = 0;
+
+    // Social
+    let qt2Done = 0;
+    let craftsCreated = 0;
+    let craftsContributed = 0;
+    let totBets = 0;
+    let totAmount = 0;
+    let totWon = 0;
+
+    if (profileData) {
+      const sc = profileData.score_info || {};
+      const t = profileData.tokens || {};
+      const s = profileData.stats || {};
+      const b = profileData.boss || {};
+      const tot = profileData.tot || {};
+
+      overallScore = sc.total_score || 0;
+      balance = t.balance || 0;
+      totalEarned = t.total_earned || 0;
+      totalSpent = t.total_spent || 0;
+      questsCompleted = sc.quests_completed || 0;
+      totalGames = sc.total_games || 0;
+      rouletteBets = sc.roulette_bets || 0;
+      roulettePoints = sc.roulette_bets_points || 0;
+      newspapersRead = sc.newspapers_read || 0;
+      rankOverall = profileData.rank_overall ? '#' + profileData.rank_overall : '—';
+
+      clownGames = s.clown_games || 0;
+      clownWins = s.clown_wins || 0;
+      vladeosGames = s.vladeos_games || 0;
+      vladeosWins = s.vladeos_wins || 0;
+      towerMax = s.tower_max_level || 0;
+      towerLevels = s.tower_total_levels || 0;
+      rouletteGames = s.roulette_games || 0;
+      rouletteWon = s.roulette_cones_won || 0;
+      rouletteLost = s.roulette_cones_lost || 0;
+
+      bossDamage = b.total_damage || 0;
+      bossHits = b.hits || 0;
+
+      qt2Done = profileData.qt2_done || 0;
+      craftsCreated = profileData.crafts_created || 0;
+      craftsContributed = profileData.crafts_contributed || 0;
+
+      totBets = tot.total_bets || 0;
+      totAmount = tot.total_amount || 0;
+      totWon = tot.won_bets || 0;
+    } else {
+      overallScore = (stats.overall_score !== undefined && stats.overall_score !== null) ? stats.overall_score : calculateLocalOverallScore();
+      const balanceEl = document.getElementById('token-balance');
+      balance = (balanceEl && balanceEl.innerText !== '---' && balanceEl.innerText !== '?') ? parseInt(balanceEl.innerText.replace(/[^0-9]/g, '')) || 0 : (stats.balance || 0);
+      
+      const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
+      const qt2Quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7'];
+      qt2Done = qt2Quests.filter(q => completed.includes(q)).length;
+      questsCompleted = qt2Done;
+      totalGames = clownGames + vladeosGames + towerLevels + rouletteGames;
+      rouletteBets = stats.roulette_total_bets || ((rouletteLost) + rouletteGames * 10);
+      roulettePoints = Math.floor(rouletteBets * 0.5);
+      newspapersRead = completed.filter(id => typeof id === 'string' && (id.startsWith('news_') || id.startsWith('caps_news'))).length;
+    }
+
+    const clownWR = clownGames > 0 ? ((clownWins / clownGames) * 100).toFixed(0) : '0';
+    const vladeosWR = vladeosGames > 0 ? ((vladeosWins / vladeosGames) * 100).toFixed(0) : '0';
+
+    const avatarHtml = user.photo_url 
+      ? `<img src="${user.photo_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-gold);" alt="Avatar">`
+      : `<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,215,0,0.15);display:flex;align-items:center;justify-content:center;font-size:1.6rem;border:2px solid var(--accent-gold);">🦝</div>`;
+
+    container.innerHTML = `
+      <!-- User Bio Header -->
+      <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0;">
+        ${avatarHtml}
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 1.05rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(uName)}</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">${escapeHTML(uHandle || ('ID: ' + uId))}</div>
+        </div>
+        ${regDate !== '—' ? `<div style="font-size: 0.7rem; color: var(--text-secondary); text-align: right;"><span style="display:block; color:#777;">${i18n[currentLang].registered_date || 'В игре с'}</span>${regDate}</div>` : ''}
+      </div>
+
+      <!-- Overall Score Card -->
+      <div class="profile-score-hero">
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-gold); font-weight: 700;">
+          🏆 ${i18n[currentLang].overall_score_title || 'Общий рейтинг'}
+        </div>
+        <div style="font-size: 1.7rem; font-weight: 900; color: #ffd700; text-shadow: 0 0 15px rgba(255,215,0,0.5); margin: 2px 0;">
+          ${overallScore.toLocaleString('ru-RU')}
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 8px;">
+          ${i18n[currentLang].rank_label || 'Место'}: <b style="color: #fff;">${rankOverall}</b>
+        </div>
+        
+        <!-- Breakdown Grid -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; text-align: left;">
+          <div class="profile-chip">
+            <div class="profile-chip-title"><img src="cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text || 'Баланс'}</div>
+            <div class="profile-chip-val" style="color: #ffd700;">+${balance.toLocaleString('ru-RU')}</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">📜 ${i18n[currentLang].menu_quests || 'Квесты'} (x10K)</div>
+            <div class="profile-chip-val" style="color: #00ff88;">+${(questsCompleted * 10000).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${qt2Done}/7)</span></div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">🎮 ${i18n[currentLang].menu_games || 'Игры'} (x100)</div>
+            <div class="profile-chip-val" style="color: #00ccff;">+${(totalGames * 100).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${totalGames} игр)</span></div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">🎰 ${i18n[currentLang].game_roulette || 'Рулетка'} (x0.5)</div>
+            <div class="profile-chip-val" style="color: #ffaa00;">+${roulettePoints.toLocaleString('ru-RU')}</div>
+          </div>
+        </div>
+        <div class="profile-chip" style="margin-top: 6px; text-align: left;">
+          <div class="profile-chip-title">📰 ${i18n[currentLang].menu_news || 'Газеты'} (x500)</div>
+          <div class="profile-chip-val" style="color: #bb86fc;">+${(newspapersRead * 500).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${newspapersRead} вып.)</span></div>
+        </div>
+      </div>
+
+      <!-- Economy Card -->
+      <div class="profile-stat-box">
+        <div style="font-weight: 700; font-size: 0.82rem; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>💰</span> <span>${i18n[currentLang].economy_stats || 'Экономика шишек'}</span>
+        </div>
+        <div class="profile-grid-2">
+          <div class="profile-chip">
+            <div class="profile-chip-title">Текущий баланс</div>
+            <div class="profile-chip-val"><img src="cone.png" class="cone-icon" alt="🌰"> ${balance.toLocaleString('ru-RU')}</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">Всего заработано</div>
+            <div class="profile-chip-val" style="color: #00ff88;">+${totalEarned.toLocaleString('ru-RU')}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini-games Stats Card -->
+      <div class="profile-stat-box">
+        <div style="font-weight: 700; font-size: 0.82rem; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>🎮</span> <span>${i18n[currentLang].minigames_stats || 'Мини-игры'}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div class="profile-chip" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>🤡 <b>Клоун:</b> ${clownGames} игр</div>
+            <div>Побед: <b style="color:#00ff88;">${clownWins}</b> <span style="font-size:0.7rem; color:#aaa;">(${clownWR}%)</span></div>
+          </div>
+          <div class="profile-chip" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>⚔️ <b>Vladeos PvP:</b> ${vladeosGames} игр</div>
+            <div>Побед: <b style="color:#00ff88;">${vladeosWins}</b> <span style="font-size:0.7rem; color:#aaa;">(${vladeosWR}%)</span></div>
+          </div>
+          <div class="profile-chip" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>🏰 <b>Башня 3.0:</b></div>
+            <div>Макс: <b>${towerMax}</b> эт. • Пройдено: <b>${towerLevels}</b></div>
+          </div>
+          <div class="profile-chip" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>🎰 <b>Рулетка:</b> ${rouletteGames} спинов</div>
+            <div style="font-size:0.72rem;"><span style="color:#00ff88;">+${rouletteWon.toLocaleString('ru-RU')}</span> / <span style="color:#ff5555;">-${rouletteLost.toLocaleString('ru-RU')}</span></div>
+          </div>
+          <div class="profile-chip" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>🔺 <b>Мировой Босс:</b></div>
+            <div>Урон: <b style="color:#ff7744;">${bossDamage.toLocaleString('ru-RU')}</b> <span style="font-size:0.7rem; color:#aaa;">(${bossHits} уд.)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quests & Social Card -->
+      <div class="profile-stat-box">
+        <div style="font-weight: 700; font-size: 0.82rem; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>📜</span> <span>${i18n[currentLang].quests_and_community || 'Квесты и активность'}</span>
+        </div>
+        <div class="profile-grid-2">
+          <div class="profile-chip">
+            <div class="profile-chip-title">Квесты QT2</div>
+            <div class="profile-chip-val" style="color: #00ff88;">${qt2Done}/7 завершено</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">Газеты</div>
+            <div class="profile-chip-val" style="color: #bb86fc;">${newspapersRead} вып.</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">Совместные крафты</div>
+            <div class="profile-chip-val">${craftsCreated} созд. • ${craftsContributed} взн.</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">EnotXbet Ставки</div>
+            <div class="profile-chip-val">${totBets} ст. • ${totWon} побед</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function showLeaderboard() {
     navigateTo('rating-screen');
     loadLeaderboard('overall');
@@ -3394,12 +3714,13 @@
           const formattedScore = (userRank.score || 0).toLocaleString('ru-RU');
           const formattedBalance = (userRank.balance || 0).toLocaleString('ru-RU');
           userCard.innerHTML = `
-            <div class="user-rank-card">
+            <div class="user-rank-card" onclick="openProfileModal(); triggerHaptic('selection');" style="cursor: pointer;" title="${i18n[currentLang].profile_view_full || 'Подробное досье'}">
               <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
                   <span class="user-rank-badge">${youText}</span>
+                  <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 600;">📊 ${i18n[currentLang].profile_modal_title || 'Статистика'} →</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
                   <img src="cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${userRank.quests_completed || 0} • 🎮 ${userRank.total_games || 0} • 📰 ${userRank.newspapers_read || 0}
@@ -3412,12 +3733,13 @@
           const formattedBalance = (userRank.balance || 0).toLocaleString('ru-RU');
           const earnedLabel = userRank.total_earned ? `(${i18n[currentLang].total_earned}: ${(userRank.total_earned || 0).toLocaleString('ru-RU')})` : '';
           userCard.innerHTML = `
-            <div class="user-rank-card">
+            <div class="user-rank-card" onclick="openProfileModal(); triggerHaptic('selection');" style="cursor: pointer;" title="${i18n[currentLang].profile_view_full || 'Подробное досье'}">
               <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
                   <span class="user-rank-badge">${youText}</span>
+                  <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 600;">📊 ${i18n[currentLang].profile_modal_title || 'Статистика'} →</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;"><img src="cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
               </div>
@@ -3426,12 +3748,13 @@
           `;
         } else if (type === 'quests') {
           userCard.innerHTML = `
-            <div class="user-rank-card">
+            <div class="user-rank-card" onclick="openProfileModal(); triggerHaptic('selection');" style="cursor: pointer;" title="${i18n[currentLang].profile_view_full || 'Подробное досье'}">
               <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
                   <span class="user-rank-badge">${youText}</span>
+                  <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 600;">📊 ${i18n[currentLang].profile_modal_title || 'Статистика'} →</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">✅ ${i18n[currentLang].completed_quests}: ${userRank.quests_completed || 0}</div>
               </div>
