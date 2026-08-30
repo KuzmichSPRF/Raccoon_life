@@ -186,6 +186,30 @@
       border-color: var(--primary);
       box-shadow: 0 0 15px rgba(0, 136, 204, 0.4);
     }
+    .user-rank-card {
+      background: linear-gradient(135deg, rgba(0, 136, 204, 0.18), rgba(30, 30, 36, 0.95));
+      border: 1.5px solid rgba(0, 136, 204, 0.55);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.2);
+      position: relative;
+    }
+    .user-rank-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--primary);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
     .tot-side-btn {
       flex: 1;
       padding: 10px 6px;
@@ -613,6 +637,7 @@
       <button class="rating-tab active" id="tab-tokens" onclick="loadLeaderboard('tokens')" data-i18n="tab_tokens">Богачи</button>
       <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests')" data-i18n="tab_quests">Квесты</button>
     </div>
+    <div id="user-leaderboard-card"></div>
     <div id="leaderboard-list" style="padding-bottom: 20px;"></div>
   </div>
 
@@ -730,6 +755,8 @@
       tab_tokens: "Богачи",
       tab_quests: "Квесты",
       completed_quests: "квестов пройдено",
+      you_badge: "Вы",
+      your_rank: "Ваше место",
       season_complete_title: "Сезон Завершен!",
       season_complete_desc: "Вы успешно прошли все круги бюрократического ада и завершили 2-й сезон The Questoon Times!",
       btn_hooray: "Ура!",
@@ -780,6 +807,8 @@
       tab_tokens: "Richest",
       tab_quests: "Quests",
       completed_quests: "quests completed",
+      you_badge: "You",
+      your_rank: "Your Rank",
       season_complete_title: "Season Completed!",
       season_complete_desc: "You have successfully passed all circles of bureaucratic hell and completed the 2nd season of The Questoon Times!",
       btn_hooray: "Hooray!",
@@ -1421,7 +1450,9 @@
 
   function loadLeaderboard(type) {
     const list = document.getElementById('leaderboard-list');
+    const userCard = document.getElementById('user-leaderboard-card');
     list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].loading_rating}</div>`;
+    if (userCard) userCard.innerHTML = '';
 
     document.querySelectorAll('.rating-tab').forEach(t => t.classList.remove('active'));
     const tabBtn = document.getElementById('tab-' + type);
@@ -1431,8 +1462,9 @@
       syncStats(); // Синхронизируем статистику если открываем вкладку по умолчанию
     }
 
+    const userId = getUserId();
     // Загрузка рейтинга из API
-    fetch(`/api/leaderboard?limit=20&type=${type}&t=${Date.now()}`, {
+    fetch(`/api/leaderboard?limit=20&type=${type}&userId=${userId}&t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -1446,15 +1478,17 @@
         return res.json();
       })
       .then(data => {
-        if (data.status === 'ok' && data.leaderboard && data.leaderboard.length > 0) {
-          renderLeaderboard(data.leaderboard, type);
+        if (data.status === 'ok' && ((data.leaderboard && data.leaderboard.length > 0) || data.user_rank)) {
+          renderLeaderboard(data.leaderboard || [], type, data.user_rank);
         } else {
           list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].empty_rating}</div>`;
+          if (userCard) userCard.innerHTML = '';
         }
       })
       .catch(err => {
         console.error('Ошибка загрузки рейтинга:', err);
         list.innerHTML = `<div style="text-align:center;color:var(--accent);padding:20px;">${i18n[currentLang].error_rating}<br><span style="font-size: 0.8rem; color: var(--text-sec);">${err.message}</span></div>`;
+        if (userCard) userCard.innerHTML = '';
       });
   }
 
@@ -2114,13 +2148,77 @@
     );
   }
 
-  function renderLeaderboard(players, type) {
+  function renderLeaderboard(players, type, userRank) {
     const list = document.getElementById('leaderboard-list');
+    const userCard = document.getElementById('user-leaderboard-card');
     list.innerHTML = '';
+
+    // Отображаем отдельной строкой позицию текущего игрока
+    if (userCard) {
+      if (userRank) {
+        let uRankColor = 'var(--primary)';
+        let uRankIcon = userRank.rank ? '#' + userRank.rank : '—';
+        if (userRank.rank === 1) { uRankColor = '#ffd700'; uRankIcon = '🥇'; }
+        else if (userRank.rank === 2) { uRankColor = '#c0c0c0'; uRankIcon = '🥈'; }
+        else if (userRank.rank === 3) { uRankColor = '#cd7f32'; uRankIcon = '🥉'; }
+
+        const safeUName = escapeHTML(userRank.name || (tg.initDataUnsafe?.user ? (tg.initDataUnsafe.user.username ? '@' + tg.initDataUnsafe.user.username : (tg.initDataUnsafe.user.first_name || 'Вы')) : 'Вы'));
+        const safeURankIcon = escapeHTML(uRankIcon);
+        const youText = i18n[currentLang].you_badge || 'ВЫ';
+
+        if (type === 'tokens') {
+          const formattedBalance = (userRank.balance || 0).toLocaleString('ru-RU');
+          const earnedLabel = userRank.total_earned ? `(${i18n[currentLang].total_earned}: ${(userRank.total_earned || 0).toLocaleString('ru-RU')})` : '';
+          userCard.innerHTML = `
+            <div class="user-rank-card">
+              <div style="font-size: 1.5rem; font-weight: 800; color: ${uRankColor}; width: 50px; text-align:center;">${safeURankIcon}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
+                  <span class="user-rank-badge">${youText}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-sec); margin-top: 2px;">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+              </div>
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
+            </div>
+          `;
+        } else if (type === 'quests') {
+          userCard.innerHTML = `
+            <div class="user-rank-card">
+              <div style="font-size: 1.5rem; font-weight: 800; color: ${uRankColor}; width: 50px; text-align:center;">${safeURankIcon}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
+                  <span class="user-rank-badge">${youText}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-sec); margin-top: 2px;">✅ ${i18n[currentLang].completed_quests}: ${userRank.quests_completed || 0}</div>
+              </div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--game-green); text-align:right;">${userRank.quests_completed || 0}</div>
+            </div>
+          `;
+        }
+        userCard.style.display = 'block';
+      } else {
+        userCard.innerHTML = '';
+        userCard.style.display = 'none';
+      }
+    }
+
+    if (!players || players.length === 0) {
+      list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].empty_rating}</div>`;
+      return;
+    }
+
+    const currentUserId = userRank ? userRank.user_id : getUserId();
 
     players.forEach((p, i) => {
       const div = document.createElement('div');
-      div.className = 'list-item'; 
+      const isCurrentUser = currentUserId && (p.user_id === currentUserId);
+      div.className = 'list-item';
+      if (isCurrentUser) {
+        div.style.borderColor = 'rgba(0, 136, 204, 0.6)';
+        div.style.boxShadow = '0 0 10px rgba(0, 136, 204, 0.2)';
+      }
 
       // Определение позиции (золото, серебро, бронза)
       let rankColor = 'var(--primary)';
@@ -2132,23 +2230,24 @@
       // Полное экранирование HTML для предотвращения XSS
       const safeName = escapeHTML(p.name);
       const safeRankIcon = escapeHTML(rankIcon);
+      const userBadgeHTML = isCurrentUser ? ` <span class="user-rank-badge">${i18n[currentLang].you_badge || 'ВЫ'}</span>` : '';
 
       if (type === 'tokens') {
           const formattedBalance = p.balance.toLocaleString('ru-RU');
           const earnedLabel = p.total_earned ? `(${i18n[currentLang].total_earned}: ${p.total_earned.toLocaleString('ru-RU')})` : '';
           div.innerHTML = `
             <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 700;">${safeName}</div>
-            <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
+              <div style="font-size: 0.75rem; color: var(--text-sec);">🌲 ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
             </div>
             <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
           `;
       } else if (type === 'quests') {
           div.innerHTML = `
             <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 700;">${safeName}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
               <div style="font-size: 0.75rem; color: var(--text-sec);">✅ ${i18n[currentLang].completed_quests}: ${p.quests_completed}</div>
             </div>
             <div style="font-size: 1.2rem; font-weight: 800; color: var(--game-green); text-align:right;">${p.quests_completed}</div>

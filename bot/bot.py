@@ -1253,6 +1253,167 @@ def get_quests_leaderboard(limit: int = 10) -> list:
         conn.close()
 
 
+def get_user_rank_in_leaderboard(user_id: int, lb_type: str = 'tokens') -> dict:
+    """
+    Получает позицию и статистику конкретного пользователя в рейтинге.
+    """
+    if not user_id or user_id <= 0:
+        return None
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        if lb_type == 'quests':
+            cursor.execute('''
+                SELECT u.user_id, u.username, u.first_name, u.last_name, us.quests_completed, us.last_quest_time
+                FROM users u
+                LEFT JOIN user_stats us ON u.user_id = us.user_id
+                WHERE u.user_id = ?
+            ''', (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            qc = row['quests_completed'] or 0
+            lqt = row['last_quest_time']
+
+            if qc <= 0:
+                return {
+                    'rank': None,
+                    'user_id': user_id,
+                    'name': name,
+                    'quests_completed': 0
+                }
+
+            cursor.execute('''
+                SELECT COUNT(*) + 1
+                FROM user_stats us
+                JOIN users u ON us.user_id = u.user_id
+                WHERE us.quests_completed > 0
+                  AND (
+                    (us.quests_completed > ?) OR
+                    (us.quests_completed = ? AND us.last_quest_time IS NOT NULL AND ? IS NOT NULL AND us.last_quest_time < ?) OR
+                    (us.quests_completed = ? AND (us.last_quest_time = ? OR (us.last_quest_time IS NULL AND ? IS NULL)) AND us.user_id < ?)
+                  )
+            ''', (qc, qc, lqt, lqt, qc, lqt, lqt, user_id))
+            rank = cursor.fetchone()[0]
+
+            return {
+                'rank': rank,
+                'user_id': user_id,
+                'name': name,
+                'quests_completed': qc
+            }
+
+        elif lb_type == 'boss':
+            cursor.execute('''
+                SELECT u.user_id, u.username, u.first_name, u.last_name, bd.total_damage, bd.hits, bd.last_hit
+                FROM users u
+                LEFT JOIN boss_damage bd ON u.user_id = bd.user_id
+                WHERE u.user_id = ?
+            ''', (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            td = row['total_damage'] or 0
+            if td <= 0:
+                return {
+                    'rank': None,
+                    'user_id': user_id,
+                    'name': name,
+                    'total_damage': 0,
+                    'hits': 0
+                }
+
+            cursor.execute('''
+                SELECT COUNT(*) + 1
+                FROM boss_damage bd
+                JOIN users u ON bd.user_id = u.user_id
+                WHERE bd.total_damage > 0
+                  AND (
+                    (bd.total_damage > ?) OR
+                    (bd.total_damage = ? AND bd.user_id < ?)
+                  )
+            ''', (td, td, user_id))
+            rank = cursor.fetchone()[0]
+
+            return {
+                'rank': rank,
+                'user_id': user_id,
+                'name': name,
+                'total_damage': td,
+                'hits': row['hits'] or 0,
+                'last_hit': row['last_hit']
+            }
+
+        else:  # 'tokens'
+            cursor.execute('''
+                SELECT u.user_id, u.username, u.first_name, u.last_name, ut.balance, ut.total_earned, ut.total_spent
+                FROM users u
+                LEFT JOIN user_tokens ut ON u.user_id = ut.user_id
+                WHERE u.user_id = ?
+            ''', (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            name = row['username'] if row['username'] else f"{row['first_name'] or ''} {row['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{row['user_id']}"
+
+            bal = row['balance'] or 0
+            earned = row['total_earned'] or 0
+            spent = row['total_spent'] or 0
+
+            if bal <= 0 and earned <= 0:
+                return {
+                    'rank': None,
+                    'user_id': user_id,
+                    'name': name,
+                    'balance': bal,
+                    'total_earned': earned,
+                    'total_spent': spent
+                }
+
+            cursor.execute('''
+                SELECT COUNT(*) + 1
+                FROM user_tokens ut
+                JOIN users u ON ut.user_id = u.user_id
+                WHERE (ut.balance > 0 OR ut.total_earned > 0)
+                  AND (
+                    (ut.balance > ?) OR
+                    (ut.balance = ? AND ut.total_earned > ?) OR
+                    (ut.balance = ? AND ut.total_earned = ? AND ut.user_id < ?)
+                  )
+            ''', (bal, bal, earned, bal, earned, user_id))
+            rank = cursor.fetchone()[0]
+
+            return {
+                'rank': rank,
+                'user_id': user_id,
+                'name': name,
+                'balance': bal,
+                'total_earned': earned,
+                'total_spent': spent
+            }
+
+    except Exception as e:
+        logger.error(f"Ошибка get_user_rank_in_leaderboard: {e}")
+        return None
+    finally:
+        conn.close()
+
+
 def get_user_by_username(username: str) -> dict:
     """
     Ищет пользователя по username (с @ или без)
@@ -1577,22 +1738,32 @@ def api_get_player_stats():
 
 @app.route('/api/leaderboard', methods=['GET'])
 def api_get_leaderboard():
-    """Получить рейтинг игроков по урону боссу"""
+    """Получить рейтинг игроков"""
     try:
         limit = request.args.get('limit', 10)
         limit = int(limit) if limit else 10
         limit = min(limit, 100)  # Максимум 100 игроков
         
         lb_type = request.args.get('type', 'tokens')
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            user_id = 0
 
         if lb_type == 'quests':
             leaderboard = get_quests_leaderboard(limit)
+        elif lb_type == 'boss':
+            leaderboard = get_boss_leaderboard(limit)
         else:
             leaderboard = get_leaderboard(limit)
+
+        user_rank = get_user_rank_in_leaderboard(user_id, lb_type) if user_id > 0 else None
 
         response = jsonify({
             'status': 'ok',
             'leaderboard': leaderboard,
+            'user_rank': user_rank,
             'type': lb_type
         })
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
