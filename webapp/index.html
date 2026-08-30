@@ -1350,12 +1350,98 @@
         </div>
       </div>
 
+      <!-- Quick Switch to TON -->
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <button class="button button-type-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; background: rgba(0,136,204,0.15); color: #00ff88; border: 0.5px solid rgba(0,136,204,0.4);" onclick="closeStarsOffer(); openTonOffer();">
+          💎 Смотреть оферы за TON (до +500,000 🌲)
+        </button>
+      </div>
+
       <!-- Buy Button -->
       <button id="buy-stars-btn" class="button button-type-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 800; border-radius: 14px; background: linear-gradient(135deg, #ffd700, #ff9500); color: #000; box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4); border: none;" onclick="buyConesWithStars()">
         ⭐ <span data-i18n="btn_buy_stars">Купить за 100 Звёзд</span>
       </button>
 
       <div id="stars-status-msg" style="margin-top: 10px; font-size: 0.8rem; color: #aaa; min-height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- TON Offer Modal -->
+  <div id="ton-offer-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeTonOffer()">
+    <div class="tutorial-modal" style="width: 92%; max-width: 420px; max-height: 88vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(0, 136, 204, 0.45); background: linear-gradient(180deg, #141c26 0%, #121214 100%);">
+      <button class="close-modal-btn" onclick="closeTonOffer()">✕</button>
+      
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; justify-content: center;">
+        <span style="font-size: 1.4rem;">💎</span>
+        <h3 class="tutorial-title" style="margin: 0; font-size: 1.15rem; color: #00ff88;" data-i18n="ton_offer_title">Шишки за TON</h3>
+      </div>
+
+      <!-- Quick Switch to Stars -->
+      <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+        <button class="button button-type-secondary" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 8px; background: rgba(255,215,0,0.1); color: #ffd700; border: 0.5px solid rgba(255,215,0,0.3);" onclick="closeTonOffer(); openStarsOffer();">
+          ⭐ Офер за Звёзды (10,000 🌲 за 100⭐)
+        </button>
+      </div>
+
+      <!-- Recipient Address Info -->
+      <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 136, 204, 0.3); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; text-align: left;">
+        <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 3px;" data-i18n="ton_wallet_dest">Получатель TON (официальный кошелёк):</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="font-family: monospace; font-size: 0.75rem; color: #00ff88; font-weight: 700; word-break: break-all;" id="ton-recipient-display">UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX</div>
+          <button class="button button-type-secondary" style="padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; flex-shrink: 0;" onclick="copyTonOfferAddress()" title="Копировать">📋</button>
+        </div>
+      </div>
+
+      <!-- Packs Grid -->
+      <div id="ton-packs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+        <!-- Pack 1: 0.2 TON -->
+        <div class="ton-pack-card active" onclick="selectTonPack('pack_02')" id="ton-card-pack_02" style="background: rgba(20,28,38,0.9); border: 1.5px solid #00ff88; border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
+          <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_02_title">Пакет «Старт»</div>
+          <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+20,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">0.2 TON</div>
+        </div>
+
+        <!-- Pack 2: 0.5 TON -->
+        <div class="ton-pack-card" onclick="selectTonPack('pack_05')" id="ton-card-pack_05" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
+          <div style="position: absolute; top: -6px; right: 6px; background: #ff9500; color: #000; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">+20%</div>
+          <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_05_title">Пакет «Грибник»</div>
+          <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+60,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">0.5 TON</div>
+        </div>
+
+        <!-- Pack 3: 1.0 TON (Popular) -->
+        <div class="ton-pack-card" onclick="selectTonPack('pack_10')" id="ton-card-pack_10" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
+          <div style="position: absolute; top: -6px; right: 6px; background: #e53935; color: #fff; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">🔥 ХИТ</div>
+          <div style="font-size: 0.75rem; color: #ffd700; font-weight: 700;" data-i18n="ton_pack_10_title">«Богатый Енот»</div>
+          <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+150,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">1.0 TON</div>
+        </div>
+
+        <!-- Pack 4: 3.0 TON (VIP) -->
+        <div class="ton-pack-card" onclick="selectTonPack('pack_30')" id="ton-card-pack_30" style="background: rgba(20,28,38,0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 8px; cursor: pointer; text-align: center; position: relative;">
+          <div style="position: absolute; top: -6px; right: 6px; background: #9c27b0; color: #fff; font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 4px;">👑 VIP</div>
+          <div style="font-size: 0.75rem; color: #aaa;" data-i18n="ton_pack_30_title">«Хранилище Леса»</div>
+          <div style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 4px 0;">+500,000 <img src="cone.png" class="cone-icon" style="width: 14px; height: 14px;" alt="🌲"></div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #00ff88;">3.0 TON</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="buy-ton-btn" class="button button-type-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #0088cc, #00ff88); color: #000; border: none; box-shadow: 0 4px 14px rgba(0, 136, 204, 0.4);" onclick="payTonSelectedPack()">
+          💎 <span id="buy-ton-btn-text">Оплатить 0.2 TON</span>
+        </button>
+
+        <button class="button button-type-secondary" style="width: 100%; padding: 10px; font-size: 0.82rem; border-radius: 10px;" onclick="openTonkeeperDeepLink()">
+          📲 <span data-i18n="btn_pay_tonkeeper">Оплатить через Tonkeeper / @wallet</span>
+        </button>
+
+        <button class="button button-type-secondary" style="width: 100%; padding: 8px; font-size: 0.78rem; border-radius: 10px; opacity: 0.85;" onclick="copyTonOfferAddress()">
+          📋 <span id="copy-ton-status" data-i18n="btn_copy_ton_details">Скопировать адрес для прямого перевода</span>
+        </button>
+      </div>
+
+      <div id="ton-status-msg" style="margin-top: 10px; font-size: 0.8rem; color: #aaa; min-height: 18px;"></div>
     </div>
   </div>
 
@@ -1455,10 +1541,10 @@
           <span class="offer-badge__icon">🤝</span>
           <div class="offer-badge__label" data-i18n="menu_partners">Партнеры</div>
         </button>
-        <button class="offer-badge" onclick="tg.openLink('https://ton.app/pay/transfer/raccoon-times.ton?amount=0'); triggerHaptic('light');">
-          <div class="offer-badge__timer">TON</div>
-          <span class="offer-badge__icon">💎</span>
-          <div class="offer-badge__label" data-i18n="menu_support">Донат</div>
+        <button class="offer-badge offer-badge--ton" onclick="openTonOffer(); triggerHaptic('light');" title="Купить шишки за TON" data-i18n-title="ton_offer_tooltip">
+          <div class="offer-badge__timer offer-badge__timer--live">TON💎</div>
+          <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.7));">💎</span>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800;" data-i18n="ton_offer_badge">Шишки TON</div>
         </button>
       </div>
 
@@ -1858,7 +1944,17 @@
       stars_offer_title: "Шишки за Telegram Stars",
       stars_pack_label: "Пакет «Большой Запас»",
       stars_offer_desc: "Мгновенное пополнение баланса шишек прямо через Telegram Stars. Шишки сразу доступны для рулетки, крафтов и ставок!",
-      btn_buy_stars: "Купить за 100 Звёзд"
+      btn_buy_stars: "Купить за 100 Звёзд",
+      ton_offer_title: "Шишки за TON",
+      ton_offer_badge: "Шишки TON",
+      ton_offer_tooltip: "Купить шишки за TON",
+      ton_wallet_dest: "Получатель TON (официальный кошелёк):",
+      btn_pay_tonkeeper: "Оплатить через Tonkeeper / @wallet",
+      btn_copy_ton_details: "Скопировать адрес для прямого перевода",
+      ton_pack_02_title: "Пакет «Старт»",
+      ton_pack_05_title: "Пакет «Грибник»",
+      ton_pack_10_title: "Пакет «Богатый Енот»",
+      ton_pack_30_title: "Пакет «Хранилище Леса»"
     },
     en: {
       lang_btn: "EN",
@@ -1987,7 +2083,17 @@
       stars_offer_title: "Pinecones with Telegram Stars",
       stars_pack_label: "«Big Supply» Pack",
       stars_offer_desc: "Instant pinecone balance top-up directly via Telegram Stars. Cones are immediately available for roulette, crafts, and bets!",
-      btn_buy_stars: "Buy for 100 Stars"
+      btn_buy_stars: "Buy for 100 Stars",
+      ton_offer_title: "Pinecones with TON",
+      ton_offer_badge: "TON Cones",
+      ton_offer_tooltip: "Buy cones with TON",
+      ton_wallet_dest: "Recipient TON address (official wallet):",
+      btn_pay_tonkeeper: "Pay via Tonkeeper / @wallet",
+      btn_copy_ton_details: "Copy address for direct transfer",
+      ton_pack_02_title: "«Start» Pack",
+      ton_pack_05_title: "«Mushroomer» Pack",
+      ton_pack_10_title: "«Rich Raccoon» Pack",
+      ton_pack_30_title: "«Forest Vault» Pack"
     }
   };
 
@@ -3502,6 +3608,167 @@
         statusMsg.style.color = '#ff5252';
       }
     }
+  }
+
+  // ==================== TON OFFERS SYSTEM ====================
+  const TON_RECIPIENT_WALLET = "UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX";
+  let selectedTonPackId = 'pack_02';
+
+  const TON_PACKS_INFO = {
+    pack_02: { id: 'pack_02', ton: 0.2, cones: 20000, label: '0.2 TON' },
+    pack_05: { id: 'pack_05', ton: 0.5, cones: 60000, label: '0.5 TON' },
+    pack_10: { id: 'pack_10', ton: 1.0, cones: 150000, label: '1.0 TON' },
+    pack_30: { id: 'pack_30', ton: 3.0, cones: 500000, label: '3.0 TON' }
+  };
+
+  function openTonOffer(packId) {
+    if (packId && TON_PACKS_INFO[packId]) {
+      selectTonPack(packId);
+    }
+    const overlay = document.getElementById('ton-offer-overlay');
+    if (overlay) overlay.classList.add('active');
+    triggerHaptic('light');
+  }
+
+  function closeTonOffer() {
+    const overlay = document.getElementById('ton-offer-overlay');
+    if (overlay) overlay.classList.remove('active');
+    const msg = document.getElementById('ton-status-msg');
+    if (msg) msg.innerText = '';
+    triggerHaptic('light');
+  }
+
+  function selectTonPack(packId) {
+    if (!TON_PACKS_INFO[packId]) return;
+    selectedTonPackId = packId;
+    triggerHaptic('selection');
+
+    document.querySelectorAll('.ton-pack-card').forEach(card => {
+      card.style.border = '1px solid rgba(255,255,255,0.15)';
+      card.style.background = 'rgba(20,28,38,0.7)';
+    });
+
+    const activeCard = document.getElementById(`ton-card-${packId}`);
+    if (activeCard) {
+      activeCard.style.border = '1.5px solid #00ff88';
+      activeCard.style.background = 'rgba(20,28,38,0.95)';
+    }
+
+    const pack = TON_PACKS_INFO[packId];
+    const btnText = document.getElementById('buy-ton-btn-text');
+    if (btnText) {
+      btnText.innerText = `${currentLang === 'ru' ? 'Оплатить' : 'Pay'} ${pack.label} (+${pack.cones.toLocaleString('ru-RU')} 🌲)`;
+    }
+  }
+
+  async function payTonSelectedPack() {
+    const pack = TON_PACKS_INFO[selectedTonPackId] || TON_PACKS_INFO.pack_02;
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
+    const statusMsg = document.getElementById('ton-status-msg');
+    const btn = document.getElementById('buy-ton-btn');
+
+    if (!userId) {
+      tg.showAlert(currentLang === 'ru' ? 'Ошибка: не удалось определить Telegram ID' : 'Error: cannot determine Telegram ID');
+      return;
+    }
+
+    triggerHaptic('impact');
+
+    // If TON Connect is connected
+    if (tonConnectUI && tonConnectUI.connected) {
+      if (btn) btn.disabled = true;
+      if (statusMsg) {
+        statusMsg.innerText = currentLang === 'ru' ? '⏳ Подтвердите транзакцию в кошельке...' : '⏳ Confirm transaction in wallet...';
+        statusMsg.style.color = '#00ff88';
+      }
+
+      try {
+        const nanoTonAmount = Math.round(pack.ton * 1000000000).toString();
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360,
+          messages: [
+            {
+              address: TON_RECIPIENT_WALLET,
+              amount: nanoTonAmount
+            }
+          ]
+        };
+
+        const result = await tonConnectUI.sendTransaction(transaction);
+        console.log('💎 TON Connect Transaction sent:', result);
+
+        if (statusMsg) {
+          statusMsg.innerText = currentLang === 'ru' ? '⏳ Транзакция отправлена, зачисляем шишки...' : '⏳ Transaction sent, crediting cones...';
+        }
+
+        // Notify server to credit cones
+        const res = await fetch('/api/ton/notify_payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+          body: JSON.stringify({
+            userId: userId,
+            packId: pack.id,
+            txBoc: (result && result.boc) ? result.boc : '',
+            comment: `rl_${userId}_${pack.id}`
+          })
+        });
+        const data = await res.json();
+
+        if (btn) btn.disabled = false;
+        triggerHaptic('success');
+        tg.showAlert(currentLang === 'ru' 
+          ? `🎉 Оплата ${pack.ton} TON прошла успешно!\nНа ваш баланс зачислено +${pack.cones.toLocaleString('ru-RU')} шишек!`
+          : `🎉 Payment of ${pack.ton} TON successful!\n+${pack.cones.toLocaleString('en-US')} cones credited!`);
+
+        closeTonOffer();
+        setTimeout(() => {
+          loadTokenBalance();
+          fetchEnergyFromServer();
+          syncStats();
+        }, 500);
+
+      } catch (err) {
+        console.error('Ошибка TON транзакции:', err);
+        if (btn) btn.disabled = false;
+        if (statusMsg) {
+          statusMsg.innerText = currentLang === 'ru' ? 'Транзакция отменена или не удалась' : 'Transaction cancelled or failed';
+          statusMsg.style.color = '#ff5252';
+        }
+      }
+    } else {
+      // Wallet not connected - open TON connect modal or deep link
+      if (tonConnectUI) {
+        tonConnectUI.openModal();
+      } else {
+        openTonkeeperDeepLink();
+      }
+    }
+  }
+
+  function openTonkeeperDeepLink() {
+    const pack = TON_PACKS_INFO[selectedTonPackId] || TON_PACKS_INFO.pack_02;
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
+    const nanoAmount = Math.round(pack.ton * 1000000000);
+    const comment = `rl_${userId}_${pack.id}`;
+    const url = `https://app.tonkeeper.com/transfer/${TON_RECIPIENT_WALLET}?amount=${nanoAmount}&text=${encodeURIComponent(comment)}`;
+    
+    tg.openLink(url);
+    triggerHaptic('light');
+  }
+
+  function copyTonOfferAddress() {
+    navigator.clipboard.writeText(TON_RECIPIENT_WALLET).then(() => {
+      const copyStatus = document.getElementById('copy-ton-status');
+      if (copyStatus) copyStatus.innerText = currentLang === 'ru' ? '✅ Адрес скопирован в буфер!' : '✅ Address copied!';
+      setTimeout(() => {
+        if (copyStatus) copyStatus.innerText = i18n[currentLang].btn_copy_ton_details || 'Скопировать адрес для прямого перевода';
+      }, 2500);
+      triggerHaptic('impact');
+    }).catch(err => {
+      console.error('Ошибка копирования TON адреса:', err);
+    });
   }
 
   function showLeaderboard() {

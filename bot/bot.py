@@ -52,6 +52,48 @@ FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
 SALEBOT_TOKEN = os.getenv("SALEBOT_TOKEN")
 SALEBOT_DB_PATH = os.getenv("SALEBOT_DB_PATH", str(BOT_DIR / "salebot.db"))
 
+# Кошелек получателя для покупок за TON
+TON_RECIPIENT_WALLET = os.getenv("TON_RECIPIENT_WALLET", "UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX")
+
+TON_OFFERS = [
+    {
+        "id": "pack_02",
+        "ton": 0.2,
+        "cones": 20000,
+        "bonus": "",
+        "popular": False,
+        "title_ru": "Пакет «Старт»",
+        "title_en": "«Start» Pack"
+    },
+    {
+        "id": "pack_05",
+        "ton": 0.5,
+        "cones": 60000,
+        "bonus": "+20%",
+        "popular": False,
+        "title_ru": "Пакет «Грибник»",
+        "title_en": "«Mushroomer» Pack"
+    },
+    {
+        "id": "pack_10",
+        "ton": 1.0,
+        "cones": 150000,
+        "bonus": "+50%",
+        "popular": True,
+        "title_ru": "Пакет «Богатый Енот»",
+        "title_en": "«Rich Raccoon» Pack"
+    },
+    {
+        "id": "pack_30",
+        "ton": 3.0,
+        "cones": 500000,
+        "bonus": "+66%",
+        "popular": False,
+        "title_ru": "Пакет «Хранилище Леса»",
+        "title_en": "«Forest Vault» Pack"
+    }
+]
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
@@ -2354,6 +2396,66 @@ def api_stars_create_invoice():
 
     except Exception as e:
         logger.error(f"Ошибка api_stars_create_invoice: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ton/offers', methods=['GET'])
+def api_get_ton_offers():
+    """Получить список оферов на шишки за TON и адрес кошелька получателя"""
+    try:
+        response = jsonify({
+            'status': 'ok',
+            'recipient_wallet': TON_RECIPIENT_WALLET,
+            'offers': TON_OFFERS
+        })
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+    except Exception as e:
+        logger.error(f"Ошибка api_get_ton_offers: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ton/notify_payment', methods=['POST'])
+@limiter.limit("15 per minute")
+def api_ton_notify_payment():
+    """Уведомление и зачисление шишек при оплате через TON"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        pack_id = data.get('packId')
+        tx_boc = data.get('txBoc', '')
+        comment = data.get('comment', '')
+
+        if not user_id or not pack_id:
+            return jsonify({'error': 'userId and packId required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
+        if not selected_pack:
+            return jsonify({'error': 'Unknown pack'}), 400
+
+        cones_amount = selected_pack['cones']
+        ton_amount = selected_pack['ton']
+
+        # Начисляем шишки пользователю
+        result = add_tokens(user_id, cones_amount, f'ton_purchase:{pack_id}:{ton_amount}TON')
+        logger.info(f"💎 Успешная покупка за TON: {user_id} получил {cones_amount} шишек за {ton_amount} TON")
+
+        return jsonify({
+            'status': 'ok',
+            'cones_added': cones_amount,
+            'balance': result['balance'] if result else 0
+        })
+
+    except Exception as e:
+        logger.error(f"Ошибка api_ton_notify_payment: {e}")
         return jsonify({'error': str(e)}), 500
 
 
