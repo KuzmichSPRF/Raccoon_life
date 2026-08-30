@@ -1325,40 +1325,37 @@
   </div>
 
   <!-- Stars Offer Modal -->
-  <div id="stars-offer-overlay" class="profile-modal-overlay" onclick="if(event.target===this) closeStarsOffer()">
-    <div class="profile-modal-sheet" style="max-height: 85vh; border: 1px solid rgba(255, 215, 0, 0.35); background: linear-gradient(180deg, #1f1a14 0%, #121214 100%);">
-      <div class="profile-modal-header" style="border-bottom: 1px solid rgba(255, 215, 0, 0.2);">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.3rem;">⭐</span>
-          <span style="font-weight: 800; font-size: 1.05rem; color: #ffd700;" data-i18n="stars_offer_title">Шишки за Telegram Stars</span>
-        </div>
-        <button class="profile-modal-close" onclick="closeStarsOffer()">✕</button>
+  <div id="stars-offer-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeStarsOffer()">
+    <div class="tutorial-modal" style="width: 90%; max-width: 380px; position: relative; padding: 22px 18px; border: 1px solid rgba(255, 215, 0, 0.35); background: linear-gradient(180deg, #1f1a14 0%, #121214 100%);">
+      <button class="close-modal-btn" onclick="closeStarsOffer()">✕</button>
+      
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px; justify-content: center;">
+        <span style="font-size: 1.5rem;">⭐</span>
+        <h3 class="tutorial-title" style="margin: 0; font-size: 1.15rem; color: #ffd700;" data-i18n="stars_offer_title">Шишки за Telegram Stars</h3>
       </div>
 
-      <div class="profile-modal-body" style="text-align: center; padding: 16px 12px;">
-        <!-- Banner Card -->
-        <div style="background: radial-gradient(circle at center, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 16px; padding: 20px 14px; margin-bottom: 16px; position: relative; overflow: hidden;">
-          <div style="font-size: 2.8rem; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.5));">
-            🌰 ✨ ⭐
-          </div>
-          <div style="font-size: 1.4rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.4);">
-            +10,000 <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px; vertical-align: middle;" alt="🌰">
-          </div>
-          <div style="font-size: 0.85rem; color: #ffd700; font-weight: 700; margin-top: 4px;" data-i18n="stars_pack_label">
-            Пакет «Большой Запас»
-          </div>
-          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;" data-i18n="stars_offer_desc">
-            Мгновенное пополнение баланса шишек прямо через Telegram Stars. Шишки сразу доступны для рулетки, крафтов и ставок!
-          </div>
+      <!-- Banner Card -->
+      <div style="background: radial-gradient(circle at center, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 16px; padding: 18px 14px; margin-bottom: 16px; position: relative; overflow: hidden;">
+        <div style="font-size: 2.6rem; margin-bottom: 6px; filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.5));">
+          🌰 ✨ ⭐
         </div>
-
-        <!-- Buy Button -->
-        <button id="buy-stars-btn" class="button button-type-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 800; border-radius: 14px; background: linear-gradient(135deg, #ffd700, #ff9500); color: #000; box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4); border: none;" onclick="buyConesWithStars()">
-          ⭐ <span data-i18n="btn_buy_stars">Купить за 100 Звёзд</span>
-        </button>
-
-        <div id="stars-status-msg" style="margin-top: 10px; font-size: 0.8rem; color: #aaa; min-height: 20px;"></div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.4);">
+          +10,000 <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px; vertical-align: middle;" alt="🌰">
+        </div>
+        <div style="font-size: 0.85rem; color: #ffd700; font-weight: 700; margin-top: 4px;" data-i18n="stars_pack_label">
+          Пакет «Большой Запас»
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4;" data-i18n="stars_offer_desc">
+          Мгновенное пополнение баланса шишек прямо через Telegram Stars. Шишки сразу доступны для рулетки, крафтов и ставок!
+        </div>
       </div>
+
+      <!-- Buy Button -->
+      <button id="buy-stars-btn" class="button button-type-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 800; border-radius: 14px; background: linear-gradient(135deg, #ffd700, #ff9500); color: #000; box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4); border: none;" onclick="buyConesWithStars()">
+        ⭐ <span data-i18n="btn_buy_stars">Купить за 100 Звёзд</span>
+      </button>
+
+      <div id="stars-status-msg" style="margin-top: 10px; font-size: 0.8rem; color: #aaa; min-height: 20px;"></div>
     </div>
   </div>
 
