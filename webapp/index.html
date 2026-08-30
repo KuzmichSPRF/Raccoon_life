@@ -520,7 +520,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 6px 12px 6px;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
       flex-shrink: 0;
       background: rgba(18, 18, 20, 0.92);
@@ -531,7 +531,7 @@
       z-index: 20;
     }
     .home__bottom-btn {
-      width: clamp(72px, 22vw, 88px);
+      width: clamp(54px, 15.5vw, 68px);
       height: 50px;
       border-radius: 16px;
       background-color: rgba(24, 24, 26, 0.85);
@@ -547,7 +547,7 @@
     }
     .home__bottom-btn:active { transform: scale(0.92); border-color: var(--btn-red); }
     .home__bottom-icon { font-size: 1.35rem; line-height: 1; }
-    .home__bottom-btn-label { font-size: 9px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; }
+    .home__bottom-btn-label { font-size: 7.8px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; text-align: center; white-space: nowrap; }
     
     /* Daily Bonus Button & Badge */
     .home__bottom-btn.bonus-ready {
@@ -1928,6 +1928,10 @@
         <span data-i18n="btn_play">ИГРАТЬ</span>
         <span style="font-size: 1.1rem; line-height: 1; color: #FFF04D;">⚡</span>
       </button>
+      <button class="home__bottom-btn" id="home-invite-btn" onclick="inviteFriends(); triggerHaptic('light');" title="Пригласить" data-i18n-title="btn_invite">
+        <span class="home__bottom-icon">👥</span>
+        <span class="home__bottom-btn-label" data-i18n="btn_invite">Пригласить</span>
+      </button>
     </div>
   </div>
 
@@ -2228,6 +2232,11 @@
       topic_collab: "Предложить сотрудничество",
       btn_play: "ИГРАТЬ",
       btn_bonus: "Бонус",
+      btn_invite: "Пригласить",
+      invite_share_text: "🦝 Присоединяйся ко мне в Raccoon Life! Играй в мини-игры, побеждай боссов и забирай шишки 🌲",
+      referral_program_title: "Реферальная программа",
+      invited_friends_count: "Приглашено друзей",
+      your_referrer: "Вас пригласил",
       btn_hide: "Скрыть",
       energy_accumulation: "⚡ Накопление энергии",
       energy_full: "30/30 (Полная)",
@@ -2379,6 +2388,11 @@
       topic_collab: "Propose cooperation",
       btn_play: "PLAY",
       btn_bonus: "Bonus",
+      btn_invite: "Invite",
+      invite_share_text: "🦝 Join me in Raccoon Life! Play mini-games, defeat bosses, and claim cones 🌲",
+      referral_program_title: "Referral Program",
+      invited_friends_count: "Friends Invited",
+      your_referrer: "Invited By",
       btn_hide: "Hide",
       energy_accumulation: "⚡ Energy accumulation",
       energy_full: "30/30 (Full)",
@@ -3964,6 +3978,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Referrals / Friends Card -->
+      <div class="profile-stat-box">
+        <div style="font-weight: 700; font-size: 0.82rem; color: #fff; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>👥</span> <span>${i18n[currentLang].referral_program_title || 'Реферальная программа'}</span>
+          </div>
+          <button class="button button-size-small button-type-primary button-color-red" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 8px;" onclick="inviteFriends();">
+            + ${i18n[currentLang].btn_invite || 'Пригласить'}
+          </button>
+        </div>
+        <div class="profile-grid-2">
+          <div class="profile-chip">
+            <div class="profile-chip-title">${i18n[currentLang].invited_friends_count || 'Приглашено друзей'}</div>
+            <div class="profile-chip-val" style="color: #00ff88;">👥 ${(profileData && profileData.referral_stats && profileData.referral_stats.referrals_count) || 0} ${currentLang === 'ru' ? 'чел.' : 'users'}</div>
+          </div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">${i18n[currentLang].your_referrer || 'Вас пригласил'}</div>
+            <div class="profile-chip-val" style="color: #ffd700;">${(profileData && profileData.referral_stats && profileData.referral_stats.referrer_username) ? '@' + escapeHTML(profileData.referral_stats.referrer_username) : (currentLang === 'ru' ? 'Прямой вход' : 'Direct')}</div>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -4488,6 +4524,56 @@
     const botUrl = `https://t.me/Raccoon_Life_bot/app`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
     tg.openTelegramLink(shareUrl);
+  }
+
+  function inviteFriends() {
+    const userObj = getUserObject();
+    const userId = userObj ? userObj.id : getUserId();
+    const botUsername = 'Raccoon_Life_bot';
+    const refParam = userId ? `ref_${userId}` : '';
+    const refUrl = refParam ? `https://t.me/${botUsername}/app?startapp=${refParam}` : `https://t.me/${botUsername}/app`;
+    const shareText = (i18n[currentLang] && i18n[currentLang].invite_share_text) || '🦝 Присоединяйся ко мне в Raccoon Life! Играй в мини-игры, побеждай боссов и забирай шишки 🌲';
+    
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refUrl)}&text=${encodeURIComponent(shareText)}`;
+    
+    triggerHaptic('light');
+
+    if (tg && typeof tg.openTelegramLink === 'function') {
+      tg.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  }
+
+  function checkStartParamReferral() {
+    try {
+      const userId = getUserId();
+      if (!userId) return;
+      const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
+      if (startParam && (startParam.startsWith('ref_') || startParam.startsWith('ref') || !isNaN(Number(startParam)))) {
+        const cleanRef = startParam.replace('ref_', '').replace('ref', '');
+        const referrerId = parseInt(cleanRef, 10);
+        if (referrerId && referrerId !== userId) {
+          fetch('/api/referral/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': tg.initData || ''
+            },
+            body: JSON.stringify({ userId: userId, referrerId: referrerId })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 'ok' && data.registered) {
+              console.log('👥 Реферал успешно зарегистрирован через start_param:', data);
+            }
+          })
+          .catch(err => console.error('Ошибка регистрации реферала:', err));
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка checkStartParamReferral:', e);
+    }
   }
 
   function hideShopItem(announcementId, buttonElement) {
@@ -5569,6 +5655,7 @@
         fetchEnergyFromServer();
         updateEnergyUI();
         initDailyBonus();
+        checkStartParamReferral();
         console.log('🦝 Raccoon Life WebApp ready!');
         console.log('👤 User ID:', getUserId());
       }, 300);

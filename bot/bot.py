@@ -252,7 +252,9 @@ def init_db():
                 registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_banned INTEGER DEFAULT 0,
                 banned_at TIMESTAMP,
-                ban_reason TEXT
+                ban_reason TEXT,
+                referrer_id INTEGER,
+                wallet_address TEXT
             )
         ''')
         
@@ -409,6 +411,17 @@ def init_db():
                 tx_boc TEXT,
                 comment TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Таблица рефералов (кто кого пригласил)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS referrals (
+                user_id INTEGER PRIMARY KEY,
+                referrer_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(user_id),
+                FOREIGN KEY(referrer_id) REFERENCES users(user_id)
             )
         ''')
 
@@ -705,6 +718,31 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка roulette_total_bets в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats roulette_total_bets: {e}")
+
+    # Проверка users на наличие referrer_id
+    if 'referrer_id' not in users_cols:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN referrer_id INTEGER")
+            logger.info("Миграция: добавлена колонка referrer_id в users")
+        except Exception as e:
+            logger.error(f"Ошибка миграции users referrer_id: {e}")
+
+    # Проверка наличия таблицы referrals
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='referrals'")
+    if not cursor.fetchone():
+        try:
+            cursor.execute('''
+                CREATE TABLE referrals (
+                    user_id INTEGER PRIMARY KEY,
+                    referrer_id INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(user_id) REFERENCES users(user_id),
+                    FOREIGN KEY(referrer_id) REFERENCES users(user_id)
+                )
+            ''')
+            logger.info("Миграция: создана таблица referrals")
+        except Exception as e:
+            logger.error(f"Ошибка миграции таблицы referrals: {e}")
 
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД и сохраняет его username/имя"""
@@ -2167,6 +2205,114 @@ def get_user_wallet_address(user_id: int) -> str:
         conn.close()
 
 
+def register_referral(user_id: int, referrer_id: int) -> bool:
+    """
+    Регистрирует реферальную связь: кто кого пригласил.
+    user_id - новый/приглашенный игрок.
+    referrer_id - пригласивший игрок.
+    """
+    if not user_id or not referrer_id:
+        return False
+    try:
+        user_id = int(user_id)
+        referrer_id = int(referrer_id)
+    except (ValueError, TypeError):
+        return False
+
+    if user_id == referrer_id:
+        return False  # Нельзя пригласить самого себя
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Гарантируем, что оба пользователя зарегистрированы
+        ensure_user_exists(user_id)
+        ensure_user_exists(referrer_id)
+
+        # Проверяем, есть ли уже реферер у пользователя
+        cursor.execute("SELECT referrer_id FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row and row['referrer_id']:
+            # Уже привязан реферер
+            return False
+
+        # Записываем реферера в users и в таблицу referrals
+        cursor.execute("UPDATE users SET referrer_id = ? WHERE user_id = ? AND (referrer_id IS NULL OR referrer_id = 0)", (referrer_id, user_id))
+        cursor.execute("INSERT OR IGNORE INTO referrals (user_id, referrer_id) VALUES (?, ?)", (user_id, referrer_id))
+        conn.commit()
+
+        logger.info(f"👥 Реферал зарегистрирован: пользователь {user_id} приглашён игроком {referrer_id}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Ошибка register_referral: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
+def get_user_referral_stats(user_id: int) -> dict:
+    """
+    Возвращает статистику приглашений:
+    - referrals_count: сколько человек пригласил user_id
+    - referrer_id: кто пригласил user_id (или None)
+    - referrer_username: имя/юзернейм пригласившего
+    - referrals_list: список приглашенных пользователей
+    """
+    if not user_id:
+        return {'referrals_count': 0, 'referrer_id': None, 'referrer_username': None, 'referrals_list': []}
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        return {'referrals_count': 0, 'referrer_id': None, 'referrer_username': None, 'referrals_list': []}
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # 1. Сколько человек пригласил
+        cursor.execute("SELECT COUNT(*) as count FROM users WHERE referrer_id = ?", (user_id,))
+        count_row = cursor.fetchone()
+        referrals_count = count_row['count'] if count_row else 0
+
+        # 2. Кто пригласил этого пользователя
+        cursor.execute("SELECT referrer_id FROM users WHERE user_id = ?", (user_id,))
+        ref_row = cursor.fetchone()
+        referrer_id = ref_row['referrer_id'] if ref_row and ref_row['referrer_id'] else None
+
+        referrer_username = None
+        if referrer_id:
+            cursor.execute("SELECT username, first_name FROM users WHERE user_id = ?", (referrer_id,))
+            inviter_row = cursor.fetchone()
+            if inviter_row:
+                referrer_username = inviter_row['username'] or inviter_row['first_name'] or str(referrer_id)
+
+        # 3. Список рефералов (до 50 последних)
+        cursor.execute("""
+            SELECT user_id, username, first_name, registered_at 
+            FROM users 
+            WHERE referrer_id = ? 
+            ORDER BY registered_at DESC LIMIT 50
+        """, (user_id,))
+        referrals_list = [dict(r) for r in cursor.fetchall()]
+
+        return {
+            'referrals_count': referrals_count,
+            'referrer_id': referrer_id,
+            'referrer_username': referrer_username,
+            'referrals_list': referrals_list
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_user_referral_stats: {e}")
+        return {
+            'referrals_count': 0,
+            'referrer_id': None,
+            'referrer_username': None,
+            'referrals_list': []
+        }
+    finally:
+        conn.close()
+
+
 MAX_ENERGY = 30
 ENERGY_REGEN_SECONDS = 300  # 5 минут = 300 секунд
 
@@ -2956,6 +3102,68 @@ def api_bonus_claim():
     except Exception as e:
         logger.error(f"Ошибка api_bonus_claim: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/referral/register', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_register_referral():
+    """Зарегистрировать реферала из Mini App"""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('userId') or data.get('user_id')
+        referrer_id = data.get('referrerId') or data.get('referrer_id')
+
+        # Если передан start_param
+        start_param = data.get('start_param') or data.get('startParam') or ''
+        if not referrer_id and start_param:
+            clean_param = str(start_param).replace('ref_', '').replace('ref', '')
+            try:
+                referrer_id = int(clean_param)
+            except (ValueError, TypeError):
+                pass
+
+        if not user_id or not referrer_id:
+            return jsonify({'error': 'userId and referrerId required'}), 400
+
+        try:
+            user_id = int(user_id)
+            referrer_id = int(referrer_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid IDs'}), 400
+
+        success = register_referral(user_id, referrer_id)
+        stats = get_user_referral_stats(user_id)
+        return jsonify({
+            'status': 'ok',
+            'registered': success,
+            'referral_stats': stats
+        })
+    except Exception as e:
+        logger.error(f"Ошибка api_register_referral: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/referrals', methods=['GET'])
+def api_get_referrals():
+    """Получить реферальную статистику игрока (сколько пригласил, кто пригласил)"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        stats = get_user_referral_stats(user_id)
+        return jsonify({
+            'status': 'ok',
+            'referral_stats': stats
+        })
+    except Exception as e:
+        logger.error(f"Ошибка api_get_referrals: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/security/log', methods=['POST'])
@@ -5074,6 +5282,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
 
+        # Обработка реферального параметра (/start ref_123456 или /start 123456)
+        if context.args and len(context.args) > 0:
+            raw_ref = context.args[0].strip()
+            clean_ref = raw_ref.replace('ref_', '').replace('ref', '')
+            try:
+                referrer_id = int(clean_ref)
+                if referrer_id != user.id and referrer_id > 0:
+                    registered = register_referral(user.id, referrer_id)
+                    if registered:
+                        logger.info(f"👥 Реферал {user.id} привязан к пригласившему {referrer_id} через /start")
+            except (ValueError, TypeError):
+                pass
+
         # Проверяем нужно ли начислить приветственные шишки
         # Начисляем только если пользователь новый (первый раз запускает бота)
         if not has_received_welcome_bonus(user.id):
@@ -6288,6 +6509,9 @@ def get_full_user_profile_admin(identifier: str) -> dict:
         }
         score_info = calculate_overall_score(combined_row)
 
+        # 8. Рефералы
+        referral_stats = get_user_referral_stats(user_id)
+
         return {
             'user': dict(user_row) if user_row else dict(user_info),
             'tokens': dict(token_row) if token_row else {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None},
@@ -6301,7 +6525,8 @@ def get_full_user_profile_admin(identifier: str) -> dict:
             'newspapers_read': newspapers_read,
             'rank_overall': rank_overall.get('rank') if rank_overall else None,
             'rank_tokens': rank_tokens.get('rank') if rank_tokens else None,
-            'rank_quests': rank_quests.get('rank') if rank_quests else None
+            'rank_quests': rank_quests.get('rank') if rank_quests else None,
+            'referral_stats': referral_stats
         }
     finally:
         conn.close()
@@ -6428,7 +6653,11 @@ async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f" ├ 🗺 <b>Квесты QT2:</b> {profile['qt2_done']}/7 (Место: {r_quests})\n"
         f" ├ 📰 <b>Газет прочитано:</b> {profile['newspapers_read']} вып.\n"
         f" ├ 🛠 <b>Крафты:</b> создано {profile['crafts_created']} | помог в {profile['crafts_contributed']} эт.\n"
-        f" └ 🎲 <b>Тотализатор:</b> ставок {tot.get('total_bets') or 0} на {int(tot.get('total_amount') or 0):,} (Выиграно: {tot.get('won_bets') or 0} | В игре: {int(tot.get('active_bets') or 0) + int(tot.get('pending_bets') or 0)})\n"
+        f" └ 🎲 <b>Тотализатор:</b> ставок {tot.get('total_bets') or 0} на {int(tot.get('total_amount') or 0):,} (Выиграно: {tot.get('won_bets') or 0} | В игре: {int(tot.get('active_bets') or 0) + int(tot.get('pending_bets') or 0)})\n\n"
+
+        f"👥 <b>РЕФЕРАЛЬНАЯ ПРОГРАММА</b>:\n"
+        f" ├ 🤝 <b>Приглашено игроков:</b> <b>{profile.get('referral_stats', {}).get('referrals_count', 0)}</b> чел.\n"
+        f" └ 👤 <b>Пригласил:</b> {('@' + profile['referral_stats']['referrer_username']) if profile.get('referral_stats', {}).get('referrer_username') else 'Прямой вход'}\n"
         f"━━━━━━━━━━━━━━━━━━━"
     )
 
