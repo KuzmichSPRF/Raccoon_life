@@ -165,29 +165,35 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 14px;
+      padding: 6px 12px;
       background: var(--bg-secondary);
       border-bottom: 0.5px solid var(--border-subtle);
       position: sticky;
       top: 0;
       z-index: 50;
-      min-height: 52px;
+      min-height: 48px;
+      box-sizing: border-box;
+      width: 100%;
+      gap: 8px;
     }
     .home__user {
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
+      flex-shrink: 1;
     }
     .cap__element-wrapper {
       position: relative;
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-gold), var(--btn-red));
       padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     .cap__element {
       width: 100%;
@@ -198,7 +204,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       cursor: pointer;
     }
     .cap__element img {
@@ -211,12 +217,14 @@
       display: flex;
       flex-direction: column;
       gap: 1px;
+      min-width: 0;
+      flex-shrink: 1;
     }
     .home-leaderboard__username {
       font-size: 13px;
       font-weight: 700;
       color: #FFFFFF;
-      max-width: 90px;
+      max-width: 95px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -236,7 +244,7 @@
       color: var(--accent-gold);
     }
     .home-leaderboard__progress {
-      width: 50px;
+      width: 46px;
       height: 3px;
       background: var(--bg-elevated);
       border-radius: 3px;
@@ -248,40 +256,13 @@
       background: linear-gradient(90deg, var(--accent-gold), var(--accent-green));
       border-radius: 3px;
     }
-    
-    /* Header Persistent Resource Badges */
-    .header-resources {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: var(--bg-elevated);
-      border: 0.5px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 4px 6px;
-    }
-    .header-resource-item {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #FFFFFF;
-      padding: 2px 4px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .header-resource-icon {
-      font-size: 0.95rem;
-      line-height: 1;
-    }
-    .header-resource-val {
-      color: var(--accent-gold);
-    }
 
     .home__title-badges {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      flex-shrink: 0;
+      margin-left: auto;
     }
 
     /* Currency / Resource Buttons Bar (Home Screen) */
@@ -1156,22 +1137,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    
-    <!-- Persistent Live Resource Pills in Header -->
-    <div class="header-resources">
-      <div class="header-resource-item" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек">
-        <span class="header-resource-icon">🌰</span>
-        <span class="header-resource-val" id="header-token-balance">0</span>
-      </div>
-      <div class="header-resource-item" onclick="renderCategory('quests'); triggerHaptic('light');" title="Квесты">
-        <span class="header-resource-icon">📜</span>
-        <span class="header-resource-val" id="header-quests-pill">0/7</span>
-      </div>
-      <div class="header-resource-item" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия">
-        <span class="header-resource-icon">⚡</span>
-        <span class="header-resource-val" id="header-energy-pill">30/30</span>
       </div>
     </div>
 
