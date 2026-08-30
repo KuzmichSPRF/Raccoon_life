@@ -249,17 +249,17 @@
 </head>
 <body>
 
-    <div class="header-title">🛠 Совместный Крафт</div>
+    <div class="header-title" id="page-title">🛠 Совместный Крафт</div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('active')">Доска крафтов</button>
-        <button class="tab-btn" onclick="switchTab('create')">Создать крафт</button>
+        <button class="tab-btn active" id="tab-active-btn" onclick="switchTab('active')">Доска крафтов</button>
+        <button class="tab-btn" id="tab-create-btn" onclick="switchTab('create')">Создать крафт</button>
     </div>
 
     <!-- Вкладка: Активные крафты -->
     <div id="view-active" class="view-section active">
         <div id="crafts-container">
-            <div class="loader">Загрузка крафтов...</div>
+            <div class="loader" id="crafts-loader">Загрузка крафтов...</div>
         </div>
     </div>
 
@@ -267,34 +267,34 @@
     <div id="view-create" class="view-section">
         <div class="card">
             <div class="form-group">
-                <label class="form-label">Коллекция</label>
+                <label class="form-label" id="lbl-collection">Коллекция</label>
                 <select id="c-collection"></select>
             </div>
             <div class="form-group">
-                <label class="form-label">Номер или название фишки</label>
+                <label class="form-label" id="lbl-chip-number">Номер или название фишки</label>
                 <input type="text" id="c-chip-number" placeholder="Например: #15 или 'Золотой ноткоин'">
             </div>
             <div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1;">
-                    <label class="form-label">Начальный грейд</label>
+                    <label class="form-label" id="lbl-start-grade">Начальный грейд</label>
                     <select id="c-start" onchange="generateStages()"></select>
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label class="form-label">Целевой грейд</label>
+                    <label class="form-label" id="lbl-target-grade">Целевой грейд</label>
                     <select id="c-target" onchange="generateStages()"></select>
                 </div>
             </div>
             
             <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--text-sec); cursor: pointer; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                 <input type="checkbox" id="c-private" style="width: 22px; height: 22px; margin: 0; accent-color: var(--primary);">
-                <span style="font-size: 0.9rem; font-weight: 700;">Сделать приватным (доступ по ссылке)</span>
+                <span id="lbl-private" style="font-size: 0.9rem; font-weight: 700;">Сделать приватным (доступ по ссылке)</span>
             </label>
 
             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
-            <label class="form-label">Этапы (награда помощнику)</label>
+            <label class="form-label" id="lbl-stages">Этапы (награда помощнику)</label>
             <div id="stages-inputs"></div>
             
-            <button class="action-btn" onclick="submitCraft()">🚀 Запустить крафт</button>
+            <button class="action-btn" id="btn-submit-craft" onclick="submitCraft()">🚀 Запустить крафт</button>
         </div>
     </div>
 
@@ -310,23 +310,23 @@
     <!-- Всплывающее окно выбора помощи -->
     <div id="pledge-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
         <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(0, 136, 204, 0.3); padding: 25px;">
-            <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Чем помочь?</h3>
-            <p style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Выберите, что вы готовы предоставить для этого этапа:</p>
+            <h3 id="pledge-modal-title" style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Чем помочь?</h3>
+            <p id="pledge-modal-desc" style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Выберите, что вы готовы предоставить для этого этапа:</p>
             <div id="pledge-options">
                 <!-- Кнопки генерируются динамически -->
             </div>
-            <button class="action-btn btn-small" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closePledgeModal()">Отмена</button>
+            <button class="action-btn btn-small" id="btn-pledge-cancel" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closePledgeModal()">Отмена</button>
         </div>
     </div>
 
     <!-- Share Modal -->
     <div id="share-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1002; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
         <div class="card" style="width: 85%; max-width: 340px; text-align: center; border: 2px solid var(--game-green); box-shadow: 0 0 30px rgba(0, 255, 136, 0.3); padding: 25px;">
-            <h3 style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Приватный крафт создан!</h3>
-            <p style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Отправьте эту ссылку друзьям, чтобы они могли помочь:</p>
+            <h3 id="share-modal-title" style="margin-top: 0; color: var(--text-main); font-size: 1.3rem;">Приватный крафт создан!</h3>
+            <p id="share-modal-desc" style="color: var(--text-sec); font-size: 0.9rem; margin-bottom: 20px;">Отправьте эту ссылку друзьям, чтобы они могли помочь:</p>
             <input type="text" id="share-link-input" readonly style="color:var(--primary); text-align:center; font-weight:bold; background:rgba(0,136,204,0.1); border:1px dashed var(--primary); margin-bottom:15px;">
-            <button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="copyShareLink()">📋 Скопировать ссылку</button>
-            <button class="action-btn btn-small" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closeShareModal()">Закрыть</button>
+            <button class="action-btn btn-small" id="btn-copy-share" style="margin-bottom: 10px; width: 100%;" onclick="copyShareLink()">📋 Скопировать ссылку</button>
+            <button class="action-btn btn-small" id="btn-close-share" style="background: transparent; border: 1px solid var(--text-sec); color: var(--text-sec); box-shadow: none; width: 100%;" onclick="closeShareModal()">Закрыть</button>
         </div>
     </div>
 
@@ -337,16 +337,156 @@
         // Показываем кнопку назад
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            // Очищаем флаг, чтобы при следующем заходе по ссылке редирект сработал
             sessionStorage.removeItem('redirected_from_craft');
             window.location.href = 'index.html';
         });
 
-        // ВНИМАНИЕ: Замените RaccoonLifeBot на юзернейм вашего бота, а app на short name вашего WebApp
         const BOT_APP_URL = "https://t.me/Raccoon_Life_bot/app";
 
         const userId = tg.initDataUnsafe?.user?.id || 0;
         const initData = tg.initData || '';
+
+        let currentLang = localStorage.getItem('rl_lang') || 'ru';
+        const translations = {
+            ru: {
+                title: "🛠 Совместный Крафт",
+                tabBoard: "Доска крафтов",
+                tabCreate: "Создать крафт",
+                loader: "Загрузка крафтов...",
+                emptyCrafts: "Пока нет активных крафтов.<br>Будьте первым!",
+                backToBoard: "⬅ Вернуться на общую доску",
+                collection: "Коллекция",
+                chipNumber: "Номер или название фишки",
+                chipPh: "Например: #15 или 'Золотой ноткоин'",
+                startGrade: "Начальный грейд",
+                targetGrade: "Целевой грейд",
+                makePrivate: "Сделать приватным (доступ по ссылке)",
+                stagesLabel: "Этапы (награда помощнику)",
+                stageRewardPh: "Награда за этап (опц.)",
+                btnSubmitCraft: "🚀 Запустить крафт",
+                resourcesLabel: "📦 Ресурсы:",
+                rewardLabel: "🎁 Награда:",
+                chipsLabel: "👤 Фишки:",
+                gumLabel: "💰 $GUM:",
+                statusPending: "Ожидает помощника",
+                statusPledged: "В процессе",
+                statusCompleted: "✅ Завершено",
+                btnHelp: "🤝 Помочь",
+                btnConfirm: "Подтвердить",
+                btnInQueue: "В очереди",
+                btnShare: "📤 Поделиться",
+                btnDelete: "Удалить",
+                btnShowStages: "Показать этапы",
+                btnHideStages: "Скрыть этапы",
+                authorBy: "от",
+                alertMsg: "Сообщение",
+                pledgeTitle: "Чем помочь?",
+                pledgeDesc: "Выберите, что вы готовы предоставить для этого этапа:",
+                pledgeAll: "И фишки, и $GUM",
+                pledgeChips: "Только фишки",
+                pledgeGum: "Только $GUM",
+                btnCancel: "Отмена",
+                btnClose: "Закрыть",
+                shareTitle: "Приватный крафт создан!",
+                shareDesc: "Отправьте эту ссылку друзьям, чтобы они могли помочь:",
+                btnCopyLink: "📋 Скопировать ссылку",
+                linkCopied: "Ссылка скопирована в буфер обмена!",
+                gradeError: "Начальный грейд должен быть ниже целевого.",
+                fillError: "Заполните все поля. Убедитесь, что начальный грейд ниже целевого.",
+                craftCreated: "Публичный крафт успешно создан!",
+                deleteConfirm: "Вы уверены, что хотите удалить это объявление о крафте?",
+                deletedSuccess: "Объявление удалено.",
+                connError: "Ошибка соединения",
+                pledgeSuccess: "Вы успешно взялись за этап!",
+                stageCompletedAlert: "Этап успешно завершен!"
+            },
+            en: {
+                title: "🛠 Cooperative Craft",
+                tabBoard: "Crafts Board",
+                tabCreate: "Create Craft",
+                loader: "Loading crafts...",
+                emptyCrafts: "No active crafts yet.<br>Be the first!",
+                backToBoard: "⬅ Back to main board",
+                collection: "Collection",
+                chipNumber: "Cap number or name",
+                chipPh: "e.g.: #15 or 'Golden Notcoin'",
+                startGrade: "Starting grade",
+                targetGrade: "Target grade",
+                makePrivate: "Make private (link access only)",
+                stagesLabel: "Stages (helper reward)",
+                stageRewardPh: "Stage reward (opt.)",
+                btnSubmitCraft: "🚀 Start Craft",
+                resourcesLabel: "📦 Resources:",
+                rewardLabel: "🎁 Reward:",
+                chipsLabel: "👤 Caps:",
+                gumLabel: "💰 $GUM:",
+                statusPending: "Awaiting helper",
+                statusPledged: "In progress",
+                statusCompleted: "✅ Completed",
+                btnHelp: "🤝 Help",
+                btnConfirm: "Confirm",
+                btnInQueue: "In queue",
+                btnShare: "📤 Share",
+                btnDelete: "Delete",
+                btnShowStages: "Show stages",
+                btnHideStages: "Hide stages",
+                authorBy: "by",
+                alertMsg: "Message",
+                pledgeTitle: "How to help?",
+                pledgeDesc: "Choose what you are ready to provide for this stage:",
+                pledgeAll: "Both Caps and $GUM",
+                pledgeChips: "Only Caps",
+                pledgeGum: "Only $GUM",
+                btnCancel: "Cancel",
+                btnClose: "Close",
+                shareTitle: "Private craft created!",
+                shareDesc: "Send this link to friends so they can help:",
+                btnCopyLink: "📋 Copy link",
+                linkCopied: "Link copied to clipboard!",
+                gradeError: "Starting grade must be lower than target grade.",
+                fillError: "Please fill in all fields. Make sure starting grade is lower than target grade.",
+                craftCreated: "Public craft created successfully!",
+                deleteConfirm: "Are you sure you want to delete this craft?",
+                deletedSuccess: "Craft deleted.",
+                connError: "Connection error",
+                pledgeSuccess: "You took this stage successfully!",
+                stageCompletedAlert: "Stage completed successfully!"
+            }
+        };
+        let t = translations[currentLang] || translations.ru;
+
+        function applyI18n() {
+            t = translations[currentLang] || translations.ru;
+            const tr = t;
+            document.getElementById('page-title').innerText = tr.title;
+            document.getElementById('tab-active-btn').innerText = tr.tabBoard;
+            document.getElementById('tab-create-btn').innerText = tr.tabCreate;
+            document.getElementById('crafts-loader').innerText = tr.loader;
+            document.getElementById('lbl-collection').innerText = tr.collection;
+            document.getElementById('lbl-chip-number').innerText = tr.chipNumber;
+            document.getElementById('c-chip-number').placeholder = tr.chipPh;
+            document.getElementById('lbl-start-grade').innerText = tr.startGrade;
+            document.getElementById('lbl-target-grade').innerText = tr.targetGrade;
+            document.getElementById('lbl-private').innerText = tr.makePrivate;
+            document.getElementById('lbl-stages').innerText = tr.stagesLabel;
+            document.getElementById('btn-submit-craft').innerText = tr.btnSubmitCraft;
+            document.getElementById('pledge-modal-title').innerText = tr.pledgeTitle;
+            document.getElementById('pledge-modal-desc').innerText = tr.pledgeDesc;
+            document.getElementById('btn-pledge-cancel').innerText = tr.btnCancel;
+            document.getElementById('share-modal-title').innerText = tr.shareTitle;
+            document.getElementById('share-modal-desc').innerText = tr.shareDesc;
+            document.getElementById('btn-copy-share').innerText = tr.btnCopyLink;
+            document.getElementById('btn-close-share').innerText = tr.btnClose;
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'language_changed') {
+                currentLang = e.data.lang || 'ru';
+                applyI18n();
+                generateStages();
+                loadCrafts();
+            }
+        });
 
         const COLLECTIONS = [
             "Adventure Caps", "The Fifth Cap", "Helga's Secret", "Ashes Of Glory", "Beavis & Gum-head",
@@ -376,14 +516,14 @@
         ];
 
         const CRAFT_RULES = {
-            "Common": { to: "Common+", material: "1 такая же Common фишка + 1 000 $GUM" },
-            "Common+": { to: "Rare", material: "2 любые Common+ фишки + 2 500 $GUM" },
-            "Rare": { to: "Rare+", material: "1 такая же Rare фишка + 10 000 $GUM" },
-            "Rare+": { to: "Epic", material: "2 любые Rare+ фишки + 20 000 $GUM" },
-            "Epic": { to: "Epic+", material: "2 такие же Epic фишки + 40 000 $GUM" },
-            "Epic+": { to: "Legend", material: "1 любая Epic+ фишка + 75 000 $GUM" },
-            "Legend": { to: "Legend+", material: "1 любая Epic+ фишка + 125 000 $GUM" },
-            "Legend+": { to: "Diamond", material: "2 такие же Rare+ фишки + 200 000 $GUM" }
+            "Common": { to: "Common+", material_ru: "1 такая же Common фишка + 1 000 $GUM", material_en: "1 identical Common cap + 1,000 $GUM" },
+            "Common+": { to: "Rare", material_ru: "2 любые Common+ фишки + 2 500 $GUM", material_en: "2 any Common+ caps + 2,500 $GUM" },
+            "Rare": { to: "Rare+", material_ru: "1 такая же Rare фишка + 10 000 $GUM", material_en: "1 identical Rare cap + 10,000 $GUM" },
+            "Rare+": { to: "Epic", material_ru: "2 любые Rare+ фишки + 20 000 $GUM", material_en: "2 any Rare+ caps + 20,000 $GUM" },
+            "Epic": { to: "Epic+", material_ru: "2 такие же Epic фишки + 40 000 $GUM", material_en: "2 identical Epic caps + 40,000 $GUM" },
+            "Epic+": { to: "Legend", material_ru: "1 любая Epic+ фишка + 75 000 $GUM", material_en: "1 any Epic+ cap + 75,000 $GUM" },
+            "Legend": { to: "Legend+", material_ru: "1 любая Epic+ фишка + 125 000 $GUM", material_en: "1 any Epic+ cap + 125,000 $GUM" },
+            "Legend+": { to: "Diamond", material_ru: "2 такие же Rare+ фишки + 200 000 $GUM", material_en: "2 identical Rare+ caps + 200,000 $GUM" }
         };
 
         function getPlayerLink(name, username, color) {
@@ -403,15 +543,15 @@
             document.getElementById('view-' + tabId).classList.add('active');
             
             if(tabId === 'active') {
-                // Убираем параметр private_id из URL, если мы переключили вкладку
                 window.history.replaceState({}, document.title, window.location.pathname);
                 loadCrafts();
             }
         }
 
         async function loadCrafts() {
+            const tr = t[currentLang];
             const container = document.getElementById('crafts-container');
-            container.innerHTML = '<div class="loader">Загрузка...</div>';
+            container.innerHTML = `<div class="loader">${tr.loader}</div>`;
             
             try {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -428,11 +568,11 @@
                 const res = await fetch(fetchUrl);
                 const data = await res.json();
                 
-                if (data.crafts.length === 0) {
+                if (!data.crafts || data.crafts.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <div style="font-size:40px; margin-bottom:10px;">🦝</div>
-                            Пока нет активных крафтов.<br>Будьте первым!
+                            ${tr.emptyCrafts}
                         </div>`;
                     return;
                 }
@@ -440,7 +580,7 @@
                 container.innerHTML = '';
                 
                 if (isSingleView) {
-                    container.innerHTML += `<button class="toggle-stages-btn" style="width:100%; margin-bottom:15px; padding:12px; font-size:1rem;" onclick="window.location.href='coop_craft.html'">⬅ Вернуться на общую доску</button>`;
+                    container.innerHTML += `<button class="toggle-stages-btn" style="width:100%; margin-bottom:15px; padding:12px; font-size:1rem;" onclick="window.location.href='coop_craft.html'">${tr.backToBoard}</button>`;
                 }
 
                 data.crafts.forEach(c => {
@@ -448,27 +588,27 @@
                     let stagesHtml = '';
                     c.stages.forEach((s, index) => {
                         let statusClass = s.status === 'pending' ? 'status-pending' : (s.status === 'pledged' ? 'status-pledged' : 'status-completed');
-                        let statusText = s.status === 'pending' ? 'Ожидает помощника' : (s.status === 'pledged' ? 'В процессе' : '✅ Завершено');
+                        let statusText = s.status === 'pending' ? tr.statusPending : (s.status === 'pledged' ? tr.statusPledged : tr.statusCompleted);
                         
                         const materialReq = s.material_req.replace(/'/g, "\\'");
-                        const needsItems = /фишк/i.test(materialReq);
+                        const needsItems = /фишк|cap/i.test(materialReq);
                         const needsGum = /\$GUM/i.test(materialReq);
                         const itemsPledged = s.item_contributor_id > 0;
                         const gumPledged = s.gum_contributor_id > 0;
 
                         let rewardHtml = '';
                         if (s.reward_amount && parseFloat(s.reward_amount) > 0) {
-                            rewardHtml = `<div style="font-size:13px; color:#ffd700; margin-bottom:4px; font-weight:bold;">🎁 Награда: ${s.reward_amount} ${s.reward_currency}</div>`;
+                            rewardHtml = `<div style="font-size:13px; color:#ffd700; margin-bottom:4px; font-weight:bold;">${tr.rewardLabel} ${s.reward_amount} ${s.reward_currency}</div>`;
                         }
 
                         let btnHtml = '';
                         if (s.status === 'pending' && ((needsItems && !itemsPledged) || (needsGum && !gumPledged))) {
-                            btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id}, '${materialReq}', ${s.item_contributor_id || 0}, ${s.gum_contributor_id || 0})">🤝 Помочь</button>`;
+                            btnHtml = `<button class="action-btn btn-small" onclick="pledgeStage(${s.stage_id}, '${materialReq}', ${s.item_contributor_id || 0}, ${s.gum_contributor_id || 0})">${tr.btnHelp}</button>`;
                         } else if (s.status === 'pledged' && userId == c.initiator_id) {
                             if (index === firstUncompletedIndex) {
-                                btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">Подтвердить</button>`;
+                                btnHtml = `<button class="action-btn btn-small btn-success" onclick="completeStage(${s.stage_id})">${tr.btnConfirm}</button>`;
                             } else {
-                                btnHtml = `<button class="action-btn btn-small" style="background: rgba(255,255,255,0.1); color: var(--text-sec); box-shadow: none;" disabled>В очереди</button>`;
+                                btnHtml = `<button class="action-btn btn-small" style="background: rgba(255,255,255,0.1); color: var(--text-sec); box-shadow: none;" disabled>${tr.btnInQueue}</button>`;
                             }
                         }
 
@@ -477,10 +617,10 @@
                                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                                     <div style="flex:1; padding-right:10px;">
                                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${s.from_grade} ➔ ${s.to_grade}</div>
-                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">📦 Ресурсы: <span style="color:#fff">${s.material_req}</span></div>
+                                        <div style="font-size:13px; color:var(--text-sec); margin-bottom:4px;">${tr.resourcesLabel} <span style="color:#fff">${s.material_req}</span></div>
                                         ${rewardHtml}`
-                                        + (s.item_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">👤 Фишки: ${getPlayerLink(s.item_contributor_name, s.item_contributor_username, 'var(--primary)')}</div>` : '')
-                                        + (s.gum_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">💰 $GUM: ${getPlayerLink(s.gum_contributor_name, s.gum_contributor_username, 'var(--primary)')}</div>` : '') +
+                                        + (s.item_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">${tr.chipsLabel} ${getPlayerLink(s.item_contributor_name, s.item_contributor_username, 'var(--primary)')}</div>` : '')
+                                        + (s.gum_contributor_name ? `<div style="font-size:12px; margin-top:6px; color:var(--primary);">${tr.gumLabel} ${getPlayerLink(s.gum_contributor_name, s.gum_contributor_username, 'var(--primary)')}</div>` : '') +
                                         `<div class="stage-status ${statusClass}">${statusText}</div>
                                     </div>
                                     <div>${btnHtml}</div>
@@ -490,17 +630,17 @@
                     });
 
                     const shareBtnHtml = c.can_delete
-                        ? `<button class="action-btn btn-small" style="background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="shareCraft(${c.craft_id})">📤 Поделиться</button>`
+                        ? `<button class="action-btn btn-small" style="background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="shareCraft(${c.craft_id})">${tr.btnShare}</button>`
                         : '';
                     const deleteBtnHtml = c.can_delete
-                        ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">Удалить</button>`
+                        ? `<button class="action-btn btn-small btn-delete" onclick="deleteCraft(${c.craft_id})">${tr.btnDelete}</button>`
                         : '';
 
                     container.innerHTML += `
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">🧩 ${c.item_name}</h3>
-                                <span class="card-subtitle">от ${getPlayerLink(c.initiator_name, c.initiator_username, 'var(--text-sec)')}</span>
+                                <span class="card-subtitle">${tr.authorBy} ${getPlayerLink(c.initiator_name, c.initiator_username, 'var(--text-sec)')}</span>
                             </div>
                             <div class="target-grade">
                                 ${c.start_grade} ➔ <b>${c.target_grade}</b>
@@ -509,36 +649,38 @@
                                 ${stagesHtml}
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px;">
-                                <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">${isSingleView ? 'Скрыть этапы' : 'Показать этапы'}</button>
+                                <button class="toggle-stages-btn" onclick="toggleStages(${c.craft_id}, this)">${isSingleView ? tr.btnHideStages : tr.btnShowStages}</button>
                                 <div style="display: flex; gap: 8px;">${shareBtnHtml}${deleteBtnHtml}</div>
                             </div>
                         </div>
                     `;
                 });
             } catch (e) {
-                container.innerHTML = '<div class="empty-state">Ошибка загрузки данных :(</div>';
+                container.innerHTML = '<div class="empty-state">Error loading data :(</div>';
             }
         }
 
         let currentPledgeStageId = null;
 
         function toggleStages(craftId, button) {
+            const tr = t[currentLang];
             const container = document.getElementById(`stages-for-craft-${craftId}`);
             if (container.style.display === 'block') {
                 container.style.display = 'none';
-                button.innerText = 'Показать этапы';
+                button.innerText = tr.btnShowStages;
             } else {
                 container.style.display = 'block';
-                button.innerText = 'Скрыть этапы';
+                button.innerText = tr.btnHideStages;
             }
             tg.HapticFeedback.impactOccurred('light');
         }
 
         function pledgeStage(stageId, materialReq, itemContributorId, gumContributorId) {
+            const tr = t[currentLang];
             tg.HapticFeedback.impactOccurred('medium');
             currentPledgeStageId = stageId;
 
-            const needsItems = /фишк/i.test(materialReq);
+            const needsItems = /фишк|cap/i.test(materialReq);
             const needsGum = /\$GUM/i.test(materialReq);
             const itemsAlreadyPledged = itemContributorId > 0;
             const gumAlreadyPledged = gumContributorId > 0;
@@ -546,15 +688,14 @@
             const optionsContainer = document.getElementById('pledge-options');
             optionsContainer.innerHTML = '';
 
-            // Если нужны оба ресурса и они оба свободны, показываем кнопку "всё"
             if (needsItems && !itemsAlreadyPledged && needsGum && !gumAlreadyPledged) {
-                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 15px; width: 100%; background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="submitPledge('all')">И фишки, и $GUM</button>`;
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 15px; width: 100%; background: var(--game-green); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);" onclick="submitPledge('all')">${tr.pledgeAll}</button>`;
             }
             if (needsItems && !itemsAlreadyPledged) {
-                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">Только фишки</button>`;
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('items')">${tr.pledgeChips}</button>`;
             }
             if (needsGum && !gumAlreadyPledged) {
-                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">Только $GUM</button>`;
+                optionsContainer.innerHTML += `<button class="action-btn btn-small" style="margin-bottom: 10px; width: 100%;" onclick="submitPledge('gum')">${tr.pledgeGum}</button>`;
             }
 
             document.getElementById('pledge-overlay').style.display = 'flex';
@@ -574,9 +715,10 @@
         }
         function closeShareModal() { document.getElementById('share-overlay').style.display = 'none'; }
         function copyShareLink() {
+            const tr = t[currentLang];
             const input = document.getElementById('share-link-input');
             input.select(); document.execCommand("copy");
-            tg.showAlert("Ссылка скопирована в буфер обмена!");
+            tg.showAlert(tr.linkCopied);
         }
 
         function shareCraft(craftId) {
@@ -585,7 +727,8 @@
         }
 
         function showAlert(message, title = 'Сообщение') {
-            document.getElementById('alert-title').innerText = title;
+            const tr = t[currentLang];
+            document.getElementById('alert-title').innerText = title || tr.alertMsg;
             document.getElementById('alert-text').innerText = message;
             document.getElementById('alert-overlay').style.display = 'flex';
             tg.HapticFeedback.notificationOccurred('error');
@@ -596,11 +739,12 @@
         }
 
         async function submitPledge(pledgeType) {
+            const tr = t[currentLang];
             const stageId = currentPledgeStageId;
             closePledgeModal();
             if (!stageId) return;
 
-            currentPledgeStageId = null; // Сбрасываем сразу
+            currentPledgeStageId = null;
             
             try {
                 const res = await fetch('/api/craft/pledge', {
@@ -610,17 +754,18 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    showAlert('Вы успешно взялись за этап!');
+                    showAlert(tr.pledgeSuccess);
                     loadCrafts();
                 } else {
-                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                    showAlert('Error: ' + (data.error || 'Unknown'));
                 }
-            } catch(e) { showAlert('Ошибка соединения'); }
+            } catch(e) { showAlert(tr.connError); }
         }
 
         async function completeStage(stageId) {
+            const tr = t[currentLang];
             tg.HapticFeedback.impactOccurred('heavy');
-            if (!confirm('Подтверждаете, что фишка успешно улучшена до нужного грейда?')) return;
+            if (!confirm('Подтверждаете выполнение этапа?')) return;
             
             try {
                 const res = await fetch('/api/craft/complete_stage', {
@@ -630,17 +775,18 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    showAlert('Этап успешно завершен!');
+                    showAlert(tr.stageCompletedAlert);
                     loadCrafts();
                 } else {
-                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                    showAlert('Error: ' + (data.error || 'Unknown'));
                 }
-            } catch(e) { showAlert('Ошибка соединения'); }
+            } catch(e) { showAlert(tr.connError); }
         }
 
         async function deleteCraft(craftId) {
+            const tr = t[currentLang];
             tg.HapticFeedback.impactOccurred('heavy');
-            if (!confirm('Вы уверены, что хотите удалить это объявление о крафте?')) return;
+            if (!confirm(tr.deleteConfirm)) return;
 
             try {
                 const res = await fetch('/api/craft/delete', {
@@ -650,17 +796,18 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    showAlert('Объявление удалено.');
+                    showAlert(tr.deletedSuccess);
                     loadCrafts();
                 } else {
-                    showAlert('Ошибка: ' + (data.error || 'Неизвестно'));
+                    showAlert('Error: ' + (data.error || 'Unknown'));
                 }
-            } catch(e) { showAlert('Ошибка соединения'); }
+            } catch(e) { showAlert(tr.connError); }
         }
 
         // --- Форма создания ---
         function populateCollectionSelector() {
             const select = document.getElementById('c-collection');
+            select.innerHTML = '';
             COLLECTIONS.forEach(collection => {
                 const option = document.createElement('option');
                 option.value = collection;
@@ -672,9 +819,10 @@
         function populateGradeSelectors() {
             const startSelect = document.getElementById('c-start');
             const targetSelect = document.getElementById('c-target');
+            startSelect.innerHTML = '';
+            targetSelect.innerHTML = '';
             
             GRADES.forEach((grade, index) => {
-                // Нельзя начинать с Diamond
                 if (grade.name !== "Diamond") {
                     const optionStart = document.createElement('option');
                     optionStart.value = grade.name;
@@ -682,7 +830,6 @@
                     startSelect.appendChild(optionStart);
                 }
 
-                // Нельзя крафтить в Common
                 if (grade.name !== "Common") {
                     const optionTarget = document.createElement('option');
                     optionTarget.value = grade.name;
@@ -691,12 +838,12 @@
                 }
             });
 
-            // Значения по умолчанию
             startSelect.value = "Common";
             targetSelect.value = "Diamond";
         }
 
         function generateStages() {
+            const tr = t[currentLang];
             const startGrade = document.getElementById('c-start').value;
             const targetGrade = document.getElementById('c-target').value;
             const container = document.getElementById('stages-inputs');
@@ -706,7 +853,7 @@
             const targetIndex = GRADES.findIndex(g => g.name === targetGrade);
 
             if (startIndex >= targetIndex) {
-                container.innerHTML = `<div class="empty-state" style="padding: 10px; color: var(--danger-color);">Начальный грейд должен быть ниже целевого.</div>`;
+                container.innerHTML = `<div class="empty-state" style="padding: 10px; color: var(--danger-color);">${tr.gradeError}</div>`;
                 return;
             }
 
@@ -718,15 +865,16 @@
                     div.className = 'card stage-display-card';
                     div.style.marginBottom = '8px';
                     
+                    const mat = currentLang === 'ru' ? rule.material_ru : rule.material_en;
                     div.dataset.from = currentGradeName;
                     div.dataset.to = rule.to;
-                    div.dataset.material = rule.material;
+                    div.dataset.material = mat;
 
                     div.innerHTML = `
                         <div style="font-size:15px; font-weight:bold; margin-bottom:4px;">${currentGradeName} ➔ ${rule.to}</div>
-                        <div style="font-size:13px; color:var(--text-sec);">📦 Ресурсы: <span style="color:#fff">${rule.material}</span></div>
+                        <div style="font-size:13px; color:var(--text-sec);">${tr.resourcesLabel} <span style="color:#fff">${mat}</span></div>
                         <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <input type="number" class="s-reward-amount" placeholder="Награда за этап (опц.)" step="0.01" min="0" style="flex: 2; margin: 0;">
+                            <input type="number" class="s-reward-amount" placeholder="${tr.stageRewardPh}" step="0.01" min="0" style="flex: 2; margin: 0;">
                             <select class="s-reward-currency" style="flex: 1; margin: 0;">
                                 <option value="TON">TON</option>
                                 <option value="$CG">$CG</option>
@@ -739,6 +887,7 @@
         }
 
         async function submitCraft() {
+            const tr = t[currentLang];
             tg.HapticFeedback.impactOccurred('medium');
             const collection = document.getElementById('c-collection').value;
             const chipNumber = document.getElementById('c-chip-number').value;
@@ -761,7 +910,7 @@
             });
             
             if (!collection || !startGrade || !targetGrade || stages.length === 0) {
-                showAlert('Заполните все поля. Убедитесь, что начальный грейд ниже целевого.');
+                showAlert(tr.fillError);
                 return;
             }
             
@@ -775,7 +924,6 @@
                 });
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    // Очистка формы
                     document.getElementById('c-collection').selectedIndex = 0;
                     document.getElementById('c-chip-number').value = '';
                     document.getElementById('c-start').value = 'Common';
@@ -786,21 +934,21 @@
                     if (isPrivate) {
                         showShareModal(data.craft_id);
                     } else {
-                        showAlert('Публичный крафт успешно создан!');
+                        showAlert(tr.craftCreated);
                     }
-                    // Переключаемся на первую вкладку
                     document.querySelector('.tab-btn').click();
                 } else {
-                    showAlert('Ошибка: ' + (data.error || ''));
+                    showAlert('Error: ' + (data.error || ''));
                 }
             } catch(e) {
-                showAlert('Ошибка соединения');
+                showAlert(tr.connError);
             } finally {
                 tg.MainButton.hideProgress();
             }
         }
 
         // Инициализация
+        applyI18n();
         populateCollectionSelector();
         populateGradeSelectors();
         generateStages();

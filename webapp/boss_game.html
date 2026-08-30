@@ -363,8 +363,8 @@
   <div class="log" id="log">Битва началась!</div>
 
   <script>
-    const lang = localStorage.getItem('rl_lang') || 'ru';
-    const t = {
+    let lang = localStorage.getItem('rl_lang') || 'ru';
+    const translations = {
       ru: {
         t1: "🔺 Секретная Организация Енотов 🔺", t2: "Все игроки против БОССА",
         s1: "Ваш урон", s2: "Ударов", s3: "Критов", s4: "Вы", s5: "БОСС", s6: "Энергия",
@@ -379,23 +379,51 @@
         b1: "⚔️ Attack (+20 en)", b2: "🔥 Strong (40)", b3: "💥 Ult (80)", b4: "💚 Heal (50)", b5: "🍪 100 HP (100 Cones)",
         log: "Battle started!"
       }
-    }[lang];
+    };
+    let t = translations[lang] || translations.ru;
 
-    document.querySelector('.boss-title').innerText = t.t1;
-    document.querySelector('.boss-subtitle').innerText = t.t2;
-    document.querySelectorAll('.label')[0].innerText = t.s1;
-    document.querySelectorAll('.label')[1].innerText = t.s2;
-    document.querySelectorAll('.label')[2].innerText = t.s3;
-    document.querySelector('.player-name').innerText = t.s4;
-    document.querySelector('.boss-name').innerText = t.s5;
-    document.getElementById('p-nrg-text').parentElement.childNodes[0].nodeValue = t.s6 + " ";
-    document.getElementById('msg').innerText = t.msg;
-    document.querySelectorAll('.btn-std')[0].innerText = t.b1;
-    document.getElementById('btn-sp1').innerText = t.b2;
-    document.getElementById('btn-sp2').innerText = t.b3;
-    document.getElementById('btn-sp3').innerText = t.b4;
-    document.getElementById('btn-cookie').innerText = t.b5;
-    document.getElementById('log').innerText = t.log;
+    function applyLang(selectedLang) {
+      lang = selectedLang || 'ru';
+      t = translations[lang] || translations.ru;
+      const t1El = document.querySelector('.boss-title');
+      if (t1El) t1El.innerText = t.t1;
+      const t2El = document.querySelector('.boss-subtitle');
+      if (t2El) t2El.innerText = t.t2;
+      const labels = document.querySelectorAll('.label');
+      if (labels.length >= 3) {
+        labels[0].innerText = t.s1;
+        labels[1].innerText = t.s2;
+        labels[2].innerText = t.s3;
+      }
+      const pName = document.querySelector('.player-name');
+      if (pName) pName.innerText = t.s4;
+      const bName = document.querySelector('.boss-name');
+      if (bName) bName.innerText = t.s5;
+      const nrgText = document.getElementById('p-nrg-text');
+      if (nrgText && nrgText.parentElement && nrgText.parentElement.childNodes[0]) {
+        nrgText.parentElement.childNodes[0].nodeValue = t.s6 + " ";
+      }
+      const msgEl = document.getElementById('msg');
+      if (msgEl && gameActive) msgEl.innerText = t.msg;
+      const stdBtns = document.querySelectorAll('.btn-std');
+      if (stdBtns.length > 0) stdBtns[0].innerText = t.b1;
+      const sp1 = document.getElementById('btn-sp1');
+      if (sp1) sp1.innerText = t.b2;
+      const sp2 = document.getElementById('btn-sp2');
+      if (sp2) sp2.innerText = t.b3;
+      const sp3 = document.getElementById('btn-sp3');
+      if (sp3) sp3.innerText = t.b4;
+      const cookieBtn = document.getElementById('btn-cookie');
+      if (cookieBtn) cookieBtn.innerText = t.b5;
+    }
+
+    applyLang(lang);
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'language_changed') {
+        applyLang(e.data.lang);
+      }
+    });
 
     const API_URL = '/api/boss_hp';
     let bossHP = 1000000000;

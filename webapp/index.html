@@ -1157,8 +1157,8 @@
   <div id="tutorial-overlay" class="tutorial-overlay">
     <div class="tutorial-modal">
       <span class="tutorial-icon" id="tutorial-icon">📰</span>
-      <h3 class="tutorial-title" id="tutorial-title">Добро пожаловать!</h3>
-      <p class="tutorial-desc" id="tutorial-desc">Здесь вы найдете много интересного</p>
+      <h3 class="tutorial-title" id="tutorial-title" data-i18n="welcome_title">Добро пожаловать!</h3>
+      <p class="tutorial-desc" id="tutorial-desc" data-i18n="welcome_desc">Здесь вы найдете много интересного</p>
       <button class="tutorial-btn" onclick="closeTutorial()" data-i18n="btn_understood">Понятно!</button>
     </div>
   </div>
@@ -1201,7 +1201,7 @@
         <option value="Другое" data-i18n="topic_other">Другое</option>
       </select>
 
-      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..." maxlength="1024"></textarea>
+      <textarea id="news-text" class="news-textarea" placeholder="Пишите здесь..." maxlength="1024" data-i18n-ph="news_placeholder"></textarea>
       
       <!-- Image Upload -->
       <div style="margin-bottom: 15px;">
@@ -1226,16 +1226,16 @@
     <div class="tutorial-modal" style="width: 90%; position: relative;">
       <button class="close-modal-btn" onclick="closeBetModal()">✕</button>
       <span class="tutorial-icon">🎲</span>
-      <h3 class="tutorial-title" id="bet-modal-title">Сделать ставку</h3>
+      <h3 class="tutorial-title" id="bet-modal-title" data-i18n="make_bet_title">Сделать ставку</h3>
       <p class="tutorial-desc" id="bet-modal-desc" style="font-size: 0.9rem; margin-bottom: 15px;"></p>
       
       <div class="bet-currency-tabs">
         <button id="bet-currency-cg" class="bet-currency-tab active" onclick="selectBetCurrency('CG')">$CG</button>
-        <button id="bet-currency-cones" class="bet-currency-tab" onclick="selectBetCurrency('Шишки')">Шишки</button>
+        <button id="bet-currency-cones" class="bet-currency-tab" onclick="selectBetCurrency('Шишки')" data-i18n="cones">Шишки</button>
       </div>
-      <input type="text" id="bet-score-input" placeholder="Введите счёт, например 2:1" style="display:none; width:100%; padding:12px; margin-bottom:12px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
-      <input type="number" id="bet-amount" placeholder="Сумма ставки" style="width:100%; padding:12px; margin-bottom:15px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
-      <button class="tutorial-btn" style="width: 100%;" onclick="submitBet()">Поставить</button>
+      <input type="text" id="bet-score-input" placeholder="Введите счёт, например 2:1" data-i18n-ph="bet_score_ph" style="display:none; width:100%; padding:12px; margin-bottom:12px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
+      <input type="number" id="bet-amount" placeholder="Сумма ставки" data-i18n-ph="bet_amount_ph" style="width:100%; padding:12px; margin-bottom:15px; border-radius:12px; background:#121214; color:white; border:1px solid rgba(255,255,255,0.2); font-family:'Montserrat', sans-serif;">
+      <button class="tutorial-btn" style="width: 100%;" onclick="submitBet()" data-i18n="btn_place_bet">Поставить</button>
     </div>
   </div>
 
@@ -1286,9 +1286,9 @@
       <div class="mascot-season-tag" style="display: inline-block;">Season 2 • The Raccoon Times</div>
       <h1 style="font-size: 2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; color: #ffffff; margin-top: 2px;">Raccoon Life</h1>
       <p style="font-size: 0.9rem; line-height: 1.45; color: var(--text-secondary); max-width: 280px;" data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
-      <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" style="width: 100%; margin-top: 4px;" onclick="navigateTo('main-menu'); triggerHaptic('impact');" data-i18n="cover_btn">
+      <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" style="width: 100%; margin-top: 4px;" onclick="navigateTo('main-menu'); triggerHaptic('impact');">
         <span style="font-size: 1.2rem;">🚀</span>
-        <span>ВПЕРЁД</span>
+        <span data-i18n="cover_btn">ВПЕРЁД</span>
       </button>
     </div>
   </div>
@@ -1297,15 +1297,15 @@
   <div id="main-menu" class="screen">
     <!-- Resource Pills Bar -->
     <div class="home__profile-buttons">
-      <button class="home__profile" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек">
+      <button class="home__profile" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек" data-i18n-title="balance_tooltip">
         <span class="profile-pill-icon"><img src="cone.png" class="cone-icon" alt="🌰"></span>
         <span id="token-balance">0</span>
       </button>
-      <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');" title="Прогресс квестов">
+      <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');" title="Прогресс квестов" data-i18n-title="quests_progress_tooltip">
         <span class="profile-pill-icon">📜</span>
         <span id="quests-progress-pill">0/7</span>
       </button>
-      <button class="home-energy home__profile" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия">
+      <button class="home-energy home__profile" onclick="togglePlayBottomSheet(true); triggerHaptic('light');" title="Энергия" data-i18n-title="energy_tooltip">
         <span class="profile-pill-icon">⚡</span>
         <div class="home-energy__block">
           <div><span class="home-energy__num">30</span>/30</div>
@@ -1357,7 +1357,7 @@
           <div class="offer-badge__label" data-i18n="menu_roulette">Рулетка</div>
         </button>
         <button class="offer-badge" onclick="showLeaderboard(); triggerHaptic('light');">
-          <div class="offer-badge__timer offer-badge__timer--gold">ТОП</div>
+          <div class="offer-badge__timer offer-badge__timer--gold" data-i18n="top_badge">ТОП</div>
           <span class="offer-badge__icon">🏆</span>
           <div class="offer-badge__label" data-i18n="menu_rating">Рейтинг</div>
         </button>
@@ -1366,16 +1366,16 @@
 
     <!-- Home Bottom Actions Bar -->
     <div class="home__bottom">
-      <button class="home__bottom-btn" onclick="showTokenBonus(); triggerHaptic('light');" title="Бонус">
+      <button class="home__bottom-btn" onclick="showTokenBonus(); triggerHaptic('light');" title="Бонус" data-i18n-title="btn_bonus">
         <span class="home__bottom-icon">🎁</span>
-        <span class="home__bottom-btn-label">Бонус</span>
+        <span class="home__bottom-btn-label" data-i18n="btn_bonus">Бонус</span>
       </button>
       <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" onclick="togglePlayBottomSheet(true); triggerHaptic('impact');">
         <span style="font-size: 1.25rem; line-height: 1;">🎮</span>
-        <span>ИГРАТЬ</span>
+        <span data-i18n="btn_play">ИГРАТЬ</span>
         <span style="font-size: 1.1rem; line-height: 1; color: #FFF04D;">⚡</span>
       </button>
-      <button class="home__bottom-btn" onclick="openShop(); triggerHaptic('light');" title="Рынок">
+      <button class="home__bottom-btn" onclick="openShop(); triggerHaptic('light');" title="Рынок" data-i18n-title="menu_shop">
         <span class="home__bottom-icon">🛒</span>
         <span class="home__bottom-btn-label" data-i18n="menu_shop">Рынок</span>
       </button>
@@ -1387,13 +1387,13 @@
     <div class="bottom-sheet__backdrop" onclick="togglePlayBottomSheet(false)"></div>
     <div class="bottom-sheet__block">
       <div class="bottom-sheet__divider"></div>
-      <button class="bottom-sheet__hide" onclick="togglePlayBottomSheet(false)">Скрыть</button>
+      <button class="bottom-sheet__hide" onclick="togglePlayBottomSheet(false)" data-i18n="btn_hide">Скрыть</button>
 
       <div class="play-bottom-sheet">
         <div class="play-bottom-sheet__block">
           <div class="play-bottom-sheet__energy">
-            <div>⚡ Накопление энергии</div>
-            <span>30/30 (Полная)</span>
+            <div data-i18n="energy_accumulation">⚡ Накопление энергии</div>
+            <span data-i18n="energy_full">30/30 (Полная)</span>
           </div>
         </div>
 
@@ -1401,64 +1401,64 @@
           <!-- Найди Фишку -->
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎯 Найди Фишку' : '🎯 Find the Chip', url: 'find_chip.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🎯</span>Найди Фишку</div>
+              <div><span class="play-bottom-sheet__icon">🎯</span><span data-i18n="game_find_chip">Найди Фишку</span></div>
               <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
-            <div class="play-bottom-sheet__description">Угадай правильную фишку и забери шишки!</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_find_chip_desc">Угадай правильную фишку и забери шишки!</div>
           </button>
 
           <!-- Морской Бой -->
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">⚓</span>Морской Бой</div>
+              <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span></div>
               <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
-            <div class="play-bottom-sheet__description">Классическая морская баталия против енота</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_battleship_desc">Классическая морская баталия против енота</div>
           </button>
 
           <!-- Босс Енотов -->
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🔺 Босс Енотов' : '🔺 Raccoon Boss', url: 'boss_game.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🔺</span>Босс Енотов</div>
-              <div class="play-bottom-sheet__fee"><span class="trans--red">1 млрд HP</span></div>
+              <div><span class="play-bottom-sheet__icon">🔺</span><span data-i18n="game_boss">Босс Енотов</span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--red" data-i18n="game_boss_hp">1 млрд HP</span></div>
             </div>
-            <div class="play-bottom-sheet__description">Сразись с Мировым Боссом вместе со всеми игроками!</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_boss_desc">Сразись с Мировым Боссом вместе со всеми игроками!</div>
           </button>
 
           <!-- Башня 3.0 -->
-          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'Башня 3.0', url: 'tower_game.html', type: 'iframe' });">
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🏰 Башня 3.0' : '🏰 Tower 3.0', url: 'tower_game.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🏰</span>Башня 3.0</div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 <img src="cone.png" class="cone-icon" alt="🌰">/ур</span></div>
+              <div><span class="play-bottom-sheet__icon">🏰</span><span data-i18n="game_tower">Башня 3.0</span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 <img src="cone.png" class="cone-icon" alt="🌰">/<span data-i18n="lvl_short">ур</span></span></div>
             </div>
-            <div class="play-bottom-sheet__description">Покори этажи башни испытаний</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_tower_desc">Покори этажи башни испытаний</div>
           </button>
 
           <!-- PVP: Vladeos -->
-          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'PVP: Vladeos', url: 'vladeos_pvp.html', type: 'iframe' });">
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: '⚔️ PVP: Vladeos', url: 'vladeos_pvp.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">⚔️</span>PVP: Vladeos</div>
-              <div class="play-bottom-sheet__fee"><span class="trans--orange">5% шанс 100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
+              <div><span class="play-bottom-sheet__icon">⚔️</span><span data-i18n="game_vladeos">PVP: Vladeos</span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--orange">5% <span data-i18n="chance_word">шанс</span> 100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
-            <div class="play-bottom-sheet__description">Сражение с легендарным противником</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_vladeos_desc">Сражение с легендарным противником</div>
           </button>
 
           <!-- Битва фишек -->
-          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: 'Битва фишек', url: 'game.html', type: 'iframe' });">
+          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎲 Битва фишек' : '🎲 Caps Battle', url: 'game.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🎲</span>Битва фишек</div>
+              <div><span class="play-bottom-sheet__icon">🎲</span><span data-i18n="game_chips_battle">Битва фишек</span></div>
               <div class="play-bottom-sheet__fee"><span class="trans--gold">+10 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
-            <div class="play-bottom-sheet__description">Динамичные дуэли на фишках</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_chips_battle_desc">Динамичные дуэли на фишках</div>
           </button>
 
           <!-- Енотная Рулетка -->
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette });">
             <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🎰</span>Енотная Рулетка</div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">🔥 ДЖЕКПОТ</span></div>
+              <div><span class="play-bottom-sheet__icon">🎰</span><span data-i18n="game_roulette">Енотная Рулетка</span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold" data-i18n="jackpot_label">🔥 ДЖЕКПОТ</span></div>
             </div>
-            <div class="play-bottom-sheet__description">Крути колесо фортуны и выигрывай кучу шишек!</div>
+            <div class="play-bottom-sheet__description" data-i18n="game_roulette_desc">Крути колесо фортуны и выигрывай кучу шишек!</div>
           </button>
         </div>
       </div>
@@ -1468,7 +1468,7 @@
   <!-- List Screen (Quests / Games / Newspapers / Partners) -->
   <div id="list-screen" class="screen" style="padding: 12px 14px;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-      <h2 id="category-title" class="section-title">Раздел</h2>
+      <h2 id="category-title" class="section-title" data-i18n="section_title_default">Раздел</h2>
       <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary" style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
         ← <span data-i18n="btn_back">Назад</span>
       </button>
@@ -1480,7 +1480,8 @@
   <div id="rating-screen" class="screen" style="padding: 12px 14px;">
     <h2 class="section-title" style="text-align: center; margin-bottom: 10px;" data-i18n="menu_rating">Рейтинг</h2>
     <div class="rating-tabs">
-      <button class="rating-tab active" id="tab-tokens" onclick="loadLeaderboard('tokens'); triggerHaptic('selection');" data-i18n="tab_tokens">Богачи</button>
+      <button class="rating-tab active" id="tab-overall" onclick="loadLeaderboard('overall'); triggerHaptic('selection');" data-i18n="tab_overall">Общий</button>
+      <button class="rating-tab" id="tab-tokens" onclick="loadLeaderboard('tokens'); triggerHaptic('selection');" data-i18n="tab_tokens">Богачи</button>
       <button class="rating-tab" id="tab-quests" onclick="loadLeaderboard('quests'); triggerHaptic('selection');" data-i18n="tab_quests">Квесты</button>
     </div>
     <div id="user-leaderboard-card"></div>
@@ -1494,9 +1495,9 @@
       <span class="tot-brand-text">EnotXbet</span>
     </div>
     <div class="rating-tabs" style="flex-wrap: wrap;">
-      <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents(); triggerHaptic('selection');">События</button>
-      <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets(); triggerHaptic('selection');">Мои ставки</button>
-      <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin(); triggerHaptic('selection');" style="background: #5c1a1a; border-color: #ff4444; display: none;">Админ</button>
+      <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents(); triggerHaptic('selection');" data-i18n="tab_tot_events">События</button>
+      <button class="rating-tab" id="tab-tot-mybets" onclick="loadTotMyBets(); triggerHaptic('selection');" data-i18n="tab_tot_mybets">Мои ставки</button>
+      <button class="rating-tab" id="tab-tot-admin" onclick="loadTotAdmin(); triggerHaptic('selection');" style="background: #5c1a1a; border-color: #ff4444; display: none;" data-i18n="tab_tot_admin">Админ</button>
     </div>
     <div id="tot-content" style="padding-bottom: 20px;"></div>
   </div>
@@ -1637,8 +1638,10 @@
       error_rating: "Ошибка загрузки рейтинга",
       total_earned: "всего заработано",
       balance_text: "Баланс",
+      tab_overall: "Общий",
       tab_tokens: "Богачи",
       tab_quests: "Квесты",
+      overall_score: "Очки рейтинга",
       completed_quests: "квестов пройдено",
       you_badge: "Вы",
       your_rank: "Ваше место",
@@ -1661,7 +1664,49 @@
       topic_ideas: "Идеи для бота",
       topic_bugs: "Жалобы/Баги",
       topic_other: "Другое",
-      topic_collab: "Предложить сотрудничество"
+      topic_collab: "Предложить сотрудничество",
+      btn_play: "ИГРАТЬ",
+      btn_bonus: "Бонус",
+      btn_hide: "Скрыть",
+      energy_accumulation: "⚡ Накопление энергии",
+      energy_full: "30/30 (Полная)",
+      game_find_chip: "Найди Фишку",
+      game_find_chip_desc: "Угадай правильную фишку и забери шишки!",
+      game_battleship: "Морской Бой",
+      game_battleship_desc: "Классическая морская баталия против енота",
+      game_boss: "Босс Енотов",
+      game_boss_hp: "1 млрд HP",
+      game_boss_desc: "Сразись с Мировым Боссом вместе со всеми игроками!",
+      game_tower: "Башня 3.0",
+      game_tower_desc: "Покори этажи башни испытаний",
+      game_tower_fee: "1-10 /ур",
+      game_vladeos: "PVP: Vladeos",
+      game_vladeos_fee: "5% шанс 100",
+      game_vladeos_desc: "Сражение с легендарным противником",
+      game_chips_battle: "Битва фишек",
+      game_chips_battle_desc: "Динамичные дуэли на фишках",
+      game_roulette: "Енотная Рулетка",
+      game_roulette_desc: "Крути колесо фортуны и выигрывай кучу шишек!",
+      jackpot_label: "🔥 ДЖЕКПОТ",
+      make_bet_title: "Сделать ставку",
+      bet_score_ph: "Введите счёт, например 2:1",
+      bet_amount_ph: "Сумма ставки",
+      btn_place_bet: "Поставить",
+      tab_tot_events: "События",
+      tab_tot_mybets: "Мои ставки",
+      tab_tot_admin: "Админ",
+      section_title_default: "Раздел",
+      add_bot_to_group: "Добавить бота в группу",
+      add_bot_desc: "Чтобы публиковать объявления прямо в чат вашей группы, добавьте Raccoon Life Bot как администратора.",
+      add_to_group_btn: "➕ Добавить в группу",
+      top_badge: "ТОП",
+      lvl_short: "ур",
+      chance_word: "шанс",
+      welcome_title: "Добро пожаловать!",
+      welcome_desc: "Здесь вы найдете много интересного",
+      balance_tooltip: "Баланс шишек",
+      quests_progress_tooltip: "Прогресс квестов",
+      energy_tooltip: "Энергия"
     },
     en: {
       lang_btn: "EN",
@@ -1695,8 +1740,10 @@
       error_rating: "Error loading rating",
       total_earned: "total earned",
       balance_text: "Balance",
+      tab_overall: "Overall",
       tab_tokens: "Richest",
       tab_quests: "Quests",
+      overall_score: "Rating points",
       completed_quests: "quests completed",
       you_badge: "You",
       your_rank: "Your Rank",
@@ -1719,7 +1766,49 @@
       topic_ideas: "Bot Ideas",
       topic_bugs: "Complaints/Bugs",
       topic_other: "Other",
-      topic_collab: "Propose cooperation"
+      topic_collab: "Propose cooperation",
+      btn_play: "PLAY",
+      btn_bonus: "Bonus",
+      btn_hide: "Hide",
+      energy_accumulation: "⚡ Energy accumulation",
+      energy_full: "30/30 (Full)",
+      game_find_chip: "Find the Chip",
+      game_find_chip_desc: "Guess the right cap and take the cones!",
+      game_battleship: "Battleship",
+      game_battleship_desc: "Classic naval battle against a raccoon",
+      game_boss: "Raccoon Boss",
+      game_boss_hp: "1B HP",
+      game_boss_desc: "Fight the World Boss together with all players!",
+      game_tower: "Tower 3.0",
+      game_tower_desc: "Conquer challenge tower floors",
+      game_tower_fee: "1-10 /lvl",
+      game_vladeos: "PVP: Vladeos",
+      game_vladeos_fee: "5% chance 100",
+      game_vladeos_desc: "Battle against a legendary opponent",
+      game_chips_battle: "Caps Battle",
+      game_chips_battle_desc: "Dynamic cap duels",
+      game_roulette: "Raccoon Roulette",
+      game_roulette_desc: "Spin the wheel of fortune and win lots of cones!",
+      jackpot_label: "🔥 JACKPOT",
+      make_bet_title: "Place Bet",
+      bet_score_ph: "Enter score, e.g. 2:1",
+      bet_amount_ph: "Bet amount",
+      btn_place_bet: "Place Bet",
+      tab_tot_events: "Events",
+      tab_tot_mybets: "My Bets",
+      tab_tot_admin: "Admin",
+      section_title_default: "Section",
+      add_bot_to_group: "Add bot to group",
+      add_bot_desc: "To post announcements directly to your group chat, add Raccoon Life Bot as an administrator.",
+      add_to_group_btn: "➕ Add to group",
+      top_badge: "TOP",
+      lvl_short: "lvl",
+      chance_word: "chance",
+      welcome_title: "Welcome!",
+      welcome_desc: "Here you will find a lot of interesting things",
+      balance_tooltip: "Cones Balance",
+      quests_progress_tooltip: "Quests Progress",
+      energy_tooltip: "Energy"
     }
   };
 
@@ -1800,11 +1889,25 @@
         el.innerText = i18n[currentLang][key];
       }
     });
+
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      const key = el.getAttribute('data-i18n-html');
+      if (i18n[currentLang] && i18n[currentLang][key]) {
+        el.innerHTML = i18n[currentLang][key];
+      }
+    });
     
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       const key = el.getAttribute('data-i18n-title');
       if (i18n[currentLang] && i18n[currentLang][key]) {
         el.title = i18n[currentLang][key];
+      }
+    });
+
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const key = el.getAttribute('data-i18n-ph');
+      if (i18n[currentLang] && i18n[currentLang][key]) {
+        el.placeholder = i18n[currentLang][key];
       }
     });
     
@@ -2488,10 +2591,11 @@
 
   function showLeaderboard() {
     navigateTo('rating-screen');
-    loadLeaderboard('tokens');
+    loadLeaderboard('overall');
   }
 
   function loadLeaderboard(type) {
+    type = type || 'overall';
     const list = document.getElementById('leaderboard-list');
     const userCard = document.getElementById('user-leaderboard-card');
     list.innerHTML = `<div style="text-align:center;color:var(--text-sec);padding:20px;">${i18n[currentLang].loading_rating}</div>`;
@@ -2501,9 +2605,7 @@
     const tabBtn = document.getElementById('tab-' + type);
     if (tabBtn) tabBtn.classList.add('active');
 
-    if (type === 'tokens') {
-      syncStats(); // Синхронизируем статистику если открываем вкладку по умолчанию
-    }
+    syncStats(); // Синхронизируем статистику при открытии рейтинга
 
     const userId = getUserId();
     // Загрузка рейтинга из API
@@ -3220,7 +3322,25 @@
         const safeURankIcon = escapeHTML(uRankIcon);
         const youText = i18n[currentLang].you_badge || 'ВЫ';
 
-        if (type === 'tokens') {
+        if (type === 'overall') {
+          const formattedScore = (userRank.score || 0).toLocaleString('ru-RU');
+          const formattedBalance = (userRank.balance || 0).toLocaleString('ru-RU');
+          userCard.innerHTML = `
+            <div class="user-rank-card">
+              <div style="font-size: 1.4rem; font-weight: 800; color: ${uRankColor}; width: 44px; text-align:center;">${safeURankIcon}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeUName}</span>
+                  <span class="user-rank-badge">${youText}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
+                  <img src="cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${userRank.quests_completed || 0} • 🎮 ${userRank.total_games || 0} • 📰 ${userRank.newspapers_read || 0}
+                </div>
+              </div>
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedScore)}</div>
+            </div>
+          `;
+        } else if (type === 'tokens') {
           const formattedBalance = (userRank.balance || 0).toLocaleString('ru-RU');
           const earnedLabel = userRank.total_earned ? `(${i18n[currentLang].total_earned}: ${(userRank.total_earned || 0).toLocaleString('ru-RU')})` : '';
           userCard.innerHTML = `
@@ -3286,7 +3406,20 @@
       const safeRankIcon = escapeHTML(rankIcon);
       const userBadgeHTML = isCurrentUser ? ` <span class="user-rank-badge">${i18n[currentLang].you_badge || 'ВЫ'}</span>` : '';
 
-      if (type === 'tokens') {
+      if (type === 'overall') {
+          const formattedScore = (p.score || 0).toLocaleString('ru-RU');
+          const formattedBalance = (p.balance || 0).toLocaleString('ru-RU');
+          div.innerHTML = `
+            <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
+              <div style="font-size: 0.75rem; color: var(--text-sec);">
+                <img src="cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${p.quests_completed || 0} • 🎮 ${p.total_games || 0} • 📰 ${p.newspapers_read || 0}
+              </div>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedScore)}</div>
+          `;
+      } else if (type === 'tokens') {
           const formattedBalance = p.balance.toLocaleString('ru-RU');
           const earnedLabel = p.total_earned ? `(${i18n[currentLang].total_earned}: ${p.total_earned.toLocaleString('ru-RU')})` : '';
           div.innerHTML = `

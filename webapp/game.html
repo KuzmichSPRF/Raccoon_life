@@ -186,31 +186,60 @@
   <div class="log" id="log">Битва началась...</div>
 
   <script>
-    const lang = localStorage.getItem('rl_lang') || 'ru';
-    const t = {
+    let lang = localStorage.getItem('rl_lang') || 'ru';
+    const translations = {
       ru: {
         msgStart: "Твой ход, Енот! <br>Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун",
         btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
-        logSt: "Битва началась..."
+        logSt: "Битва началась...",
+        victory: "Победа!", defeat: "Поражение!", cont: "Продолжить"
       },
       en: {
         msgStart: "Your turn, Raccoon! <br>Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Clown",
         btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
-        logSt: "Battle started..."
+        logSt: "Battle started...",
+        victory: "Victory!", defeat: "Defeat!", cont: "Continue"
       }
-    }[lang];
+    };
+    let t = translations[lang] || translations.ru;
 
-    document.getElementById('msg').innerHTML = t.msgStart;
-    document.querySelectorAll('.bar-label')[1].innerText = t.enL;
-    document.querySelectorAll('.bar-label')[3].innerText = t.enL;
-    document.querySelector('#p1-area p b').innerText = t.rac;
-    document.querySelector('#bot-area p b').innerText = t.clo;
-    document.querySelector('.btn-std').innerText = t.btnA;
-    document.getElementById('sp1').innerText = t.btnS1;
-    document.getElementById('sp2').innerText = t.btnS2;
-    document.getElementById('sp3').innerText = t.btnS3;
-    document.getElementById('btn-cookie').innerHTML = t.btnC;
-    document.getElementById('log').innerText = t.logSt;
+    function applyLang(selectedLang) {
+      lang = selectedLang || 'ru';
+      t = translations[lang] || translations.ru;
+      const msgEl = document.getElementById('msg');
+      if (msgEl && active) msgEl.innerHTML = t.msgStart;
+      const barLabels = document.querySelectorAll('.bar-label');
+      if (barLabels.length >= 4) {
+        barLabels[1].innerText = t.enL;
+        barLabels[3].innerText = t.enL;
+      }
+      const p1Name = document.querySelector('#p1-area p b');
+      if (p1Name) p1Name.innerText = t.rac;
+      const botName = document.querySelector('#bot-area p b');
+      if (botName) botName.innerText = t.clo;
+      const btnA = document.querySelector('.btn-std');
+      if (btnA) btnA.innerText = t.btnA;
+      const sp1 = document.getElementById('sp1');
+      if (sp1) sp1.innerText = t.btnS1;
+      const sp2 = document.getElementById('sp2');
+      if (sp2) sp2.innerText = t.btnS2;
+      const sp3 = document.getElementById('sp3');
+      if (sp3) sp3.innerText = t.btnS3;
+      const cookieBtn = document.getElementById('btn-cookie');
+      if (cookieBtn) cookieBtn.innerHTML = t.btnC;
+      const popupTitle = document.getElementById('popup-title');
+      if (popupTitle) popupTitle.innerText = t.victory;
+      const popupBtn = document.getElementById('popup-btn');
+      if (popupBtn) popupBtn.innerText = t.cont;
+    }
+
+    applyLang(lang);
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'language_changed') {
+        applyLang(e.data.lang);
+      }
+    });
 
     let pHP = 100, pNRG = 0;
     let bHP = 100, bNRG = 0;

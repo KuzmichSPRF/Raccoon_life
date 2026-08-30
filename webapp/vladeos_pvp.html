@@ -190,11 +190,35 @@
   </div>
 
   <script>
-    const lang = localStorage.getItem('rl_lang') || 'ru';
-    const t = {
-      ru: { msgStart: "Выбери грейд фишки" },
-      en: { msgStart: "Choose cap grade" }
-    }[lang];
+    let lang = localStorage.getItem('rl_lang') || 'ru';
+    const translations = {
+      ru: {
+        msgStart: "Выбери грейд фишки",
+        battle: "БИТВА!",
+        win: "🍀 НЕВЕРОЯТНО! Вы победили!",
+        lose: "Vladeos победил! 🏆",
+        victoryTitle: "Победа!",
+        defeatTitle: "Поражение!",
+        btnCont: "Продолжить",
+        insults: [
+          "Не солидно...", "Ставка говно!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
+        ]
+      },
+      en: {
+        msgStart: "Choose cap grade",
+        battle: "BATTLE!",
+        win: "🍀 INCREDIBLE! You won!",
+        lose: "Vladeos won! 🏆",
+        victoryTitle: "Victory!",
+        defeatTitle: "Defeat!",
+        btnCont: "Continue",
+        insults: [
+          "Not cool...", "Trash bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
+        ]
+      }
+    };
+    let t = translations[lang] || translations.ru;
+    let insults = t.insults;
 
     const msg = document.getElementById('msg');
     const pCap = document.getElementById('p-cap');
@@ -203,13 +227,22 @@
     const vScore = document.getElementById('v-score');
     const gradeSelection = document.getElementById('grade-selection');
 
-    msg.innerText = t.msgStart;
+    function applyLang(selectedLang) {
+      lang = selectedLang || 'ru';
+      t = translations[lang] || translations.ru;
+      insults = t.insults;
+      if (msg) msg.innerText = t.msgStart;
+      const popupBtn = document.getElementById('popup-btn');
+      if (popupBtn) popupBtn.innerText = t.btnCont;
+    }
 
-    const insults = lang === 'ru' ? [
-      "Не солидно...", "Ставка говно!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
-    ] : [
-      "Not cool...", "Trash bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
-    ];
+    applyLang(lang);
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'language_changed') {
+        applyLang(e.data.lang);
+      }
+    });
 
     function tryPlay(grade) {
       if (grade !== 'diamond') {

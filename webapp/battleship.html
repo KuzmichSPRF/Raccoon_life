@@ -516,8 +516,8 @@
   </div>
 
 <script>
-  const lang = localStorage.getItem('rl_lang') || 'ru';
-  const t = {
+  let lang = localStorage.getItem('rl_lang') || 'ru';
+  const translations = {
     ru: {
       title: "⚓ Морской Бой", st: "Расставьте корабли на поле", sel: "Выберите корабль", rotH: "Горизонтально", rotV: "Вертикально",
       b1: "🚢 Ваше поле", b2: "🎯 Поле врага", btnA: "🎲 Авто", btnStart: "▶️ Начать бой", s1: "Кораблей", s2: "Врага", s3: "Ходов",
@@ -536,7 +536,51 @@
       winAll: "🎉 VICTORY! All enemy ships destroyed!", loseAll: "💀 DEFEAT! All your ships destroyed!",
       win: "Victory!", lose: "Defeat!", cont: "▶️ Continue", again: "🔄 Play Again", cones: "Cones"
     }
-  }[lang];
+  };
+  let t = translations[lang] || translations.ru;
+
+  function applyLang(selectedLang) {
+    lang = selectedLang || 'ru';
+    t = translations[lang] || translations.ru;
+    const titleEl = document.querySelector('.game-title');
+    if (titleEl) titleEl.innerText = t.title;
+    const statusEl = document.getElementById('game-status');
+    if (statusEl && gamePhase === 'placement') statusEl.innerText = t.st;
+    const selEl = document.querySelector('.ship-selector-title');
+    if (selEl) selEl.innerText = t.sel;
+    const rotEl = document.getElementById('rotation-text');
+    if (rotEl) {
+      rotEl.parentElement.childNodes[0].nodeValue = t.rotBtn;
+      rotEl.innerText = isHorizontal ? t.rotH : t.rotV;
+    }
+    const bTitles = document.querySelectorAll('.board-title');
+    if (bTitles.length >= 3) {
+      bTitles[0].innerText = t.b1;
+      bTitles[1].innerText = t.b2;
+      bTitles[2].innerText = t.b1;
+    }
+    const secBtns = document.querySelectorAll('.btn-secondary');
+    if (secBtns.length >= 2) {
+      secBtns[0].innerText = t.btnA;
+      secBtns[1].innerText = t.btnR;
+    }
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) startBtn.innerText = t.btnStart;
+    const statLabels = document.querySelectorAll('.stat-label');
+    if (statLabels.length >= 3) {
+      statLabels[0].innerText = t.s1;
+      statLabels[1].innerText = t.s2;
+      statLabels[2].innerText = t.s3;
+    }
+    const primBtn = document.querySelector('.btn-primary');
+    if (primBtn) primBtn.innerText = t.btnE;
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'language_changed') {
+      applyLang(e.data.lang);
+    }
+  });
 
   const tg = window.Telegram.WebApp;
   tg.ready();
@@ -578,21 +622,7 @@
       has_init_data_unsafe: !!tg.initDataUnsafe
     });
     
-    document.querySelector('.game-title').innerText = t.title;
-    document.getElementById('game-status').innerText = t.st;
-    document.querySelector('.ship-selector-title').innerText = t.sel;
-    document.getElementById('rotation-text').parentElement.childNodes[0].nodeValue = t.rotBtn;
-    document.getElementById('rotation-text').innerText = t.rotH;
-    document.querySelectorAll('.board-title')[0].innerText = t.b1;
-    document.querySelectorAll('.board-title')[1].innerText = t.b2;
-    document.querySelectorAll('.board-title')[2].innerText = t.b1;
-    document.querySelector('.btn-secondary').innerText = t.btnA;
-    document.getElementById('start-btn').innerText = t.btnStart;
-    document.querySelectorAll('.stat-label')[0].innerText = t.s1;
-    document.querySelectorAll('.stat-label')[1].innerText = t.s2;
-    document.querySelectorAll('.stat-label')[2].innerText = t.s3;
-    document.querySelectorAll('.btn-secondary')[1].innerText = t.btnR;
-    document.querySelector('.btn-primary').innerText = t.btnE;
+    applyLang(lang);
 
     createEmptyBoard();
     initShipSelector();

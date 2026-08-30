@@ -607,6 +607,16 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции tot_bets prediction: {e}")
 
+    # Проверка user_stats на наличие roulette_total_bets
+    cursor.execute("PRAGMA table_info(user_stats)")
+    user_stats_cols = {row[1] for row in cursor.fetchall()}
+    if 'roulette_total_bets' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN roulette_total_bets INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка roulette_total_bets в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats roulette_total_bets: {e}")
+
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД и сохраняет его username/имя"""
     if not user_id:
@@ -1289,6 +1299,126 @@ def get_quests_leaderboard(limit: int = 10) -> list:
         conn.close()
 
 
+def calculate_overall_score(user_data_row: dict) -> dict:
+    """
+    Рассчитывает общий счет по формуле:
+    наличие шишек + пройденные квесты * 10 000 + каждая сыгранная игра * 100 + ставки игрока в рулетке + за каждый прочитанный номер газеты 500 очков
+    """
+    # 1. Наличие шишек
+    balance = user_data_row.get('balance') or 0
+
+    # 2. Пройденные квесты * 10 000
+    quests_completed = user_data_row.get('quests_completed') or 0
+    quests_points = quests_completed * 10000
+
+    # 3. Каждая сыгранная игра * 100
+    clown_games = user_data_row.get('clown_games') or 0
+    vladeos_games = user_data_row.get('vladeos_games') or 0
+    tower_total_levels = user_data_row.get('tower_total_levels') or 0
+    roulette_games = user_data_row.get('roulette_games') or 0
+    total_games = clown_games + vladeos_games + tower_total_levels + roulette_games
+    games_points = total_games * 100
+
+    # 4. Ставки игрока в рулетке
+    roulette_total_bets = user_data_row.get('roulette_total_bets')
+    if roulette_total_bets is None or roulette_total_bets == 0:
+        roulette_total_bets = (user_data_row.get('roulette_cones_lost') or 0) + (user_data_row.get('roulette_games') or 0) * 10
+    roulette_bets_points = roulette_total_bets or 0
+
+    # 5. За каждый прочитанный номер газеты 500 очков
+    quests_json = user_data_row.get('quests') or '[]'
+    newspapers_read = 0
+    try:
+        if isinstance(quests_json, str):
+            q_list = json.loads(quests_json)
+        else:
+            q_list = quests_json or []
+        newspapers_read = sum(1 for q in q_list if isinstance(q, str) and (q.startswith('news_') or q.startswith('caps_news')))
+    except Exception:
+        newspapers_read = 0
+    newspapers_points = newspapers_read * 500
+
+    total_score = balance + quests_points + games_points + roulette_bets_points + newspapers_points
+    return {
+        'total_score': total_score,
+        'balance': balance,
+        'quests_completed': quests_completed,
+        'total_games': total_games,
+        'roulette_bets': roulette_total_bets,
+        'newspapers_read': newspapers_read
+    }
+
+
+def get_overall_leaderboard(limit: int = 10) -> list:
+    """
+    Получает общий рейтинг игроков по формуле:
+    наличие шишек + пройденные квесты * 10 000 + каждая сыгранная игра * 100 + ставки игрока в рулетке + прочитанные газеты * 500
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            SELECT 
+                u.user_id,
+                u.username,
+                u.first_name,
+                u.last_name,
+                COALESCE(ut.balance, 0) as balance,
+                COALESCE(us.quests_completed, 0) as quests_completed,
+                COALESCE(us.clown_games, 0) as clown_games,
+                COALESCE(us.vladeos_games, 0) as vladeos_games,
+                COALESCE(us.tower_total_levels, 0) as tower_total_levels,
+                COALESCE(us.roulette_games, 0) as roulette_games,
+                COALESCE(us.roulette_cones_lost, 0) as roulette_cones_lost,
+                COALESCE(us.roulette_cones_won, 0) as roulette_cones_won,
+                COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
+                COALESCE(us.quests, '[]') as quests
+            FROM users u
+            LEFT JOIN user_stats us ON u.user_id = us.user_id
+            LEFT JOIN user_tokens ut ON u.user_id = ut.user_id
+        ''')
+        rows = [dict(row) for row in cursor.fetchall()]
+        
+        all_players = []
+        for r in rows:
+            calc = calculate_overall_score(r)
+            name = r['username'] if r['username'] else f"{r['first_name'] or ''} {r['last_name'] or ''}".strip()
+            if not name:
+                name = f"Игрок #{r['user_id']}"
+            
+            all_players.append({
+                'user_id': r['user_id'],
+                'name': name,
+                'score': calc['total_score'],
+                'balance': calc['balance'],
+                'quests_completed': calc['quests_completed'],
+                'total_games': calc['total_games'],
+                'roulette_bets': calc['roulette_bets'],
+                'newspapers_read': calc['newspapers_read']
+            })
+
+        all_players.sort(key=lambda p: (-p['score'], p['user_id']))
+
+        filtered = [p for p in all_players if p['score'] > 0]
+        if not filtered and all_players:
+            filtered = all_players
+
+        leaderboard = []
+        for i, p in enumerate(filtered[:limit]):
+            p_copy = dict(p)
+            p_copy['rank'] = i + 1
+            leaderboard.append(p_copy)
+
+        logger.info(f"🏆 Overall Leaderboard: получено {len(leaderboard)} игроков")
+        return leaderboard
+    except Exception as e:
+        logger.error(f"Ошибка get_overall_leaderboard: {e}")
+        return []
+    finally:
+        conn.close()
+
+
 def get_user_rank_in_leaderboard(user_id: int, lb_type: str = 'tokens') -> dict:
     """
     Получает позицию и статистику конкретного пользователя в рейтинге.
@@ -1300,7 +1430,72 @@ def get_user_rank_in_leaderboard(user_id: int, lb_type: str = 'tokens') -> dict:
     cursor = conn.cursor()
 
     try:
-        if lb_type == 'quests':
+        if lb_type == 'overall':
+            cursor.execute('''
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    u.first_name,
+                    u.last_name,
+                    COALESCE(ut.balance, 0) as balance,
+                    COALESCE(us.quests_completed, 0) as quests_completed,
+                    COALESCE(us.clown_games, 0) as clown_games,
+                    COALESCE(us.vladeos_games, 0) as vladeos_games,
+                    COALESCE(us.tower_total_levels, 0) as tower_total_levels,
+                    COALESCE(us.roulette_games, 0) as roulette_games,
+                    COALESCE(us.roulette_cones_lost, 0) as roulette_cones_lost,
+                    COALESCE(us.roulette_cones_won, 0) as roulette_cones_won,
+                    COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
+                    COALESCE(us.quests, '[]') as quests
+                FROM users u
+                LEFT JOIN user_stats us ON u.user_id = us.user_id
+                LEFT JOIN user_tokens ut ON u.user_id = ut.user_id
+            ''')
+            rows = [dict(row) for row in cursor.fetchall()]
+            all_players = []
+            user_player = None
+            for r in rows:
+                calc = calculate_overall_score(r)
+                name = r['username'] if r['username'] else f"{r['first_name'] or ''} {r['last_name'] or ''}".strip()
+                if not name:
+                    name = f"Игрок #{r['user_id']}"
+                p_data = {
+                    'user_id': r['user_id'],
+                    'name': name,
+                    'score': calc['total_score'],
+                    'balance': calc['balance'],
+                    'quests_completed': calc['quests_completed'],
+                    'total_games': calc['total_games'],
+                    'roulette_bets': calc['roulette_bets'],
+                    'newspapers_read': calc['newspapers_read']
+                }
+                all_players.append(p_data)
+                if r['user_id'] == user_id:
+                    user_player = p_data
+
+            if not user_player:
+                return None
+
+            all_players.sort(key=lambda p: (-p['score'], p['user_id']))
+            user_rank_num = None
+            for idx, p in enumerate(all_players, 1):
+                if p['user_id'] == user_id:
+                    user_rank_num = idx
+                    break
+
+            return {
+                'rank': user_rank_num,
+                'user_id': user_id,
+                'name': user_player['name'],
+                'score': user_player['score'],
+                'balance': user_player['balance'],
+                'quests_completed': user_player['quests_completed'],
+                'total_games': user_player['total_games'],
+                'roulette_bets': user_player['roulette_bets'],
+                'newspapers_read': user_player['newspapers_read']
+            }
+
+        elif lb_type == 'quests':
             cursor.execute('''
                 SELECT u.user_id, u.username, u.first_name, u.last_name, us.quests_completed, us.last_quest_time
                 FROM users u
@@ -1787,7 +1982,9 @@ def api_get_leaderboard():
         except (ValueError, TypeError):
             user_id = 0
 
-        if lb_type == 'quests':
+        if lb_type == 'overall':
+            leaderboard = get_overall_leaderboard(limit)
+        elif lb_type == 'quests':
             leaderboard = get_quests_leaderboard(limit)
         elif lb_type == 'boss':
             leaderboard = get_boss_leaderboard(limit)
@@ -2004,9 +2201,10 @@ def api_casino_roulette():
                     roulette_games = roulette_games + 1,
                     roulette_wins = roulette_wins + ?,
                     roulette_cones_won = roulette_cones_won + ?,
-                    roulette_cones_lost = roulette_cones_lost + ?
+                    roulette_cones_lost = roulette_cones_lost + ?,
+                    roulette_total_bets = COALESCE(roulette_total_bets, 0) + ?
                 WHERE user_id = ?
-            ''', (1 if win else 0, cones_won, cones_lost, user_id))
+            ''', (1 if win else 0, cones_won, cones_lost, bet_amount, user_id))
             conn.commit()
         except Exception as e:
             logger.error(f"Ошибка обновления статистики рулетки: {e}")
