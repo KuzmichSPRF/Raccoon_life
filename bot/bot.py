@@ -271,6 +271,7 @@ def init_db():
                 roulette_cones_won INTEGER DEFAULT 0,
                 roulette_cones_lost INTEGER DEFAULT 0,
                 quests TEXT DEFAULT '[]',
+                last_daily_bonus TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
@@ -594,6 +595,13 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка energy_last_updated в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats.energy_last_updated: {e}")
+
+    if 'last_daily_bonus' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN last_daily_bonus TIMESTAMP")
+            logger.info("Миграция: добавлена колонка last_daily_bonus в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.last_daily_bonus: {e}")
 
     # Проверка users на наличие wallet_address
     cursor.execute("PRAGMA table_info(users)")
@@ -2006,6 +2014,119 @@ def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
         conn.close()
 
 
+def get_daily_bonus_status(user_id: int) -> dict:
+    """
+    Проверяет статус ежедневного бонуса (1000 шишек каждые 24 часа).
+    Возвращает can_claim, time_remaining (сек), last_claim, bonus_amount (1000).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute("SELECT last_daily_bonus FROM user_stats WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        
+        last_daily_bonus_str = row['last_daily_bonus'] if row and 'last_daily_bonus' in row.keys() and row['last_daily_bonus'] else None
+        
+        now = get_moscow_now()
+        bonus_amount = 1000
+        cooldown_seconds = 24 * 3600  # 86400 секунд (24 часа)
+
+        if not last_daily_bonus_str:
+            return {
+                'can_claim': True,
+                'time_remaining': 0,
+                'last_claim': None,
+                'bonus_amount': bonus_amount,
+                'server_time': int(now.timestamp())
+            }
+
+        last_dt = parse_moscow_datetime(last_daily_bonus_str)
+        if not last_dt:
+            return {
+                'can_claim': True,
+                'time_remaining': 0,
+                'last_claim': None,
+                'bonus_amount': bonus_amount,
+                'server_time': int(now.timestamp())
+            }
+
+        # Вычисляем разницу во времени
+        elapsed = (now - last_dt).total_seconds()
+        if elapsed >= cooldown_seconds:
+            return {
+                'can_claim': True,
+                'time_remaining': 0,
+                'last_claim': last_daily_bonus_str,
+                'bonus_amount': bonus_amount,
+                'server_time': int(now.timestamp())
+            }
+        else:
+            remaining = int(cooldown_seconds - elapsed)
+            return {
+                'can_claim': False,
+                'time_remaining': max(0, remaining),
+                'last_claim': last_daily_bonus_str,
+                'bonus_amount': bonus_amount,
+                'server_time': int(now.timestamp())
+            }
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_daily_bonus_status: {e}")
+        return {
+            'can_claim': False,
+            'time_remaining': 86400,
+            'last_claim': None,
+            'bonus_amount': 1000,
+            'server_time': int(time.time())
+        }
+    finally:
+        conn.close()
+
+
+def claim_daily_bonus(user_id: int) -> dict:
+    """
+    Забирает ежедневный бонус (1000 шишек), если 24 часа прошло.
+    """
+    status = get_daily_bonus_status(user_id)
+    if not status.get('can_claim'):
+        return {
+            'status': 'error',
+            'message': 'Бонус пока недоступен',
+            'time_remaining': status.get('time_remaining', 86400),
+            'bonus_amount': status.get('bonus_amount', 1000)
+        }
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE user_stats SET last_daily_bonus = ? WHERE user_id = ?", (now_moscow, user_id))
+        conn.commit()
+
+        # Начисляем 1000 шишек пользователю
+        add_result = add_tokens(user_id, 1000, 'daily_bonus')
+        tokens = get_user_tokens(user_id)
+
+        logger.info(f"🎁 Игрок {user_id} успешно получил ежедневный бонус 1000 шишек! Новый баланс: {tokens['balance']}")
+
+        return {
+            'status': 'ok',
+            'claimed': 1000,
+            'new_balance': tokens['balance'],
+            'time_remaining': 86400,
+            'last_claim': now_moscow,
+            'message': 'Вам начислено 1000 шишек!'
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка claim_daily_bonus: {e}")
+        return {
+            'status': 'error',
+            'message': str(e)
+        }
+    finally:
+        conn.close()
+
+
 def set_user_wallet_address(user_id: int, wallet_address: str = None) -> bool:
     """
     Привязывает или отвязывает TON кошелек пользователя
@@ -2751,7 +2872,7 @@ def api_get_leaderboard():
 
 @app.route('/api/tokens', methods=['GET'])
 def api_get_tokens():
-    """Получить баланс шишек пользователя"""
+    """Получить баланс шишек пользователя и статус ежедневного бонуса"""
     try:
         user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
 
@@ -2769,17 +2890,72 @@ def api_get_tokens():
         logger.info(f"🔍 Запрос шишек для user_id={user_id}")
         
         tokens = get_user_tokens(user_id)
+        bonus_status = get_daily_bonus_status(user_id)
 
-        logger.info(f"💰 Ответ: balance={tokens['balance']}")
+        logger.info(f"💰 Ответ: balance={tokens['balance']}, can_claim_bonus={bonus_status.get('can_claim')}")
         
         return jsonify({
             'status': 'ok',
-            'tokens': tokens
+            'tokens': tokens,
+            'bonus': bonus_status
         })
 
     except Exception as e:
         logger.error(f"Ошибка api_get_tokens: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bonus/status', methods=['GET'])
+def api_bonus_status():
+    """Получить статус ежедневного бонуса (доступность, оставшееся время)"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        bonus_status = get_daily_bonus_status(user_id)
+        return jsonify({
+            'status': 'ok',
+            'bonus': bonus_status
+        })
+    except Exception as e:
+        logger.error(f"Ошибка api_bonus_status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/bonus/claim', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_bonus_claim():
+    """Забрать ежедневный бонус 1000 шишек"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        if is_user_banned(user_id):
+            return jsonify({'status': 'error', 'message': 'User is banned'}), 403
+
+        result = claim_daily_bonus(user_id)
+        status_code = 200 if result.get('status') == 'ok' else 400
+        return jsonify(result), status_code
+    except Exception as e:
+        logger.error(f"Ошибка api_bonus_claim: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/api/security/log', methods=['POST'])

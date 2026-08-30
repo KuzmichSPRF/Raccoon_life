@@ -543,10 +543,175 @@
       cursor: pointer;
       flex-shrink: 0;
       transition: transform 0.125s ease-in-out, border-color 0.15s;
+      position: relative;
     }
     .home__bottom-btn:active { transform: scale(0.92); border-color: var(--btn-red); }
     .home__bottom-icon { font-size: 1.45rem; line-height: 1; }
     .home__bottom-btn-label { font-size: 8.5px; font-weight: 700; color: var(--text-secondary); margin-top: 2px; }
+    
+    /* Daily Bonus Button & Badge */
+    .home__bottom-btn.bonus-ready {
+      border-color: rgba(255, 215, 0, 0.65);
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.35);
+      animation: bonusPulse 2.2s infinite;
+    }
+    @keyframes bonusPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.25); border-color: rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 18px rgba(255, 215, 0, 0.7); border-color: rgba(255, 215, 0, 0.95); }
+    }
+    .home-bonus-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: linear-gradient(135deg, #ffd700, #ff9500);
+      color: #000000;
+      font-size: 7.5px;
+      font-weight: 900;
+      padding: 1px 4px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      pointer-events: none;
+      display: none;
+      z-index: 5;
+    }
+    .bonus-ready .home-bonus-badge {
+      display: block;
+      animation: badgeBounce 1.5s ease-in-out infinite;
+    }
+    @keyframes badgeBounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+    .home__bottom-btn.bonus-cooldown .home__bottom-btn-label {
+      color: #ffd700;
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', monospace;
+      font-size: 7.5px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* Daily Bonus Modal Styling */
+    .bonus-modal {
+      width: 90%;
+      max-width: 380px;
+      position: relative;
+      padding: 22px 18px;
+      text-align: center;
+      background: linear-gradient(180deg, #1d1a14 0%, #121214 100%) !important;
+      border: 1px solid rgba(255, 215, 0, 0.4) !important;
+      border-radius: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.9), 0 0 30px rgba(255, 215, 0, 0.25) !important;
+    }
+    .bonus-modal__icon-wrap {
+      width: 66px;
+      height: 66px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(255, 215, 0, 0.25), rgba(24, 24, 26, 0.8));
+      border: 1.5px solid rgba(255, 215, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1rem;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.35);
+    }
+    .bonus-card {
+      background: radial-gradient(circle at center, rgba(255, 215, 0, 0.12), rgba(0,0,0,0.45));
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      border-radius: 16px;
+      padding: 12px 10px;
+      margin: 12px 0 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .bonus-card__amount {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: #FFFFFF;
+      text-shadow: 0 0 14px rgba(255, 215, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .bonus-card__tag {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: var(--accent-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .bonus-timer-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 10px 0 6px;
+    }
+    .bonus-timer-box {
+      background: #18181a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 5px 8px;
+      min-width: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .bonus-timer-box span {
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', monospace;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.1;
+    }
+    .bonus-timer-box label {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+    .bonus-timer-sep {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      margin-top: -6px;
+    }
+    .bonus-progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .bonus-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ffd700, #33BD1C);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .bonus-claim-btn {
+      width: 100%;
+      padding: 13px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffd700, #ff9500);
+      color: #000000;
+      border: none;
+      box-shadow: 0 4px 18px rgba(255, 215, 0, 0.45);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.125s ease, filter 0.15s;
+    }
+    .bonus-claim-btn:active { transform: scale(0.96); }
     .home__play-main-btn {
       flex: 1;
       height: 50px;
@@ -1207,13 +1372,64 @@
     </div>
   </div>
 
-  <!-- Token Bonus Modal -->
-  <div id="token-bonus-overlay" class="tutorial-overlay">
-    <div class="tutorial-modal" style="border-color: #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);">
-      <span class="tutorial-icon">🎁</span>
-      <h3 class="tutorial-title" data-i18n="bonus_title">Вам начислено 1000 Шишек!</h3>
-      <p class="tutorial-desc" data-i18n="bonus_desc">Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!</p>
-      <button class="tutorial-btn" onclick="closeTokenBonus()" data-i18n="btn_great">Отлично!</button>
+  <!-- Daily Bonus Modal (Every 24 Hours) -->
+  <div id="token-bonus-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeBonusModal()">
+    <div class="tutorial-modal bonus-modal">
+      <button class="close-modal-btn" onclick="closeBonusModal()">✕</button>
+      
+      <div id="bonus-modal-icon-wrap" class="bonus-modal__icon-wrap">
+        <span id="bonus-modal-icon">🎁</span>
+      </div>
+
+      <h3 id="bonus-modal-title" class="tutorial-title" style="margin: 0 0 6px 0; font-size: 1.25rem; color: #ffd700;" data-i18n="bonus_title_ready">Ежедневный бонус</h3>
+      <p id="bonus-modal-desc" class="tutorial-desc" style="font-size: 0.82rem; line-height: 1.4; color: var(--text-secondary); margin-bottom: 6px;" data-i18n="bonus_desc_ready">
+        Получите 1000 шишек прямо сейчас! Следующий бонус будет доступен через 24 часа.
+      </p>
+
+      <!-- Reward Card -->
+      <div class="bonus-card">
+        <div class="bonus-card__tag" data-i18n="bonus_reward_tag">Ежедневная награда</div>
+        <div class="bonus-card__amount">
+          <span>+1,000</span>
+          <img src="cone.png" class="cone-icon" style="width: 26px; height: 26px; vertical-align: middle;" alt="🌲">
+        </div>
+      </div>
+
+      <!-- Cooldown Timer (Visible when on cooldown) -->
+      <div id="bonus-cooldown-block" style="display: none; margin-bottom: 12px;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;" data-i18n="bonus_next_in">Следующий бонус через:</div>
+        <div class="bonus-timer-grid">
+          <div class="bonus-timer-box">
+            <span id="bonus-timer-hours">23</span>
+            <label data-i18n="time_hours_short">ч</label>
+          </div>
+          <span class="bonus-timer-sep">:</span>
+          <div class="bonus-timer-box">
+            <span id="bonus-timer-minutes">59</span>
+            <label data-i18n="time_minutes_short">м</label>
+          </div>
+          <span class="bonus-timer-sep">:</span>
+          <div class="bonus-timer-box">
+            <span id="bonus-timer-seconds">59</span>
+            <label data-i18n="time_seconds_short">с</label>
+          </div>
+        </div>
+        <div class="bonus-progress-track">
+          <div id="bonus-progress-fill" class="bonus-progress-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="margin-top: 4px;">
+        <button id="bonus-claim-btn" class="bonus-claim-btn" onclick="claimDailyBonus()">
+          <span>🎁</span>
+          <span id="bonus-claim-btn-text" data-i18n="bonus_btn_claim">Забрать 1000 шишек</span>
+        </button>
+        <button id="bonus-close-btn" class="button button-type-secondary" style="width: 100%; display: none; padding: 11px; font-size: 0.9rem; border-radius: 12px;" onclick="closeBonusModal()" data-i18n="bonus_btn_understood">
+          Понятно
+        </button>
+      </div>
+      <div id="bonus-status-msg" style="margin-top: 6px; font-size: 0.8rem; color: var(--accent-gold); min-height: 16px;"></div>
     </div>
   </div>
 
@@ -1702,9 +1918,10 @@
 
     <!-- Home Bottom Actions Bar -->
     <div class="home__bottom">
-      <button class="home__bottom-btn" onclick="showTokenBonus(); triggerHaptic('light');" title="Бонус" data-i18n-title="btn_bonus">
-        <span class="home__bottom-icon">🎁</span>
-        <span class="home__bottom-btn-label" data-i18n="btn_bonus">Бонус</span>
+      <button class="home__bottom-btn bonus-btn" id="home-bonus-btn" onclick="openBonusModal(); triggerHaptic('light');" title="Бонус" data-i18n-title="btn_bonus">
+        <div id="home-bonus-badge" class="home-bonus-badge">+1000</div>
+        <span class="home__bottom-icon" id="home-bonus-icon">🎁</span>
+        <span class="home__bottom-btn-label" id="home-bonus-label" data-i18n="btn_bonus">Бонус</span>
       </button>
       <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" onclick="togglePlayBottomSheet(true); triggerHaptic('impact');">
         <span style="font-size: 1.25rem; line-height: 1;">🎮</span>
@@ -1891,7 +2108,7 @@
   
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.07.12.1';
+  const APP_VERSION = '2026.08.30.1';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
@@ -1968,6 +2185,18 @@
       btn_understood: "Понятно!",
       bonus_title: "Вам начислено 1000 Шишек!",
       bonus_desc: "Приветственные шишки уже на вашем балансе. Играйте, выполняйте квесты и зарабатывайте ещё больше!",
+      bonus_title_ready: "Ежедневный бонус",
+      bonus_title_cooldown: "Бонус на перезарядке",
+      bonus_desc_ready: "Получите 1000 шишек прямо сейчас! Следующий бонус будет доступен через 24 часа.",
+      bonus_desc_cooldown: "Вы уже забрали сегодняшнюю награду. Следующие 1000 шишек будут доступны через:",
+      bonus_reward_tag: "Ежедневная награда",
+      bonus_next_in: "Следующий бонус через:",
+      bonus_btn_claim: "Забрать 1000 шишек",
+      bonus_btn_understood: "Понятно",
+      bonus_claimed_toast: "🎉 Вам начислено 1000 шишек!",
+      time_hours_short: "ч",
+      time_minutes_short: "м",
+      time_seconds_short: "с",
       btn_great: "Отлично!",
       loading_rating: "Загрузка рейтинга...",
       empty_rating: "Пока нет игроков в рейтинге. Стань первым! 🏆",
@@ -2107,6 +2336,18 @@
       btn_understood: "Got it!",
       bonus_title: "You received 1000 Cones!",
       bonus_desc: "Welcome cones are already on your balance. Play, complete quests, and earn even more!",
+      bonus_title_ready: "Daily Bonus",
+      bonus_title_cooldown: "Bonus on Cooldown",
+      bonus_desc_ready: "Claim 1000 cones right now! Next bonus will be available in 24 hours.",
+      bonus_desc_cooldown: "You have already claimed today's reward. Next 1000 cones will be available in:",
+      bonus_reward_tag: "Daily Reward",
+      bonus_next_in: "Next bonus in:",
+      bonus_btn_claim: "Claim 1000 Cones",
+      bonus_btn_understood: "Got it",
+      bonus_claimed_toast: "🎉 You received 1000 cones!",
+      time_hours_short: "h",
+      time_minutes_short: "m",
+      time_seconds_short: "s",
       btn_great: "Great!",
       loading_rating: "Loading rating...",
       empty_rating: "No players in the rating yet. Be the first! 🏆",
@@ -2540,57 +2781,285 @@
     document.getElementById('tutorial-overlay').classList.remove('active');
   }
 
-  // ==================== TOKEN BONUS NOTIFICATION ====================
-  function checkWelcomeBonus() {
-    // Проверяем, показывали ли уже уведомление
-    const hasShown = localStorage.getItem('rl_welcome_bonus_shown');
-    if (hasShown === 'true') return;
+  // ==================== DAILY BONUS SYSTEM (EVERY 24 HOURS) ====================
+  let dailyBonusState = {
+    can_claim: true,
+    time_remaining: 0,
+    last_claim: null,
+    bonus_amount: 1000,
+    last_synced_at: Date.now(),
+    is_claiming: false
+  };
+  let bonusTickerInterval = null;
 
+  function initDailyBonus() {
+    fetchBonusStatus();
+    if (bonusTickerInterval) clearInterval(bonusTickerInterval);
+    bonusTickerInterval = setInterval(tickBonusCountdown, 1000);
+  }
+
+  function fetchBonusStatus() {
     const userId = getUserId();
     if (!userId) return;
-    
-    // Проверяем флаг в локальных квестах
-    let completed = [];
-    try { completed = JSON.parse(localStorage.getItem('completed_items') || '[]'); } catch(e){}
-    if (completed.includes('welcome_bonus')) {
-        localStorage.setItem('rl_welcome_bonus_shown', 'true');
-        return;
-    }
 
-    // Загружаем баланс и проверяем, есть ли 1000 шишек
-    fetch(`/api/tokens?userId=${userId}`, {
+    fetch(`/api/bonus/status?userId=${userId}`, {
       method: 'GET',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
         'X-Telegram-Init-Data': tg.initData || ''
       }
     })
     .then(res => res.json())
     .then(data => {
-      if (data.status === 'ok' && data.tokens) {
-        // Показываем уведомление (проверяем только total_earned, т.к. игрок мог уже потратить часть)
-        if (data.tokens.total_earned >= 1000) {
-          showTokenBonus();
-          localStorage.setItem('rl_welcome_bonus_shown', 'true');
-          
-          if (!completed.includes('welcome_bonus')) {
-             completed.push('welcome_bonus');
-             localStorage.setItem('completed_items', JSON.stringify(completed));
-             stats.quests = completed;
-          }
-        }
+      if (data.status === 'ok' && data.bonus) {
+        dailyBonusState.can_claim = data.bonus.can_claim;
+        dailyBonusState.time_remaining = data.bonus.time_remaining || 0;
+        dailyBonusState.last_claim = data.bonus.last_claim;
+        dailyBonusState.bonus_amount = data.bonus.bonus_amount || 1000;
+        dailyBonusState.last_synced_at = Date.now();
+        updateBonusUI();
       }
     })
-    .catch(err => console.error('Ошибка проверки бонуса:', err));
+    .catch(err => console.error('Ошибка загрузки статуса бонуса:', err));
   }
 
-  function showTokenBonus() {
+  function tickBonusCountdown() {
+    if (!dailyBonusState.can_claim && dailyBonusState.time_remaining > 0) {
+      const elapsedSeconds = Math.floor((Date.now() - dailyBonusState.last_synced_at) / 1000);
+      const remaining = Math.max(0, dailyBonusState.time_remaining - elapsedSeconds);
+      if (remaining <= 0) {
+        dailyBonusState.can_claim = true;
+        dailyBonusState.time_remaining = 0;
+        fetchBonusStatus();
+      }
+    }
+    updateBonusUI();
+  }
+
+  function getRemainingBonusSeconds() {
+    if (dailyBonusState.can_claim) return 0;
+    const elapsedSeconds = Math.floor((Date.now() - dailyBonusState.last_synced_at) / 1000);
+    return Math.max(0, dailyBonusState.time_remaining - elapsedSeconds);
+  }
+
+  function formatBonusTimerParts(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return {
+      hours: String(hours).padStart(2, '0'),
+      minutes: String(minutes).padStart(2, '0'),
+      seconds: String(seconds).padStart(2, '0')
+    };
+  }
+
+  function formatShortBonusTimer(totalSeconds) {
+    const parts = formatBonusTimerParts(totalSeconds);
+    if (parseInt(parts.hours, 10) > 0) {
+      return `${parts.hours}:${parts.minutes}:${parts.seconds}`;
+    }
+    return `${parts.minutes}:${parts.seconds}`;
+  }
+
+  function updateBonusUI() {
+    const btn = document.getElementById('home-bonus-btn');
+    const badge = document.getElementById('home-bonus-badge');
+    const label = document.getElementById('home-bonus-label');
+    const icon = document.getElementById('home-bonus-icon');
+
+    const remaining = getRemainingBonusSeconds();
+    const canClaim = remaining <= 0;
+
+    // 1. Обновляем кнопку в нижней панели
+    if (btn && label) {
+      if (canClaim) {
+        btn.classList.add('bonus-ready');
+        btn.classList.remove('bonus-cooldown');
+        if (badge) {
+          badge.style.display = 'block';
+          badge.innerText = '+1000';
+        }
+        if (icon) icon.innerText = '🎁';
+        label.innerText = i18n[currentLang].btn_bonus || 'Бонус';
+      } else {
+        btn.classList.remove('bonus-ready');
+        btn.classList.add('bonus-cooldown');
+        if (badge) badge.style.display = 'none';
+        if (icon) icon.innerText = '⏳';
+        label.innerText = formatShortBonusTimer(remaining);
+      }
+    }
+
+    // 2. Обновляем открытое модальное окно если активно
+    const modalOverlay = document.getElementById('token-bonus-overlay');
+    if (modalOverlay && modalOverlay.classList.contains('active')) {
+      renderBonusModalContent(canClaim, remaining);
+    }
+  }
+
+  function renderBonusModalContent(canClaim, remaining) {
+    const titleEl = document.getElementById('bonus-modal-title');
+    const descEl = document.getElementById('bonus-modal-desc');
+    const iconWrap = document.getElementById('bonus-modal-icon-wrap');
+    const iconEl = document.getElementById('bonus-modal-icon');
+    const cooldownBlock = document.getElementById('bonus-cooldown-block');
+    const claimBtn = document.getElementById('bonus-claim-btn');
+    const closeBtn = document.getElementById('bonus-close-btn');
+
+    const hoursEl = document.getElementById('bonus-timer-hours');
+    const minsEl = document.getElementById('bonus-timer-minutes');
+    const secsEl = document.getElementById('bonus-timer-seconds');
+    const progressFill = document.getElementById('bonus-progress-fill');
+
+    if (canClaim) {
+      if (titleEl) titleEl.innerText = i18n[currentLang].bonus_title_ready || 'Ежедневный бонус';
+      if (descEl) descEl.innerText = i18n[currentLang].bonus_desc_ready || 'Получите 1000 шишек прямо сейчас! Следующий бонус будет доступен через 24 часа.';
+      if (iconEl) iconEl.innerText = '🎁';
+      if (iconWrap) {
+        iconWrap.style.background = 'radial-gradient(circle at center, rgba(255, 215, 0, 0.25), rgba(24, 24, 26, 0.8))';
+        iconWrap.style.borderColor = 'rgba(255, 215, 0, 0.55)';
+      }
+      if (cooldownBlock) cooldownBlock.style.display = 'none';
+      if (claimBtn) {
+        claimBtn.style.display = 'flex';
+        claimBtn.disabled = dailyBonusState.is_claiming;
+        const btnText = document.getElementById('bonus-claim-btn-text');
+        if (btnText) btnText.innerText = dailyBonusState.is_claiming ? '⏳ ...' : (i18n[currentLang].bonus_btn_claim || 'Забрать 1000 шишек');
+      }
+      if (closeBtn) closeBtn.style.display = 'none';
+    } else {
+      if (titleEl) titleEl.innerText = i18n[currentLang].bonus_title_cooldown || 'Бонус на перезарядке';
+      if (descEl) descEl.innerText = i18n[currentLang].bonus_desc_cooldown || 'Вы уже забрали сегодняшнюю награду. Следующие 1000 шишек будут доступны через:';
+      if (iconEl) iconEl.innerText = '⏳';
+      if (iconWrap) {
+        iconWrap.style.background = 'radial-gradient(circle at center, rgba(255, 149, 0, 0.2), rgba(24, 24, 26, 0.8))';
+        iconWrap.style.borderColor = 'rgba(255, 149, 0, 0.45)';
+      }
+      if (cooldownBlock) {
+        cooldownBlock.style.display = 'block';
+        const parts = formatBonusTimerParts(remaining);
+        if (hoursEl) hoursEl.innerText = parts.hours;
+        if (minsEl) minsEl.innerText = parts.minutes;
+        if (secsEl) secsEl.innerText = parts.seconds;
+        
+        const totalCooldown = 24 * 3600;
+        const progressPct = Math.max(0, Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100));
+        if (progressFill) progressFill.style.width = progressPct + '%';
+      }
+      if (claimBtn) claimBtn.style.display = 'none';
+      if (closeBtn) closeBtn.style.display = 'block';
+    }
+  }
+
+  function openBonusModal() {
+    const remaining = getRemainingBonusSeconds();
+    const canClaim = remaining <= 0;
+    const statusMsg = document.getElementById('bonus-status-msg');
+    if (statusMsg) statusMsg.innerText = '';
+
+    renderBonusModalContent(canClaim, remaining);
     document.getElementById('token-bonus-overlay').classList.add('active');
   }
 
-  function closeTokenBonus() {
+  function closeBonusModal() {
     document.getElementById('token-bonus-overlay').classList.remove('active');
-    localStorage.setItem('rl_welcome_bonus_shown', 'true');
+  }
+
+  function showTokenBonus() {
+    openBonusModal();
+  }
+  function closeTokenBonus() {
+    closeBonusModal();
+  }
+
+  function claimDailyBonus() {
+    const userId = getUserId();
+    if (!userId) {
+      alert('Ошибка: пользователь не определен');
+      return;
+    }
+
+    if (dailyBonusState.is_claiming) return;
+    dailyBonusState.is_claiming = true;
+
+    const statusMsg = document.getElementById('bonus-status-msg');
+    if (statusMsg) {
+      statusMsg.style.color = 'var(--accent-gold)';
+      statusMsg.innerText = '⏳ Получение бонуса...';
+    }
+
+    const claimBtn = document.getElementById('bonus-claim-btn');
+    if (claimBtn) claimBtn.disabled = true;
+
+    triggerHaptic('impact');
+
+    fetch('/api/bonus/claim', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': tg.initData || ''
+      },
+      body: JSON.stringify({ userId: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      dailyBonusState.is_claiming = false;
+      if (claimBtn) claimBtn.disabled = false;
+
+      if (data.status === 'ok') {
+        dailyBonusState.can_claim = false;
+        dailyBonusState.time_remaining = data.time_remaining || 86400;
+        dailyBonusState.last_synced_at = Date.now();
+
+        triggerHaptic('success');
+
+        // Обновляем баланс в UI
+        const balanceEl = document.getElementById('token-balance');
+        const headerBalanceEl = document.getElementById('header-token-balance');
+        if (data.new_balance !== undefined) {
+          const formatted = Number(data.new_balance).toLocaleString('ru-RU');
+          if (balanceEl) balanceEl.innerText = formatted;
+          if (headerBalanceEl) headerBalanceEl.innerText = formatted;
+          stats.balance = data.new_balance;
+        } else {
+          loadTokenBalance();
+        }
+
+        if (typeof updateUserInfo === 'function') updateUserInfo();
+
+        if (statusMsg) {
+          statusMsg.style.color = '#00ff88';
+          statusMsg.innerText = (i18n[currentLang].bonus_claimed_toast || '🎉 Вам начислено 1000 шишек!');
+        }
+
+        // Переводим модалку в состояние таймера через секунду
+        setTimeout(() => {
+          updateBonusUI();
+        }, 800);
+      } else {
+        triggerHaptic('error');
+        if (statusMsg) {
+          statusMsg.style.color = '#ff5252';
+          statusMsg.innerText = data.message || 'Ошибка получения бонуса';
+        }
+        if (data.time_remaining) {
+          dailyBonusState.can_claim = false;
+          dailyBonusState.time_remaining = data.time_remaining;
+          dailyBonusState.last_synced_at = Date.now();
+          updateBonusUI();
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Ошибка при запросе /api/bonus/claim:', err);
+      dailyBonusState.is_claiming = false;
+      if (claimBtn) claimBtn.disabled = false;
+      if (statusMsg) {
+        statusMsg.style.color = '#ff5252';
+        statusMsg.innerText = 'Ошибка соединения с сервером';
+      }
+    });
   }
 
   function showSeasonCompletePopup() {
@@ -2743,6 +3212,16 @@
           stats.overall_score = calculateLocalOverallScore();
           updateUserInfo();
           console.log('✅ Баланс обновлён:', data.tokens.balance);
+
+          // Обновляем статус ежедневного бонуса, если сервер его передал
+          if (data.bonus) {
+            dailyBonusState.can_claim = data.bonus.can_claim;
+            dailyBonusState.time_remaining = data.bonus.time_remaining || 0;
+            dailyBonusState.last_claim = data.bonus.last_claim;
+            dailyBonusState.bonus_amount = data.bonus.bonus_amount || 1000;
+            dailyBonusState.last_synced_at = Date.now();
+            updateBonusUI();
+          }
         } else {
           console.error('❌ Ошибка в ответе сервера:', data);
         }
@@ -5093,7 +5572,7 @@
         loadStatsFromServer();
         fetchEnergyFromServer();
         updateEnergyUI();
-        checkWelcomeBonus();
+        initDailyBonus();
         console.log('🦝 Raccoon Life WebApp ready!');
         console.log('👤 User ID:', getUserId());
       }, 300);
