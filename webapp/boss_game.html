@@ -786,7 +786,7 @@
       .then(result => {
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
-            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
           }
 
           playerHP = playerMaxHP;
@@ -957,7 +957,7 @@
       document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
 
       setTimeout(() => {
-        window.parent.postMessage({ type: 'game_over', game: 'boss' }, window.location.origin);
+        window.parent.postMessage({ type: 'game_over', game: 'boss' }, '*');
       }, 2000);
     }
 

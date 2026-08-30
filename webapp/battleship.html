@@ -1392,7 +1392,7 @@
     .then(result => {
       if (result.status === 'ok') {
         logGameAction('GAME_WIN_REPORTED', { win: true, game: 'battleship' });
-        window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, window.location.origin);
+        window.parent.postMessage({ type: 'game_complete', game: 'battleship', win: true }, '*');
       } else {
         logApiError('/api/game/battleship', result.error || 'Unknown error', null);
       }

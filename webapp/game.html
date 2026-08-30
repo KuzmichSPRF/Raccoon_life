@@ -463,7 +463,7 @@
 
         if (result.status === 'ok') {
           if (result.tokens && result.tokens.balance !== undefined) {
-            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, window.location.origin);
+            window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
           }
 
           // Восстанавливаем 100% здоровья и обновляем состояние на сервере
@@ -576,7 +576,7 @@
         logGameAction('GAME_END', { win: isWin, player_hp: pHP, bot_hp: bHP });
       }
       
-      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, window.location.origin);
+      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
 
       showPopupResult(isWin);
     }

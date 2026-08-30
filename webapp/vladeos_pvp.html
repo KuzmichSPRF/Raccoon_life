@@ -373,12 +373,12 @@
         if (data.win) {
           msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
-          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, window.location.origin);
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
           showPopupResult(true, 100);
         } else {
           msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "@curt3311 won! 🏆";
           msg.style.color = 'var(--accent)';
-          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, window.location.origin);
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
           showPopupResult(false, 0);
         }
       } catch(e) {
