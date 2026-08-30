@@ -469,17 +469,7 @@
       pointer-events: auto;
     }
     .mascot-ambient-glow {
-      position: absolute;
-      width: clamp(110px, 25vh, 155px);
-      height: clamp(110px, 25vh, 155px);
-      background: radial-gradient(circle, rgba(229, 57, 53, 0.25) 0%, rgba(255, 215, 0, 0.15) 45%, transparent 70%);
-      border-radius: 50%;
-      filter: blur(20px);
-      animation: pulseGlow 4s infinite alternate ease-in-out;
-    }
-    @keyframes pulseGlow {
-      from { transform: scale(0.85); opacity: 0.6; }
-      to { transform: scale(1.15); opacity: 1; }
+      display: none;
     }
     .mascot-character {
       font-size: clamp(3.4rem, 9.5vh, 5.0rem);
@@ -1285,7 +1275,7 @@
       <p style="font-size: 0.9rem; line-height: 1.45; color: var(--text-secondary); max-width: 280px;" data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
       <button class="button button-size-large button-type-primary button-color-red home__play-main-btn" style="width: 100%; margin-top: 4px;" onclick="navigateTo('main-menu'); triggerHaptic('impact');" data-i18n="cover_btn">
         <span style="font-size: 1.2rem;">🚀</span>
-        <span>Открыть меню</span>
+        <span>ВПЕРЁД</span>
       </button>
     </div>
   </div>
@@ -1605,7 +1595,7 @@
     ru: {
       lang_btn: "RU",
       cover_desc: "Твой гид по миру енотов, квестов и новостей.",
-      cover_btn: "Открыть меню",
+      cover_btn: "ВПЕРЁД",
       cones: "Шишки",
       cones_plural: "Шишек",
       menu_news: "Газеты",
@@ -1663,7 +1653,7 @@
     en: {
       lang_btn: "EN",
       cover_desc: "Your guide to the world of raccoons, quests, and news.",
-      cover_btn: "Open Menu",
+      cover_btn: "LET'S GO",
       cones: "Cones",
       cones_plural: "Cones",
       menu_news: "News",
