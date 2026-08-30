@@ -5307,6 +5307,208 @@ async def reset_news_cooldown_admin(update: Update, context: ContextTypes.DEFAUL
         conn.close()
 
 
+def get_full_user_profile_admin(identifier: str) -> dict:
+    """
+    Получает полную сводку данных игрока со всех таблиц БД
+    """
+    user_info = get_user_by_id_or_username(identifier)
+    if not user_info:
+        return None
+
+    user_id = user_info['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # 1. Данные пользователя
+        cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
+        user_row = cursor.fetchone()
+
+        # 2. Шишки
+        cursor.execute('SELECT * FROM user_tokens WHERE user_id = ?', (user_id,))
+        token_row = cursor.fetchone()
+
+        # 3. Статистика игр
+        cursor.execute('SELECT * FROM user_stats WHERE user_id = ?', (user_id,))
+        stats_row = cursor.fetchone()
+
+        # 4. Урон боссу
+        cursor.execute('SELECT * FROM boss_damage WHERE user_id = ?', (user_id,))
+        boss_row = cursor.fetchone()
+
+        # 5. Ставки тотализатора
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_bets,
+                COALESCE(SUM(amount), 0) as total_amount,
+                SUM(CASE WHEN status = 'won' OR status = 'paid' THEN 1 ELSE 0 END) as won_bets,
+                SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END) as lost_bets,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_bets,
+                SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as active_bets
+            FROM tot_bets WHERE user_id = ?
+        ''', (user_id,))
+        tot_row = cursor.fetchone()
+
+        # 6. Совместные крафты
+        cursor.execute('SELECT COUNT(*) as count FROM coop_crafts WHERE initiator_id = ?', (user_id,))
+        crafts_created_row = cursor.fetchone()
+        crafts_created = crafts_created_row['count'] if crafts_created_row else 0
+
+        cursor.execute('SELECT COUNT(*) as count FROM coop_craft_stages WHERE contributor_id = ?', (user_id,))
+        crafts_contributed_row = cursor.fetchone()
+        crafts_contributed = crafts_contributed_row['count'] if crafts_contributed_row else 0
+
+        # 7. Ранги в лидербордах
+        rank_overall = get_user_rank_in_leaderboard(user_id, 'overall')
+        rank_tokens = get_user_rank_in_leaderboard(user_id, 'tokens')
+        rank_quests = get_user_rank_in_leaderboard(user_id, 'quests')
+
+        # Квесты и газеты
+        quests_list = []
+        if stats_row and stats_row['quests']:
+            try:
+                quests_list = json.loads(stats_row['quests'])
+            except Exception:
+                quests_list = []
+
+        qt2_quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7']
+        qt2_done = sum(1 for q in qt2_quests if q in quests_list)
+        newspapers_read = sum(1 for q in quests_list if isinstance(q, str) and (q.startswith('news_') or q.startswith('caps_news')))
+
+        combined_row = {
+            'balance': token_row['balance'] if token_row else 0,
+            'quests_completed': stats_row['quests_completed'] if stats_row else 0,
+            'clown_games': stats_row['clown_games'] if stats_row else 0,
+            'vladeos_games': stats_row['vladeos_games'] if stats_row else 0,
+            'tower_total_levels': stats_row['tower_total_levels'] if stats_row else 0,
+            'roulette_games': stats_row['roulette_games'] if stats_row else 0,
+            'roulette_total_bets': stats_row['roulette_total_bets'] if stats_row and 'roulette_total_bets' in stats_row.keys() else 0,
+            'roulette_cones_lost': stats_row['roulette_cones_lost'] if stats_row else 0,
+            'quests': stats_row['quests'] if stats_row else '[]'
+        }
+        score_info = calculate_overall_score(combined_row)
+
+        return {
+            'user': dict(user_row) if user_row else dict(user_info),
+            'tokens': dict(token_row) if token_row else {'balance': 0, 'total_earned': 0, 'total_spent': 0, 'last_earn': None},
+            'stats': dict(stats_row) if stats_row else {},
+            'boss': dict(boss_row) if boss_row else {'total_damage': 0, 'hits': 0, 'last_hit': None},
+            'tot': dict(tot_row) if tot_row else {},
+            'crafts_created': crafts_created,
+            'crafts_contributed': crafts_contributed,
+            'score_info': score_info,
+            'qt2_done': qt2_done,
+            'newspapers_read': newspapers_read,
+            'rank_overall': rank_overall.get('rank') if rank_overall else None,
+            'rank_tokens': rank_tokens.get('rank') if rank_tokens else None,
+            'rank_quests': rank_quests.get('rank') if rank_quests else None
+        }
+    finally:
+        conn.close()
+
+
+async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /stats <username|user_id>
+    Выдает полную подробную статистику по игроку
+    """
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    identifier = None
+    if context.args and len(context.args) > 0:
+        identifier = context.args[0].strip()
+    elif update.message.reply_to_message and update.message.reply_to_message.from_user:
+        identifier = str(update.message.reply_to_message.from_user.id)
+
+    if not identifier:
+        await update.message.reply_text(
+            "❌ <b>Использование:</b> <code>/stats &lt;@username | user_id&gt;</code>\n"
+            "<i>(или отправьте команду /stats ответом на сообщение пользователя)</i>\n\n"
+            "Примеры:\n"
+            "• <code>/stats @username</code>\n"
+            "• <code>/stats 123456789</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    profile = get_full_user_profile_admin(identifier)
+    if not profile:
+        await update.message.reply_text(
+            f"❌ Пользователь <b>{html.escape(identifier)}</b> не найден в базе данных!",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    u = profile['user']
+    t = profile['tokens']
+    s = profile['stats']
+    b = profile['boss']
+    tot = profile['tot']
+    sc = profile['score_info']
+
+    user_name = html.escape(f"@{u['username']}" if u.get('username') else (f"{u.get('first_name', '')} {u.get('last_name', '')}".strip() or f"Игрок #{u['user_id']}"))
+    status_str = "⛔️ <b>ЗАБАНЕН</b>" if u.get('is_banned') else "🟢 <b>Активен</b>"
+    if u.get('is_banned') and u.get('ban_reason'):
+        status_str += f" <i>(Причина: {html.escape(u['ban_reason'])})</i>"
+
+    reg_date = str(u.get('registered_at') or '—').split('.')[0]
+
+    clown_games = s.get('clown_games', 0)
+    clown_wins = s.get('clown_wins', 0)
+    clown_wr = f"{(clown_wins / clown_games * 100):.1f}%" if clown_games > 0 else "0%"
+
+    vladeos_games = s.get('vladeos_games', 0)
+    vladeos_wins = s.get('vladeos_wins', 0)
+    vladeos_wr = f"{(vladeos_wins / vladeos_games * 100):.1f}%" if vladeos_games > 0 else "0%"
+
+    roulette_games = s.get('roulette_games', 0)
+    roulette_wins = s.get('roulette_wins', 0)
+    roulette_won = s.get('roulette_cones_won', 0)
+    roulette_lost = s.get('roulette_cones_lost', 0)
+    roulette_bets = sc.get('roulette_bets', 0)
+
+    r_overall = f"#{profile['rank_overall']}" if profile['rank_overall'] else "—"
+    r_tokens = f"#{profile['rank_tokens']}" if profile['rank_tokens'] else "—"
+    r_quests = f"#{profile['rank_quests']}" if profile['rank_quests'] else "—"
+
+    msg = (
+        f"📊 <b>ДОСЬЕ ИГРОКА</b>: {user_name}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 <b>ID:</b> <code>{u['user_id']}</code>\n"
+        f"📌 <b>Статус:</b> {status_str}\n"
+        f"📅 <b>Регистрация:</b> {reg_date}\n\n"
+
+        f"🏆 <b>ОБЩИЙ РЕЙТИНГ:</b> <b>{sc['total_score']:,} очков</b> (Место: {r_overall})\n"
+        f" ├ 🌰 Баланс: +{sc['balance']:,}\n"
+        f" ├ 📜 Квесты (x10 000): +{sc['quests_completed'] * 10000:,} ({sc['quests_completed']} шт)\n"
+        f" ├ 🎮 Игры (x100): +{sc['total_games'] * 100:,} ({sc['total_games']} игр)\n"
+        f" ├ 🎰 Рулетка (x0.5): +{sc['roulette_bets_points']:,} (ставки: {roulette_bets:,})\n"
+        f" └ 📰 Газеты (x500): +{sc['newspapers_read'] * 500:,} ({sc['newspapers_read']} вып)\n\n"
+
+        f"💰 <b>ЭКОНОМИКА (ШИШКИ)</b>:\n"
+        f" ├ 💳 <b>Баланс:</b> <b>{t['balance']:,}</b> Шишек (Место: {r_tokens})\n"
+        f" ├ 📈 Всего заработано: {t['total_earned']:,}\n"
+        f" └ 📉 Всего потрачено: {t['total_spent']:,}\n\n"
+
+        f"🎮 <b>МИНИ-ИГРЫ</b>:\n"
+        f" ├ 🤡 <b>Клоун:</b> {clown_games} игр | {clown_wins} побед (WR: {clown_wr})\n"
+        f" ├ ⚔️ <b>Vladeos:</b> {vladeos_games} игр | {vladeos_wins} побед (WR: {vladeos_wr})\n"
+        f" ├ 🏰 <b>Башня 3.0:</b> Макс. ур: {s.get('tower_max_level', 0)} | Пройдено ур: {s.get('tower_total_levels', 0)}\n"
+        f" ├ 🎰 <b>Рулетка:</b> {roulette_games} спинов | Выиграно: +{roulette_won:,} | Проиграно: -{roulette_lost:,}\n"
+        f" └ 🔺 <b>Мировой Босс:</b> Урон: {b.get('total_damage', 0):,} | Ударов: {b.get('hits', 0):,}\n\n"
+
+        f"📜 <b>КВЕСТЫ И КОНТЕНТ</b>:\n"
+        f" ├ 🗺 <b>Квесты QT2:</b> {profile['qt2_done']}/7 (Место: {r_quests})\n"
+        f" ├ 📰 <b>Газет прочитано:</b> {profile['newspapers_read']} вып.\n"
+        f" ├ 🛠 <b>Крафты:</b> создано {profile['crafts_created']} | помог в {profile['crafts_contributed']} эт.\n"
+        f" └ 🎲 <b>Тотализатор:</b> ставок {tot.get('total_bets') or 0} на {int(tot.get('total_amount') or 0):,} (Выиграно: {tot.get('won_bets') or 0} | В игре: {int(tot.get('active_bets') or 0) + int(tot.get('pending_bets') or 0)})\n"
+        f"━━━━━━━━━━━━━━━━━━━"
+    )
+
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик данных от WebApp (tg.sendData)"""
     user_id = update.effective_user.id
@@ -5416,7 +5618,8 @@ async def post_init(application: Application):
             BotCommand('broadcast', '📢 Рассылка всем (админ)'),
             BotCommand('unban', '✅ Разбанить пользователя (админ)'),
             BotCommand('delete', '🗑️ Удалить пользователя (админ)'),
-            BotCommand('notime', '⏳ Сбросить лимит новостей (админ)')
+            BotCommand('notime', '⏳ Сбросить лимит новостей (админ)'),
+            BotCommand('stats', '📊 Досье игрока (админ)')
         ]
         await application.bot.set_my_commands(commands)
         logger.info("✅ Commands menu set")
@@ -5470,6 +5673,9 @@ def main():
     # чтобы не срабатывать на них. group=10 для низкого приоритета.
     telegram_app.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), track_chat_activity), group=10)
     telegram_app.add_handler(CommandHandler("balance", get_balance_admin))
+    telegram_app.add_handler(CommandHandler("stats", user_stats_admin))
+    telegram_app.add_handler(CommandHandler("user", user_stats_admin))
+    telegram_app.add_handler(CommandHandler("player", user_stats_admin))
     telegram_app.add_handler(CommandHandler("spend", spend_tokens_admin))
     telegram_app.add_handler(CommandHandler("ban", ban_user_admin))
     telegram_app.add_handler(CommandHandler("give", give_tokens_admin))
