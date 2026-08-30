@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Битва с Боссом Енотов</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -461,6 +461,17 @@
   </div>
 
   <script>
+    const API_URL = '/api/boss_hp';
+    let bossHP = 1000000000;
+    let bossMaxHP = 1000000000;
+    let playerEnergy = 0;
+    let playerHP = 100;
+    let playerMaxHP = 100;
+    let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
+    let gameActive = true;
+    let tgUserId = null;
+    let tgInitData = '';
+
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
@@ -523,16 +534,6 @@
 
     applyLang(lang);
 
-    const API_URL = '/api/boss_hp';
-    let bossHP = 1000000000;
-    let bossMaxHP = 1000000000;
-    let playerEnergy = 0;
-    let playerHP = 100;
-    let playerMaxHP = 100;
-    let playerStats = { totalDamage: 0, hits: 0, crits: 0 };
-    let gameActive = true;
-    let tgUserId = null;
-    let tgInitData = '';
 
     function getUserId() {
       try {

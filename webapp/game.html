@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Raccoon Times: Битва Титанов</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -186,6 +186,12 @@
   <div class="log" id="log">Битва началась...</div>
 
   <script>
+    let pHP = 100, pNRG = 0;
+    let bHP = 100, bNRG = 0;
+    let active = true;
+    let pStats = { maxHp: 100 };
+    let _gameStarted = false;
+
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
@@ -304,26 +310,20 @@
         if (e.data.lang) {
           applyLang(e.data.lang);
         }
-        apiCall('start').then(data => {
-          if (data && data.status === 'ok' && data.state) {
-            pHP = data.state.pHP;
-            pNRG = data.state.pNRG;
-            bHP = data.state.bHP;
-            bNRG = data.state.bNRG;
-            updateUI();
-          }
-        });
+        // Сбрасываем флаг чтобы start вызвался заново с правильным userId
+        _gameStarted = false;
+        startGame();
       } else if (e.data.type === 'language_changed') {
         applyLang(e.data.lang);
       }
     });
 
-    let pHP = 100, pNRG = 0;
-    let bHP = 100, bNRG = 0;
-    let active = true;
-    let pStats = { maxHp: 100 };
 
-    window.addEventListener('DOMContentLoaded', async () => {
+    async function startGame() {
+      if (_gameStarted) return;
+      _gameStarted = true;
+      const logEl = document.getElementById('log');
+      if (logEl) logEl.innerText = '⏳ Подключение...';
       const data = await apiCall('start');
       if (data && data.status === 'ok' && data.state) {
           pHP = data.state.pHP;
@@ -331,24 +331,43 @@
           bHP = data.state.bHP;
           bNRG = data.state.bNRG;
           updateUI();
+          if (logEl) logEl.innerText = '✅ Игра готова!';
+      } else {
+          if (logEl) logEl.innerText = '❌ Ошибка: ' + (data ? JSON.stringify(data) : 'нет ответа сервера');
       }
-    });
+      // Убеждаемся что кнопки разблокированы
+      toggleBtns(false);
+    }
+
+    // Запускаем сразу (на случай если DOMContentLoaded уже был)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startGame);
+    } else {
+      startGame();
+    }
 
     async function apiCall(actionType) {
         let userId = getUserId();
         if (!userId) userId = 999999;
+        const logEl = document.getElementById('log');
         try {
             const headers = { 'Content-Type': 'application/json' };
             const initData = getInitData();
             if (initData) headers['X-Telegram-Init-Data'] = initData;
+            if (logEl && actionType !== 'start') logEl.innerText = '📡 userId=' + userId + ' action=' + actionType;
 
             const res = await fetch('/api/game/clown', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ userId: userId, action: actionType })
             });
-            return await res.json();
-        } catch(e) { return null; }
+            const json = await res.json();
+            if (logEl && actionType !== 'start') logEl.innerText = '📥 ' + JSON.stringify(json).substring(0, 80);
+            return json;
+        } catch(e) {
+            if (logEl) logEl.innerText = '💥 Fetch error: ' + e.message;
+            return null;
+        }
     }
 
     async function action(type) {

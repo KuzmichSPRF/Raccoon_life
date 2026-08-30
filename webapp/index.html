@@ -2102,10 +2102,17 @@
 </div>
 
 <script>
-  const tg = window.Telegram.WebApp;
-  tg.ready();
-  tg.expand();
-  
+  const tg = window.Telegram?.WebApp || {
+    initData: '',
+    initDataUnsafe: {},
+    ready: () => {},
+    expand: () => {},
+    openLink: (url) => window.open(url, '_blank'),
+    openTelegramLink: (url) => window.open(url, '_blank'),
+    HapticFeedback: { impactOccurred: () => {}, notificationOccurred: () => {} }
+  };
+  if (tg.ready) tg.ready();
+  if (tg.expand) tg.expand();
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
   const APP_VERSION = '2026.08.30.7';
@@ -3671,9 +3678,12 @@
       const iframe = document.getElementById('reader-iframe');
       const userId = getUserId();
       let targetUrl = item.url;
+      const cb = Date.now();
       if (targetUrl && (targetUrl.endsWith('.html') || targetUrl.includes('.html?'))) {
         const sep = targetUrl.includes('?') ? '&' : '?';
-        targetUrl = `${targetUrl}${sep}userId=${userId || ''}&lang=${currentLang}`;
+        targetUrl = `${targetUrl}${sep}userId=${userId || ''}&lang=${currentLang}&_cb=${cb}`;
+      } else {
+        targetUrl = `${targetUrl}?_cb=${cb}`;
       }
       iframe.src = targetUrl;
       navigateTo('reader-screen');
