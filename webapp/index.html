@@ -2633,7 +2633,7 @@
         <div class="cropper-slider-row">
           <span style="font-size: 0.9rem;">🔍</span>
           <button class="cropper-zoom-btn" onclick="adjustCropperZoom(-0.15); triggerHaptic('light');">−</button>
-          <input type="range" id="cropper-zoom-slider" min="0.3" max="4.0" step="0.02" value="1" class="cropper-slider" oninput="onCropperZoomSlider(this.value)" />
+          <input type="range" id="cropper-zoom-slider" min="0.02" max="4.0" step="0.01" value="1" class="cropper-slider" oninput="onCropperZoomSlider(this.value)" />
           <button class="cropper-zoom-btn" onclick="adjustCropperZoom(0.15); triggerHaptic('light');">+</button>
         </div>
 
@@ -8127,7 +8127,7 @@
     const scaleY = cropH / imgH;
     const fitZoom = Math.max(scaleX, scaleY);
 
-    cropperState.minZoom = Math.max(0.1, fitZoom * 0.4);
+    cropperState.minZoom = Math.max(0.02, fitZoom * 0.15);
     cropperState.maxZoom = Math.max(4.0, fitZoom * 4.0);
     cropperState.zoom = fitZoom;
 
@@ -8135,6 +8135,7 @@
     if (slider) {
       slider.min = cropperState.minZoom;
       slider.max = cropperState.maxZoom;
+      slider.step = ((cropperState.maxZoom - cropperState.minZoom) / 200).toFixed(4);
       slider.value = cropperState.zoom;
     }
 

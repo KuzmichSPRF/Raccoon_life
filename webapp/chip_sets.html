@@ -806,21 +806,53 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
+    }
+    .cropper-zoom-btn {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .cropper-zoom-btn:active {
+      transform: scale(0.92);
+      background: rgba(236, 72, 153, 0.3);
     }
     .zoom-slider {
       flex: 1;
       accent-color: #ec4899;
+      height: 6px;
+      cursor: pointer;
     }
     .rotate-btn {
       background: var(--card-elevated);
       border: var(--card-border);
       color: #fff;
-      padding: 8px 12px;
+      padding: 0 10px;
+      height: 34px;
       border-radius: 10px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .rotate-btn:active {
+      transform: scale(0.92);
+      background: rgba(236, 72, 153, 0.3);
     }
     .modal-actions {
       display: flex;
@@ -993,9 +1025,11 @@
     </div>
 
     <div class="cropper-controls">
-      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-sec);">Масштаб</span>
-      <input type="range" id="cropper-zoom-slider" class="zoom-slider" min="0.5" max="3" step="0.01" value="1" oninput="onZoomSliderChanged(this.value)">
-      <button class="rotate-btn" onclick="rotateCropperImage()">↻ 90°</button>
+      <button class="cropper-zoom-btn" onclick="adjustCropperZoom(-0.15)" title="Уменьшить">−</button>
+      <input type="range" id="cropper-zoom-slider" class="zoom-slider" min="0.15" max="4.0" step="0.01" value="1" oninput="onZoomSliderChanged(this.value)">
+      <button class="cropper-zoom-btn" onclick="adjustCropperZoom(0.15)" title="Увеличить">+</button>
+      <button class="rotate-btn" onclick="rotateCropperImage()" title="Повернуть на 90°">↻ 90°</button>
+      <button class="rotate-btn" onclick="resetCropperTransform()" title="По центру">🎯</button>
     </div>
 
     <div class="modal-actions">
@@ -1037,14 +1071,18 @@
     mode: 'chip',         // 'chip' or 'bg'
     slotIndex: 0,
     img: null,
-    zoom: 1,
+    zoom: 1.0,
+    minZoom: 0.15,
+    maxZoom: 4.0,
     panX: 0,
     panY: 0,
     rotation: 0,
     targetAspect: 1,
     isDragging: false,
     startX: 0,
-    startY: 0
+    startY: 0,
+    pinchStartDist: 0,
+    pinchStartZoom: 1.0
   };
 
   // ==================== TELEGRAM WEBAPP INIT ====================
@@ -1754,11 +1792,17 @@
   }
 
   // ==================== CROPPER MODAL ====================
+  function getBaseScale(cropSize) {
+    if (!cropperState.img) return 1;
+    const imgMin = Math.min(cropperState.img.width, cropperState.img.height);
+    return imgMin > 0 ? (cropSize / imgMin) : 1;
+  }
+
   function openCropperModal(opts) {
     cropperState.mode = opts.mode;
     cropperState.slotIndex = opts.slotIndex || 0;
     cropperState.img = opts.img;
-    cropperState.zoom = 1;
+    cropperState.zoom = 1.0;
     cropperState.panX = 0;
     cropperState.panY = 0;
     cropperState.rotation = 0;
@@ -1770,7 +1814,11 @@
     }
 
     const slider = document.getElementById('cropper-zoom-slider');
-    if (slider) slider.value = 1;
+    if (slider) {
+      slider.min = cropperState.minZoom;
+      slider.max = cropperState.maxZoom;
+      slider.value = 1.0;
+    }
 
     const modal = document.getElementById('cropper-modal');
     if (modal) modal.style.display = 'flex';
@@ -1784,12 +1832,35 @@
     if (modal) modal.style.display = 'none';
   }
 
+  function adjustCropperZoom(delta) {
+    triggerHaptic('light');
+    setCropperZoom(cropperState.zoom + delta);
+  }
+
   function onZoomSliderChanged(val) {
-    cropperState.zoom = parseFloat(val);
+    setCropperZoom(parseFloat(val));
+  }
+
+  function setCropperZoom(val) {
+    cropperState.zoom = Math.max(cropperState.minZoom, Math.min(cropperState.maxZoom, val));
+    const slider = document.getElementById('cropper-zoom-slider');
+    if (slider) slider.value = cropperState.zoom;
+    renderCropper();
+  }
+
+  function resetCropperTransform() {
+    triggerHaptic('light');
+    cropperState.zoom = 1.0;
+    cropperState.panX = 0;
+    cropperState.panY = 0;
+    cropperState.rotation = 0;
+    const slider = document.getElementById('cropper-zoom-slider');
+    if (slider) slider.value = 1.0;
     renderCropper();
   }
 
   function rotateCropperImage() {
+    triggerHaptic('light');
     cropperState.rotation = (cropperState.rotation + 90) % 360;
     renderCropper();
   }
@@ -1803,7 +1874,7 @@
       cropperState.isDragging = true;
       cropperState.startX = e.clientX - cropperState.panX;
       cropperState.startY = e.clientY - cropperState.panY;
-      vp.setPointerCapture(e.pointerId);
+      try { vp.setPointerCapture(e.pointerId); } catch(err){}
     });
 
     vp.addEventListener('pointermove', e => {
@@ -1819,6 +1890,39 @@
     };
     vp.addEventListener('pointerup', endDrag);
     vp.addEventListener('pointercancel', endDrag);
+
+    // Mouse wheel zooming: scroll down to shrink/decrease, scroll up to enlarge
+    vp.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.08 : -0.08;
+      setCropperZoom(cropperState.zoom + delta);
+    }, { passive: false });
+
+    // Touch pinch-to-zoom
+    vp.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        cropperState.isDragging = false;
+        cropperState.pinchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        cropperState.pinchStartZoom = cropperState.zoom;
+      }
+    });
+
+    vp.addEventListener('touchmove', e => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (cropperState.pinchStartDist > 0) {
+          const factor = dist / cropperState.pinchStartDist;
+          setCropperZoom(cropperState.pinchStartZoom * factor);
+        }
+      }
+    }, { passive: false });
   }
 
   function renderCropper() {
@@ -1837,12 +1941,14 @@
     const cx = w / 2;
     const cy = h / 2;
     const cropSize = Math.min(w, h) * 0.78;
+    const baseScale = getBaseScale(cropSize);
+    const totalScale = baseScale * cropperState.zoom;
 
     // Draw user image
     ctx.save();
     ctx.translate(cx + cropperState.panX, cy + cropperState.panY);
     ctx.rotate((cropperState.rotation * Math.PI) / 180);
-    ctx.scale(cropperState.zoom, cropperState.zoom);
+    ctx.scale(totalScale, totalScale);
     ctx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
     ctx.restore();
 
@@ -1862,17 +1968,26 @@
     ctx.fill();
     ctx.restore();
 
-    // Frame stroke
+    // Frame stroke & guide
     ctx.save();
     ctx.strokeStyle = '#ec4899';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     if (cropperState.mode === 'chip') {
       ctx.arc(cx, cy, cropSize / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner safe margin circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, cropSize / 2 - 8, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     } else {
       drawRoundedRectPath(ctx, cx - cropSize / 2, cy - cropSize / 2, cropSize, cropSize, 20);
+      ctx.stroke();
     }
-    ctx.stroke();
     ctx.restore();
   }
 
@@ -1881,6 +1996,7 @@
 
     const vp = document.getElementById('cropper-viewport');
     const cropSize = Math.min(vp.clientWidth, vp.clientHeight) * 0.78;
+    const baseScale = getBaseScale(cropSize);
 
     if (cropperState.mode === 'chip') {
       const outSize = 300;
@@ -1890,9 +2006,11 @@
       const outCtx = outCanvas.getContext('2d');
 
       const scaleRatio = outSize / cropSize;
+      const effectiveScale = (baseScale * cropperState.zoom) * scaleRatio;
+
       outCtx.translate(outSize / 2 + cropperState.panX * scaleRatio, outSize / 2 + cropperState.panY * scaleRatio);
       outCtx.rotate((cropperState.rotation * Math.PI) / 180);
-      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.scale(effectiveScale, effectiveScale);
       outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
 
       const b64 = outCanvas.toDataURL('image/jpeg', 0.85);
@@ -1918,9 +2036,11 @@
       const outCtx = outCanvas.getContext('2d');
 
       const scaleRatio = outSize / cropSize;
+      const effectiveScale = (baseScale * cropperState.zoom) * scaleRatio;
+
       outCtx.translate(outSize / 2 + cropperState.panX * scaleRatio, outSize / 2 + cropperState.panY * scaleRatio);
       outCtx.rotate((cropperState.rotation * Math.PI) / 180);
-      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.scale(effectiveScale, effectiveScale);
       outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
 
       const b64 = outCanvas.toDataURL('image/jpeg', 0.82);
