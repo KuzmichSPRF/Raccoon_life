@@ -1014,6 +1014,80 @@
       box-shadow: none;
     }
 
+    /* Boar Invasion Card */
+    .hollow-boar-card {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.28) 100%);
+      border: 2px solid rgba(239, 68, 68, 0.7);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+      animation: boarPulse 2s infinite alternate;
+    }
+    @keyframes boarPulse {
+      0% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+      100% { border-color: rgba(239, 68, 68, 0.95); box-shadow: 0 0 22px rgba(239, 68, 68, 0.45); }
+    }
+    .hollow-boar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .hollow-boar-badge {
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .hollow-boar-rate {
+      color: #fca5a5;
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+    .hollow-boar-body {
+      font-size: 0.8rem;
+      color: #fecaca;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+    .hollow-boar-eaten {
+      margin-top: 6px;
+      font-size: 0.82rem;
+      color: #fff;
+    }
+    .hollow-boar-eaten b {
+      color: #f87171;
+      font-size: 0.95rem;
+    }
+    .hollow-chase-boar-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+      transition: transform 0.1s ease, filter 0.2s ease;
+    }
+    .hollow-chase-boar-btn:active {
+      transform: scale(0.96);
+      filter: brightness(0.9);
+    }
+
     .bonus-timer-grid {
       display: flex;
       align-items: center;
@@ -1872,6 +1946,24 @@
             <span class="hollow-hero-yield-val" id="hollow-hero-yield-val">+1,000 <img src="images/cone.png" class="cone-icon" alt="🌰"></span>
           </div>
         </div>
+      </div>
+
+      <!-- Boar Invasion Card -->
+      <div id="hollow-boar-card" class="hollow-boar-card" style="display: none;">
+        <div class="hollow-boar-header">
+          <span class="hollow-boar-badge" data-i18n="hollow_boar_badge">🐗 ВТОРЖЕНИЕ КАБАНА</span>
+          <span class="hollow-boar-rate">-100 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/час</span>
+        </div>
+        <div class="hollow-boar-body">
+          <div data-i18n="hollow_boar_text">Вы отсутствовали больше 7 дней! В дупло забрался Дикий Кабан и пожирает ваши шишки (-100/час).</div>
+          <div class="hollow-boar-eaten">
+            <span data-i18n="hollow_boar_eaten">Уже съедено:</span>
+            <b id="hollow-boar-eaten-val">0</b> <img src="images/cone.png" class="cone-icon" style="width:13px;height:13px;vertical-align:middle;" alt="🌰">
+          </div>
+        </div>
+        <button id="hollow-chase-boar-btn" class="hollow-chase-boar-btn" onclick="chaseBoarFromHollow()">
+          🥾 <span data-i18n="hollow_chase_btn">Прогнать кабана!</span>
+        </button>
       </div>
 
       <!-- Harvest Card (Timer or Claim) -->
@@ -2763,6 +2855,11 @@
       hollow_starter_desc: '+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
       hollow_starter_btn: "Купить за 10 TON",
       hollow_claimed_toast: "🎉 Урожай Дупла успешно собран!",
+      hollow_boar_badge: "🐗 ВТОРЖЕНИЕ КАБАНА",
+      hollow_boar_text: "Вы отсутствовали больше 7 дней! В дупло забрался Дикий Кабан и пожирает ваши шишки (-100/час).",
+      hollow_boar_eaten: "Уже съедено:",
+      hollow_chase_btn: "Прогнать кабана!",
+      hollow_boar_chased: "🥾 Вы прогнали кабана! Дупло снова в безопасности.",
       raccoon_tired: "Я устал! 😴 Приходи после бонуса!",
       time_hours_short: "ч",
       time_minutes_short: "м",
@@ -2957,6 +3054,11 @@
       hollow_starter_desc: '+3 Hollow Levels (Instantly Level 4 = 8,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
       hollow_starter_btn: "Buy for 10 TON",
       hollow_claimed_toast: "🎉 Hollow harvest collected successfully!",
+      hollow_boar_badge: "🐗 BOAR INVASION",
+      hollow_boar_text: "You were inactive for more than 7 days! A Wild Boar entered your hollow and is eating your cones (-100/hr).",
+      hollow_boar_eaten: "Total eaten:",
+      hollow_chase_btn: "Chase Away Boar!",
+      hollow_boar_chased: "🥾 You chased the boar away! Your hollow is safe again.",
       raccoon_tired: "I'm tired! 😴 Come back after the bonus!",
       time_hours_short: "h",
       time_minutes_short: "m",
@@ -3436,6 +3538,10 @@
     starter_offer_available: true,
     starter_offer_ton: 10.0,
     starter_offer_target_level: 4,
+    boar_active: false,
+    boar_eaten_total: 0,
+    boar_rate: 100,
+    days_inactive: 0,
     last_synced_at: Date.now(),
     is_claiming: false,
     is_upgrading: false
@@ -3470,6 +3576,10 @@
         hollowState.time_remaining = data.time_remaining || 0;
         hollowState.last_claim = data.last_claim;
         hollowState.starter_offer_available = data.starter_offer_available;
+        hollowState.boar_active = !!data.boar_active;
+        hollowState.boar_eaten_total = data.boar_eaten_total || 0;
+        hollowState.boar_rate = data.boar_rate || 100;
+        hollowState.days_inactive = data.days_inactive || 0;
         hollowState.last_synced_at = Date.now();
         stats.hollow_level = hollowState.level;
         updateHollowUI();
@@ -3648,6 +3758,68 @@
     // Стартовый оффер (+3 уровня за 10 TON) доступен только на 1-м уровне
     if (starterOfferCard) {
       starterOfferCard.style.display = (level === 1) ? 'block' : 'none';
+    }
+
+    // Состояние Кабана (Boar)
+    const heroImg = document.getElementById('hollow-hero-img');
+    const boarCard = document.getElementById('hollow-boar-card');
+    const boarEatenEl = document.getElementById('hollow-boar-eaten-val');
+
+    if (hollowState.boar_active) {
+      if (heroImg) heroImg.src = 'images/hollow_boar.png';
+      if (boarCard) boarCard.style.display = 'block';
+      if (boarEatenEl) boarEatenEl.innerText = (hollowState.boar_eaten_total || 0).toLocaleString('ru-RU');
+    } else {
+      if (heroImg) heroImg.src = 'images/hollow.png';
+      if (boarCard) boarCard.style.display = 'none';
+    }
+  }
+
+  async function chaseBoarFromHollow() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    triggerHaptic('impact');
+    const btn = document.getElementById('hollow-chase-boar-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = '⏳ ...';
+    }
+
+    try {
+      const res = await fetch('/api/hollow/chase_boar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg.initData || ''
+        },
+        body: JSON.stringify({ userId: userId })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        triggerHaptic('success');
+        hollowState.boar_active = false;
+        hollowState.boar_eaten_total = 0;
+        
+        const heroImg = document.getElementById('hollow-hero-img');
+        if (heroImg) heroImg.src = 'images/hollow.png';
+        const boarCard = document.getElementById('hollow-boar-card');
+        if (boarCard) boarCard.style.display = 'none';
+
+        tg.showAlert(data.message || (i18n[currentLang]?.hollow_boar_chased || '🥾 Вы прогнали кабана! Дупло снова в безопасности.'));
+        
+        fetchHollowStatusFromServer();
+        loadTokenBalance();
+      } else {
+        tg.showAlert(data.message || 'Ошибка');
+      }
+    } catch (e) {
+      console.error('Ошибка chaseBoarFromHollow:', e);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = '🥾 ' + (i18n[currentLang]?.hollow_chase_btn || 'Прогнать кабана!');
+      }
     }
   }
 

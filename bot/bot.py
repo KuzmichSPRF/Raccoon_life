@@ -276,6 +276,12 @@ def init_db():
                 last_daily_bonus TIMESTAMP,
                 raccoon_taps INTEGER DEFAULT 0,
                 hollow_level INTEGER DEFAULT 1,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                boar_status INTEGER DEFAULT 0,
+                boar_arrived_at TIMESTAMP,
+                boar_last_burn TIMESTAMP,
+                boar_eaten_total INTEGER DEFAULT 0,
+                boar_notified INTEGER DEFAULT 0,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
@@ -684,6 +690,25 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка hollow_level в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats.hollow_level: {e}")
+
+    if 'last_activity' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN last_activity TIMESTAMP")
+            cursor.execute("UPDATE user_stats SET last_activity = COALESCE(last_daily_bonus, CURRENT_TIMESTAMP)")
+            logger.info("Миграция: добавлена колонка last_activity в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.last_activity: {e}")
+
+    if 'boar_status' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN boar_status INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN boar_arrived_at TIMESTAMP")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN boar_last_burn TIMESTAMP")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN boar_eaten_total INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN boar_notified INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлены колонки механики Кабана в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции колонок кабана в user_stats: {e}")
 
     # Проверка users на наличие wallet_address
     cursor.execute("PRAGMA table_info(users)")
@@ -1137,7 +1162,8 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 raccoon_taps = MAX(COALESCE(raccoon_taps, 0), ?),
                 quests = ?,
                 quests_completed = ?,
-                tutorials_seen = ?
+                tutorials_seen = ?,
+                last_activity = CURRENT_TIMESTAMP
                 {time_update_sql}
             WHERE user_id = ?
         ''', (
@@ -2238,14 +2264,216 @@ def get_daily_bonus_status(user_id: int) -> dict:
         conn.close()
 
 
-def get_hollow_status(user_id: int) -> dict:
+def update_user_activity(user_id: int):
+    """Обновляет время последней активности пользователя (заход, действия в игре)."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE user_stats SET last_activity = ? WHERE user_id = ?", (now_moscow, user_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Ошибка update_user_activity для {user_id}: {e}")
+
+
+def send_boar_notification(user_id: int):
+    """Отправляет уведомление в Telegram о вторжении кабана в дупло."""
+    if not BOT_TOKEN:
+        return
+    try:
+        text = (
+            "🐗 <b>ТРЕВОГА В ДУПЛЕ!</b>\n\n"
+            "Вы не заходили в игру больше недели, и в ваше уютное Дупло забрался <b>Дикий Кабан</b>!\n\n"
+            "🔥 <b>Он поедает по 100 ваших шишек каждый час!</b>\n\n"
+            "🥾 Скорее откройте приложение, зайдите в Дупло и прогоните наглеца!"
+        )
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        resp = requests.post(url, json={
+            "chat_id": user_id,
+            "text": text,
+            "parse_mode": "HTML"
+        }, timeout=5)
+        if resp.status_code == 200:
+            logger.info(f"🐗 Уведомление о кабане успешно отправлено игроку {user_id}")
+        else:
+            logger.warning(f"Не удалось отправить уведомление о кабане {user_id}: {resp.text}")
+    except Exception as e:
+        logger.error(f"Ошибка send_boar_notification для {user_id}: {e}")
+
+
+def process_boar_for_user(user_id: int) -> dict:
     """
-    Получает актуальное состояние Дупла (уровень 1..10, урожай, стоимость прокачки, таймер).
+    Проверяет статус кабана для пользователя:
+    - Отсчет с последнего дня захода игрока (last_activity).
+    - Если прошло >= 7 дней: кабан приходит в дупло.
+    - Сжигает по 100 фишек/шишек за каждый прошедший час.
+    - Отправляет уведомление в Telegram.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         ensure_user_exists(user_id)
+        cursor.execute("""
+            SELECT last_activity, last_daily_bonus, boar_status, boar_arrived_at, 
+                   boar_last_burn, boar_eaten_total, boar_notified 
+            FROM user_stats 
+            WHERE user_id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'boar_active': False, 'boar_eaten_total': 0, 'boar_rate': 100, 'days_inactive': 0}
+
+        now = get_moscow_now()
+        last_act_str = row['last_activity'] or row['last_daily_bonus']
+        last_act_dt = parse_moscow_datetime(last_act_str) if last_act_str else now
+        if not last_act_dt:
+            last_act_dt = now
+
+        inactive_seconds = max(0, (now - last_act_dt).total_seconds())
+        days_inactive = inactive_seconds / 86400.0
+
+        boar_status = row['boar_status'] or 0
+        boar_arrived_str = row['boar_arrived_at']
+        boar_last_burn_str = row['boar_last_burn']
+        boar_eaten_total = row['boar_eaten_total'] or 0
+        boar_notified = row['boar_notified'] or 0
+
+        BOAR_TRIGGER_SECONDS = 7 * 86400  # 7 дней
+        BOAR_BURN_RATE = 100              # 100 шишек в час
+
+        if inactive_seconds >= BOAR_TRIGGER_SECONDS:
+            if boar_status == 0:
+                boar_status = 1
+                arrived_dt = last_act_dt + timedelta(days=7)
+                boar_arrived_str = arrived_dt.strftime("%Y-%m-%d %H:%M:%S")
+                boar_last_burn_str = boar_arrived_str
+                boar_eaten_total = 0
+                boar_notified = 0
+
+            # Расчет сжигания шишек по 100 в час
+            burn_dt = parse_moscow_datetime(boar_last_burn_str) if boar_last_burn_str else (last_act_dt + timedelta(days=7))
+            if not burn_dt:
+                burn_dt = now
+            
+            hours_passed = int((now - burn_dt).total_seconds() // 3600)
+            if hours_passed > 0:
+                needed_burn = hours_passed * BOAR_BURN_RATE
+                tokens_info = get_user_tokens(user_id)
+                cur_bal = tokens_info['balance']
+                actual_burn = min(cur_bal, needed_burn)
+                if actual_burn > 0:
+                    spend_tokens(user_id, actual_burn, 'boar_eat_cones')
+                
+                boar_eaten_total += actual_burn
+                new_burn_dt = burn_dt + timedelta(hours=hours_passed)
+                boar_last_burn_str = new_burn_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+            cursor.execute("""
+                UPDATE user_stats 
+                SET boar_status = 1, boar_arrived_at = ?, boar_last_burn = ?, 
+                    boar_eaten_total = ?, boar_notified = ?
+                WHERE user_id = ?
+            """, (boar_arrived_str, boar_last_burn_str, boar_eaten_total, boar_notified, user_id))
+            conn.commit()
+
+            # Отправка Telegram уведомления если еще не отправляли
+            if boar_notified == 0:
+                try:
+                    send_boar_notification(user_id)
+                    cursor.execute("UPDATE user_stats SET boar_notified = 1 WHERE user_id = ?", (user_id,))
+                    conn.commit()
+                    boar_notified = 1
+                except Exception as e:
+                    logger.error(f"Ошибка отправки уведомления кабана: {e}")
+
+            return {
+                'boar_active': True,
+                'boar_arrived_at': boar_arrived_str,
+                'boar_eaten_total': boar_eaten_total,
+                'boar_rate': BOAR_BURN_RATE,
+                'days_inactive': round(days_inactive, 1)
+            }
+        else:
+            if boar_status == 1:
+                cursor.execute("""
+                    UPDATE user_stats 
+                    SET boar_status = 0, boar_arrived_at = NULL, boar_last_burn = NULL, 
+                        boar_notified = 0, boar_eaten_total = 0 
+                    WHERE user_id = ?
+                """, (user_id,))
+                conn.commit()
+
+            return {
+                'boar_active': False,
+                'boar_eaten_total': 0,
+                'boar_rate': BOAR_BURN_RATE,
+                'days_inactive': round(days_inactive, 1)
+            }
+    except Exception as e:
+        logger.error(f"❌ Ошибка process_boar_for_user({user_id}): {e}")
+        return {
+            'boar_active': False,
+            'boar_eaten_total': 0,
+            'boar_rate': 100,
+            'days_inactive': 0
+        }
+    finally:
+        conn.close()
+
+
+def chase_boar_from_hollow(user_id: int) -> dict:
+    """Прогоняет кабана из дупла и обновляет время активности игрока."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute("SELECT boar_status, boar_eaten_total FROM user_stats WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        was_boar = bool(row and row['boar_status'] == 1)
+        eaten = row['boar_eaten_total'] if row and row['boar_eaten_total'] else 0
+
+        now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            UPDATE user_stats 
+            SET boar_status = 0, boar_arrived_at = NULL, boar_last_burn = NULL, 
+                boar_notified = 0, boar_eaten_total = 0, last_activity = ?
+            WHERE user_id = ?
+        """, (now_moscow, user_id))
+        conn.commit()
+
+        logger.info(f"🥾 Игрок {user_id} прогнал кабана из дупла! (Было съедено: {eaten} шишек)")
+
+        hollow_st = get_hollow_status(user_id)
+        tokens = get_user_tokens(user_id)
+
+        return {
+            'status': 'ok',
+            'was_boar': was_boar,
+            'eaten_total': eaten,
+            'message': '🥾 Вы с криками прогнали кабана из дупла! Ваши запасы снова в безопасности.',
+            'hollow': hollow_st,
+            'balance': tokens['balance']
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка chase_boar_from_hollow: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def get_hollow_status(user_id: int) -> dict:
+    """
+    Получает актуальное состояние Дупла (уровень 1..10, урожай, стоимость прокачки, таймер, кабан).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        
+        # Обрабатываем статус кабана
+        boar_info = process_boar_for_user(user_id)
+
         cursor.execute("SELECT COALESCE(hollow_level, 1) as hollow_level, last_daily_bonus FROM user_stats WHERE user_id = ?", (user_id,))
         row = cursor.fetchone()
         level = max(1, min(10, row['hollow_level'] if row and row['hollow_level'] else 1))
@@ -2283,6 +2511,10 @@ def get_hollow_status(user_id: int) -> dict:
             'starter_offer_available': (level == 1),
             'starter_offer_ton': 10.0,
             'starter_offer_target_level': 4,
+            'boar_active': boar_info.get('boar_active', False),
+            'boar_eaten_total': boar_info.get('boar_eaten_total', 0),
+            'boar_rate': boar_info.get('boar_rate', 100),
+            'days_inactive': boar_info.get('days_inactive', 0),
             'server_time': int(now.timestamp())
         }
     except Exception as e:
@@ -2301,6 +2533,10 @@ def get_hollow_status(user_id: int) -> dict:
             'starter_offer_available': True,
             'starter_offer_ton': 10.0,
             'starter_offer_target_level': 4,
+            'boar_active': False,
+            'boar_eaten_total': 0,
+            'boar_rate': 100,
+            'days_inactive': 0,
             'server_time': int(time.time())
         }
     finally:
@@ -2312,6 +2548,15 @@ def claim_daily_bonus(user_id: int) -> dict:
     Забирает урожай Дупла (1000 * 2^(level-1) шишек), если 24 часа прошло.
     """
     hollow_st = get_hollow_status(user_id)
+    if hollow_st.get('boar_active'):
+        return {
+            'status': 'error',
+            'message': '🐗 В дупле сидит дикий кабан! Сначала прогоните кабана, чтобы собрать урожай.',
+            'boar_active': True,
+            'time_remaining': hollow_st.get('time_remaining', 86400),
+            'bonus_amount': hollow_st.get('daily_yield', 1000)
+        }
+
     if not hollow_st.get('can_claim'):
         return {
             'status': 'error',
@@ -2327,7 +2572,7 @@ def claim_daily_bonus(user_id: int) -> dict:
     cursor = conn.cursor()
     try:
         now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute("UPDATE user_stats SET last_daily_bonus = ?, raccoon_taps = 0 WHERE user_id = ?", (now_moscow, user_id))
+        cursor.execute("UPDATE user_stats SET last_daily_bonus = ?, last_activity = ?, raccoon_taps = 0 WHERE user_id = ?", (now_moscow, now_moscow, user_id))
         conn.commit()
 
         # Начисляем урожай шишек пользователю
@@ -3724,6 +3969,28 @@ def ton_blockchain_watcher_thread():
         time.sleep(15)
 
 
+def boar_watcher_thread():
+    """Фоновый поток для проверки неактивных игроков и механики Кабана (каждые 5 минут)."""
+    logger.info("🐗 Boar watcher thread started")
+    while True:
+        try:
+            time.sleep(300)  # проверка каждые 5 минут
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT user_id FROM user_stats")
+            rows = cursor.fetchall()
+            conn.close()
+
+            for r in rows:
+                try:
+                    process_boar_for_user(r['user_id'])
+                except Exception as user_e:
+                    logger.error(f"Ошибка проверки кабана для user {r['user_id']}: {user_e}")
+        except Exception as e:
+            logger.error(f"Ошибка в boar_watcher_thread: {e}")
+            time.sleep(30)
+
+
 @app.route('/api/leaderboard', methods=['GET'])
 def api_get_leaderboard():
     """Получить рейтинг игроков"""
@@ -3878,6 +4145,31 @@ def api_hollow_upgrade_cones():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Ошибка api_hollow_upgrade_cones: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/hollow/chase_boar', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_hollow_chase_boar():
+    """Прогнать дикого кабана из Дупла"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        result = chase_boar_from_hollow(user_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Ошибка api_hollow_chase_boar: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -7904,6 +8196,11 @@ def main():
     watcher_thread = Thread(target=ton_blockchain_watcher_thread, daemon=True)
     watcher_thread.start()
     logger.info("💎 TON/GRAM Blockchain watcher started")
+
+    # Запуск фонового чекера активности игроков (механика Кабана)
+    boar_thread = Thread(target=boar_watcher_thread, daemon=True)
+    boar_thread.start()
+    logger.info("🐗 Boar activity watcher thread started")
 
     # Настройка Telegram бота
     builder = (
