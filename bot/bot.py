@@ -6781,6 +6781,9 @@ def send_chip_set_moderation_card(set_id: int, author_id: int, author_name: str,
                 [
                     {"text": "✅ Одобрить и опубликовать", "callback_data": f"chip_set_approve_{set_id}"},
                     {"text": "❌ Отклонить", "callback_data": f"chip_set_reject_{set_id}"}
+                ],
+                [
+                    {"text": "🗑️ Удалить сет навсегда", "callback_data": f"chip_set_delete_{set_id}"}
                 ]
             ]
         }
@@ -6809,6 +6812,8 @@ def publish_chip_set_to_group(set_data: dict):
 
     logger.info(f"📢 Публикация сета #{set_data.get('id')} в группу. Путь к фото: {preview_path} (exists={preview_path.exists()})")
 
+    bot_app_url = "https://t.me/Raccoon_Life_bot/app"
+
     caption = (
         f"🎨 <b>Новая коллекция фишек в Raccoon Life!</b>\n\n"
         f"🏆 <b>«{html.escape(set_data['title'])}»</b>\n"
@@ -6819,7 +6824,18 @@ def publish_chip_set_to_group(set_data: dict):
         caption += f"📝 <i>{html.escape(set_data['description'])}</i>\n\n"
     else:
         caption += "\n"
-    caption += "🦝 Заходите в игру, чтобы оценить и проголосовать за лучший сет!"
+    caption += (
+        f"🦝 Заходите в игру, чтобы оценить и проголосовать за лучший сет!\n"
+        f"👉 <b>Играть в боте:</b> @Raccoon_Life_bot"
+    )
+
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {"text": "🎨 Открыть Мастерскую Фишек", "url": bot_app_url}
+            ]
+        ]
+    }
 
     try:
         if preview_path.exists():
@@ -6829,7 +6845,8 @@ def publish_chip_set_to_group(set_data: dict):
                     "chat_id": group_chat_id,
                     "message_thread_id": topic_id,
                     "caption": caption,
-                    "parse_mode": "HTML"
+                    "parse_mode": "HTML",
+                    "reply_markup": json.dumps(reply_markup)
                 }
                 res = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
                 if not res.ok:
@@ -6842,7 +6859,8 @@ def publish_chip_set_to_group(set_data: dict):
                 "chat_id": group_chat_id,
                 "message_thread_id": topic_id,
                 "text": caption,
-                "parse_mode": "HTML"
+                "parse_mode": "HTML",
+                "reply_markup": json.dumps(reply_markup)
             }
             res = requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
@@ -6986,6 +7004,44 @@ def reject_chip_set_db(set_id: int, reason: str = "") -> dict:
         return {'status': 'ok'}
     except Exception as e:
         logger.error(f"❌ Ошибка reject_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def delete_chip_set_db(set_id: int, user_id: int) -> dict:
+    """Удаляет сет фишек из базы данных (только для админа или автора)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'error', 'message': 'Сет не найден'}
+
+        # Проверка прав: админ или автор
+        if user_id != ADMIN_ID and row['author_id'] != user_id:
+            return {'status': 'error', 'message': 'Недостаточно прав для удаления сета'}
+
+        cursor.execute("DELETE FROM custom_chip_votes WHERE set_id = ?", (set_id,))
+        cursor.execute("DELETE FROM custom_chip_sets WHERE id = ?", (set_id,))
+        conn.commit()
+
+        # Попытка удалить файлы сета с диска
+        try:
+            if row.get('preview_collage'):
+                raw_rel = str(row['preview_collage']).lstrip('/\\').replace('\\', '/')
+                set_folder = (WEBAPP_DIR / raw_rel).parent
+                if set_folder.exists() and "sets" in str(set_folder):
+                    import shutil
+                    shutil.rmtree(set_folder, ignore_errors=True)
+        except Exception as err:
+            logger.warning(f"Ошибка удаления файлов сета #{set_id}: {err}")
+
+        logger.info(f"🗑️ Сет #{set_id} успешно удален пользователем #{user_id}")
+        return {'status': 'ok'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка delete_chip_set_db: {e}")
         return {'status': 'error', 'message': str(e)}
     finally:
         conn.close()
@@ -7174,10 +7230,10 @@ def api_chip_sets_list():
     """Получение списка одобренных сетов фишек"""
     try:
         sort = request.args.get('sort', 'top')
-        user_id = int(request.args.get('userId', 0))
+        user_id = int(request.args.get('userId') or request.args.get('user_id') or 0)
         sets = get_custom_chip_sets_list(sort=sort, user_id=user_id)
-        is_admin = (user_id == ADMIN_ID)
-        return jsonify({'status': 'ok', 'sets': sets, 'is_admin': is_admin})
+        is_admin = (user_id == ADMIN_ID and ADMIN_ID > 0)
+        return jsonify({'status': 'ok', 'sets': sets, 'is_admin': is_admin, 'admin_id': ADMIN_ID})
     except Exception as e:
         logger.error(f"❌ Ошибка api_chip_sets_list: {e}")
         return jsonify({'error': str(e)}), 500
@@ -7187,11 +7243,44 @@ def api_chip_sets_list():
 def api_chip_sets_my():
     """Получение сетов текущего пользователя"""
     try:
-        user_id = int(request.args.get('userId', 0))
+        user_id = int(request.args.get('userId') or request.args.get('user_id') or 0)
         sets = get_user_chip_sets_db(user_id=user_id)
-        return jsonify({'status': 'ok', 'sets': sets})
+        is_admin = (user_id == ADMIN_ID and ADMIN_ID > 0)
+        return jsonify({'status': 'ok', 'sets': sets, 'is_admin': is_admin, 'admin_id': ADMIN_ID})
     except Exception as e:
         logger.error(f"❌ Ошибка api_chip_sets_my: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chip_sets/delete', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_chip_sets_delete():
+    """Удаление сета фишек админом или автором"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+
+        data = request.get_json()
+        set_id = int(data.get('setId') or data.get('set_id') or 0)
+        user_id = int(data.get('userId') or data.get('user_id') or 0)
+
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user:
+                user_id = int(auth_user.get('id', user_id))
+
+        if set_id <= 0 or user_id <= 0:
+            return jsonify({'error': 'Некорректный ID'}), 400
+
+        res = delete_chip_set_db(set_id, user_id)
+        if res.get('status') == 'ok':
+            return jsonify({'status': 'ok', 'message': 'Сет успешно удален'})
+        else:
+            return jsonify({'error': res.get('message', 'Ошибка удаления сета')}), 403
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка api_chip_sets_delete: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -7203,8 +7292,8 @@ def api_chip_sets_vote():
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
         data = request.get_json()
-        set_id = int(data.get('setId', 0))
-        user_id = int(data.get('userId', 0))
+        set_id = int(data.get('setId') or data.get('set_id') or 0)
+        user_id = int(data.get('userId') or data.get('user_id') or 0)
 
         if set_id <= 0 or user_id <= 0:
             return jsonify({'error': 'setId and userId required'}), 400
@@ -8821,6 +8910,19 @@ async def chip_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
 
+        elif action == 'delete':
+            await query.answer("Удаляем сет...")
+            res = delete_chip_set_db(set_id, update.effective_user.id)
+            if res.get('status') == 'ok':
+                curr_caption = query.message.caption_html or ""
+                await query.edit_message_caption(
+                    caption=f"{curr_caption}\n\n🗑️ <b>СЕТ ПОЛНОСТЬЮ УДАЛЁН ИЗ СИСТЕМЫ</b>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=None
+                )
+            else:
+                await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
+
         elif action == 'cancel':
             context.user_data.pop('pending_reject_set_id', None)
             context.user_data.pop('pending_reject_msg_id', None)
@@ -8831,6 +8933,9 @@ async def chip_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [
                     InlineKeyboardButton("✅ Одобрить и опубликовать", callback_data=f"chip_set_approve_{set_id}"),
                     InlineKeyboardButton("❌ Отклонить", callback_data=f"chip_set_reject_{set_id}")
+                ],
+                [
+                    InlineKeyboardButton("🗑️ Удалить сет навсегда", callback_data=f"chip_set_delete_{set_id}")
                 ]
             ])
             await query.edit_message_reply_markup(reply_markup=original_keyboard)
@@ -9044,7 +9149,7 @@ def main():
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     telegram_app.add_handler(CallbackQueryHandler(publish_news_callback, pattern="^publish_news$"))
-    telegram_app.add_handler(CallbackQueryHandler(chip_set_callback, pattern=r"^chip_set_(approve|reject|rejask|rejquick|cancel)_\d+$"))
+    telegram_app.add_handler(CallbackQueryHandler(chip_set_callback, pattern=r"^chip_set_(approve|reject|rejask|rejquick|cancel|delete)_\d+$"))
     telegram_app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & (~filters.COMMAND), handle_admin_private_message))
 
     telegram_app.add_handler(CommandHandler("tot_create", tot_create_cmd))

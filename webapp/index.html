@@ -2072,6 +2072,25 @@
     .chipset-vote-btn.voted .heart-icon {
       transform: scale(1.15);
     }
+    .chipset-delete-btn {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #ef4444;
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      margin-left: 6px;
+    }
+    .chipset-delete-btn:active {
+      transform: scale(0.92);
+      background: rgba(239, 68, 68, 0.28);
+    }
 
     /* Creator Form Styles */
     .chipset-creator-section {
@@ -7835,6 +7854,11 @@
       const votesCount = set.votes_count || 0;
       const collageUrl = set.preview_collage || '';
 
+      let adminDeleteBtn = '';
+      if (chipSetsState.isAdmin) {
+        adminDeleteBtn = `<button class="chipset-delete-btn" onclick="deleteCustomChipSet(${set.id}, '${escapeHtml(set.title)}'); triggerHaptic('impact');" title="Удалить сет">🗑️</button>`;
+      }
+
       card.innerHTML = `
         <div class="chipset-preview-wrap">
           <img src="${collageUrl}" class="chipset-preview-img" alt="${escapeHtml(set.title)}" loading="lazy" />
@@ -7853,11 +7877,41 @@
               <span class="heart-icon">${isVoted ? '❤️' : '🤍'}</span>
               <span class="votes-num">${votesCount}</span>
             </button>
+            ${adminDeleteBtn}
           </div>
         </div>
       `;
       listContainer.appendChild(card);
     });
+  }
+
+  async function deleteCustomChipSet(setId, title) {
+    triggerHaptic('medium');
+    const confirmed = confirm(`Удалить сет «${title || '#' + setId}» навсегда?`);
+    if (!confirmed) return;
+
+    const userId = getUserId();
+    try {
+      const res = await fetch('/api/chip_sets/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg.initData || ''
+        },
+        body: JSON.stringify({ setId, userId })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'ok') {
+        triggerHaptic('success');
+        loadChipSets(chipSetsState.currentSort || 'top');
+      } else {
+        triggerHaptic('error');
+        alert('❌ ' + (data.error || data.message || 'Ошибка удаления'));
+      }
+    } catch (err) {
+      console.error('Ошибка deleteCustomChipSet:', err);
+      triggerHaptic('error');
+    }
   }
 
   async function toggleVoteChipSet(setId, btnEl) {

@@ -477,6 +477,26 @@
     }
     .share-btn:active { transform: scale(0.92); }
 
+    .delete-btn {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #ef4444;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.15s, background 0.15s;
+      margin-left: auto;
+    }
+    .delete-btn:active {
+      transform: scale(0.92);
+      background: rgba(239, 68, 68, 0.28);
+    }
+
     /* Empty States */
     .empty-state {
       background: var(--card-bg);
@@ -1278,6 +1298,8 @@
     else if (currentTab === 'my') loadMySets();
   }
 
+  let isUserAdmin = false;
+
   // ==================== LOAD & DISPLAY SETS ====================
   async function loadSets(sort = 'top') {
     const container = document.getElementById(`sets-list-${sort}`);
@@ -1292,8 +1314,10 @@
 
     try {
       const uid = getUserId();
-      const res = await fetch(`/api/chip_sets/list?sort=${sort}&user_id=${uid}`);
+      const res = await fetch(`/api/chip_sets/list?sort=${sort}&user_id=${uid}&userId=${uid}`);
       const data = await res.json();
+
+      if (data.is_admin !== undefined) isUserAdmin = Boolean(data.is_admin);
 
       if (data.status === 'ok' && data.sets && data.sets.length > 0) {
         renderSetsCards(container, data.sets, false);
@@ -1344,8 +1368,10 @@
     `;
 
     try {
-      const res = await fetch(`/api/chip_sets/my?user_id=${uid}`);
+      const res = await fetch(`/api/chip_sets/my?user_id=${uid}&userId=${uid}`);
       const data = await res.json();
+
+      if (data.is_admin !== undefined) isUserAdmin = Boolean(data.is_admin);
 
       if (data.status === 'ok' && data.sets && data.sets.length > 0) {
         renderSetsCards(container, data.sets, true);
@@ -1398,6 +1424,15 @@
       const isVoted = item.has_voted || item.user_has_voted || false;
       const votes = item.votes_count || 0;
 
+      let adminDeleteHtml = '';
+      if (isUserAdmin || isMyTab) {
+        adminDeleteHtml = `
+          <button class="delete-btn" onclick="deleteSet(${item.id}, '${escapeHtml(item.title)}')">
+            <span>🗑️ Удалить</span>
+          </button>
+        `;
+      }
+
       card.innerHTML = `
         <div class="set-card-header">
           <div class="set-author-wrap">
@@ -1430,11 +1465,42 @@
           <button class="share-btn" onclick="shareSet(${item.id}, '${escapeHtml(item.title)}')">
             <span>🔗 Поделиться</span>
           </button>
+          ${adminDeleteHtml}
         </div>
       `;
 
       container.appendChild(card);
     });
+  }
+
+  async function deleteSet(setId, title) {
+    triggerHaptic('medium');
+    const confirmed = confirm(`Удалить сет «${title || '#' + setId}» навсегда?`);
+    if (!confirmed) return;
+
+    const uid = getUserId();
+    try {
+      const res = await fetch('/api/chip_sets/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg?.initData || (window.parent?.Telegram?.WebApp?.initData) || ''
+        },
+        body: JSON.stringify({ setId: setId, userId: uid })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'ok') {
+        triggerHaptic('success');
+        refreshCurrentTab();
+      } else {
+        triggerHaptic('error');
+        alert('❌ ' + (data.error || data.message || 'Ошибка удаления сета'));
+      }
+    } catch (err) {
+      console.error('Ошибка удаления сета:', err);
+      triggerHaptic('error');
+      alert('❌ Ошибка сети при удалении');
+    }
   }
 
   async function voteForSet(setId) {
