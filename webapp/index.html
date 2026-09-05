@@ -1386,10 +1386,19 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 10000;
+      z-index: 2500;
       padding: 20px;
     }
     .tutorial-overlay.active { display: flex; }
+
+    /* Ensure TonConnect modal is always on top of all application overlays and modals */
+    tc-root, #tc-widget-root, [data-tc-root], .ton-connect-modal, [class*="tc-modal"], [class*="tc-root"] {
+      position: relative !important;
+      z-index: 100000 !important;
+    }
+    tc-root > *, #tc-widget-root > * {
+      z-index: 100000 !important;
+    }
     .tutorial-modal {
       background: var(--bg-secondary);
       border-radius: 24px;
@@ -2422,7 +2431,7 @@
   if (tg.expand) tg.expand();
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.09.05.3';
+  const APP_VERSION = '2026.09.05.4';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
