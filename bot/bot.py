@@ -275,6 +275,7 @@ def init_db():
                 quests TEXT DEFAULT '[]',
                 last_daily_bonus TIMESTAMP,
                 raccoon_taps INTEGER DEFAULT 0,
+                hollow_level INTEGER DEFAULT 1,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
@@ -651,6 +652,14 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка raccoon_taps в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats.raccoon_taps: {e}")
+
+    if 'hollow_level' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN hollow_level INTEGER DEFAULT 1")
+            cursor.execute("UPDATE user_stats SET hollow_level = 1 WHERE hollow_level IS NULL")
+            logger.info("Миграция: добавлена колонка hollow_level в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.hollow_level: {e}")
 
     # Проверка users на наличие wallet_address
     cursor.execute("PRAGMA table_info(users)")
@@ -1345,6 +1354,7 @@ def get_player_stats(user_id: int) -> dict:
                    COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
                    COALESCE(us.quests_completed, 0) as quests_completed,
                    COALESCE(us.raccoon_taps, 0) as raccoon_taps,
+                   COALESCE(us.hollow_level, 1) as hollow_level,
                    COALESCE(ut.balance, 0) as balance
             FROM user_stats us
             LEFT JOIN user_tokens ut ON us.user_id = ut.user_id
@@ -1369,6 +1379,7 @@ def get_player_stats(user_id: int) -> dict:
                 'roulette_total_bets': row['roulette_total_bets'],
                 'quests_completed': row['quests_completed'],
                 'raccoon_taps': row['raccoon_taps'],
+                'hollow_level': row['hollow_level'],
                 'overall_score': overall['total_score'],
                 'balance': row['balance'],
                 'quests': json.loads(row['quests']) if row['quests'] else [],
@@ -2203,18 +2214,90 @@ def get_daily_bonus_status(user_id: int) -> dict:
         conn.close()
 
 
-def claim_daily_bonus(user_id: int) -> dict:
+def get_hollow_status(user_id: int) -> dict:
     """
-    Забирает ежедневный бонус (1000 шишек), если 24 часа прошло.
+    Получает актуальное состояние Дупла (уровень 1..10, урожай, стоимость прокачки, таймер).
     """
-    status = get_daily_bonus_status(user_id)
-    if not status.get('can_claim'):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute("SELECT COALESCE(hollow_level, 1) as hollow_level, last_daily_bonus FROM user_stats WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        level = max(1, min(10, row['hollow_level'] if row and row['hollow_level'] else 1))
+        last_claim_str = row['last_daily_bonus'] if row and 'last_daily_bonus' in row.keys() and row['last_daily_bonus'] else None
+
+        now = get_moscow_now()
+        cooldown_seconds = 24 * 3600
+        daily_yield = 1000 * (2 ** (level - 1))
+        next_yield = 1000 * (2 ** level) if level < 10 else None
+        upgrade_cost_cones = 100000 * (2 ** (level - 1)) if level < 10 else None
+        upgrade_cost_gram = 2 * (2 ** (level - 1)) if level < 10 else None
+
+        can_claim = True
+        time_remaining = 0
+
+        if last_claim_str:
+            last_dt = parse_moscow_datetime(last_claim_str)
+            if last_dt:
+                elapsed = (now - last_dt).total_seconds()
+                if elapsed < cooldown_seconds:
+                    can_claim = False
+                    time_remaining = int(cooldown_seconds - elapsed)
+
+        return {
+            'status': 'ok',
+            'level': level,
+            'max_level': 10,
+            'daily_yield': daily_yield,
+            'next_yield': next_yield,
+            'upgrade_cost_cones': upgrade_cost_cones,
+            'upgrade_cost_gram': upgrade_cost_gram,
+            'can_claim': can_claim,
+            'time_remaining': max(0, time_remaining),
+            'last_claim': last_claim_str,
+            'starter_offer_available': (level == 1),
+            'starter_offer_ton': 10.0,
+            'starter_offer_target_level': 4,
+            'server_time': int(now.timestamp())
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_hollow_status: {e}")
         return {
             'status': 'error',
-            'message': 'Бонус пока недоступен',
-            'time_remaining': status.get('time_remaining', 86400),
-            'bonus_amount': status.get('bonus_amount', 1000)
+            'level': 1,
+            'max_level': 10,
+            'daily_yield': 1000,
+            'next_yield': 2000,
+            'upgrade_cost_cones': 100000,
+            'upgrade_cost_gram': 2,
+            'can_claim': True,
+            'time_remaining': 0,
+            'last_claim': None,
+            'starter_offer_available': True,
+            'starter_offer_ton': 10.0,
+            'starter_offer_target_level': 4,
+            'server_time': int(time.time())
         }
+    finally:
+        conn.close()
+
+
+def claim_daily_bonus(user_id: int) -> dict:
+    """
+    Забирает урожай Дупла (1000 * 2^(level-1) шишек), если 24 часа прошло.
+    """
+    hollow_st = get_hollow_status(user_id)
+    if not hollow_st.get('can_claim'):
+        return {
+            'status': 'error',
+            'message': 'Урожай пока не созрел',
+            'time_remaining': hollow_st.get('time_remaining', 86400),
+            'bonus_amount': hollow_st.get('daily_yield', 1000)
+        }
+
+    level = hollow_st.get('level', 1)
+    daily_yield = 1000 * (2 ** (level - 1))
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -2223,19 +2306,20 @@ def claim_daily_bonus(user_id: int) -> dict:
         cursor.execute("UPDATE user_stats SET last_daily_bonus = ?, raccoon_taps = 0 WHERE user_id = ?", (now_moscow, user_id))
         conn.commit()
 
-        # Начисляем 1000 шишек пользователю
-        add_result = add_tokens(user_id, 1000, 'daily_bonus')
+        # Начисляем урожай шишек пользователю
+        add_tokens(user_id, daily_yield, f'hollow_harvest_lvl{level}')
         tokens = get_user_tokens(user_id)
 
-        logger.info(f"🎁 Игрок {user_id} успешно получил ежедневный бонус 1000 шишек! Новый баланс: {tokens['balance']}")
+        logger.info(f"🌳 Игрок {user_id} собрал урожай Дупла: +{daily_yield:,} шишек (Ур. {level})! Новый баланс: {tokens['balance']}")
 
         return {
             'status': 'ok',
-            'claimed': 1000,
+            'claimed': daily_yield,
+            'level': level,
             'new_balance': tokens['balance'],
             'time_remaining': 86400,
             'last_claim': now_moscow,
-            'message': 'Вам начислено 1000 шишек!'
+            'message': f'Вам начислено +{daily_yield:,} шишек!'
         }
     except Exception as e:
         logger.error(f"❌ Ошибка claim_daily_bonus: {e}")
@@ -2245,6 +2329,52 @@ def claim_daily_bonus(user_id: int) -> dict:
         }
     finally:
         conn.close()
+
+
+def upgrade_hollow_cones(user_id: int) -> dict:
+    """
+    Прокачка Дупла за шишки (100,000 * 2^(level-1))
+    """
+    hollow_st = get_hollow_status(user_id)
+    level = hollow_st.get('level', 1)
+    if level >= 10:
+        return {'status': 'error', 'message': 'Дупло уже максимального 10-го уровня!'}
+
+    cost = 100000 * (2 ** (level - 1))
+    tokens = get_user_tokens(user_id)
+    if tokens['balance'] < cost:
+        return {
+            'status': 'error',
+            'message': f'Недостаточно шишек! Нужно {cost:,}, у вас {tokens["balance"]:,}'
+        }
+
+    # Списываем шишки
+    spend_result = spend_tokens(user_id, cost, f'hollow_upgrade_lvl{level}_to_{level+1}')
+    if not spend_result:
+        return {'status': 'error', 'message': 'Ошибка списания шишек'}
+
+    new_level = level + 1
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE user_stats SET hollow_level = ? WHERE user_id = ?", (new_level, user_id))
+        conn.commit()
+        logger.info(f"🌳 Игрок {user_id} прокачал Дупло за {cost:,} шишек до уровня {new_level}!")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения hollow_level: {e}")
+    finally:
+        conn.close()
+
+    new_tokens = get_user_tokens(user_id)
+    new_hollow_st = get_hollow_status(user_id)
+
+    return {
+        'status': 'ok',
+        'new_level': new_level,
+        'new_balance': new_tokens['balance'],
+        'hollow': new_hollow_st,
+        'message': f'🎉 Дупло успешно прокачано до уровня {new_level}!\nДобыча: {1000 * (2**(new_level-1)):,} шишек/сутки'
+    }
 
 
 def set_user_wallet_address(user_id: int, wallet_address: str = None) -> bool:
@@ -2822,12 +2952,29 @@ def api_ton_notify_payment():
         except (ValueError, TypeError):
             return jsonify({'error': 'invalid user_id'}), 400
 
-        selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
-        if not selected_pack:
-            return jsonify({'error': 'Unknown pack'}), 400
+        # Проверяем, это стандартный пакет или пакет прокачки Дупла
+        is_hollow_starter = (pack_id == "hollow_starter_10ton")
+        is_hollow_gram = pack_id.startswith("hollow_gram_")
 
-        cones_amount = selected_pack['cones']
-        ton_amount = selected_pack['ton']
+        if is_hollow_starter:
+            ton_amount = 10.0
+            cones_amount = 0
+            pack_title = "⚡ Супер-Старт Дупла (+3 Уровня)"
+        elif is_hollow_gram:
+            try:
+                from_level = int(pack_id.split('_')[-1])
+            except:
+                from_level = 1
+            ton_amount = float(2 * (2 ** (from_level - 1)))
+            cones_amount = 0
+            pack_title = f"🌳 Прокачка Дупла ({from_level} → {from_level + 1} ур.)"
+        else:
+            selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
+            if not selected_pack:
+                return jsonify({'error': 'Unknown pack'}), 400
+            cones_amount = selected_pack['cones']
+            ton_amount = selected_pack['ton']
+            pack_title = selected_pack['title_ru']
 
         # Проверяем, не была ли эта транзакция уже обработана
         conn = get_db_connection()
@@ -2850,12 +2997,25 @@ def api_ton_notify_payment():
                 VALUES (?, ?, 'gram', ?, ?, ?, ?)
             ''', (payment_id, user_id, ton_amount, cones_amount, tx_boc, comment))
             conn.commit()
+
+            # Обрабатываем прокачку Дупла
+            if is_hollow_starter:
+                cursor.execute("UPDATE user_stats SET hollow_level = MAX(COALESCE(hollow_level, 1), 4) WHERE user_id = ?", (user_id,))
+                conn.commit()
+                logger.info(f"⚡ Супер-Старт Дупла: {user_id} получил 4-й уровень Дупла за 10 TON!")
+            elif is_hollow_gram:
+                cursor.execute("UPDATE user_stats SET hollow_level = MIN(10, COALESCE(hollow_level, 1) + 1) WHERE user_id = ?", (user_id,))
+                conn.commit()
+                logger.info(f"🌳 Прокачка Дупла за GRAM: {user_id} повысил уровень Дупла!")
         finally:
             conn.close()
 
-        # Автоматически начисляем шишки игроку на баланс
-        result = add_tokens(user_id, cones_amount, f'gram_purchase:{pack_id}:{ton_amount}GRAM')
-        logger.info(f"💎 Автоматическое начисление: {user_id} получил {cones_amount} шишек за {ton_amount} GRAM")
+        # Если это пакет с шишками — начисляем
+        if cones_amount > 0:
+            result = add_tokens(user_id, cones_amount, f'gram_purchase:{pack_id}:{ton_amount}GRAM')
+            logger.info(f"💎 Автоматическое начисление: {user_id} получил {cones_amount} шишек за {ton_amount} GRAM")
+        else:
+            result = get_user_tokens(user_id)
 
         # Получаем данные пользователя для отчета админу
         user_name = f"Игрок #{user_id}"
@@ -3119,6 +3279,7 @@ def api_get_tokens():
         
         tokens = get_user_tokens(user_id)
         bonus_status = get_daily_bonus_status(user_id)
+        hollow_status = get_hollow_status(user_id)
 
         # Получаем актуальные тапы енота
         conn = get_db_connection()
@@ -3128,12 +3289,13 @@ def api_get_tokens():
         conn.close()
         raccoon_taps = tap_row[0] if tap_row else 0
 
-        logger.info(f"💰 Ответ: balance={tokens['balance']}, can_claim_bonus={bonus_status.get('can_claim')}, raccoon_taps={raccoon_taps}")
+        logger.info(f"💰 Ответ: balance={tokens['balance']}, can_claim_bonus={hollow_status.get('can_claim')}, raccoon_taps={raccoon_taps}, hollow_lvl={hollow_status.get('level')}")
         
         return jsonify({
             'status': 'ok',
             'tokens': tokens,
             'bonus': bonus_status,
+            'hollow': hollow_status,
             'raccoon_taps': raccoon_taps
         })
 
@@ -3142,26 +3304,72 @@ def api_get_tokens():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/bonus/status', methods=['GET'])
-def api_bonus_status():
-    """Получить статус ежедневного бонуса (доступность, оставшееся время)"""
+@app.route('/api/hollow/status', methods=['GET'])
+def api_hollow_status():
+    """Получить статус Дупла (уровень, урожай, стоимость прокачки, таймер)"""
     try:
         user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
         if not user_id:
             return jsonify({'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        status = get_hollow_status(user_id)
+        return jsonify(status)
+    except Exception as e:
+        logger.error(f"Ошибка api_hollow_status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/hollow/claim', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_hollow_claim():
+    """Собрать урожай Дупла"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
 
         try:
             user_id = int(user_id)
         except (ValueError, TypeError):
             return jsonify({'error': 'invalid user_id'}), 400
 
-        bonus_status = get_daily_bonus_status(user_id)
-        return jsonify({
-            'status': 'ok',
-            'bonus': bonus_status
-        })
+        result = claim_daily_bonus(user_id)
+        return jsonify(result)
     except Exception as e:
-        logger.error(f"Ошибка api_bonus_status: {e}")
+        logger.error(f"Ошибка api_hollow_claim: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/hollow/upgrade_cones', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_hollow_upgrade_cones():
+    """Прокачать Дупло за шишки"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'userId required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        result = upgrade_hollow_cones(user_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Ошибка api_hollow_upgrade_cones: {e}")
         return jsonify({'error': str(e)}), 500
 
 
