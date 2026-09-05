@@ -8615,6 +8615,19 @@
         // Дополнительно загружаем с сервера для актуальности
         setTimeout(() => loadTokenBalance(), 200);
       }
+
+      // Запрос открытия Telegram-ссылки из iframe (например, кнопка "Поделиться" в сетах фишек)
+      if (data.type === 'open_telegram_link' && data.url) {
+        try {
+          if (tg && typeof tg.openTelegramLink === 'function') {
+            tg.openTelegramLink(data.url);
+          } else {
+            window.open(data.url, '_blank');
+          }
+        } catch (e) {
+          window.open(data.url, '_blank');
+        }
+      }
     });
 
 

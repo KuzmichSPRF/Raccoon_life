@@ -1912,7 +1912,18 @@
       const botUrl = `https://t.me/Raccoon_Life_bot/app`;
       const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
 
-      const activeTg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp || window.top?.Telegram?.WebApp || tg;
+      // Если открыты внутри iframe — просим родительское окно открыть ссылку
+      // (именно там инициализирован Telegram WebApp)
+      const isInIframe = window.parent && window.parent !== window;
+      if (isInIframe) {
+        try {
+          window.parent.postMessage({ type: 'open_telegram_link', url: shareUrl }, '*');
+          return;
+        } catch (e) { }
+      }
+
+      // Автономный режим — вызываем напрямую
+      const activeTg = window.Telegram?.WebApp || tg;
       if (activeTg && typeof activeTg.openTelegramLink === 'function') {
         activeTg.openTelegramLink(shareUrl);
       } else if (activeTg && typeof activeTg.openLink === 'function') {
@@ -1927,6 +1938,7 @@
         shareSet(activeModalSet.id, activeModalSet.title);
       }
     }
+
 
     function escapeHtml(str) {
       if (!str) return '';
