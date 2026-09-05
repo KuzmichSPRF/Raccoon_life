@@ -3055,10 +3055,7 @@ def static_files(filename):
 
 @app.route('/image/<path:filename>')
 def image_files(filename):
-    """Отдача картинок из папки image/ проекта или webapp/images/."""
-    image_dir = PROJECT_DIR / 'image'
-    if (image_dir / filename).exists():
-        return send_from_directory(str(image_dir), filename)
+    """Отдача картинок из webapp/images/ (для обратной совместимости)."""
     webapp_img_dir = WEBAPP_DIR / 'images'
     return send_from_directory(str(webapp_img_dir), filename)
 
