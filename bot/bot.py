@@ -6622,7 +6622,7 @@ def decode_base64_image(data_str: str) -> bytes:
 
 def generate_round_chip(raw_bytes: bytes, diameter: int = 320) -> Image.Image:
     """
-    Превращает исходное изображение в круглую четкую фишку без мутных бликов.
+    Превращает исходное изображение в круглую фишку с объемным 3D кантом (фаской и светотенью).
     """
     img = Image.open(BytesIO(raw_bytes)).convert("RGBA")
     w, h = img.size
@@ -6643,12 +6643,29 @@ def generate_round_chip(raw_bytes: bytes, diameter: int = 320) -> Image.Image:
     chip = Image.new('RGBA', (diameter, diameter), (0, 0, 0, 0))
     chip.paste(img, (0, 0), mask)
 
-    # Аккуратный четкий золотистый кант (без мутных бликов поверх картинки)
+    # Создаем объемный 3D кант (светотень, фаска, тиснение без желтого цвета)
     overlay = Image.new('RGBA', (big_size, big_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    draw.ellipse((0, 0, big_size - 1, big_size - 1), outline=(20, 20, 25, 230), width=scale * 3)
-    draw.ellipse((scale * 3, scale * 3, big_size - 1 - scale * 3, big_size - 1 - scale * 3), outline=(255, 215, 0, 190), width=scale * 2)
-    draw.ellipse((scale * 5, scale * 5, big_size - 1 - scale * 5, big_size - 1 - scale * 5), outline=(0, 0, 0, 90), width=scale)
+
+    # 1. Внешний четкий темный контур
+    draw.ellipse((0, 0, big_size - 1, big_size - 1), outline=(15, 18, 22, 240), width=scale * 2)
+
+    # 2. Объемная фаска: нейтрально-серебристый бортик
+    rim_offset = scale * 2
+    rim_w = scale * 4
+    draw.ellipse((rim_offset, rim_offset, big_size - 1 - rim_offset, big_size - 1 - rim_offset), outline=(140, 145, 160, 130), width=rim_w)
+
+    # 3. Направленный свет (сверху-слева блик, снизу-справа глубокая тень)
+    # В PIL углы дуг: 0 = 3 часа, 90 = 6 часов, 180 = 9 часов, 270 = 12 часов.
+    draw.arc((rim_offset, rim_offset, big_size - 1 - rim_offset, big_size - 1 - rim_offset), start=180, end=300, fill=(255, 255, 255, 210), width=rim_w)
+    draw.arc((rim_offset, rim_offset, big_size - 1 - rim_offset, big_size - 1 - rim_offset), start=0, end=120, fill=(10, 12, 16, 220), width=rim_w)
+
+    # 4. Внутренняя разделительная канавка (углубление перед картинкой)
+    inner_offset = rim_offset + rim_w
+    draw.ellipse((inner_offset, inner_offset, big_size - 1 - inner_offset, big_size - 1 - inner_offset), outline=(0, 0, 0, 180), width=scale * 2)
+
+    # 5. Тонкий акцентный внутренний блик по верхнему краю канавки
+    draw.arc((inner_offset, inner_offset, big_size - 1 - inner_offset, big_size - 1 - inner_offset), start=195, end=290, fill=(255, 255, 255, 120), width=scale)
 
     overlay = overlay.resize((diameter, diameter), Image.Resampling.LANCZOS)
     chip = Image.alpha_composite(chip, overlay)

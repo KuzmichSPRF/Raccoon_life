@@ -8374,31 +8374,66 @@
   function drawRoundChipToCanvas(canvas, img) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 2;
+
     ctx.clearRect(0, 0, size, size);
 
-    // Save context for circular clip
+    // 1. Clip and draw inner image
     ctx.save();
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-
     ctx.drawImage(img, 0, 0, size, size);
 
+    // Subtle inner vignette / shadow for recessed depth
+    const innerGrad = ctx.createRadialGradient(cx, cy, r * 0.75, cx, cy, r);
+    innerGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    innerGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.12)');
+    innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+    ctx.fillStyle = innerGrad;
+    ctx.fill();
     ctx.restore();
-    ctx.save();
 
-    // Clean outer gold/metallic border (no murky top glare)
+    // 2. Volumetric 3D Bevel Rim (Объемный металлический кант со светотенью)
+    ctx.save();
+    const rimWidth = Math.max(3, size * 0.042);
+    const rimRadius = r - rimWidth / 2;
+
+    // Linear gradient for directional light (сверху-слева направо-вниз)
+    const bevelGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    bevelGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');   // верхний блик фаски
+    bevelGrad.addColorStop(0.3, 'rgba(210, 215, 225, 0.6)');  // верхний полутон
+    bevelGrad.addColorStop(0.7, 'rgba(70, 75, 85, 0.6)');     // нижний полутон
+    bevelGrad.addColorStop(1, 'rgba(12, 14, 18, 0.95)');      // нижняя тень фаски
+
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
-    ctx.lineWidth = size * 0.03;
+    ctx.arc(cx, cy, rimRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = bevelGrad;
+    ctx.lineWidth = rimWidth;
     ctx.stroke();
 
+    // Внутренняя тонкая разделительная бороздка (углубление перед картинкой)
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - size * 0.04, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.lineWidth = size * 0.02;
+    ctx.arc(cx, cy, r - rimWidth, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.lineWidth = Math.max(1, size * 0.015);
+    ctx.stroke();
+
+    // Внешний контур (тонкий ободок)
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 18, 22, 0.8)';
+    ctx.lineWidth = Math.max(1, size * 0.015);
+    ctx.stroke();
+
+    // Яркий объемный световой блик по верхне-левой дуге фаски
+    ctx.beginPath();
+    ctx.arc(cx, cy, rimRadius, Math.PI * 1.05, Math.PI * 1.85);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = Math.max(1.5, rimWidth * 0.4);
     ctx.stroke();
 
     ctx.restore();
