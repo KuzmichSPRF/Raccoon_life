@@ -40,9 +40,10 @@ BOT_DIR = Path(__file__).resolve().parent
 # Определяем корневую директорию проекта
 PROJECT_DIR = BOT_DIR.parent
 
-# Загрузка переменных окружения из папки bot
-env_path = BOT_DIR / ".env"
-load_dotenv(dotenv_path=str(env_path))
+# Загрузка переменных окружения (из bot/.env или корня проекта)
+load_dotenv(dotenv_path=str(BOT_DIR / ".env"))
+load_dotenv(dotenv_path=str(PROJECT_DIR / ".env"))
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
@@ -8796,6 +8797,11 @@ def main():
     boar_thread = Thread(target=boar_watcher_thread, daemon=True)
     boar_thread.start()
     logger.info("🐗 Boar activity watcher thread started")
+
+    # Проверка наличия BOT_TOKEN
+    if not BOT_TOKEN:
+        logger.critical("❌ ОШИБКА: BOT_TOKEN не задан! Создайте файл .env (в корне или папке bot) и укажите BOT_TOKEN=ваш_токен_бота")
+        return
 
     # Настройка Telegram бота
     builder = (
