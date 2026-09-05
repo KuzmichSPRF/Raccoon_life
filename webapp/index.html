@@ -2125,15 +2125,23 @@
     }
 
     .user-rank-card {
-      background: linear-gradient(135deg, rgba(229, 57, 53, 0.15), var(--bg-secondary));
-      border: 1px solid rgba(229, 57, 53, 0.5);
+      background: linear-gradient(135deg, rgba(42, 20, 24, 0.82) 0%, rgba(32, 18, 22, 0.86) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(229, 57, 53, 0.45);
       border-radius: 16px;
       padding: 12px 14px;
       display: flex;
       align-items: center;
       gap: 12px;
       margin-bottom: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 0 14px rgba(229, 57, 53, 0.08);
+      transition: transform 0.125s ease, border-color 0.15s;
+    }
+
+    .user-rank-card:active {
+      transform: scale(0.98);
+      border-color: var(--btn-red);
     }
 
     .user-rank-badge {
