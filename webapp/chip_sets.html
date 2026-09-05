@@ -1054,12 +1054,18 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
     }
 
     .modal-title {
       font-size: 1.05rem;
       font-weight: 900;
       color: #fff;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .modal-close-btn {
@@ -1071,6 +1077,16 @@
       border-radius: 50%;
       font-size: 1.1rem;
       cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .modal-close-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.18);
     }
 
     .cropper-viewport {
