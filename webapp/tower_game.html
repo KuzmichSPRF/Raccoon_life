@@ -481,7 +481,7 @@
     <div class="fighter-wrapper" id="player-area">
       <div id="p-cap" class="chip-frame player-chip" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-title" id="p-name">Вы (Енот)</div>
       <div class="bars">
@@ -507,7 +507,7 @@
     <div class="fighter-wrapper" id="enemy-area">
       <div id="e-cap" class="chip-frame enemy-chip" onclick="inspectEnemyChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_enemy.png" id="e-img" alt="Enemy" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_enemy.png" id="e-img" alt="Enemy" class="chip-img" onerror="this.src='images/cone.png'">
         <div class="enemy-icon-overlay" id="e-icon">⚪</div>
       </div>
       <div class="fighter-title" id="e-name">Враг</div>
@@ -528,7 +528,7 @@
     <div class="chip-zoom-content" onclick="event.stopPropagation()">
       <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
       <div class="chip-zoom-frame" id="zoom-frame">
-        <img src="chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+        <img src="images/chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
       </div>
       <div class="chip-zoom-title" id="zoom-title">Енот</div>
       <div class="chip-zoom-subtitle" id="zoom-subtitle">Боевая Фишка героя</div>
@@ -555,7 +555,7 @@
       <span class="cost-pill">80 NRG</span>
     </button>
     <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
-      <span>🍪 Восстановить 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</span>
+      <span>🍪 Восстановить 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)</span>
     </button>
     <button class="btn-next-level" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
   </div>
@@ -662,12 +662,12 @@
     const translations = {
       ru: {
         title: "Башня 3.0", msgSt: "Новый противник!", enL: "Энергия",
-        btnA: "🥊 Удар", btnS1: "🗑️ Мусор", btnS2: "🥨 Снэк", btnS3: "🔥 Ярость Енота (УЛЬТА)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnA: "🥊 Удар", btnS1: "🗑️ Мусор", btnS2: "🥨 Снэк", btnS3: "🔥 Ярость Енота (УЛЬТА)", btnC: '🍪 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         btnN: "СЛЕДУЮЩИЙ УРОВЕНЬ ➜", enemy: "Враг"
       },
       en: {
         title: "Tower 3.0", msgSt: "New Enemy!", enL: "Energy",
-        btnA: "🥊 Strike", btnS1: "🗑️ Trash", btnS2: "🥨 Snack", btnS3: "🔥 Raccoon Rage (ULT)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnA: "🥊 Strike", btnS1: "🗑️ Trash", btnS2: "🥨 Snack", btnS3: "🔥 Raccoon Rage (ULT)", btnC: '🍪 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         btnN: "NEXT LEVEL ➜", enemy: "Enemy"
       }
     };
@@ -678,39 +678,39 @@
 
     function updateEnemiesList() {
       ENEMIES = lang === 'ru' ? [
-        { name: "Кэпс Новичок", icon: "⚪", hp: 80, dmg: 8, img: "chip_enemy.png", glow: "#ff9100", border: "#ff9100" },
-        { name: "Ржавая Бита", icon: "🟤", hp: 90, dmg: 9, img: "chip_rusty_bat.png", glow: "#d97706", border: "#b45309" },
-        { name: "Смайлик", icon: "🙂", hp: 100, dmg: 10, img: "chip_smiley.png", glow: "#eab308", border: "#facc15" },
-        { name: "Инь-Янь", icon: "☯️", hp: 110, dmg: 11, img: "chip_yinyang.png", glow: "#e2e8f0", border: "#94a3b8" },
-        { name: "Череп", icon: "💀", hp: 120, dmg: 12, img: "chip_skull.png", glow: "#f43f5e", border: "#e11d48" },
-        { name: "Шар №8", icon: "🎱", hp: 130, dmg: 13, img: "chip_ball8.png", glow: "#38bdf8", border: "#0284c7" },
-        { name: "Ядовитый", icon: "🤢", hp: 115, dmg: 14, img: "chip_toxic.png", glow: "#22c55e", border: "#16a34a" },
-        { name: "Пришелец", icon: "👽", hp: 125, dmg: 12, img: "chip_alien.png", glow: "#10b981", border: "#059669" },
-        { name: "Ниндзя", icon: "🥷", hp: 100, dmg: 16, img: "chip_ninja.png", glow: "#a855f7", border: "#9333ea" },
-        { name: "Робот", icon: "🤖", hp: 140, dmg: 10, img: "chip_robot.png", glow: "#00e5ff", border: "#06b6d4" },
-        { name: "Вампир", icon: "🧛", hp: 110, dmg: 15, img: "chip_vampire.png", glow: "#e11d48", border: "#be123c" },
-        { name: "Зомби", icon: "🧟", hp: 150, dmg: 8, img: "chip_zombie.png", glow: "#84cc16", border: "#65a30d" },
-        { name: "Дракон", icon: "🐉", hp: 160, dmg: 14, img: "chip_dragon.png", glow: "#ff4500", border: "#f97316" },
-        { name: "Волшебник", icon: "🧙", hp: 90, dmg: 18, img: "chip_wizard.png", glow: "#c084fc", border: "#a855f7" },
-        { name: "Алмазный", icon: "💎", hp: 180, dmg: 10, img: "chip_diamond.png", glow: "#38bdf8", border: "#67e8f9" }
+        { name: "Кэпс Новичок", icon: "⚪", hp: 80, dmg: 8, img: "images/chip_enemy.png", glow: "#ff9100", border: "#ff9100" },
+        { name: "Ржавая Бита", icon: "🟤", hp: 90, dmg: 9, img: "images/chip_rusty_bat.png", glow: "#d97706", border: "#b45309" },
+        { name: "Смайлик", icon: "🙂", hp: 100, dmg: 10, img: "images/chip_smiley.png", glow: "#eab308", border: "#facc15" },
+        { name: "Инь-Янь", icon: "☯️", hp: 110, dmg: 11, img: "images/chip_yinyang.png", glow: "#e2e8f0", border: "#94a3b8" },
+        { name: "Череп", icon: "💀", hp: 120, dmg: 12, img: "images/chip_skull.png", glow: "#f43f5e", border: "#e11d48" },
+        { name: "Шар №8", icon: "🎱", hp: 130, dmg: 13, img: "images/chip_ball8.png", glow: "#38bdf8", border: "#0284c7" },
+        { name: "Ядовитый", icon: "🤢", hp: 115, dmg: 14, img: "images/chip_toxic.png", glow: "#22c55e", border: "#16a34a" },
+        { name: "Пришелец", icon: "👽", hp: 125, dmg: 12, img: "images/chip_alien.png", glow: "#10b981", border: "#059669" },
+        { name: "Ниндзя", icon: "🥷", hp: 100, dmg: 16, img: "images/chip_ninja.png", glow: "#a855f7", border: "#9333ea" },
+        { name: "Робот", icon: "🤖", hp: 140, dmg: 10, img: "images/chip_robot.png", glow: "#00e5ff", border: "#06b6d4" },
+        { name: "Вампир", icon: "🧛", hp: 110, dmg: 15, img: "images/chip_vampire.png", glow: "#e11d48", border: "#be123c" },
+        { name: "Зомби", icon: "🧟", hp: 150, dmg: 8, img: "images/chip_zombie.png", glow: "#84cc16", border: "#65a30d" },
+        { name: "Дракон", icon: "🐉", hp: 160, dmg: 14, img: "images/chip_dragon.png", glow: "#ff4500", border: "#f97316" },
+        { name: "Волшебник", icon: "🧙", hp: 90, dmg: 18, img: "images/chip_wizard.png", glow: "#c084fc", border: "#a855f7" },
+        { name: "Алмазный", icon: "💎", hp: 180, dmg: 10, img: "images/chip_diamond.png", glow: "#38bdf8", border: "#67e8f9" }
       ] : [
-        { name: "Caps Noob", icon: "⚪", hp: 80, dmg: 8, img: "chip_enemy.png", glow: "#ff9100", border: "#ff9100" },
-        { name: "Rusty Bat", icon: "🟤", hp: 90, dmg: 9, img: "chip_rusty_bat.png", glow: "#d97706", border: "#b45309" },
-        { name: "Smiley", icon: "🙂", hp: 100, dmg: 10, img: "chip_smiley.png", glow: "#eab308", border: "#facc15" },
-        { name: "Yin-Yang", icon: "☯️", hp: 110, dmg: 11, img: "chip_yinyang.png", glow: "#e2e8f0", border: "#94a3b8" },
-        { name: "Skull", icon: "💀", hp: 120, dmg: 12, img: "chip_skull.png", glow: "#f43f5e", border: "#e11d48" },
-        { name: "8-Ball", icon: "🎱", hp: 130, dmg: 13, img: "chip_ball8.png", glow: "#38bdf8", border: "#0284c7" },
-        { name: "Toxic", icon: "🤢", hp: 115, dmg: 14, img: "chip_toxic.png", glow: "#22c55e", border: "#16a34a" },
-        { name: "Alien", icon: "👽", hp: 125, dmg: 12, img: "chip_alien.png", glow: "#10b981", border: "#059669" },
-        { name: "Ninja", icon: "🥷", hp: 100, dmg: 16, img: "chip_ninja.png", glow: "#a855f7", border: "#9333ea" },
-        { name: "Robot", icon: "🤖", hp: 140, dmg: 10, img: "chip_robot.png", glow: "#00e5ff", border: "#06b6d4" },
-        { name: "Vampire", icon: "🧛", hp: 110, dmg: 15, img: "chip_vampire.png", glow: "#e11d48", border: "#be123c" },
-        { name: "Zombie", icon: "🧟", hp: 150, dmg: 8, img: "chip_zombie.png", glow: "#84cc16", border: "#65a30d" },
-        { name: "Dragon", icon: "🐉", hp: 160, dmg: 14, img: "chip_dragon.png", glow: "#ff4500", border: "#f97316" },
-        { name: "Wizard", icon: "🧙", hp: 90, dmg: 18, img: "chip_wizard.png", glow: "#c084fc", border: "#a855f7" },
-        { name: "Diamond", icon: "💎", hp: 180, dmg: 10, img: "chip_diamond.png", glow: "#38bdf8", border: "#67e8f9" }
+        { name: "Caps Noob", icon: "⚪", hp: 80, dmg: 8, img: "images/chip_enemy.png", glow: "#ff9100", border: "#ff9100" },
+        { name: "Rusty Bat", icon: "🟤", hp: 90, dmg: 9, img: "images/chip_rusty_bat.png", glow: "#d97706", border: "#b45309" },
+        { name: "Smiley", icon: "🙂", hp: 100, dmg: 10, img: "images/chip_smiley.png", glow: "#eab308", border: "#facc15" },
+        { name: "Yin-Yang", icon: "☯️", hp: 110, dmg: 11, img: "images/chip_yinyang.png", glow: "#e2e8f0", border: "#94a3b8" },
+        { name: "Skull", icon: "💀", hp: 120, dmg: 12, img: "images/chip_skull.png", glow: "#f43f5e", border: "#e11d48" },
+        { name: "8-Ball", icon: "🎱", hp: 130, dmg: 13, img: "images/chip_ball8.png", glow: "#38bdf8", border: "#0284c7" },
+        { name: "Toxic", icon: "🤢", hp: 115, dmg: 14, img: "images/chip_toxic.png", glow: "#22c55e", border: "#16a34a" },
+        { name: "Alien", icon: "👽", hp: 125, dmg: 12, img: "images/chip_alien.png", glow: "#10b981", border: "#059669" },
+        { name: "Ninja", icon: "🥷", hp: 100, dmg: 16, img: "images/chip_ninja.png", glow: "#a855f7", border: "#9333ea" },
+        { name: "Robot", icon: "🤖", hp: 140, dmg: 10, img: "images/chip_robot.png", glow: "#00e5ff", border: "#06b6d4" },
+        { name: "Vampire", icon: "🧛", hp: 110, dmg: 15, img: "images/chip_vampire.png", glow: "#e11d48", border: "#be123c" },
+        { name: "Zombie", icon: "🧟", hp: 150, dmg: 8, img: "images/chip_zombie.png", glow: "#84cc16", border: "#65a30d" },
+        { name: "Dragon", icon: "🐉", hp: 160, dmg: 14, img: "images/chip_dragon.png", glow: "#ff4500", border: "#f97316" },
+        { name: "Wizard", icon: "🧙", hp: 90, dmg: 18, img: "images/chip_wizard.png", glow: "#c084fc", border: "#a855f7" },
+        { name: "Diamond", icon: "💎", hp: 180, dmg: 10, img: "images/chip_diamond.png", glow: "#38bdf8", border: "#67e8f9" }
       ];
-      BOSS = lang === 'ru' ? { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 18, img: "chip_boss_catrooster.png", glow: "#ffd700", border: "#ff9100" } : { name: "CATROOSTER", icon: "🐱🐔", hp: 300, dmg: 18, img: "chip_boss_catrooster.png", glow: "#ffd700", border: "#ff9100" };
+      BOSS = lang === 'ru' ? { name: "КОТОПЕТУХ", icon: "🐱🐔", hp: 300, dmg: 18, img: "images/chip_boss_catrooster.png", glow: "#ffd700", border: "#ff9100" } : { name: "CATROOSTER", icon: "🐱🐔", hp: 300, dmg: 18, img: "images/chip_boss_catrooster.png", glow: "#ffd700", border: "#ff9100" };
     }
 
     function applyLang(selectedLang) {
@@ -828,7 +828,7 @@
       const zoomSubtitle = document.getElementById('zoom-subtitle');
       const zoomFrame = document.getElementById('zoom-frame');
       
-      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomImg) zoomImg.src = imgSrc || 'images/chip_raccoon.png';
       if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
       if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
       if (zoomFrame) {
@@ -850,7 +850,7 @@
 
     function inspectPlayerChip() {
       openChipZoom(
-        'chip_raccoon.png',
+        'images/chip_raccoon.png',
         lang === 'ru' ? 'Енот-Воин' : 'Raccoon Hero',
         lang === 'ru' ? 'Легендарная боевая фишка главного героя' : 'Legendary battle chip of the protagonist',
         'rgba(0, 229, 255, 0.7)',
@@ -861,7 +861,7 @@
     function inspectEnemyChip() {
       if (!currentEnemy) return;
       openChipZoom(
-        currentEnemy.img || 'chip_enemy.png',
+        currentEnemy.img || 'images/chip_enemy.png',
         currentEnemy.name || (lang === 'ru' ? 'Враг' : 'Enemy'),
         (lang === 'ru' ? `Башня: этаж ${level} | Урон: ${eStats.dmg} | HP: ${eStats.maxHp}` : `Tower: Floor ${level} | DMG: ${eStats.dmg} | HP: ${eStats.maxHp}`),
         currentEnemy.glow || 'rgba(255, 145, 0, 0.7)',
@@ -891,7 +891,7 @@
         enemyCap.classList.remove('boss-chip');
       }
 
-      enemyImg.src = currentEnemy.img || 'chip_enemy.png';
+      enemyImg.src = currentEnemy.img || 'images/chip_enemy.png';
       enemyImg.style.filter = currentEnemy.filter || 'none';
       enemyCap.style.borderColor = currentEnemy.border || '#ff9100';
       enemyCap.style.boxShadow = `0 0 20px ${currentEnemy.glow || 'rgba(255,145,0,0.4)'}`;

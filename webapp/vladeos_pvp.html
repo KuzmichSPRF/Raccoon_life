@@ -411,7 +411,7 @@
     <div class="cap-wrapper">
       <div id="p-cap" class="chip-frame player" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_raccoon.png" alt="Player Raccoon" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_raccoon.png" alt="Player Raccoon" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label">Вы</div>
       <div id="p-score" class="score">0</div>
@@ -422,7 +422,7 @@
     <div class="cap-wrapper">
       <div id="v-cap" class="chip-frame vladeos" onclick="inspectVladeosChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_vladeos.png" alt="Champion Vladeos" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_vladeos.png" alt="Champion Vladeos" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label purple">Vladeos</div>
       <div id="v-score" class="score">0</div>
@@ -434,7 +434,7 @@
     <div class="chip-zoom-content" onclick="event.stopPropagation()">
       <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
       <div class="chip-zoom-frame" id="zoom-frame">
-        <img src="chip_vladeos.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+        <img src="images/chip_vladeos.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
       </div>
       <div class="chip-zoom-title" id="zoom-title">Vladeos</div>
       <div class="chip-zoom-subtitle" id="zoom-subtitle">Легендарный Чемпион PVP Арены</div>
@@ -456,7 +456,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+100 <img src="cone.png" class="cone-icon" alt="🌰"></div>
+      <div class="reward-amount" id="popup-amount">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -590,7 +590,7 @@
       const zoomSubtitle = document.getElementById('zoom-subtitle');
       const zoomFrame = document.getElementById('zoom-frame');
       
-      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomImg) zoomImg.src = imgSrc || 'images/chip_raccoon.png';
       if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
       if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
       if (zoomFrame) {
@@ -612,7 +612,7 @@
 
     function inspectPlayerChip() {
       openChipZoom(
-        'chip_raccoon.png',
+        'images/chip_raccoon.png',
         lang === 'ru' ? 'Енот-Воин' : 'Raccoon Hero',
         lang === 'ru' ? 'Легендарная боевая фишка главного героя' : 'Legendary battle chip of the protagonist',
         'rgba(0, 229, 255, 0.7)',
@@ -622,7 +622,7 @@
 
     function inspectVladeosChip() {
       openChipZoom(
-        'chip_vladeos.png',
+        'images/chip_vladeos.png',
         'Vladeos',
         lang === 'ru' ? 'Непобежденный Чемпион PVP Арены' : 'Undefeated PVP Arena Champion',
         'rgba(168, 85, 247, 0.8)',
@@ -795,10 +795,10 @@
         title.innerText = t.victoryTitle;
         title.style.color = '#ffd700';
         amountEl.style.display = 'flex';
-        let amountHtml = `+${amount} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+${amount} <img src="images/cone.png" class="cone-icon" alt="🌰">`;
         if (lootDrop) {
           const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
-          const iconSrc = lootDrop.icon || 'cone.png';
+          const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
           amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
             <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
             <span>🎁 ${itemName}</span>

@@ -3055,9 +3055,12 @@ def static_files(filename):
 
 @app.route('/image/<path:filename>')
 def image_files(filename):
-    """Отдача картинок из папки image/ проекта."""
+    """Отдача картинок из папки image/ проекта или webapp/images/."""
     image_dir = PROJECT_DIR / 'image'
-    return send_from_directory(str(image_dir), filename)
+    if (image_dir / filename).exists():
+        return send_from_directory(str(image_dir), filename)
+    webapp_img_dir = WEBAPP_DIR / 'images'
+    return send_from_directory(str(webapp_img_dir), filename)
 
 
 @app.route('/api/boss_hp', methods=['GET'])

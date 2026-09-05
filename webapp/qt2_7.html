@@ -285,7 +285,7 @@
         function initFloor100() {
             actionArea.innerHTML = '';
             charName.innerText = T("Верховный Полоскун (Начальник всех енотов)", "Supreme Raccoon (Boss of all raccoons)");
-            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/main/image/boss.png"; // Fallback to via.placeholder if 404
+            document.getElementById('floor-image').src = "https://raw.githubusercontent.com/KuzmichSPRF/Raccoon_life/mainimages/boss.png"; // Fallback to via.placeholder if 404
             
             if (pState.phase === 0) {
                 showDialog(T("— (Кресло медленно поворачивается. За панорамным окном почему-то идет дождь, хотя на улице солнце) Значит, вы тот самый... выживший. Прошли Элеонору, не сошли с ума у Палыча и даже пережили чай Тамары Степановны. Впечатляет.", "— (The chair slowly turns. It's somehow raining outside the panoramic window, even though it's sunny) So, you're the one... the survivor. Passed Eleonora, didn't go crazy with Palych, and even survived Tamara Stepanovna's tea. Impressive."), () => {

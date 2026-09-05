@@ -632,7 +632,7 @@
     <div class="fighter-box">
       <div id="player-cap" class="chip-frame player" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-name">Вы (Енот)</div>
       <div class="bars">
@@ -658,7 +658,7 @@
     <div class="fighter-box">
       <div id="boss" class="chip-frame boss" onclick="inspectBossChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_boss.png" alt="World Boss" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_boss.png" alt="World Boss" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-name boss-name-gold">ГЕНЕРАЛ ЕНОТОВ</div>
     </div>
@@ -669,7 +669,7 @@
     <div class="chip-zoom-content" onclick="event.stopPropagation()">
       <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
       <div class="chip-zoom-frame" id="zoom-frame">
-        <img src="chip_boss.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+        <img src="images/chip_boss.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
       </div>
       <div class="chip-zoom-title" id="zoom-title">Генерал Енотов</div>
       <div class="chip-zoom-subtitle" id="zoom-subtitle">Мировой Рейдовый Босс</div>
@@ -712,7 +712,7 @@
     </button>
     <button class="btn-action btn-cookie" id="btn-cookie" onclick="buyCookie()">
       <span>🍪 100 HP</span>
-      <span class="cost-pill">100 <img src="cone.png" class="cone-icon" alt="🌰"></span>
+      <span class="cost-pill">100 <img src="images/cone.png" class="cone-icon" alt="🌰"></span>
     </button>
   </div>
 
@@ -865,7 +865,7 @@
       const zoomSubtitle = document.getElementById('zoom-subtitle');
       const zoomFrame = document.getElementById('zoom-frame');
       
-      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomImg) zoomImg.src = imgSrc || 'images/chip_raccoon.png';
       if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
       if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
       if (zoomFrame) {
@@ -887,7 +887,7 @@
 
     function inspectPlayerChip() {
       openChipZoom(
-        'chip_raccoon.png',
+        'images/chip_raccoon.png',
         lang === 'ru' ? 'Енот-Воин' : 'Raccoon Hero',
         lang === 'ru' ? 'Легендарная боевая фишка главного героя' : 'Legendary battle chip of the protagonist',
         'rgba(0, 229, 255, 0.7)',
@@ -897,7 +897,7 @@
 
     function inspectBossChip() {
       openChipZoom(
-        'chip_boss.png',
+        'images/chip_boss.png',
         lang === 'ru' ? 'Генерал Енотов' : 'General Raccoon Boss',
         lang === 'ru' ? 'Мировой Рейдовый Босс 1,000,000,000 HP' : 'World Raid Boss 1,000,000,000 HP',
         'rgba(255, 215, 0, 0.8)',

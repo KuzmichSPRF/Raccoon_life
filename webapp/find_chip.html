@@ -96,7 +96,7 @@
       width: 50px;
       height: 50px;
       border-radius: 50%;
-      background: #1e1e24 url('chip_raccoon.png') center/cover no-repeat;
+      background: #1e1e24 url('images/chip_raccoon.png') center/cover no-repeat;
       border: 2px solid #ffd700;
       display: flex;
       align-items: center;
@@ -521,7 +521,7 @@
     <div class="chip-zoom-content" onclick="event.stopPropagation()">
       <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
       <div class="chip-zoom-frame" id="zoom-frame">
-        <img src="chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+        <img src="images/chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
       </div>
       <div class="chip-zoom-title" id="zoom-title">Енот</div>
       <div class="chip-zoom-subtitle" id="zoom-subtitle">Целевая боевая фишка</div>
@@ -598,7 +598,7 @@
           <b id="stat-missed">0</b>
         </div>
       </div>
-      <div class="reward-amount" id="popup-amount">+100 <img src="cone.png" class="cone-icon" alt="🌰"></div>
+      <div class="reward-amount" id="popup-amount">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-main btn-start" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
     </div>
   </div>
@@ -789,7 +789,7 @@
       const zoomSubtitle = document.getElementById('zoom-subtitle');
       const zoomFrame = document.getElementById('zoom-frame');
       
-      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomImg) zoomImg.src = imgSrc || 'images/chip_raccoon.png';
       if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
       if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
       if (zoomFrame) {
@@ -812,7 +812,7 @@
     function inspectTargetChip() {
       const numStr = gameState.targetNumber ? (' #' + gameState.targetNumber) : '';
       openChipZoom(
-        'chip_raccoon.png',
+        'images/chip_raccoon.png',
         (currentLang === 'ru' ? 'Енот-Искатель' : 'Raccoon Seeker') + numStr,
         currentLang === 'ru' ? 'Главная целевая фишка уровня' : 'Target battle chip of this level',
         'rgba(255, 215, 0, 0.8)',
@@ -1047,10 +1047,10 @@
 
       if (win) {
         amountEl.style.display = 'flex';
-        let amountHtml = `+${REWARD} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+${REWARD} <img src="images/cone.png" class="cone-icon" alt="🌰">`;
         if (lootDrop) {
           const itemName = currentLang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
-          const iconSrc = lootDrop.icon || 'cone.png';
+          const iconSrc = lootDrop.icon || 'images/cone.png';
           amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
             <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
             <span>🎁 ${itemName}</span>

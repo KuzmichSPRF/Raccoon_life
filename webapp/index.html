@@ -59,7 +59,7 @@
       overflow: hidden;
       position: relative;
       background-color: var(--bg-primary);
-      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.40) 0%, rgba(18, 18, 20, 0.55) 45%, rgba(18, 18, 20, 0.78) 100%), url('/image/bgr_main.jpg');
+      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.40) 0%, rgba(18, 18, 20, 0.55) 45%, rgba(18, 18, 20, 0.78) 100%), url('images/bgr_main.jpg');
       background-size: cover;
       background-position: center top;
       background-repeat: no-repeat;
@@ -184,7 +184,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 18px 24px;
-      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.25) 0%, rgba(18, 18, 20, 0.10) 35%, rgba(18, 18, 20, 0.80) 80%), url('/image/splash.jpg');
+      background-image: linear-gradient(180deg, rgba(18, 18, 20, 0.25) 0%, rgba(18, 18, 20, 0.10) 35%, rgba(18, 18, 20, 0.80) 80%), url('images/splash.jpg');
       background-size: cover;
       background-position: center top;
       background-repeat: no-repeat;
@@ -1550,7 +1550,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background-image: url('/image/bgr_toto.png');
+      background-image: url('images/bgr_toto.png');
       background-size: cover;
       background-position: center;
       z-index: 0;
@@ -1865,11 +1865,11 @@
 
       <!-- Hero Image -->
       <div class="hollow-hero-wrap">
-        <img src="hollow.png" id="hollow-hero-img" class="hollow-hero-img" alt="Дупло Енота">
+        <img src="images/hollow.png" id="hollow-hero-img" class="hollow-hero-img" alt="Дупло Енота">
         <div class="hollow-hero-overlay">
           <div class="hollow-hero-yield">
             <span class="hollow-hero-yield-label" data-i18n="hollow_harvest_tag">Добыча в сутки:</span>
-            <span class="hollow-hero-yield-val" id="hollow-hero-yield-val">+1,000 <img src="cone.png" class="cone-icon" alt="🌰"></span>
+            <span class="hollow-hero-yield-val" id="hollow-hero-yield-val">+1,000 <img src="images/cone.png" class="cone-icon" alt="🌰"></span>
           </div>
         </div>
       </div>
@@ -1902,8 +1902,8 @@
 
         <!-- Harvest Claim Button -->
         <button id="bonus-claim-btn" class="hollow-claim-btn" onclick="claimHollowHarvest()">
-          <img src="cone.png" class="cone-icon" alt="🌰" style="width: 20px; height: 20px; vertical-align: middle;">
-          <span id="bonus-claim-btn-text" data-i18n="hollow_claim_btn">Собрать урожай (+1,000 <img src="cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">)</span>
+          <img src="images/cone.png" class="cone-icon" alt="🌰" style="width: 20px; height: 20px; vertical-align: middle;">
+          <span id="bonus-claim-btn-text" data-i18n="hollow_claim_btn">Собрать урожай (+1,000 <img src="images/cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">)</span>
         </button>
       </div>
 
@@ -1916,8 +1916,8 @@
 
         <div id="hollow-upgrade-actions" class="hollow-upgrade-grid">
           <button id="hollow-upgrade-cones-btn" class="hollow-upgrade-btn hollow-upgrade-btn--cones" onclick="upgradeHollowCones()">
-            <div class="hollow-upgrade-btn__top"><img src="cone.png" class="cone-icon" alt="🌰"> <span data-i18n="hollow_upgrade_cones_btn">За шишки</span></div>
-            <div class="hollow-upgrade-btn__price" id="hollow-cones-price">100k <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰"></div>
+            <div class="hollow-upgrade-btn__top"><img src="images/cone.png" class="cone-icon" alt="🌰"> <span data-i18n="hollow_upgrade_cones_btn">За шишки</span></div>
+            <div class="hollow-upgrade-btn__price" id="hollow-cones-price">100k <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰"></div>
           </button>
           <button id="hollow-upgrade-gram-btn" class="hollow-upgrade-btn hollow-upgrade-btn--gram" onclick="buyHollowUpgradeGram()">
             <div class="hollow-upgrade-btn__top">💎 <span data-i18n="hollow_upgrade_gram_btn">За GRAM</span></div>
@@ -1926,13 +1926,13 @@
         </div>
 
         <div id="hollow-max-level-msg" class="hollow-max-level-box" style="display: none;">
-          🏆 <span data-i18n-html="hollow_max_level">Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</span>
+          🏆 <span data-i18n-html="hollow_max_level">Максимальный 10-й уровень (512,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</span>
         </div>
 
         <!-- Quick Mega Cone Use in Hollow -->
         <div id="hollow-mega-cone-box" class="hollow-mega-cone-box">
           <div class="hollow-mega-cone-left">
-            <img src="mega_cone.png" class="hollow-mega-cone-img" alt="✨">
+            <img src="images/mega_cone.png" class="hollow-mega-cone-img" alt="✨">
             <div class="hollow-mega-cone-info">
               <div class="hollow-mega-cone-name" data-i18n="item_mega_cone_name">Мегашишка (+1 ур.)</div>
               <div class="hollow-mega-cone-inv"><span data-i18n="in_inventory">В инвентаре:</span> <span id="hollow-mega-cone-count" style="font-weight: 800; color: #38bdf8;">0 шт.</span></div>
@@ -1948,7 +1948,7 @@
       <div id="hollow-starter-offer" class="hollow-starter-card" style="display: none;">
         <div class="hollow-starter-card__tag">🔥 SPECIAL OFFER</div>
         <div class="hollow-starter-card__title" data-i18n="hollow_starter_title">⚡ ПРОКАЧАЙ ДУПЛО!</div>
-        <div class="hollow-starter-card__desc" data-i18n-html="hollow_starter_desc">+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</div>
+        <div class="hollow-starter-card__desc" data-i18n-html="hollow_starter_desc">+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</div>
         <button class="hollow-starter-card__btn" onclick="buyHollowStarterTon()">
           <span>🚀</span>
           <span data-i18n="hollow_starter_btn">Купить за 10 TON</span>
@@ -2105,10 +2105,10 @@
       <!-- Banner Card with Pinecones & Stars Image -->
       <div style="background: radial-gradient(circle at center, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 16px; padding: 12px; margin-bottom: 15px; position: relative; overflow: hidden;">
         <div style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255,215,0,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
-          <img src="stars_offer.jpg" alt="Stars Offer" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <img src="images/stars_offer.jpg" alt="Stars Offer" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.4); display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>+10,000</span> <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
+          <span>+10,000</span> <img src="images/cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
         </div>
         <div style="font-size: 0.85rem; color: #ffd700; font-weight: 700; margin-top: 4px;" data-i18n="stars_pack_label">
           Пакет «Большой Запас»
@@ -2139,10 +2139,10 @@
 
       <div style="background: radial-gradient(circle at center, rgba(0, 255, 136, 0.12), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 16px; padding: 12px; margin-bottom: 12px; position: relative; overflow: hidden;">
         <div style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(0,255,136,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
-          <img src="offer_ton_start.jpg" alt="Пакет Старт" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <img src="images/offer_ton_start.jpg" alt="Пакет Старт" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(0,255,136,0.4); display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>+20,000</span> <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
+          <span>+20,000</span> <img src="images/cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
         </div>
         <div style="font-size: 0.85rem; color: #00ff88; font-weight: 700; margin-top: 4px;">
           Стоимость: 2.0 GRAM
@@ -2187,10 +2187,10 @@
       <div style="background: radial-gradient(circle at center, rgba(255, 149, 0, 0.12), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(255, 149, 0, 0.35); border-radius: 16px; padding: 12px; margin-bottom: 12px; position: relative; overflow: hidden;">
         <div style="position: absolute; top: 18px; right: 18px; background: #ff9500; color: #000; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 6px; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">+20% БОНУС</div>
         <div style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255,149,0,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
-          <img src="offer_ton_mushroom.jpg" alt="Пакет Грибник" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <img src="images/offer_ton_mushroom.jpg" alt="Пакет Грибник" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,149,0,0.4); display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>+60,000</span> <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
+          <span>+60,000</span> <img src="images/cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
         </div>
         <div style="font-size: 0.85rem; color: #ff9500; font-weight: 700; margin-top: 4px;">
           Стоимость: 5.0 GRAM
@@ -2235,10 +2235,10 @@
       <div style="background: radial-gradient(circle at center, rgba(229, 57, 53, 0.15), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(229, 57, 53, 0.4); border-radius: 16px; padding: 12px; margin-bottom: 12px; position: relative; overflow: hidden;">
         <div style="position: absolute; top: 18px; right: 18px; background: #e53935; color: #fff; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 6px; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">🔥 ХИТ +50%</div>
         <div style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(229,57,53,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
-          <img src="offer_ton_rich.jpg" alt="Пакет Богатый Енот" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <img src="images/offer_ton_rich.jpg" alt="Пакет Богатый Енот" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(229,57,53,0.5); display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>+150,000</span> <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
+          <span>+150,000</span> <img src="images/cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
         </div>
         <div style="font-size: 0.85rem; color: #ff5252; font-weight: 700; margin-top: 4px;">
           Стоимость: 10.0 GRAM
@@ -2283,10 +2283,10 @@
       <div style="background: radial-gradient(circle at center, rgba(156, 39, 176, 0.18), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(156, 39, 176, 0.4); border-radius: 16px; padding: 12px; margin-bottom: 12px; position: relative; overflow: hidden;">
         <div style="position: absolute; top: 18px; right: 18px; background: #9c27b0; color: #fff; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 6px; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">👑 VIP +66%</div>
         <div style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(156,39,176,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
-          <img src="offer_ton_vault.jpg" alt="Пакет Хранилище Леса" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          <img src="images/offer_ton_vault.jpg" alt="Пакет Хранилище Леса" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(156,39,176,0.5); display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>+500,000</span> <img src="cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
+          <span>+500,000</span> <img src="images/cone.png" class="cone-icon" style="width: 24px; height: 24px;" alt="🌲">
         </div>
         <div style="font-size: 0.85rem; color: #ce93d8; font-weight: 700; margin-top: 4px;">
           Стоимость: 30.0 GRAM
@@ -2377,7 +2377,7 @@
     <!-- Resource Pills Bar -->
     <div class="home__profile-buttons">
       <button class="home__profile" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек" data-i18n-title="balance_tooltip">
-        <span class="profile-pill-icon"><img src="cone.png" class="cone-icon" alt="🌰"></span>
+        <span class="profile-pill-icon"><img src="images/cone.png" class="cone-icon" alt="🌰"></span>
         <span id="token-balance">0</span>
       </button>
       <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');" title="Прогресс квестов" data-i18n-title="quests_progress_tooltip">
@@ -2403,35 +2403,35 @@
         <button class="offer-badge offer-badge--stars" onclick="openOfferModal('stars'); triggerHaptic('light');" title="10,000 Шишек за 100 Звёзд" data-i18n-title="stars_offer_tooltip">
           <div class="offer-badge__timer offer-badge__timer--stars">100⭐</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));">⭐</span>
-          <div class="offer-badge__label" style="color: #ffd700; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">10k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+          <div class="offer-badge__label" style="color: #ffd700; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">10k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
 
         <!-- Offer 2: 2.0 GRAM -> 20k -->
         <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_02'); triggerHaptic('light');" title="20,000 Шишек за 2.0 GRAM">
           <div class="offer-badge__timer offer-badge__timer--ton">2 GRAM</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
-          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">20k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">20k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
 
         <!-- Offer 3: 5.0 GRAM -> 60k -->
         <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_05'); triggerHaptic('light');" title="60,000 Шишек за 5.0 GRAM (+20%)">
           <div class="offer-badge__timer offer-badge__timer--hot">5 GRAM</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
-          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">60k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">60k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
 
         <!-- Offer 4: 10.0 GRAM -> 150k (ХИТ) -->
         <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_10'); triggerHaptic('light');" title="150,000 Шишек за 10.0 GRAM (ХИТ)">
           <div class="offer-badge__timer offer-badge__timer--live">10 GRAM</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.7));">💎</span>
-          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">150k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">150k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
 
         <!-- Offer 5: 30.0 GRAM -> 500k (VIP) -->
         <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_30'); triggerHaptic('light');" title="500,000 Шишек за 30.0 GRAM (VIP)">
           <div class="offer-badge__timer offer-badge__timer--vip">30 GRAM</div>
           <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(156, 39, 176, 0.8));">💎</span>
-          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">500k <img src="cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
+          <div class="offer-badge__label" style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">500k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
         </button>
       </div>
 
@@ -2441,7 +2441,7 @@
         <div class="mascot-ambient-glow"></div>
         <div class="mascot-character" id="mascot-char">🦝</div>
         <div class="mascot-season-tag">SEASON 2 • RACCOON LIFE</div>
-        <div class="mascot-tap-pill" id="mascot-tap-pill"><img src="cone.png" class="cone-icon" alt="🌰"> <span id="mascot-tap-count">0</span>/1000</div>
+        <div class="mascot-tap-pill" id="mascot-tap-pill"><img src="images/cone.png" class="cone-icon" alt="🌰"> <span id="mascot-tap-count">0</span>/1000</div>
       </div>
 
       <!-- Right Column Badges -->
@@ -2509,7 +2509,7 @@
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
               <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span></div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
             <div class="play-bottom-sheet__description" data-i18n="game_battleship_desc">Классическая морская баталия против енота</div>
           </button>
@@ -2527,7 +2527,7 @@
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🏰 Башня 3.0' : '🏰 Tower 3.0', url: 'tower_game.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
               <div><span class="play-bottom-sheet__icon">🏰</span><span data-i18n="game_tower">Башня 3.0</span></div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 <img src="cone.png" class="cone-icon" alt="🌰">/<span data-i18n="lvl_short">ур</span></span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 <img src="images/cone.png" class="cone-icon" alt="🌰">/<span data-i18n="lvl_short">ур</span></span></div>
             </div>
             <div class="play-bottom-sheet__description" data-i18n="game_tower_desc">Покори этажи башни испытаний</div>
           </button>
@@ -2536,7 +2536,7 @@
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: '⚔️ PVP: Vladeos', url: 'vladeos_pvp.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
               <div><span class="play-bottom-sheet__icon">⚔️</span><span data-i18n="game_vladeos">PVP: Vladeos</span></div>
-              <div class="play-bottom-sheet__fee"><span class="trans--orange">5% <span data-i18n="chance_word">шанс</span> 100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--orange">5% <span data-i18n="chance_word">шанс</span> 100 <img src="images/cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
             <div class="play-bottom-sheet__description" data-i18n="game_vladeos_desc">Сражение с легендарным противником</div>
           </button>
@@ -2545,7 +2545,7 @@
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎲 Битва фишек' : '🎲 Caps Battle', url: 'game.html', type: 'iframe' });">
             <div class="play-bottom-sheet__title">
               <div><span class="play-bottom-sheet__icon">🎲</span><span data-i18n="game_chips_battle">Битва фишек</span></div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">+10 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
+              <div class="play-bottom-sheet__fee"><span class="trans--gold">+10 <img src="images/cone.png" class="cone-icon" alt="🌰"></span></div>
             </div>
             <div class="play-bottom-sheet__description" data-i18n="game_chips_battle_desc">Динамичные дуэли на фишках</div>
           </button>
@@ -2758,9 +2758,9 @@
       hollow_upgrade_desc: "Каждый уровень удваивает (х2) ежедневную добычу шишек!",
       hollow_upgrade_cones_btn: "За шишки",
       hollow_upgrade_gram_btn: "За GRAM",
-      hollow_max_level: 'Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
+      hollow_max_level: 'Максимальный 10-й уровень (512,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
       hollow_starter_title: "⚡ ПРОКАЧАЙ ДУПЛО!",
-      hollow_starter_desc: '+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
+      hollow_starter_desc: '+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
       hollow_starter_btn: "Купить за 10 TON",
       hollow_claimed_toast: "🎉 Урожай Дупла успешно собран!",
       raccoon_tired: "Я устал! 😴 Приходи после бонуса!",
@@ -2952,9 +2952,9 @@
       hollow_upgrade_desc: "Each level doubles (x2) your daily cone harvest!",
       hollow_upgrade_cones_btn: "For Cones",
       hollow_upgrade_gram_btn: "For GRAM",
-      hollow_max_level: 'Max 10th Level (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
+      hollow_max_level: 'Max 10th Level (512,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
       hollow_starter_title: "⚡ UPGRADE HOLLOW!",
-      hollow_starter_desc: '+3 Hollow Levels (Instantly Level 4 = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
+      hollow_starter_desc: '+3 Hollow Levels (Instantly Level 4 = 8,000 <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
       hollow_starter_btn: "Buy for 10 TON",
       hollow_claimed_toast: "🎉 Hollow harvest collected successfully!",
       raccoon_tired: "I'm tired! 😴 Come back after the bonus!",
@@ -3584,7 +3584,7 @@
 
     if (lvlBadge) lvlBadge.innerText = `${i18n[currentLang]?.hollow_lvl || 'Ур.'} ${level}/10`;
     if (yieldVal) {
-      yieldVal.innerHTML = `+${hollowState.daily_yield.toLocaleString('ru-RU')} <img src="cone.png" class="cone-icon" alt="🌰">`;
+      yieldVal.innerHTML = `+${hollowState.daily_yield.toLocaleString('ru-RU')} <img src="images/cone.png" class="cone-icon" alt="🌰">`;
     }
 
     // Состояние сбора
@@ -3595,7 +3595,7 @@
         claimBtn.disabled = hollowState.is_claiming;
       }
       if (claimBtnText) {
-        claimBtnText.innerHTML = hollowState.is_claiming ? '⏳ ...' : `${i18n[currentLang]?.hollow_claim_btn || 'Собрать урожай'} (+${hollowState.daily_yield.toLocaleString('ru-RU')} <img src="cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">)`;
+        claimBtnText.innerHTML = hollowState.is_claiming ? '⏳ ...' : `${i18n[currentLang]?.hollow_claim_btn || 'Собрать урожай'} (+${hollowState.daily_yield.toLocaleString('ru-RU')} <img src="images/cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">)`;
       }
     } else {
       if (claimBtn) claimBtn.style.display = 'none';
@@ -3621,12 +3621,12 @@
       if (upgradeActions) upgradeActions.style.display = 'grid';
       if (maxLevelMsg) maxLevelMsg.style.display = 'none';
       if (nextInfoEl) {
-        nextInfoEl.innerHTML = `+${hollowState.next_yield.toLocaleString('ru-RU')} <img src="cone.png" class="cone-icon" style="width:11px;height:11px;vertical-align:middle;" alt="🌰">/сут`;
+        nextInfoEl.innerHTML = `+${hollowState.next_yield.toLocaleString('ru-RU')} <img src="images/cone.png" class="cone-icon" style="width:11px;height:11px;vertical-align:middle;" alt="🌰">/сут`;
       }
       if (conesPriceEl) {
         const cost = hollowState.upgrade_cost_cones;
         const costStr = cost >= 1000000 ? `${(cost / 1000000).toFixed(1).replace('.0','')}M` : `${Math.round(cost / 1000)}k`;
-        conesPriceEl.innerHTML = `${costStr} <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">`;
+        conesPriceEl.innerHTML = `${costStr} <img src="images/cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">`;
       }
       if (gramPriceEl) {
         gramPriceEl.innerText = `${hollowState.upgrade_cost_gram} GRAM`;
@@ -3743,7 +3743,7 @@
       const name = i18n[currentLang]?.[`item_${item.id}_name`] || item.name;
       const desc = i18n[currentLang]?.[`item_${item.id}_desc`] || item.description;
       const rarity = i18n[currentLang]?.[`item_rarity_${item.rarity}`] || (item.rarity === 'legendary' ? 'Легендарный' : 'Редкий');
-      const iconSrc = item.icon || (item.id === 'mega_cone' ? 'mega_cone.png' : 'cone.png');
+      const iconSrc = item.icon || (item.id === 'mega_cone' ? 'images/mega_cone.png' : 'images/cone.png');
       const isMaxHollow = item.id === 'mega_cone' && (hollowState.level || 1) >= 10;
 
       return `
@@ -4163,7 +4163,7 @@
         pillEl.innerHTML = `😴 <span>${RACCOON_MAX_TAPS}/${RACCOON_MAX_TAPS}</span>`;
       } else {
         pillEl.classList.remove('is-tired');
-        pillEl.innerHTML = `<img src="cone.png" class="cone-icon" alt="🌰"> <span>${currentTaps}</span>/${RACCOON_MAX_TAPS}`;
+        pillEl.innerHTML = `<img src="images/cone.png" class="cone-icon" alt="🌰"> <span>${currentTaps}</span>/${RACCOON_MAX_TAPS}`;
       }
     }
 
@@ -4273,7 +4273,7 @@
 
     const floatEl = document.createElement('div');
     floatEl.className = 'mascot-floating-cone';
-    floatEl.innerHTML = '+1 <img src="cone.png" class="cone-icon" alt="🌰">';
+    floatEl.innerHTML = '+1 <img src="images/cone.png" class="cone-icon" alt="🌰">';
 
     let posX = 50;
     let posY = 50;
@@ -4687,7 +4687,7 @@
       if (isCompleted) {
         chipHTML = `<span class="list-item-badge" style="color: var(--accent-green); border-color: rgba(51, 189, 28, 0.3);">✅ ${i18n[currentLang].badge_completed || 'Пройдено'}</span>`;
       } else if (catKey === 'qt_2' || (catKey === 'quests' && !item.type.includes('folder'))) {
-        chipHTML = `<span class="list-item-badge"><img src="cone.png" class="cone-icon" alt="🌰"> +10,000</span>`;
+        chipHTML = `<span class="list-item-badge"><img src="images/cone.png" class="cone-icon" alt="🌰"> +10,000</span>`;
       }
 
       // Определение иконки для карточки
@@ -5123,7 +5123,7 @@
         <!-- Breakdown Grid -->
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; text-align: left;">
           <div class="profile-chip">
-            <div class="profile-chip-title"><img src="cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text || 'Баланс'}</div>
+            <div class="profile-chip-title"><img src="images/cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text || 'Баланс'}</div>
             <div class="profile-chip-val" style="color: #ffd700;">+${balance.toLocaleString('ru-RU')}</div>
           </div>
           <div class="profile-chip">
@@ -5153,7 +5153,7 @@
         <div class="profile-grid-2">
           <div class="profile-chip">
             <div class="profile-chip-title">Текущий баланс</div>
-            <div class="profile-chip-val"><img src="cone.png" class="cone-icon" alt="🌰"> ${balance.toLocaleString('ru-RU')}</div>
+            <div class="profile-chip-val"><img src="images/cone.png" class="cone-icon" alt="🌰"> ${balance.toLocaleString('ru-RU')}</div>
           </div>
           <div class="profile-chip">
             <div class="profile-chip-title">Всего заработано</div>
@@ -6461,7 +6461,7 @@
                   <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 600;">📊 ${i18n[currentLang].profile_modal_title || 'Статистика'} →</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
-                  <img src="cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${userRank.quests_completed || 0} • 🎮 ${userRank.total_games || 0} • 📰 ${userRank.newspapers_read || 0}
+                  <img src="images/cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${userRank.quests_completed || 0} • 🎮 ${userRank.total_games || 0} • 📰 ${userRank.newspapers_read || 0}
                 </div>
               </div>
               <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedScore)}</div>
@@ -6479,7 +6479,7 @@
                   <span class="user-rank-badge">${youText}</span>
                   <span style="font-size: 0.7rem; color: var(--accent-gold); font-weight: 600;">📊 ${i18n[currentLang].profile_modal_title || 'Статистика'} →</span>
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;"><img src="cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;"><img src="images/cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
               </div>
               <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedBalance)}</div>
             </div>
@@ -6543,7 +6543,7 @@
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
               <div style="font-size: 0.75rem; color: var(--text-sec);">
-                <img src="cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${p.quests_completed || 0} • 🎮 ${p.total_games || 0} • 📰 ${p.newspapers_read || 0}
+                <img src="images/cone.png" class="cone-icon" alt="🌰"> ${escapeHTML(formattedBalance)} • 📜 ${p.quests_completed || 0} • 🎮 ${p.total_games || 0} • 📰 ${p.newspapers_read || 0}
               </div>
             </div>
             <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-gold); text-align:right;">${escapeHTML(formattedScore)}</div>
@@ -6555,7 +6555,7 @@
             <div style="font-size: 1.5rem; font-weight: 800; color: ${rankColor}; width: 50px; text-align:center;">${safeRankIcon}</div>
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 700;">${safeName}${userBadgeHTML}</div>
-              <div style="font-size: 0.75rem; color: var(--text-sec);"><img src="cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
+              <div style="font-size: 0.75rem; color: var(--text-sec);"><img src="images/cone.png" class="cone-icon" alt="🌰"> ${i18n[currentLang].balance_text}: ${escapeHTML(formattedBalance)} ${i18n[currentLang].cones_plural} ${escapeHTML(earnedLabel)}</div>
             </div>
             <div style="font-size: 1.1rem; font-weight: 800; color: var(--accent); text-align:right;">${escapeHTML(formattedBalance)}</div>
           `;

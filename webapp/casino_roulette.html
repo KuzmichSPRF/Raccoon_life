@@ -475,7 +475,7 @@
       <div class="header-controls">
         <button class="sound-btn" id="sound-toggle-btn" onclick="toggleSound()" title="Звук">🔊</button>
         <div class="balance-badge">
-          <img src="cone.png" class="cone-icon" alt="🌰">
+          <img src="images/cone.png" class="cone-icon" alt="🌰">
           <span id="balance">0</span>
         </div>
       </div>
@@ -521,7 +521,7 @@
         <button class="step-btn" onclick="adjustBet(-1000)">-</button>
         <div class="bet-input-wrap">
           <input type="number" id="bet-amount-input" class="bet-input-field" value="1000" min="1000" step="500" oninput="onBetInputChange()">
-          <img src="cone.png" class="cone-icon bet-input-icon" alt="🌰">
+          <img src="images/cone.png" class="cone-icon bet-input-icon" alt="🌰">
         </div>
         <button class="step-btn" onclick="adjustBet(1000)">+</button>
       </div>
@@ -717,7 +717,7 @@
           } else if (seg.type === 'jackpot') {
             el.innerHTML = '<span style="font-size:1.1rem;">💎</span><span style="font-size:0.65rem; font-weight:900;">x100</span>';
           } else if (seg.type === 'mega_cone') {
-            el.innerHTML = '<img src="mega_cone.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px #38bdf8);"><span style="font-size:0.58rem;font-weight:900;color:#fff;text-shadow:0 0 4px #000;">+1 LVL</span>';
+            el.innerHTML = '<img src="images/mega_cone.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px #38bdf8);"><span style="font-size:0.58rem;font-weight:900;color:#fff;text-shadow:0 0 4px #000;">+1 LVL</span>';
           } else {
             el.innerHTML = `<span>${seg.value}</span>`;
           }
@@ -977,7 +977,7 @@
         const el = document.createElement('div');
         el.className = `hist-pill hist-pill--${item.type}`;
         if (item.type === 'jackpot') el.innerText = '💎';
-        else if (item.type === 'mega_cone') el.innerHTML = '<img src="mega_cone.png" style="width:18px;height:18px;object-fit:contain;">';
+        else if (item.type === 'mega_cone') el.innerHTML = '<img src="images/mega_cone.png" style="width:18px;height:18px;object-fit:contain;">';
         else el.innerText = item.number;
         
         if (item.win) {

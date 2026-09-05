@@ -511,7 +511,7 @@
     <div class="fighter-wrapper" id="p1-area">
       <div id="p1-cap" class="chip-frame player-chip" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-title" id="p1-name">Енот</div>
       <div class="bars">
@@ -537,7 +537,7 @@
     <div class="fighter-wrapper" id="bot-area">
       <div id="bot-cap" class="chip-frame bot-chip" onclick="inspectBotChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <img src="chip_enemy.png" alt="Rival Grunt" class="chip-img" onerror="this.src='cone.png'">
+        <img src="images/chip_enemy.png" alt="Rival Grunt" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-title" id="bot-name">Клоун-Бунтарь</div>
       <div class="bars">
@@ -564,7 +564,7 @@
     <div class="chip-zoom-content" onclick="event.stopPropagation()">
       <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
       <div class="chip-zoom-frame" id="zoom-frame">
-        <img src="chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+        <img src="images/chip_raccoon.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
       </div>
       <div class="chip-zoom-title" id="zoom-title">Енот</div>
       <div class="chip-zoom-subtitle" id="zoom-subtitle">Боевая Фишка героя</div>
@@ -591,7 +591,7 @@
       <span class="cost-pill">80 NRG</span>
     </button>
     <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
-      <span>🍪 Восстановить 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</span>
+      <span>🍪 Восстановить 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)</span>
     </button>
   </div>
 
@@ -602,7 +602,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+10 <img src="cone.png" class="cone-icon" alt="🌰"></div>
+      <div class="reward-amount" id="popup-amount">+10 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -717,7 +717,7 @@
         modeTitle: "БИТВА ФИШЕК",
         msgStart: "Твой ход, Енот! Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун-Бунтарь",
         btnA: "🥊 Обычный удар", btnS1: "🗑️ Мусорный залп", btnS2: "🥨 Перекус", btnS3: "🔥 Ярость Енота (УЛЬТА)",
-        btnC: '🍪 Восстановить 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnC: '🍪 Восстановить 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Битва началась...",
         victory: "Победа!", defeat: "Поражение!", cont: "Продолжить", playAgain: "Сыграть ещё"
       },
@@ -725,7 +725,7 @@
         modeTitle: "CAPS BATTLE",
         msgStart: "Your turn, Raccoon! Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Rebel Clown",
         btnA: "🥊 Basic Strike", btnS1: "🗑️ Trash Volley", btnS2: "🥨 Quick Snack", btnS3: "🔥 Raccoon Rage (ULT)",
-        btnC: '🍪 Restore 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnC: '🍪 Restore 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Battle started...",
         victory: "Victory!", defeat: "Defeat!", cont: "Continue", playAgain: "Play Again"
       }
@@ -762,7 +762,7 @@
       const zoomSubtitle = document.getElementById('zoom-subtitle');
       const zoomFrame = document.getElementById('zoom-frame');
       
-      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomImg) zoomImg.src = imgSrc || 'images/chip_raccoon.png';
       if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
       if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
       if (zoomFrame) {
@@ -784,7 +784,7 @@
 
     function inspectPlayerChip() {
       openChipZoom(
-        'chip_raccoon.png',
+        'images/chip_raccoon.png',
         lang === 'ru' ? 'Енот-Воин' : 'Raccoon Hero',
         lang === 'ru' ? 'Легендарная боевая фишка главного героя' : 'Legendary battle chip of the protagonist',
         'rgba(0, 229, 255, 0.7)',
@@ -794,7 +794,7 @@
 
     function inspectBotChip() {
       openChipZoom(
-        'chip_enemy.png',
+        'images/chip_enemy.png',
         lang === 'ru' ? 'Клоун-Бунтарь' : 'Rebel Clown',
         lang === 'ru' ? 'Коварный уличный боец с взрывными сюрпризами' : 'Tricky street fighter with explosive tricks',
         'rgba(255, 145, 0, 0.7)',
@@ -1164,10 +1164,10 @@
         title.innerText = t.victory;
         title.style.color = '#ffd700';
         amountEl.style.display = 'flex';
-        let amountHtml = `+10 <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+10 <img src="images/cone.png" class="cone-icon" alt="🌰">`;
         if (lootDrop) {
           const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
-          const iconSrc = lootDrop.icon || 'cone.png';
+          const iconSrc = lootDrop.icon || 'images/cone.png';
           amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
             <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
             <span>🎁 ${itemName}</span>
