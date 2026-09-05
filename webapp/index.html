@@ -2031,13 +2031,15 @@
     }
 
     .list-item.completed {
-      border: 1px solid rgba(51, 189, 28, 0.45);
-      background: linear-gradient(135deg, #141f16 0%, #171c18 100%);
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(51, 189, 28, 0.08);
+      border: 1px solid rgba(51, 189, 28, 0.4);
+      background: linear-gradient(135deg, rgba(20, 32, 22, 0.72) 0%, rgba(22, 28, 24, 0.76) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 0 14px rgba(51, 189, 28, 0.06);
     }
 
     .list-item.completed .list-item-icon-box {
-      background: #1a271d;
+      background: rgba(26, 39, 29, 0.75);
       border-color: rgba(51, 189, 28, 0.35);
     }
 
