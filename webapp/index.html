@@ -2165,16 +2165,39 @@
       z-index: 100000 !important;
     }
 
+    .tutorial-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 14, 0.84);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2500;
+      padding: 16px;
+    }
+
+    .tutorial-overlay.active {
+      display: flex;
+    }
+
     .tutorial-modal {
-      background: var(--bg-secondary);
+      background: rgba(22, 22, 28, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-radius: 24px;
-      padding: 26px 20px;
+      padding: 24px 20px;
       max-width: 360px;
       width: 100%;
       text-align: center;
-      border: 0.5px solid var(--border-subtle);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(236, 72, 153, 0.15);
       animation: modalSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      position: relative;
     }
 
     @keyframes modalSlideUp {
@@ -2189,24 +2212,60 @@
       }
     }
 
+    .tutorial-icon-wrap {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.25));
+      border: 1px solid rgba(236, 72, 153, 0.45);
+      box-shadow: 0 6px 20px rgba(236, 72, 153, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+    }
+
     .tutorial-icon {
-      font-size: 3.5rem;
-      margin-bottom: 10px;
+      font-size: 2.3rem;
+      line-height: 1;
       display: block;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
     }
 
     .tutorial-title {
       font-size: 1.25rem;
-      font-weight: 800;
+      font-weight: 900;
       margin-bottom: 8px;
-      color: var(--text-primary);
+      background: linear-gradient(135deg, #ffffff, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.01em;
     }
 
     .tutorial-desc {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      line-height: 1.45;
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.5;
       margin-bottom: 18px;
+    }
+
+    .tutorial-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 13px 20px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(236, 72, 153, 0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .tutorial-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 10px rgba(236, 72, 153, 0.6);
     }
 
     /* Form Fields */
@@ -3129,9 +3188,12 @@
 
   <div id="app">
     <!-- Tutorial Modal -->
-    <div id="tutorial-overlay" class="tutorial-overlay">
+    <div id="tutorial-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeTutorial()">
       <div class="tutorial-modal">
-        <span class="tutorial-icon" id="tutorial-icon">📰</span>
+        <button class="close-modal-btn" onclick="closeTutorial()">✕</button>
+        <div class="tutorial-icon-wrap">
+          <span class="tutorial-icon" id="tutorial-icon">📰</span>
+        </div>
         <h3 class="tutorial-title" id="tutorial-title" data-i18n="welcome_title">Добро пожаловать!</h3>
         <p class="tutorial-desc" id="tutorial-desc" data-i18n="welcome_desc">Здесь вы найдете много интересного</p>
         <button class="tutorial-btn" onclick="closeTutorial()" data-i18n="btn_understood">Понятно!</button>
@@ -3520,24 +3582,29 @@
 
 
     <!-- Season Complete Modal -->
-    <div id="season-complete-overlay" class="tutorial-overlay">
-      <div class="tutorial-modal" style="border-color: var(--game-green); box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);">
-        <span class="tutorial-icon">🏆</span>
-        <h3 class="tutorial-title" data-i18n="season_complete_title">Сезон Завершен!</h3>
+    <div id="season-complete-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeSeasonComplete()">
+      <div class="tutorial-modal" style="border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(34, 197, 94, 0.2);">
+        <button class="close-modal-btn" onclick="closeSeasonComplete()">✕</button>
+        <div class="tutorial-icon-wrap" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.25)); border-color: rgba(34, 197, 94, 0.45);">
+          <span class="tutorial-icon">🏆</span>
+        </div>
+        <h3 class="tutorial-title" data-i18n="season_complete_title" style="background: linear-gradient(135deg, #ffffff, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Сезон Завершен!</h3>
         <p class="tutorial-desc" data-i18n="season_complete_desc">Вы успешно прошли все круги бюрократического ада и
           завершили 2-й сезон The Questoon Times!</p>
-        <button class="tutorial-btn" style="background: var(--game-green); color: black;"
+        <button class="tutorial-btn" style="background: linear-gradient(135deg, #22c55e, #10b981); color: #ffffff;"
           onclick="closeSeasonComplete()" data-i18n="btn_hooray">Ура!</button>
       </div>
     </div>
 
     <!-- News Submit Modal -->
-    <div id="news-submit-overlay" class="tutorial-overlay">
-      <div class="tutorial-modal" style="position: relative; width: 90%;">
+    <div id="news-submit-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeNewsModal()">
+      <div class="tutorial-modal" style="position: relative; width: 90%; max-width: 380px;">
         <button class="close-modal-btn" onclick="closeNewsModal()">✕</button>
-        <span class="tutorial-icon">✍️</span>
+        <div class="tutorial-icon-wrap">
+          <span class="tutorial-icon">✍️</span>
+        </div>
         <h3 class="tutorial-title" data-i18n="submit_news_title">Предложить новость</h3>
-        <p class="tutorial-desc" data-i18n="submit_news_desc" style="font-size: 0.85rem;">У вас есть горячие слухи о
+        <p class="tutorial-desc" data-i18n="submit_news_desc" style="font-size: 0.85rem; margin-bottom: 14px;">У вас есть горячие слухи о
           енотах? Расскажите редакции! Отправлять можно раз в 3 часа.</p>
 
         <select id="news-topic" class="news-select">
@@ -3558,7 +3625,7 @@
           <input type="file" id="news-image-input" accept="image/jpeg, image/png" style="display: none;"
             onchange="previewNewsImage()">
           <button class="btn-primary" id="news-image-btn"
-            style="width:100%; padding: 10px; font-size: 0.8rem; background: #333; border: 1px dashed var(--primary);"
+            style="width:100%; padding: 10px; font-size: 0.8rem; background: rgba(255,255,255,0.06); border: 1px dashed rgba(236, 72, 153, 0.5); border-radius: 12px; color: #fff;"
             onclick="document.getElementById('news-image-input').click()" data-i18n="submit_news_image_btn">🖼️
             Прикрепить картинку</button>
           <div id="news-image-info"
@@ -3580,12 +3647,14 @@
     </div>
 
     <!-- Bet Modal -->
-    <div id="bet-modal-overlay" class="tutorial-overlay">
-      <div class="tutorial-modal" style="width: 90%; position: relative;">
+    <div id="bet-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeBetModal()">
+      <div class="tutorial-modal" style="width: 90%; max-width: 380px; position: relative;">
         <button class="close-modal-btn" onclick="closeBetModal()">✕</button>
-        <span class="tutorial-icon">🎲</span>
+        <div class="tutorial-icon-wrap">
+          <span class="tutorial-icon">🎲</span>
+        </div>
         <h3 class="tutorial-title" id="bet-modal-title" data-i18n="make_bet_title">Сделать ставку</h3>
-        <p class="tutorial-desc" id="bet-modal-desc" style="font-size: 0.9rem; margin-bottom: 15px;"></p>
+        <p class="tutorial-desc" id="bet-modal-desc" style="font-size: 0.88rem; margin-bottom: 14px;"></p>
 
         <div class="bet-currency-tabs">
           <button id="bet-currency-cg" class="bet-currency-tab active" onclick="selectBetCurrency('CG')">$CG</button>
@@ -5177,32 +5246,32 @@
       return {
         newspapers: {
           icon: '📰',
-          title: currentLang === 'ru' ? '📰 Газеты' : '📰 News',
+          title: currentLang === 'ru' ? 'Газеты' : 'The Raccoon Times',
           desc: currentLang === 'ru' ? 'Здесь хранятся все выпуски The Raccoon Times. Читайте новости и будьте в курсе событий!' : 'All issues of The Raccoon Times are stored here. Read the news and stay updated!'
         },
         quests: {
-          icon: '❓',
-          title: currentLang === 'ru' ? '❓ Квесты' : '❓ Quests',
-          desc: currentLang === 'ru' ? 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 10000 Шишек.' : 'Complete quests and earn cones! For the first completion of a quest you receive 10000 Cones.'
+          icon: '📜',
+          title: currentLang === 'ru' ? 'Квесты' : 'Quests',
+          desc: currentLang === 'ru' ? 'Выполняйте квесты и зарабатывайте шишки! За первое прохождение квеста вы получаете 10,000 Шишек.' : 'Complete quests and earn cones! For the first completion of a quest you receive 10,000 Cones.'
         },
         games: {
           icon: '🎮',
-          title: currentLang === 'ru' ? '🎮 Мини-игры' : '🎮 Mini-games',
-          desc: currentLang === 'ru' ? 'Играйте в мини-игры и зарабатывайте! За победу в некоторых играх можно получить шишки.' : 'Play mini-games and earn! You can get cones for winning in some games.'
+          title: currentLang === 'ru' ? 'Игры и Испытания' : 'Games & Battles',
+          desc: currentLang === 'ru' ? 'Играйте в режимы и зарабатывайте! За победу в испытаниях можно получить множество шишек.' : 'Play game modes and earn! Win challenges to get lots of cones.'
         },
         partners: {
           icon: '🤝',
-          title: currentLang === 'ru' ? '🤝 Партнеры' : '🤝 Partners',
+          title: currentLang === 'ru' ? 'Партнеры' : 'Partners',
           desc: currentLang === 'ru' ? 'Здесь вы найдете проекты наших партнеров. Поддерживайте друзей и получайте бонусы!' : 'Here you will find our partners\' projects. Support friends and get bonuses!'
         },
         tot: {
           icon: '🎲',
-          title: currentLang === 'ru' ? '🎲 Тотализатор' : '🎲 Betting',
+          title: currentLang === 'ru' ? 'EnotXbet' : 'Betting',
           desc: currentLang === 'ru' ? 'Делайте ставки на события и выигрывайте шишки!' : 'Place bets on events and win cones!',
         },
         shop: {
           icon: '🛒',
-          title: currentLang === 'ru' ? '🛒 Рынок' : '🛒 Shop',
+          title: currentLang === 'ru' ? 'Рынок' : 'Market',
           desc: currentLang === 'ru' ? 'Публикуйте объявления из Рынка в свои группы и каналы.' : 'Publish announcements from the shop to your groups and channels.'
         },
       };
