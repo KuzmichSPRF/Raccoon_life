@@ -911,6 +911,55 @@ def _add_missing_columns(cursor):
     except Exception as e:
         logger.warning(f"Миграция путей custom_chip_sets: {e}")
 
+    # Миграция: добавить колонки для хранения изображений как BLOB (чтобы не зависеть от файловой системы)
+    try:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_chip_sets'")
+        if cursor.fetchone():
+            # Добавляем колонки если их нет
+            cols_info = cursor.execute("PRAGMA table_info(custom_chip_sets)").fetchall()
+            col_names = [c['name'] for c in cols_info]
+            if 'preview_collage_blob' not in col_names:
+                cursor.execute("ALTER TABLE custom_chip_sets ADD COLUMN preview_collage_blob BLOB")
+                logger.info("Миграция: добавлена колонка preview_collage_blob")
+            if 'chips_blobs_json' not in col_names:
+                cursor.execute("ALTER TABLE custom_chip_sets ADD COLUMN chips_blobs_json TEXT")
+                logger.info("Миграция: добавлена колонка chips_blobs_json")
+            # Бэкфил: читаем файлы с диска и сохраняем в BLOB для записей где BLOB пустой
+            cursor.execute("SELECT id, preview_collage, chips_json, preview_collage_blob FROM custom_chip_sets WHERE preview_collage_blob IS NULL")
+            rows_to_backfill = cursor.fetchall()
+            for row in rows_to_backfill:
+                sid = row['id']
+                collage_rel = str(row['preview_collage'] or '').lstrip('/\\')
+                collage_path = WEBAPP_DIR / collage_rel
+                collage_blob = None
+                if collage_path.exists():
+                    try:
+                        with open(collage_path, 'rb') as f:
+                            collage_blob = f.read()
+                    except Exception:
+                        pass
+                # Читаем блобы чипов
+                chips_blobs = []
+                try:
+                    chips_paths = json.loads(row['chips_json'] or '[]')
+                    for cp in chips_paths:
+                        chip_path = WEBAPP_DIR / str(cp).lstrip('/\\')
+                        if chip_path.exists():
+                            with open(chip_path, 'rb') as f:
+                                chips_blobs.append(base64.b64encode(f.read()).decode('ascii'))
+                        else:
+                            chips_blobs.append(None)
+                except Exception:
+                    pass
+                cursor.execute("""
+                    UPDATE custom_chip_sets SET preview_collage_blob = ?, chips_blobs_json = ? WHERE id = ?
+                """, (collage_blob, json.dumps(chips_blobs) if chips_blobs else None, sid))
+            if rows_to_backfill:
+                logger.info(f"Бэкфил BLOB: обработано {len(rows_to_backfill)} записей custom_chip_sets")
+    except Exception as e:
+        logger.warning(f"Миграция BLOB custom_chip_sets: {e}")
+
+
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД и сохраняет его username/имя"""
     if not user_id:
@@ -6874,7 +6923,7 @@ def publish_chip_set_to_group(set_data: dict):
         caption += "\n"
     caption += (
         f"🦝 Заходите в игру, чтобы оценить и проголосовать за лучший сет!\n"
-        f"👉 <b>Играть в боте:</b> @Raccoon_Life_bot"
+        f"👉 <b>Играть:</b> <a href=\"{bot_app_url}\">Raccoon Life Bot</a>"
     )
 
     reply_markup = {
@@ -6922,14 +6971,33 @@ def publish_chip_set_to_group(set_data: dict):
 
 
 def _normalize_chip_set_dict(d: dict) -> dict:
-    """Нормализует пути к изображениям сета (убирая ведущие слэши для идеальной отдачи в WebApp)."""
+    """Нормализует пути к изображениям сета. Использует BLOB из БД если файл недоступен."""
     if not d:
         return d
-    if d.get('preview_collage'):
+    # Коллаж: приоритет — BLOB из БД (не зависит от файловой системы)
+    collage_blob = d.pop('preview_collage_blob', None)
+    if collage_blob:
+        d['preview_collage'] = 'data:image/jpeg;base64,' + base64.b64encode(collage_blob).decode('ascii')
+    elif d.get('preview_collage'):
         d['preview_collage'] = str(d['preview_collage']).lstrip('/\\').replace('\\', '/')
+    # Фон (только путь к файлу, не критично)
     if d.get('background_image'):
         d['background_image'] = str(d['background_image']).lstrip('/\\').replace('\\', '/')
-    if d.get('chips_json'):
+    # Чипы: приоритет — BLOB-данные
+    chips_blobs_raw = d.pop('chips_blobs_json', None)
+    chips_blobs = []
+    if chips_blobs_raw:
+        try:
+            chips_blobs = json.loads(chips_blobs_raw) if isinstance(chips_blobs_raw, str) else chips_blobs_raw
+        except Exception:
+            chips_blobs = []
+    if chips_blobs and any(b for b in chips_blobs):
+        d['chips'] = [
+            ('data:image/png;base64,' + b if b else None)
+            for b in chips_blobs
+        ]
+        d['chips'] = [c for c in d['chips'] if c]  # убираем None
+    elif d.get('chips_json'):
         try:
             raw_chips = json.loads(d['chips_json']) if isinstance(d['chips_json'], str) else d['chips_json']
             d['chips'] = [str(c).lstrip('/\\').replace('\\', '/') for c in raw_chips] if isinstance(raw_chips, list) else []
@@ -6939,6 +7007,7 @@ def _normalize_chip_set_dict(d: dict) -> dict:
         d['chips'] = []
     d['has_voted'] = bool(d.get('has_voted'))
     return d
+
 
 
 def create_custom_chip_set_db(author_id: int, author_name: str, title: str, description: str, chips_count: int, bg_bytes: bytes, chip_bytes_list: list) -> dict:
@@ -6970,6 +7039,19 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
     collage_img.convert("RGB").save(collage_path, format="JPEG", quality=92)
     collage_rel_path = f"images/sets/set_{author_id}_{ts}/{collage_fname}"
 
+    # 3а. Сохраняем коллаж как BLOB (для надёжности при рестарте сервера)
+    collage_buf = BytesIO()
+    collage_img.convert("RGB").save(collage_buf, format="JPEG", quality=92)
+    collage_blob = collage_buf.getvalue()
+
+    # 3б. Сохраняем PNG чипов как base64 BLOB
+    chips_blobs_b64 = []
+    for raw_chip in chip_bytes_list:
+        chip_img_blob = generate_round_chip(raw_chip, diameter=320)
+        buf = BytesIO()
+        chip_img_blob.save(buf, format="PNG")
+        chips_blobs_b64.append(base64.b64encode(buf.getvalue()).decode('ascii'))
+
     # 4. БД
     ensure_user_exists(author_id)
     conn = get_db_connection()
@@ -6978,11 +7060,13 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
         cursor.execute('''
             INSERT INTO custom_chip_sets (
                 author_id, author_name, title, description, chips_count,
-                background_image, chips_json, preview_collage, status, votes_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)
+                background_image, chips_json, preview_collage, status, votes_count,
+                preview_collage_blob, chips_blobs_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
         ''', (
             author_id, author_name, title, description, chips_count,
-            bg_rel_path, json.dumps(chips_rel_paths), collage_rel_path
+            bg_rel_path, json.dumps(chips_rel_paths), collage_rel_path,
+            collage_blob, json.dumps(chips_blobs_b64)
         ))
         set_id = cursor.lastrowid
         conn.commit()

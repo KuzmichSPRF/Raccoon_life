@@ -1,0 +1,9 @@
+bot/users.db
+users.db
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+# Загруженные пользователями изображения сетов — хранятся в БД как BLOB, в git не нужны
+webapp/images/sets/*/
