@@ -1394,8 +1394,8 @@
         `;
       }
 
-      const collageUrl = item.collage_url || `images/chip_sets/${item.id}/collage.png`;
-      const isVoted = item.user_has_voted || false;
+      const collageUrl = item.preview_collage || item.collage_url || '';
+      const isVoted = item.has_voted || item.user_has_voted || false;
       const votes = item.votes_count || 0;
 
       card.innerHTML = `

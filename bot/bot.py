@@ -6801,7 +6801,14 @@ def publish_chip_set_to_group(set_data: dict):
     """Публикация одобренного сета в группу @the_raccoon_times_group в топик 4503."""
     group_chat_id = "@the_raccoon_times_group"
     topic_id = 4503
-    preview_path = PROJECT_DIR / "webapp" / set_data['preview_collage'].lstrip('/')
+
+    raw_rel = str(set_data.get('preview_collage') or '').lstrip('/\\').replace('\\', '/')
+    preview_path = WEBAPP_DIR / raw_rel
+    if not preview_path.exists():
+        preview_path = PROJECT_DIR / "webapp" / raw_rel
+
+    logger.info(f"📢 Публикация сета #{set_data.get('id')} в группу. Путь к фото: {preview_path} (exists={preview_path.exists()})")
+
     caption = (
         f"🎨 <b>Новая коллекция фишек в Raccoon Life!</b>\n\n"
         f"🏆 <b>«{html.escape(set_data['title'])}»</b>\n"
@@ -6826,8 +6833,11 @@ def publish_chip_set_to_group(set_data: dict):
                 }
                 res = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
                 if not res.ok:
-                    logger.warning(f"⚠️ Ошибка отправки фото сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
+                    logger.error(f"❌ Ошибка sendPhoto сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
+                else:
+                    logger.info(f"✅ Сет #{set_data.get('id')} успешно опубликован с картинкой в топик {topic_id}")
         else:
+            logger.warning(f"⚠️ Файл превью не найден: {preview_path}. Отправка текстового сообщения.")
             payload = {
                 "chat_id": group_chat_id,
                 "message_thread_id": topic_id,
@@ -6840,7 +6850,7 @@ def publish_chip_set_to_group(set_data: dict):
                 timeout=10
             )
             if not res.ok:
-                logger.warning(f"⚠️ Ошибка отправки текста сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
+                logger.error(f"❌ Ошибка sendMessage сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
     except Exception as e:
         logger.error(f"❌ Ошибка публикации сета в группу: {e}")
 
