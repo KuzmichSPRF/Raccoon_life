@@ -6896,8 +6896,8 @@ def approve_chip_set_db(set_id: int) -> dict:
         conn.close()
 
 
-def reject_chip_set_db(set_id: int) -> dict:
-    """Отклоняет сет фишек и уведомляет автора."""
+def reject_chip_set_db(set_id: int, reason: str = "") -> dict:
+    """Отклоняет сет фишек и уведомляет автора (с указанием причины или без)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -6910,11 +6910,12 @@ def reject_chip_set_db(set_id: int) -> dict:
 
         try:
             author_id = row['author_id']
-            msg = (
-                f"😔 <b>Ваш сет фишек не прошёл модерацию</b>\n\n"
-                f"Коллекция: <b>{html.escape(row['title'])}</b>\n"
-                f"Попробуйте создать новый сет, соблюдая правила сообщества."
-            )
+            msg = f"😔 <b>Ваш сет фишек «{html.escape(row['title'])}» не прошёл модерацию</b>\n"
+            clean_reason = reason.strip() if reason else ""
+            if clean_reason:
+                msg += f"\n📝 <b>Причина:</b>\n<i>{html.escape(clean_reason)}</i>\n"
+            msg += "\nПопробуйте создать новый сет, соблюдая правила сообщества."
+
             requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 json={"chat_id": author_id, "text": msg, "parse_mode": "HTML"},
@@ -8676,7 +8677,7 @@ async def chip_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ У вас нет прав!", show_alert=True)
         return
 
-    data = query.data  # chip_set_approve_123 or chip_set_reject_123
+    data = query.data  # chip_set_approve_123, chip_set_reject_123, chip_set_rejask_123, chip_set_rejquick_123, chip_set_cancel_123
     try:
         parts = data.split('_')
         action = parts[2]
@@ -8694,21 +8695,112 @@ async def chip_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             else:
                 await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
+
         elif action == 'reject':
-            await query.answer("Отклоняем...")
-            res = reject_chip_set_db(set_id)
+            # Предлагаем написать причину или отклонить без причины (оставить пустым)
+            await query.answer("Выберите способ отклонения")
+            rej_keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✍️ Указать причину", callback_data=f"chip_set_rejask_{set_id}"),
+                    InlineKeyboardButton("⏩ Без причины (пусто)", callback_data=f"chip_set_rejquick_{set_id}")
+                ],
+                [
+                    InlineKeyboardButton("↩️ Отмена", callback_data=f"chip_set_cancel_{set_id}")
+                ]
+            ])
+            await query.edit_message_reply_markup(reply_markup=rej_keyboard)
+
+        elif action == 'rejask':
+            # Админ хочет ввести причину текстом в чат
+            context.user_data['pending_reject_set_id'] = set_id
+            context.user_data['pending_reject_msg_id'] = query.message.message_id
+            context.user_data['pending_reject_chat_id'] = query.message.chat_id
+
+            await query.answer("Жду сообщение с причиной...")
+            rej_keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("⏩ Отклонить без причины (пусто)", callback_data=f"chip_set_rejquick_{set_id}"),
+                    InlineKeyboardButton("↩️ Отмена", callback_data=f"chip_set_cancel_{set_id}")
+                ]
+            ])
+            await query.edit_message_reply_markup(reply_markup=rej_keyboard)
+            await query.message.reply_text(
+                f"✍️ <b>Отклонение сета #{set_id}:</b>\n\n"
+                f"Напишите причину отклонения в ответном сообщении, или нажмите <b>«Отклонить без причины (пусто)»</b>.",
+                parse_mode=ParseMode.HTML
+            )
+
+        elif action == 'rejquick':
+            # Отклонение без причины
+            context.user_data.pop('pending_reject_set_id', None)
+            context.user_data.pop('pending_reject_msg_id', None)
+            context.user_data.pop('pending_reject_chat_id', None)
+
+            await query.answer("Отклоняем без причины...")
+            res = reject_chip_set_db(set_id, reason="")
             if res.get('status') == 'ok':
                 curr_caption = query.message.caption_html or ""
                 await query.edit_message_caption(
-                    caption=f"{curr_caption}\n\n❌ <b>СЕТ ОТКЛОНЁН</b>",
+                    caption=f"{curr_caption}\n\n❌ <b>СЕТ ОТКЛОНЁН</b> <i>(без причины)</i>",
                     parse_mode=ParseMode.HTML,
                     reply_markup=None
                 )
             else:
                 await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
+
+        elif action == 'cancel':
+            context.user_data.pop('pending_reject_set_id', None)
+            context.user_data.pop('pending_reject_msg_id', None)
+            context.user_data.pop('pending_reject_chat_id', None)
+
+            await query.answer("Отменено")
+            original_keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Одобрить и опубликовать", callback_data=f"chip_set_approve_{set_id}"),
+                    InlineKeyboardButton("❌ Отклонить", callback_data=f"chip_set_reject_{set_id}")
+                ]
+            ])
+            await query.edit_message_reply_markup(reply_markup=original_keyboard)
+
     except Exception as e:
         logger.error(f"Ошибка обработки chip_set_callback: {e}")
         await query.answer("❌ Ошибка обработки запроса", show_alert=True)
+
+
+async def handle_admin_private_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка текстовых сообщений админа в ЛС (ввод причины отклонения сета)"""
+    if not update.effective_user or update.effective_user.id != ADMIN_ID:
+        return
+
+    pending_set_id = context.user_data.get('pending_reject_set_id')
+    if not pending_set_id:
+        return
+
+    reason = update.message.text.strip() if update.message and update.message.text else ""
+    context.user_data.pop('pending_reject_set_id', None)
+    card_msg_id = context.user_data.pop('pending_reject_msg_id', None)
+    card_chat_id = context.user_data.pop('pending_reject_chat_id', None)
+
+    res = reject_chip_set_db(pending_set_id, reason=reason)
+    if res.get('status') == 'ok':
+        reason_display = f"<i>«{html.escape(reason)}»</i>" if reason else "<i>(без причины)</i>"
+        await update.message.reply_text(
+            f"❌ <b>Сет #{pending_set_id} успешно отклонён.</b>\nПричина: {reason_display}\nАвтор уведомлён.",
+            parse_mode=ParseMode.HTML
+        )
+        if card_msg_id and card_chat_id:
+            try:
+                await context.bot.edit_message_caption(
+                    chat_id=card_chat_id,
+                    message_id=card_msg_id,
+                    caption=f"🎨 <b>СЕТ #{pending_set_id} ОТКЛОНЁН</b>\n\n📝 <b>Причина:</b> {html.escape(reason) if reason else 'Не указана'}",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=None
+                )
+            except Exception as e:
+                logger.error(f"Ошибка обновления карточки модерации: {e}")
+    else:
+        await update.message.reply_text(f"❌ Ошибка: {res.get('message')}")
 
 
 async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -8879,7 +8971,8 @@ def main():
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     telegram_app.add_handler(CallbackQueryHandler(publish_news_callback, pattern="^publish_news$"))
-    telegram_app.add_handler(CallbackQueryHandler(chip_set_callback, pattern=r"^chip_set_(approve|reject)_\d+$"))
+    telegram_app.add_handler(CallbackQueryHandler(chip_set_callback, pattern=r"^chip_set_(approve|reject|rejask|rejquick|cancel)_\d+$"))
+    telegram_app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.TEXT & (~filters.COMMAND), handle_admin_private_message))
 
     telegram_app.add_handler(CommandHandler("tot_create", tot_create_cmd))
     telegram_app.add_handler(CommandHandler("tot_active", tot_active_cmd))
