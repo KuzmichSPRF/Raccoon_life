@@ -1310,7 +1310,7 @@
 
       <div class="cropper-controls">
         <button class="cropper-zoom-btn" onclick="adjustCropperZoom(-0.15)" title="Уменьшить">−</button>
-        <input type="range" id="cropper-zoom-slider" class="zoom-slider" min="0.15" max="4.0" step="0.01" value="1"
+        <input type="range" id="cropper-zoom-slider" class="zoom-slider" min="0.05" max="4.0" step="0.01" value="1"
           oninput="onZoomSliderChanged(this.value)">
         <button class="cropper-zoom-btn" onclick="adjustCropperZoom(0.15)" title="Увеличить">+</button>
         <button class="rotate-btn" onclick="rotateCropperImage()" title="Повернуть на 90°">↻ 90°</button>
@@ -1364,6 +1364,7 @@
 
   <script>
     // ==================== STATE ====================
+    window.APP_SESSION_ID = Date.now().toString(36);
     const tg = window.Telegram?.WebApp;
     let currentTab = 'top';
     let userId = null;
@@ -1381,7 +1382,7 @@
       slotIndex: 0,
       img: null,
       zoom: 1.0,
-      minZoom: 0.15,
+      minZoom: 0.05,
       maxZoom: 4.0,
       panX: 0,
       panY: 0,
@@ -1689,7 +1690,7 @@
     function normalizeImgPath(path) {
       if (!path) return '';
       if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
-      return path.replace(/^\/+/, '');
+      return path.replace(/^\/+/, '') + '?v=' + window.APP_SESSION_ID;
     }
 
     function renderSetsCards(container, sets, isMyTab, sort = 'top') {

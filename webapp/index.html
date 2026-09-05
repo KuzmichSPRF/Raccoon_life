@@ -3399,6 +3399,7 @@
 </div>
 
 <script>
+  window.APP_SESSION_ID = Date.now().toString(36);
   const tg = window.Telegram?.WebApp || {
     initData: '',
     initDataUnsafe: {},
