@@ -1743,12 +1743,14 @@
       width: 100%;
       background-color: var(--bg-secondary);
       border-radius: 24px 24px 0 0;
-      padding: 12px 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
+      padding: 10px 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 14px);
       max-height: 85vh;
       overflow-y: auto;
       border-top: 0.5px solid var(--border-subtle);
-      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75);
       animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      touch-action: pan-y;
+      will-change: transform;
     }
 
     @keyframes sheetSlideUp {
@@ -1761,25 +1763,50 @@
       }
     }
 
-    .bottom-sheet__divider {
-      width: 36px;
-      height: 4px;
-      border-radius: 4px;
-      background-color: rgba(255, 255, 255, 0.2);
-      margin: 0 auto 12px;
+    .bottom-sheet__divider-wrap {
+      width: 100%;
+      padding: 2px 0 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: grab;
+      touch-action: none;
     }
 
-    .bottom-sheet__hide {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 11px;
-      font-weight: 600;
+    .bottom-sheet__divider {
+      width: 44px;
+      height: 5px;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.32);
+      margin: 0 auto;
+    }
+
+    .bottom-sheet__top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .bottom-sheet__back-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 0.5px solid var(--border-subtle);
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 6px 12px;
       cursor: pointer;
-      display: block;
-      margin: 0 auto 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background-color 0.15s, transform 0.12s;
+    }
+
+    .bottom-sheet__back-btn:active {
+      transform: scale(0.94);
+      background: rgba(255, 255, 255, 0.16);
     }
 
     .play-sheet-header-panel {
@@ -4285,9 +4312,17 @@
     <!-- Play Bottom Sheet (CapsGame Slide-up Modal) -->
     <div id="play-bottom-sheet-wrapper" class="bottom-sheet__wrapper">
       <div class="bottom-sheet__backdrop" onclick="togglePlayBottomSheet(false)"></div>
-      <div class="bottom-sheet__block">
-        <div class="bottom-sheet__divider"></div>
-        <button class="bottom-sheet__hide" onclick="togglePlayBottomSheet(false)" data-i18n="btn_hide">Скрыть</button>
+      <div class="bottom-sheet__block" id="play-bottom-sheet-block">
+        <div class="bottom-sheet__divider-wrap" id="play-sheet-drag-handle">
+          <div class="bottom-sheet__divider"></div>
+        </div>
+        <div class="bottom-sheet__top-row">
+          <button class="bottom-sheet__back-btn" onclick="togglePlayBottomSheet(false); triggerHaptic('light');">
+            <span>←</span> <span data-i18n="btn_back">Назад</span>
+          </button>
+          <span style="font-size: 13px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em;" data-i18n="menu_games">ИГРЫ</span>
+          <div style="width: 65px;"></div>
+        </div>
 
         <div class="play-bottom-sheet">
           <div class="play-sheet-header-panel">
@@ -5011,14 +5046,192 @@
     }
 
     function togglePlayBottomSheet(isOpen) {
-      const sheet = document.getElementById('play-bottom-sheet-wrapper');
-      if (!sheet) return;
+      const sheetWrapper = document.getElementById('play-bottom-sheet-wrapper');
+      if (!sheetWrapper) return;
+      const sheetBlock = document.getElementById('play-bottom-sheet-block');
+      const backdrop = sheetWrapper.querySelector('.bottom-sheet__backdrop');
+
       if (isOpen) {
-        sheet.classList.add('active');
+        if (sheetBlock) {
+          sheetBlock.style.transform = '';
+          sheetBlock.style.transition = '';
+        }
+        if (backdrop) {
+          backdrop.style.opacity = '';
+          backdrop.style.transition = '';
+        }
+        sheetWrapper.classList.add('active');
         triggerHaptic('impact');
+
+        // Обеспечиваем работу кнопки BackButton в Telegram WebApp
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
       } else {
-        sheet.classList.remove('active');
+        if (sheetBlock) {
+          sheetBlock.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+          sheetBlock.style.transform = 'translateY(100%)';
+        }
+        if (backdrop) {
+          backdrop.style.transition = 'opacity 0.22s ease';
+          backdrop.style.opacity = '0';
+        }
+        setTimeout(() => {
+          sheetWrapper.classList.remove('active');
+          if (sheetBlock) {
+            sheetBlock.style.transform = '';
+            sheetBlock.style.transition = '';
+          }
+          if (backdrop) {
+            backdrop.style.opacity = '';
+            backdrop.style.transition = '';
+          }
+        }, 220);
         triggerHaptic('light');
+      }
+    }
+
+    function initPlayBottomSheetGestures() {
+      const wrapper = document.getElementById('play-bottom-sheet-wrapper');
+      if (!wrapper) return;
+      const sheet = document.getElementById('play-bottom-sheet-block');
+      const backdrop = wrapper.querySelector('.bottom-sheet__backdrop');
+      if (!sheet) return;
+
+      let startX = 0;
+      let startY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      let isDraggingY = false;
+      let isDraggingX = false;
+      let startTime = 0;
+
+      function onTouchStart(e) {
+        if (!wrapper.classList.contains('active')) return;
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        currentX = startX;
+        currentY = startY;
+        startTime = Date.now();
+        isDraggingY = false;
+        isDraggingX = false;
+      }
+
+      function onTouchMove(e) {
+        if (!wrapper.classList.contains('active')) return;
+        const touch = e.touches ? e.touches[0] : e;
+        currentX = touch.clientX;
+        currentY = touch.clientY;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        // Распознаем жест: свайп вниз или свайп слева направо (свайп назад)
+        if (!isDraggingY && !isDraggingX) {
+          // Если тянем вниз и прокрутка вверху
+          if (deltaY > 6 && Math.abs(deltaY) > Math.abs(deltaX) && sheet.scrollTop <= 3) {
+            isDraggingY = true;
+            sheet.style.transition = 'none';
+            if (backdrop) backdrop.style.transition = 'none';
+          }
+          // Если свайпаем слева направо (свайп назад)
+          else if (deltaX > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+            isDraggingX = true;
+            sheet.style.transition = 'none';
+            if (backdrop) backdrop.style.transition = 'none';
+          }
+        }
+
+        if (isDraggingY) {
+          if (deltaY > 0) {
+            if (e.cancelable) e.preventDefault();
+            sheet.style.transform = `translateY(${deltaY}px)`;
+            if (backdrop) {
+              const op = Math.max(0, 1 - deltaY / 320);
+              backdrop.style.opacity = op.toString();
+            }
+          }
+        } else if (isDraggingX) {
+          if (deltaX > 0) {
+            if (e.cancelable) e.preventDefault();
+            sheet.style.transform = `translateX(${deltaX}px)`;
+            if (backdrop) {
+              const op = Math.max(0, 1 - deltaX / 320);
+              backdrop.style.opacity = op.toString();
+            }
+          }
+        }
+      }
+
+      function onTouchEnd(e) {
+        if (!isDraggingY && !isDraggingX) return;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+        const elapsed = Math.max(1, Date.now() - startTime);
+
+        if (isDraggingY) {
+          isDraggingY = false;
+          const velocityY = deltaY / elapsed;
+          sheet.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+          if (backdrop) backdrop.style.transition = 'opacity 0.22s ease';
+
+          if (deltaY > 70 || velocityY > 0.4) {
+            sheet.style.transform = 'translateY(100%)';
+            if (backdrop) backdrop.style.opacity = '0';
+            setTimeout(() => {
+              togglePlayBottomSheet(false);
+            }, 200);
+          } else {
+            sheet.style.transform = 'translateY(0)';
+            if (backdrop) backdrop.style.opacity = '1';
+            setTimeout(() => {
+              sheet.style.transform = '';
+              sheet.style.transition = '';
+              if (backdrop) {
+                backdrop.style.opacity = '';
+                backdrop.style.transition = '';
+              }
+            }, 220);
+          }
+        } else if (isDraggingX) {
+          isDraggingX = false;
+          const velocityX = deltaX / elapsed;
+          sheet.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+          if (backdrop) backdrop.style.transition = 'opacity 0.22s ease';
+
+          if (deltaX > 70 || velocityX > 0.4) {
+            sheet.style.transform = 'translateX(100%)';
+            if (backdrop) backdrop.style.opacity = '0';
+            setTimeout(() => {
+              togglePlayBottomSheet(false);
+            }, 200);
+          } else {
+            sheet.style.transform = 'translateX(0)';
+            if (backdrop) backdrop.style.opacity = '1';
+            setTimeout(() => {
+              sheet.style.transform = '';
+              sheet.style.transition = '';
+              if (backdrop) {
+                backdrop.style.opacity = '';
+                backdrop.style.transition = '';
+              }
+            }, 220);
+          }
+        }
+      }
+
+      sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+      sheet.addEventListener('touchmove', onTouchMove, { passive: false });
+      sheet.addEventListener('touchend', onTouchEnd, { passive: true });
+      sheet.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+      // Drag handle direct touch
+      const dragHandle = document.getElementById('play-sheet-drag-handle');
+      if (dragHandle) {
+        dragHandle.addEventListener('touchstart', onTouchStart, { passive: true });
+        dragHandle.addEventListener('touchmove', onTouchMove, { passive: false });
+        dragHandle.addEventListener('touchend', onTouchEnd, { passive: true });
       }
     }
 
@@ -6503,6 +6716,21 @@
     let readerPreviousCategory = null;
 
     function handleBack() {
+      // 1. Закрытие меню игр (шторки play-bottom-sheet)
+      const playSheet = document.getElementById('play-bottom-sheet-wrapper');
+      if (playSheet && playSheet.classList.contains('active')) {
+        togglePlayBottomSheet(false);
+        return;
+      }
+
+      // 2. Закрытие оверлеев / диалоговых окон
+      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #hollow-modal-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #stars-offer-overlay.active, #news-submit-overlay.active, .offer-modal.active');
+      if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper') {
+        activeOverlay.classList.remove('active');
+        triggerHaptic('light');
+        return;
+      }
+
       const current = document.querySelector('.screen.active')?.id;
       if (current === 'reader-screen') {
         const iframe = document.getElementById('reader-iframe');
@@ -9958,6 +10186,7 @@
           initDailyBonus();
           fetchInventory();
           initRaccoonTapSystem();
+          initPlayBottomSheetGestures();
           checkStartParamReferral();
           console.log('🦝 Raccoon Life WebApp ready!');
           console.log('👤 User ID:', getUserId());
