@@ -274,6 +274,7 @@ def init_db():
                 roulette_cones_lost INTEGER DEFAULT 0,
                 quests TEXT DEFAULT '[]',
                 last_daily_bonus TIMESTAMP,
+                raccoon_taps INTEGER DEFAULT 0,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
@@ -643,6 +644,13 @@ def _add_missing_columns(cursor):
             logger.info("Миграция: добавлена колонка last_daily_bonus в user_stats")
         except Exception as e:
             logger.error(f"Ошибка миграции user_stats.last_daily_bonus: {e}")
+
+    if 'raccoon_taps' not in user_stats_cols:
+        try:
+            cursor.execute("ALTER TABLE user_stats ADD COLUMN raccoon_taps INTEGER DEFAULT 0")
+            logger.info("Миграция: добавлена колонка raccoon_taps в user_stats")
+        except Exception as e:
+            logger.error(f"Ошибка миграции user_stats.raccoon_taps: {e}")
 
     # Проверка users на наличие wallet_address
     cursor.execute("PRAGMA table_info(users)")
@@ -1093,6 +1101,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
                 roulette_wins = MAX(roulette_wins, ?),
                 roulette_cones_won = MAX(roulette_cones_won, ?),
                 roulette_cones_lost = MAX(roulette_cones_lost, ?),
+                raccoon_taps = MAX(COALESCE(raccoon_taps, 0), ?),
                 quests = ?,
                 quests_completed = ?,
                 tutorials_seen = ?
@@ -1109,6 +1118,7 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
             int(stats_data.get('roulette_wins', 0)),
             int(stats_data.get('roulette_cones_won', 0)),
             int(stats_data.get('roulette_cones_lost', 0)),
+            int(stats_data.get('raccoon_taps', 0)),
             json.dumps(merged_quests),
             actual_quests_count,
             json.dumps(merged_tutorials),
@@ -1334,6 +1344,7 @@ def get_player_stats(user_id: int) -> dict:
                    us.roulette_cones_won, us.roulette_cones_lost,
                    COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
                    COALESCE(us.quests_completed, 0) as quests_completed,
+                   COALESCE(us.raccoon_taps, 0) as raccoon_taps,
                    COALESCE(ut.balance, 0) as balance
             FROM user_stats us
             LEFT JOIN user_tokens ut ON us.user_id = ut.user_id
@@ -1357,6 +1368,7 @@ def get_player_stats(user_id: int) -> dict:
                 'roulette_cones_lost': row['roulette_cones_lost'],
                 'roulette_total_bets': row['roulette_total_bets'],
                 'quests_completed': row['quests_completed'],
+                'raccoon_taps': row['raccoon_taps'],
                 'overall_score': overall['total_score'],
                 'balance': row['balance'],
                 'quests': json.loads(row['quests']) if row['quests'] else [],
@@ -2208,7 +2220,7 @@ def claim_daily_bonus(user_id: int) -> dict:
     cursor = conn.cursor()
     try:
         now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute("UPDATE user_stats SET last_daily_bonus = ? WHERE user_id = ?", (now_moscow, user_id))
+        cursor.execute("UPDATE user_stats SET last_daily_bonus = ?, raccoon_taps = 0 WHERE user_id = ?", (now_moscow, user_id))
         conn.commit()
 
         # Начисляем 1000 шишек пользователю
@@ -3108,12 +3120,21 @@ def api_get_tokens():
         tokens = get_user_tokens(user_id)
         bonus_status = get_daily_bonus_status(user_id)
 
-        logger.info(f"💰 Ответ: balance={tokens['balance']}, can_claim_bonus={bonus_status.get('can_claim')}")
+        # Получаем актуальные тапы енота
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COALESCE(raccoon_taps, 0) FROM user_stats WHERE user_id = ?", (user_id,))
+        tap_row = cursor.fetchone()
+        conn.close()
+        raccoon_taps = tap_row[0] if tap_row else 0
+
+        logger.info(f"💰 Ответ: balance={tokens['balance']}, can_claim_bonus={bonus_status.get('can_claim')}, raccoon_taps={raccoon_taps}")
         
         return jsonify({
             'status': 'ok',
             'tokens': tokens,
-            'bonus': bonus_status
+            'bonus': bonus_status,
+            'raccoon_taps': raccoon_taps
         })
 
     except Exception as e:
@@ -4096,6 +4117,7 @@ def handle_sync_stats(data: dict):
         'roulette_wins': validate_integer(data.get('roulette_wins', 0), min_val=0, max_val=1000000),
         'roulette_cones_won': validate_integer(data.get('roulette_cones_won', 0), min_val=0, max_val=1000000000),
         'roulette_cones_lost': validate_integer(data.get('roulette_cones_lost', 0), min_val=0, max_val=1000000000),
+        'raccoon_taps': validate_integer(data.get('raccoon_taps', 0), min_val=0, max_val=1000),
         'quests': validate_list(data.get('quests', []), default=[]),
         'tutorials_seen': validate_list(data.get('tutorials_seen', []), default=[])
     }
@@ -4208,7 +4230,7 @@ def handle_earn_tokens(data: dict):
     elif reason.startswith('find_chip_win'):
         max_allowed = 100
     elif reason.startswith('raccoon_tap'):
-        max_allowed = 100
+        max_allowed = 1000
 
     if amount > max_allowed:
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")
@@ -4257,6 +4279,18 @@ def handle_earn_tokens(data: dict):
             conn.commit()
         except Exception as e:
             logger.error(f"Ошибка проверки квеста: {e}")
+        finally:
+            conn.close()
+
+    # Обновляем счетчик тапов енота в базе данных
+    if reason.startswith('raccoon_tap'):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("UPDATE user_stats SET raccoon_taps = MIN(1000, COALESCE(raccoon_taps, 0) + ?) WHERE user_id = ?", (amount, user_id))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Ошибка обновления raccoon_taps в user_stats: {e}")
         finally:
             conn.close()
 

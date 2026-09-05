@@ -1999,7 +1999,7 @@
         <div class="mascot-ambient-glow"></div>
         <div class="mascot-character" id="mascot-char">🦝</div>
         <div class="mascot-season-tag">SEASON 2 • RACCOON LIFE</div>
-        <div class="mascot-tap-pill" id="mascot-tap-pill"><img src="cone.png" class="cone-icon" alt="🌰"> <span id="mascot-tap-count">0</span>/100</div>
+        <div class="mascot-tap-pill" id="mascot-tap-pill"><img src="cone.png" class="cone-icon" alt="🌰"> <span id="mascot-tap-count">0</span>/1000</div>
       </div>
 
       <!-- Right Column Badges -->
@@ -3193,7 +3193,7 @@
   }
 
   // ==================== RACCOON TAP SYSTEM ====================
-  const RACCOON_MAX_TAPS = 100;
+  const RACCOON_MAX_TAPS = 1000;
   let raccoonTapState = {
     taps: 0,
     pendingBatch: 0,
@@ -3429,6 +3429,7 @@
       vladeos_wins: stats.vladeos_wins,
       tower_max_level: stats.tower_max_level,
       tower_total_levels: stats.tower_total_levels,
+      raccoon_taps: raccoonTapState.taps,
       quests: stats.quests,
       tutorials_seen: stats.tutorials_seen
     };
@@ -3518,6 +3519,13 @@
             dailyBonusState.last_synced_at = Date.now();
             updateBonusUI();
           }
+
+          // Синхронизируем тапы енота с сервера
+          if (data.raccoon_taps !== undefined) {
+            const serverTaps = Math.min(RACCOON_MAX_TAPS, parseInt(data.raccoon_taps, 10) || 0);
+            saveRaccoonTaps(Math.max(raccoonTapState.taps, serverTaps));
+            updateRaccoonTapUI();
+          }
         } else {
           console.error('❌ Ошибка в ответе сервера:', data);
         }
@@ -3566,6 +3574,11 @@
         if (s.roulette_cones_lost !== undefined) stats.roulette_cones_lost = s.roulette_cones_lost;
         if (s.overall_score !== undefined) stats.overall_score = s.overall_score;
         if (s.balance !== undefined) stats.balance = s.balance;
+        if (s.raccoon_taps !== undefined) {
+          const serverTaps = Math.min(RACCOON_MAX_TAPS, parseInt(s.raccoon_taps, 10) || 0);
+          saveRaccoonTaps(Math.max(raccoonTapState.taps, serverTaps));
+          updateRaccoonTapUI();
+        }
 
         // Загружаем просмотренные туториалы с сервера
         stats.tutorials_seen = s.tutorials_seen || [];
