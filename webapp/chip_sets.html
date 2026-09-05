@@ -1359,13 +1359,19 @@
 
       <div id="zoom-modal-desc" style="font-size: 0.82rem; color: var(--text-sec); line-height: 1.4; margin-top: 4px;">
       </div>
+
+      <div id="zoom-modal-footer" style="margin-top: 14px; width: 100%;">
+        <button class="share-btn" id="modal-share-btn" style="width: 100%; justify-content: center; padding: 10px 14px; font-size: 0.88rem;" onclick="shareCurrentModalSet()">
+          <span>🔗 Поделиться этим сетом</span>
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
     // ==================== STATE ====================
     window.APP_SESSION_ID = Date.now().toString(36);
-    const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp || window.top?.Telegram?.WebApp || window.parent?.tg || null;
     let currentTab = 'top';
     let userId = null;
 
@@ -1408,11 +1414,12 @@
     }
 
     function triggerHaptic(type = 'light') {
-      if (tg?.HapticFeedback) {
-        if (type === 'light') tg.HapticFeedback.impactOccurred('light');
-        else if (type === 'medium') tg.HapticFeedback.impactOccurred('medium');
-        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
-        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+      const activeTg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp || window.top?.Telegram?.WebApp || tg;
+      if (activeTg?.HapticFeedback) {
+        if (type === 'light') activeTg.HapticFeedback.impactOccurred('light');
+        else if (type === 'medium') activeTg.HapticFeedback.impactOccurred('medium');
+        else if (type === 'success') activeTg.HapticFeedback.notificationOccurred('success');
+        else if (type === 'error') activeTg.HapticFeedback.notificationOccurred('error');
       }
     }
 
@@ -1793,7 +1800,7 @@
             <span class="heart-icon">${isVoted ? '❤️' : '🤍'}</span>
             <span id="vote-count-${item.id}">${votes}</span>
           </button>
-          <button class="share-btn" onclick="shareSet(${item.id}, '${escapeHtml(item.title)}')">
+          <button class="share-btn" id="share-btn-${item.id}">
             <span>🔗 Поделиться</span>
           </button>
           ${adminDeleteHtml}
@@ -1801,6 +1808,14 @@
       `;
 
         // Set click handlers
+        const shareBtn = card.querySelector(`#share-btn-${item.id}`);
+        if (shareBtn) {
+          shareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            shareSet(item.id, item.title);
+          });
+        }
+
         const previewEl = card.querySelector(`#set-preview-wrap-${item.id}`);
         if (previewEl) {
           previewEl.addEventListener('click', () => {
@@ -1892,10 +1907,25 @@
 
     function shareSet(setId, title) {
       triggerHaptic('light');
-      const text = `Посмотри авторский сет фишек «${title}» в Raccoon Life!`;
-      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin + '/chip_sets.html')}&text=${encodeURIComponent(text)}`;
-      if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl);
-      else window.open(shareUrl, '_blank');
+      const safeTitle = title || 'Сет фишек';
+      const text = `Посмотри авторский сет фишек «${safeTitle}» в Raccoon Life! 🦝🎨`;
+      const botUrl = `https://t.me/Raccoon_Life_bot/app`;
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
+
+      const activeTg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp || window.top?.Telegram?.WebApp || tg;
+      if (activeTg && typeof activeTg.openTelegramLink === 'function') {
+        activeTg.openTelegramLink(shareUrl);
+      } else if (activeTg && typeof activeTg.openLink === 'function') {
+        activeTg.openLink(shareUrl);
+      } else {
+        window.open(shareUrl, '_blank');
+      }
+    }
+
+    function shareCurrentModalSet() {
+      if (activeModalSet) {
+        shareSet(activeModalSet.id, activeModalSet.title);
+      }
     }
 
     function escapeHtml(str) {

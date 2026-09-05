@@ -8782,12 +8782,28 @@
               <span class="heart-icon">${isVoted ? '❤️' : '🤍'}</span>
               <span class="votes-num">${votesCount}</span>
             </button>
+            <button class="chipset-share-btn" onclick="shareCustomChipSet(${set.id}, '${escapeHtml(set.title).replace(/'/g, "\\'")}')" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 12px; color: #fff; cursor: pointer; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Поделиться">
+              <span>🔗</span>
+            </button>
             ${adminDeleteBtn}
           </div>
         </div>
       `;
         listContainer.appendChild(card);
       });
+    }
+
+    function shareCustomChipSet(setId, title) {
+      triggerHaptic('light');
+      const safeTitle = title || 'Сет фишек';
+      const text = `Посмотри авторский сет фишек «${safeTitle}» в Raccoon Life! 🦝🎨`;
+      const botUrl = `https://t.me/Raccoon_Life_bot/app`;
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
+      if (tg && typeof tg.openTelegramLink === 'function') {
+        tg.openTelegramLink(shareUrl);
+      } else {
+        window.open(shareUrl, '_blank');
+      }
     }
 
     async function deleteCustomChipSet(setId, title) {
