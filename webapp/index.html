@@ -6747,9 +6747,7 @@
 
     // Find the Chip game
     if (data.type === 'game_complete' && data.game === 'find_chip') {
-      if (data.win && data.reward) {
-        earnTokens(data.reward, 'find_chip_win');
-      }
+      setTimeout(() => loadTokenBalance(), 500); // Баланс обновлен бэкендом из игры
       stats.overall_score = calculateLocalOverallScore();
       updateUserInfo();
     }

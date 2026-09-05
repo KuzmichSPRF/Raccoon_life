@@ -3063,12 +3063,16 @@ def image_files(filename):
 @app.route('/api/boss_hp', methods=['GET'])
 def api_get_boss_hp():
     """Получить HP босса"""
-    boss_info = get_boss_hp()
-    response = jsonify({'status': 'ok', 'boss': boss_info})
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
+    try:
+        boss_info = get_boss_hp()
+        response = jsonify({'status': 'ok', 'boss': boss_info})
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_get_boss_hp: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
 @app.route('/api/player_stats', methods=['GET'])
@@ -4378,30 +4382,51 @@ def api_boss_attack():
             logger.warning(f"⚠️ Забаненный пользователь попытался атаковать босса")
             return jsonify({'status': 'error', 'error': 'User is banned', 'message': 'User is banned'}), 403
 
+        # Античит: Проверка сессии босса и кулдауна действий
+        boss_session = get_game_session(user_id, 'boss') or {'energy': 0, 'last_action_ts': 0}
+        now_ts = time.time()
+        last_ts = boss_session.get('last_action_ts', 0)
+
+        # Ограничение по скорости (не чаще 1 действия в 0.35 сек)
+        if now_ts - last_ts < 0.35:
+            return jsonify({'status': 'error', 'message': 'Action too fast. Please wait.'}), 429
+
+        current_energy = boss_session.get('energy', 0)
+
         damage = 0
         heal = 0
         is_crit = False
         energy_change = 0
 
-        # Серверная логика урона и затрат энергии
+        # Серверная логика урона и валидация затрат энергии
         if action == 'basic':
             damage = random.randint(50, 100)
             energy_change = 20
             is_crit = random.random() < 0.15
         elif action == 'strong':
+            if current_energy < 40:
+                return jsonify({'status': 'error', 'message': 'Not enough energy for strong attack'}), 400
             damage = random.randint(150, 250)
             energy_change = -40
             is_crit = random.random() < 0.15
         elif action == 'ultimate':
+            if current_energy < 80:
+                return jsonify({'status': 'error', 'message': 'Not enough energy for ultimate attack'}), 400
             damage = random.randint(400, 700)
             energy_change = -80
             is_crit = True
         elif action == 'heal':
+            if current_energy < 50:
+                return jsonify({'status': 'error', 'message': 'Not enough energy for heal'}), 400
             heal = random.randint(30, 50)
             energy_change = -50
         else:
             logger.warning(f"⚠️ Неизвестное действие: {action}")
             return jsonify({'error': 'Invalid action'}), 400
+
+        # Обновляем серверную энергию игрока в сессии
+        new_energy = max(0, min(100, current_energy + energy_change))
+        save_game_session(user_id, 'boss', {'energy': new_energy, 'last_action_ts': now_ts})
 
         if is_crit and damage > 0:
             damage = int(damage * 2)
@@ -5004,15 +5029,14 @@ def handle_earn_tokens(data: dict):
         logger.warning(f"⚠️ earn_tokens: amount={amount}")
         return jsonify({'status': 'error', 'message': 'amount must be > 0'}), 400
 
+    # АНТИЧИТ: Запрет прямого начисления для игр со своей серверной логикой
+    if reason.startswith(('clown_win', 'vladeos_win', 'battleship_win')):
+        logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} попытался напрямую начислить шишки за {reason} в обход логики игры!")
+        return jsonify({'status': 'error', 'message': 'Invalid reward channel. Use game endpoint.'}), 403
+
     # АНТИЧИТ: Жесткие лимиты наград в зависимости от причины
     max_allowed = 1000  # Глобальный лимит для неизвестных причин
-    if reason.startswith('clown_win'):
-        max_allowed = 10
-    elif reason.startswith('vladeos_win'):
-        max_allowed = 100
-    elif reason.startswith('battleship_win'):
-        max_allowed = 100
-    elif reason.startswith('tower_level:'):
+    if reason.startswith('tower_level:'):
         max_allowed = 100
     elif reason.startswith('read_news:') or reason == 'welcome_bonus':
         max_allowed = 1000  # welcome_bonus = 1000
@@ -5022,6 +5046,13 @@ def handle_earn_tokens(data: dict):
         max_allowed = 50000
     elif reason.startswith('find_chip_win'):
         max_allowed = 100
+        # Античит: Кулдаун для 'Найди Фишку' (минимум 3 сек между победами)
+        fc_state = get_game_session(user_id, 'find_chip')
+        now_ts = time.time()
+        if fc_state and (now_ts - fc_state.get('last_win', 0)) < 3.0:
+            logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} слишком быстро победил в 'Найди Фишку' (<3s)!")
+            return jsonify({'status': 'error', 'message': 'Too fast'}), 400
+        save_game_session(user_id, 'find_chip', {'last_win': now_ts})
     elif reason.startswith('raccoon_tap'):
         max_allowed = 1000
 
@@ -5075,15 +5106,27 @@ def handle_earn_tokens(data: dict):
         finally:
             conn.close()
 
-    # Обновляем счетчик тапов енота в базе данных
+    # АНТИЧИТ: Строгий учет тапов енота против автокликеров (макс. 1000 в сутки)
     if reason.startswith('raccoon_tap'):
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("UPDATE user_stats SET raccoon_taps = MIN(1000, COALESCE(raccoon_taps, 0) + ?) WHERE user_id = ?", (amount, user_id))
+            cursor.execute("SELECT COALESCE(raccoon_taps, 0) FROM user_stats WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            current_taps = row[0] if row else 0
+
+            if current_taps >= 1000:
+                logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} исчерпал суточный лимит тапов ({current_taps}/1000)!")
+                return jsonify({'status': 'error', 'message': 'Daily tap limit reached (1000/1000)'}), 400
+
+            # Начисляем только остаток до 1000
+            allowed_taps = min(amount, 1000 - current_taps)
+            amount = allowed_taps
+            cursor.execute("UPDATE user_stats SET raccoon_taps = raccoon_taps + ? WHERE user_id = ?", (amount, user_id))
             conn.commit()
         except Exception as e:
             logger.error(f"Ошибка обновления raccoon_taps в user_stats: {e}")
+            return jsonify({'status': 'error', 'message': 'Database error'}), 500
         finally:
             conn.close()
 
@@ -5185,7 +5228,7 @@ def api_get_announcements():
 
     sale_conn = get_salebot_db_connection()
     if not sale_conn:
-        return jsonify({'status': 'error', 'error': 'Не удалось связаться с сервером объявлений.'}), 503
+        return jsonify({'status': 'ok', 'announcements': [], 'is_admin': is_admin, 'message': 'Сервер объявлений временно недоступен'})
 
     # Получаем ID скрытых объявлений из локальной БД
     hidden_ids = set()
