@@ -138,7 +138,7 @@
       color: white;
       font-size: 1.05rem;
       font-weight: 700;
-      width: 100px;
+      width: 130px;
       text-align: center;
     }
     .bet-input:focus {
@@ -252,9 +252,9 @@
         height: 180px;
       }
       .bet-input {
-        width: 80px;
+        width: 105px;
         font-size: 1rem;
-        padding: 8px 12px;
+        padding: 8px 10px;
       }
       .bet-btn {
         font-size: 0.7rem;
@@ -274,6 +274,7 @@
     .history-black { background: #222224; border: 1px solid rgba(255,255,255,0.15); color: #fff; }
     .history-green { background: #33BD1C; color: #fff; }
     .history-jackpot { background: #ffd700; color: #000; }
+    .history-mega_cone { background: linear-gradient(135deg, #a855f7, #06b6d4); color: #fff; border: 1px solid #c084fc; box-shadow: 0 0 8px rgba(168, 85, 247, 0.6); }
     
     .stats {
       display: grid;
@@ -307,6 +308,7 @@
       margin-top: 14px;
       font-size: 0.75rem;
       color: var(--text-sec);
+      line-height: 1.4;
     }
     .info-box strong { color: var(--gold); }
   </style>
@@ -334,13 +336,13 @@
   </div>
 
   <div class="result-box" id="result">
-    Сделайте ставку и крутите колесо!
+    Сделайте ставку (мин. 1,000) и крутите колесо!
   </div>
 
   <div class="bet-controls">
     <div class="bet-input-group">
       <label style="color: var(--text-sec);">Ставка:</label>
-      <input type="number" id="bet-amount" class="bet-input" value="10" min="1" max="1000">
+      <input type="number" id="bet-amount" class="bet-input" value="1000" min="1000" step="500">
     </div>
     
     <div class="bet-buttons">
@@ -384,7 +386,7 @@
 
   <div class="info-box">
     🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>
-    💎 Шанс <strong>0.1%</strong> на Джекпот <strong>x100</strong>!
+    💎 <strong>0.1%</strong> на Джекпот <strong>x100</strong> | 🌟 <strong>1.5%</strong> на артефакт <strong>МЕГАШИШКА</strong> (+1 Уровень Дупла!)
   </div>
 
   <script>
@@ -394,17 +396,21 @@
         t1: "🎰 Енотная Рулетка", t2: ' <img src="cone.png" class="cone-icon" alt="🌰">', r: "Сделайте ставку и крутите колесо!",
         l1: "Ставка:", b1: "🔴 Красное (x2)", b2: "🟢 Зеро (x14)", b3: "⚫ Чёрное (x2)",
         c: "Выбор: ", s: "🎲 Крутить!", st1: "Побед", st2: "Всего ставок", st3: 'Выиграно <img src="cone.png" class="cone-icon" alt="🌰">', st4: 'Проиграно <img src="cone.png" class="cone-icon" alt="🌰">', h: "📊 История",
-        info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>💎 Шанс <strong>0.1%</strong> на Джекпот <strong>x100</strong>!",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Сектора: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>💎 <strong>0.1%</strong> на Джекпот <strong>x100</strong> | 🌟 <strong>1.5%</strong> на артефакт <strong>МЕГАШИШКА</strong> (+1 Уровень Дупла!)",
         red: "🔴 Красное", black: "⚫ Чёрное", green: "🟢 Зеро",
-        noCones: "❌ Недостаточно шишек!", win: "🎉 Победа! +", lose: "😢 Проигрыш -"
+        noCones: "❌ Недостаточно шишек!", win: "🎉 Победа! +", lose: "😢 Проигрыш -",
+        minBetError: "❌ Минимальная ставка: 1,000 шишек!",
+        megaConeWin: "🌟 МЕГАШИШКА (+1 УРОВЕНЬ ДУПЛА) В ИНВЕНТАРЕ!"
       },
       en: {
-        t1: "🎰 Raccoon Roulette", t2: ' <img src="cone.png" class="cone-icon" alt="🌰">', r: "Place your bet and spin the wheel!",
+        t1: "🎰 Raccoon Roulette", t2: ' <img src="cone.png" class="cone-icon" alt="🌰">', r: "Place your bet (min 1,000) and spin the wheel!",
         l1: "Bet:", b1: "🔴 Red (x2)", b2: "🟢 Zero (x14)", b3: "⚫ Black (x2)",
         c: "Choice: ", s: "🎲 Spin!", st1: "Wins", st2: "Total Bet", st3: 'Won <img src="cone.png" class="cone-icon" alt="🌰">', st4: 'Lost <img src="cone.png" class="cone-icon" alt="🌰">', h: "📊 History",
-        info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>💎 <strong>0.1%</strong> chance for <strong>x100</strong> Jackpot!",
+        info: "🎰 RTP: <strong>95%</strong> | 🔢 Sectors: 0-14 (🟢 0, 🔴 1-7, ⚫ 8-14)<br>💎 <strong>0.1%</strong> for <strong>x100</strong> Jackpot | 🌟 <strong>1.5%</strong> for <strong>MEGA CONE</strong> (+1 Hollow Level!)",
         red: "🔴 Red", black: "⚫ Black", green: "🟢 Zero",
-        noCones: "❌ Not enough cones!", win: "🎉 Victory! +", lose: "😢 Defeat -"
+        noCones: "❌ Not enough cones!", win: "🎉 Victory! +", lose: "😢 Defeat -",
+        minBetError: "❌ Minimum bet: 1,000 cones!",
+        megaConeWin: "🌟 MEGA CONE (+1 HOLLOW LEVEL) ADDED TO INVENTORY!"
       }
     };
     let t = translations[lang] || translations.ru;
@@ -448,18 +454,19 @@
     const API_URL = '/api/tokens';
     let balance = 0;
     let currentBet = null;
-    let betAmount = 10;
+    let betAmount = 1000;
     let isSpinning = false;
     let stats = { wins: 0, totalBet: 0, conesWon: 0, conesLost: 0 };
     let history = [];
     
-    // Конфигурация рулетки (16 секторов: 1 зелёный, 1 джекпот, 7 красных, 7 чёрных)
+    // Конфигурация рулетки (17 секторов: 1 зелёный, 1 джекпот, 1 мегашишка, 7 красных, 7 чёрных)
     const segments = [
       { type: 'green', value: 0 },  // 0 - зелёный
       { type: 'red', value: 1 },
       { type: 'black', value: 2 },
       { type: 'red', value: 3 },
       { type: 'black', value: 4 },
+      { type: 'mega_cone', value: 888 }, // 🌟 Мегашишка (+1 Уровень Дупла)
       { type: 'red', value: 5 },
       { type: 'black', value: 6 },
       { type: 'red', value: 7 },
@@ -563,16 +570,17 @@
       const gradientParts = segments.map((seg, i) => {
         const color = seg.type === 'green' ? '#00ff88' : 
                      (seg.type === 'red' ? '#ff4444' : 
-                     (seg.type === 'jackpot' ? '#ffd700' : '#333'));
+                     (seg.type === 'jackpot' ? '#ffd700' : 
+                     (seg.type === 'mega_cone' ? '#9333ea' : '#333')));
         const start = i * segmentAngle;
         const end = (i + 1) * segmentAngle;
         return `${color} ${start}deg ${end}deg`;
       });
       wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 
-      // Добавляем иконки на зелёный сектор и джекпот
+      // Добавляем иконки на специальные сектора
       segments.forEach((seg, i) => {
-        if (seg.type === 'green' || seg.type === 'jackpot') {
+        if (seg.type === 'green' || seg.type === 'jackpot' || seg.type === 'mega_cone') {
           const iconEl = document.createElement('div');
           iconEl.style.position = 'absolute';
           iconEl.style.top = '0';
@@ -585,11 +593,13 @@
           iconEl.style.display = 'flex';
           iconEl.style.flexDirection = 'column';
           iconEl.style.alignItems = 'center';
-          iconEl.style.paddingTop = '8px';
+          iconEl.style.paddingTop = '6px';
           if (seg.type === 'green') {
             iconEl.innerHTML = '<span style="color:#000; font-weight:800; font-size:18px;">0</span>';
-          } else {
-            iconEl.innerHTML = '<span style="font-size:14px; margin-bottom:1px;">💎</span><span style="color:#000; font-weight:900; font-size:8px; line-height:1;">x100</span>';
+          } else if (seg.type === 'jackpot') {
+            iconEl.innerHTML = '<span style="font-size:13px; margin-bottom:1px;">💎</span><span style="color:#000; font-weight:900; font-size:8px; line-height:1;">x100</span>';
+          } else if (seg.type === 'mega_cone') {
+            iconEl.innerHTML = '<img src="mega_cone.png" style="width:16px;height:16px;object-fit:contain;filter:drop-shadow(0 0 4px #38bdf8);margin-bottom:1px;"><span style="color:#fff; font-weight:900; font-size:7px; line-height:1; text-shadow:0 0 4px #000;">LVL+1</span>';
           }
           wheel.appendChild(iconEl);
         }
@@ -620,8 +630,8 @@
     // Получение ставки
     function getBetAmount() {
       const input = document.getElementById('bet-amount');
-      let amount = parseInt(input.value) || 10;
-      amount = Math.max(1, Math.min(amount, balance));
+      let amount = parseInt(input.value) || 1000;
+      if (amount < 1000) amount = 1000;
       input.value = amount;
       return amount;
     }
@@ -631,6 +641,16 @@
       if (isSpinning || !currentBet) return;
 
       betAmount = getBetAmount();
+
+      if (balance < 1000) {
+        showResult(t.minBetError || (lang === 'ru' ? '❌ Минимальная ставка: 1,000 шишек!' : '❌ Minimum bet: 1,000 cones!'), 'lose');
+        return;
+      }
+
+      if (betAmount < 1000) {
+        showResult(t.minBetError || (lang === 'ru' ? '❌ Минимальная ставка: 1,000 шишек!' : '❌ Minimum bet: 1,000 cones!'), 'lose');
+        return;
+      }
 
       if (betAmount > balance) {
         showResult(t.noCones, 'lose');
@@ -654,15 +674,11 @@
       console.log('🎯 Результат:', result);
 
       // Вращаем колесо
-      // conic-gradient начинается сверху (12 часов), стрелка тоже сверху
-      // Поэтому при rotation 0deg стрелка указывает на сегмент 0 (зелёный)
       const segmentIndex = segments.findIndex(s => s.value === result.number);
       const segmentAngle = 360 / segments.length;
 
       console.log('📍 Индекс сегмента:', segmentIndex, '| Угол сегмента:', segmentAngle);
 
-      // Чтобы сегмент оказался под стрелкой (сверху), нужно повернуть колесо на:
-      // - (угол сегмента) чтобы компенсировать его позицию
       const segmentRotation = segmentIndex * segmentAngle + (segmentAngle / 2);
       const targetAngle = -segmentRotation;
 
@@ -674,13 +690,18 @@
       wheel.style.transition = 'transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
       wheel.style.transform = `rotate(${totalRotation}deg)`;
       
-      // Анимация центра колеса при джекпоте
+      // Анимация центра колеса
       const centerEl = document.querySelector('.wheel-center');
       centerEl.style.transition = 'all 0.3s';
       if (result.isJackpot) {
         centerEl.innerHTML = '💎';
         centerEl.style.background = 'linear-gradient(145deg, #ffd700, #ffaa00)';
         centerEl.style.boxShadow = '0 0 40px #ffd700';
+        centerEl.style.fontSize = '2rem';
+      } else if (result.isMegaCone) {
+        centerEl.innerHTML = '✨';
+        centerEl.style.background = 'linear-gradient(145deg, #a855f7, #06b6d4)';
+        centerEl.style.boxShadow = '0 0 40px #c084fc';
         centerEl.style.fontSize = '2rem';
       } else {
         centerEl.innerHTML = '🦝';
@@ -692,7 +713,7 @@
       // Запускаем музыку при вращении
       if (rouletteMusic) {
         rouletteMusic.volume = 0.3;
-        rouletteMusic.currentTime = 0; // Начинаем с начала
+        rouletteMusic.currentTime = 0;
         rouletteMusic.play().catch(e => console.log('Музыка не запустилась:', e));
         console.log('🎵 Музыка запущена при вращении');
       }
@@ -706,7 +727,19 @@
           console.log('⏹️ Музыка остановлена');
         }
       
-        if (result.win) {
+        if (result.isMegaCone) {
+          stats.wins++;
+          document.getElementById('total-wins').innerText = stats.wins.toLocaleString('ru-RU');
+          showResult(t.megaConeWin, 'win');
+          addToHistory(result.number, result.type, true);
+          // Возвращаем ставку + выдаем мегашишку
+          balance += betAmount;
+          updateBalanceUI(balance);
+          // Оповещаем родительское окно об обновлении инвентаря
+          try {
+            window.parent.postMessage({ type: 'inventory_updated' }, window.location.origin);
+          } catch(e) { console.error(e); }
+        } else if (result.win) {
           stats.wins++;
           stats.conesWon += result.winAmount;
           document.getElementById('total-wins').innerText = stats.wins.toLocaleString('ru-RU');
@@ -760,7 +793,9 @@
             type: data.result.type,
             win: data.win,
             winAmount: data.winAmount || 0,
-            isJackpot: data.isJackpot || false
+            isJackpot: data.isJackpot || false,
+            isMegaCone: data.isMegaCone || false,
+            itemWon: data.itemWon || null
           };
         }
       } catch (e) {
@@ -773,17 +808,23 @@
 
     // Локальная генерация результата (если API недоступно)
     function generateLocalResult(betType, amount) {
-      const normalSegments = segments.filter(s => s.type !== 'jackpot');
+      const normalSegments = segments.filter(s => s.type !== 'jackpot' && s.type !== 'mega_cone');
       const randIndex = Math.floor(Math.random() * normalSegments.length);
       let segment = normalSegments[randIndex];
 
       let win = false;
       let isJackpot = false;
+      let isMegaCone = false;
       
-      if (Math.random() < 0.001) {
+      const rand = Math.random();
+      if (rand < 0.001) {
         isJackpot = true;
         win = true;
         segment = segments.find(s => s.type === 'jackpot');
+      } else if (rand < 0.016) {
+        isMegaCone = true;
+        win = true;
+        segment = segments.find(s => s.type === 'mega_cone');
       } else {
         if (betType === 'red' && segment.type === 'red') win = true;
         else if (betType === 'black' && segment.type === 'black') win = true;
@@ -794,8 +835,9 @@
         number: segment.value,
         type: segment.type,
         win: win,
-        winAmount: win ? (isJackpot ? amount * 100 : Math.floor(amount * multipliers[betType])) : 0,
-        isJackpot: isJackpot
+        winAmount: win ? (isJackpot ? amount * 100 : (isMegaCone ? amount : Math.floor(amount * multipliers[betType]))) : 0,
+        isJackpot: isJackpot,
+        isMegaCone: isMegaCone
       };
     }
 
@@ -816,7 +858,13 @@
       history.forEach(item => {
         const el = document.createElement('div');
         el.className = `history-item history-${item.type}`;
-        el.innerText = item.type === 'jackpot' ? '💎' : item.number;
+        if (item.type === 'jackpot') {
+          el.innerText = '💎';
+        } else if (item.type === 'mega_cone') {
+          el.innerHTML = '<img src="mega_cone.png" style="width:18px;height:18px;object-fit:contain;">';
+        } else {
+          el.innerText = item.number;
+        }
         if (item.win) {
           el.style.boxShadow = '0 0 10px var(--win)';
           el.style.border = '2px solid var(--win)';

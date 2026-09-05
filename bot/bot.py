@@ -416,6 +416,18 @@ def init_db():
             )
         ''')
 
+        # Таблица инвентаря пользователя
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_inventory (
+                user_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                quantity INTEGER NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, item_id)
+            )
+        ''')
+
         # Таблица рефералов (кто кого пригласил)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS referrals (
@@ -2404,6 +2416,157 @@ def upgrade_hollow_cones(user_id: int) -> dict:
     }
 
 
+# ==================== INVENTORY & ITEMS SYSTEM ====================
+ITEMS_REGISTRY = {
+    'mega_cone': {
+        'id': 'mega_cone',
+        'name_ru': 'Мегашишка',
+        'name_en': 'Mega Cone',
+        'desc_ru': 'Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (до 10-го ур.).',
+        'desc_en': 'Legendary artifact! Instantly raises your Hollow level by +1 (up to lvl 10).',
+        'icon': 'mega_cone.png',
+        'usable': True,
+        'rarity': 'legendary'
+    }
+}
+
+
+def get_user_inventory(user_id: int) -> list:
+    """Получить инвентарь пользователя"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute("SELECT item_id, quantity, updated_at FROM user_inventory WHERE user_id = ? AND quantity > 0", (user_id,))
+        rows = cursor.fetchall()
+        inventory = []
+        for r in rows:
+            item_id = r['item_id']
+            meta = ITEMS_REGISTRY.get(item_id, {
+                'id': item_id,
+                'name_ru': item_id,
+                'name_en': item_id,
+                'desc_ru': 'Предмет инвентаря',
+                'desc_en': 'Inventory item',
+                'icon': 'cone.png',
+                'usable': True,
+                'rarity': 'rare'
+            })
+            inventory.append({
+                'item_id': item_id,
+                'quantity': r['quantity'],
+                'name_ru': meta.get('name_ru'),
+                'name_en': meta.get('name_en'),
+                'desc_ru': meta.get('desc_ru'),
+                'desc_en': meta.get('desc_en'),
+                'icon': meta.get('icon'),
+                'usable': meta.get('usable', True),
+                'rarity': meta.get('rarity', 'common'),
+                'updated_at': str(r['updated_at']) if r['updated_at'] else None
+            })
+        return inventory
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_user_inventory: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def add_inventory_item(user_id: int, item_id: str, quantity: int = 1) -> dict:
+    """Добавить предмет в инвентарь пользователя"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute('''
+            INSERT INTO user_inventory (user_id, item_id, quantity, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, item_id) DO UPDATE SET 
+                quantity = quantity + excluded.quantity,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, item_id, quantity))
+        conn.commit()
+        logger.info(f"🎒 Добавлен предмет {item_id} (x{quantity}) пользователю {user_id}")
+        return {'status': 'ok', 'user_id': user_id, 'item_id': item_id, 'quantity': quantity}
+    except Exception as e:
+        logger.error(f"❌ Ошибка add_inventory_item: {e}")
+        conn.rollback()
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def use_inventory_item(user_id: int, item_id: str) -> dict:
+    """Использовать предмет из инвентаря"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        cursor.execute("SELECT quantity FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+        row = cursor.fetchone()
+        if not row or row['quantity'] <= 0:
+            return {'status': 'error', 'message': 'У вас нет этого предмета в инвентаре!'}
+
+        if item_id == 'mega_cone':
+            # Проверяем уровень Дупла
+            hollow_st = get_hollow_status(user_id)
+            current_lvl = hollow_st.get('level', 1)
+            if current_lvl >= 10:
+                return {'status': 'error', 'message': 'Ваше Дупло уже достигло максимального 10-го уровня!'}
+
+            # Списываем 1 Мегашишку
+            new_qty = row['quantity'] - 1
+            if new_qty <= 0:
+                cursor.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
+            else:
+                cursor.execute("UPDATE user_inventory SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND item_id = ?", (new_qty, user_id, item_id))
+
+            new_level = current_lvl + 1
+            cursor.execute("UPDATE user_stats SET hollow_level = ? WHERE user_id = ?", (new_level, user_id))
+            conn.commit()
+
+            new_hollow = get_hollow_status(user_id)
+            new_yield = 1000 * (2 ** (new_level - 1))
+            logger.info(f"🌟 Игрок {user_id} использовал Мегашишку! Дупло повышено до {new_level} уровня.")
+
+            # Уведомление админу
+            try:
+                user_name = f"Игрок #{user_id}"
+                cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+                u_row = cursor.fetchone()
+                if u_row:
+                    user_name = f"@{u_row['username']}" if u_row['username'] else (f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip() or f"Игрок #{user_id}")
+                admin_text = (
+                    f"🌟 <b>АКТИВИРОВАНА МЕГАШИШКА!</b>\n\n"
+                    f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                    f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                    f"🏆 <b>Новый уровень Дупла:</b> {new_level} / 10\n"
+                    f"🌰 <b>Добыча в сутки:</b> +{new_yield:,} Шишек/24ч\n"
+                    f"🎒 <b>Осталось Мегашишек:</b> {new_qty}"
+                )
+                notify_admin(admin_text)
+            except Exception as e_adm:
+                logger.error(f"Ошибка notify_admin при использовании Мегашишки: {e_adm}")
+
+            return {
+                'status': 'ok',
+                'message': f'🎉 Мегашишка успешно активирована!\nУровень Дупла повышен до {new_level} (+{new_yield:,} шишек/сутки)!',
+                'item_id': item_id,
+                'new_level': new_level,
+                'remaining_quantity': new_qty,
+                'hollow': new_hollow,
+                'inventory': get_user_inventory(user_id)
+            }
+        else:
+            return {'status': 'error', 'message': 'Этот предмет нельзя использовать прямо сейчас'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка use_inventory_item: {e}")
+        conn.rollback()
+        return {'status': 'error', 'message': f'Внутренняя ошибка: {e}'}
+    finally:
+        conn.close()
+
+
 def set_user_wallet_address(user_id: int, wallet_address: str = None) -> bool:
     """
     Привязывает или отвязывает TON кошелек пользователя
@@ -3523,6 +3686,56 @@ def api_hollow_upgrade_cones():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/inventory', methods=['GET'])
+def api_get_inventory():
+    """Получить инвентарь пользователя"""
+    try:
+        user_id = request.args.get('userId') or request.headers.get('X-Telegram-User-Id', 0)
+        if not user_id:
+            return jsonify({'error': 'user_id required'}), 400
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        items = get_user_inventory(user_id)
+        return jsonify({
+            'status': 'ok',
+            'user_id': user_id,
+            'items': items
+        })
+    except Exception as e:
+        logger.error(f"Ошибка api_get_inventory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/inventory/use', methods=['POST'])
+@limiter.limit("30 per minute")
+def api_use_inventory():
+    """Использовать предмет из инвентаря"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        item_id = data.get('itemId') or data.get('item_id')
+
+        if not user_id or not item_id:
+            return jsonify({'error': 'userId and itemId required'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid user_id'}), 400
+
+        result = use_inventory_item(user_id, item_id)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Ошибка api_use_inventory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/bonus/claim', methods=['POST'])
 @limiter.limit("30 per minute")
 def api_bonus_claim():
@@ -3700,8 +3913,8 @@ def api_casino_roulette():
             logger.warning(f"🚨 БЛОКИРОВКА Рулетки: неверная подпись или подделка ID!")
             return jsonify({'error': 'Unauthorized'}), 403
 
-        if bet_amount <= 0:
-            return jsonify({'error': 'betAmount must be > 0'}), 400
+        if bet_amount < 1000:
+            return jsonify({'error': 'Минимальная ставка в рулетке: 1,000 шишек', 'minBet': 1000}), 400
 
         # Конфигурация рулетки (15 секторов: 1 зелёный, 7 красных, 7 чёрных)
         segments = [
@@ -3741,13 +3954,28 @@ def api_casino_roulette():
         elif bet_type == 'green' and result_segment['type'] == 'green':
             win = True
 
-        # ДЖЕКПОТ 0.1% (1 из 1000)
+        # ДЖЕКПОТ 0.1% (1 из 1000) и МЕГАШИШКА 1.5% (1 из ~67)
         is_jackpot = False
-        if random.random() < 0.001:
+        is_mega_cone = False
+        item_won = None
+
+        roll = random.random()
+        if roll < 0.001:
             is_jackpot = True
             win = True
-            # При джекпоте колесо останавливается на специальном секторе
             result_segment = {'type': 'jackpot', 'value': 777}
+        elif roll < 0.016:  # 1.5% шанс на Мегашишку
+            is_mega_cone = True
+            win = True
+            result_segment = {'type': 'mega_cone', 'value': 888}
+            add_inventory_item(user_id, 'mega_cone', 1)
+            item_won = {
+                'id': 'mega_cone',
+                'name': 'Мегашишка',
+                'icon': 'mega_cone.png',
+                'desc': 'Повышает уровень Дупла на +1'
+            }
+            logger.info(f"🌟 Roulette MEGA CONE: user_id={user_id} выиграл Мегашишку!")
 
         win_amount = 0
         if win:
@@ -3755,6 +3983,9 @@ def api_casino_roulette():
                 win_amount = bet_amount * 100
                 add_tokens(user_id, win_amount, f'roulette_jackpot:{bet_type}')
                 logger.info(f"💎 Roulette JACKPOT: user_id={user_id}, bet={bet_amount}, win={win_amount}")
+            elif is_mega_cone:
+                win_amount = bet_amount # Возвращаем ставку + Мегашишка в инвентарь
+                add_tokens(user_id, win_amount, f'roulette_megacone:{bet_type}')
             else:
                 win_amount = int(bet_amount * multipliers.get(bet_type, 2))
                 add_tokens(user_id, win_amount, f'roulette_win:{bet_type}')
@@ -3792,7 +4023,9 @@ def api_casino_roulette():
             },
             'win': win,
             'winAmount': win_amount,
-            'isJackpot': is_jackpot
+            'isJackpot': is_jackpot,
+            'isMegaCone': is_mega_cone,
+            'itemWon': item_won
         })
 
     except Exception as e:

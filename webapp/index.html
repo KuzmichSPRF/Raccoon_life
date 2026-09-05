@@ -1642,6 +1642,121 @@
       font-weight: 700;
       color: var(--text-primary);
     }
+
+    /* ==================== INVENTORY STYLES ==================== */
+    .inventory-item-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .inventory-item-card:hover {
+      border-color: rgba(168, 85, 247, 0.6);
+      background: rgba(168, 85, 247, 0.08);
+    }
+    .inventory-item-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .inventory-item-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+    }
+    .inventory-item-icon {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px #38bdf8);
+    }
+    .inventory-item-badge-qty {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.4);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    .inventory-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .inventory-item-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .inventory-item-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #fff;
+    }
+    .inventory-item-rarity {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #fff;
+      letter-spacing: 0.04em;
+    }
+    .inventory-item-desc {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .inventory-item-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .inventory-item-use-btn {
+      background: linear-gradient(135deg, #9333ea, #06b6d4);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+      transition: all 0.15s ease;
+    }
+    .inventory-item-use-btn:active {
+      transform: scale(0.96);
+    }
+    .inventory-item-use-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
@@ -1736,6 +1851,20 @@
         <div id="hollow-max-level-msg" class="hollow-max-level-box" style="display: none;">
           🏆 <span data-i18n-html="hollow_max_level">Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</span>
         </div>
+
+        <!-- Quick Mega Cone Use in Hollow -->
+        <div id="hollow-mega-cone-box" class="hollow-mega-cone-box" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(6,182,212,0.15)); border: 1px solid rgba(168,85,247,0.4); border-radius: 14px; padding: 10px 12px; margin-top: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="mega_cone.png" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(168,85,247,0.6));" alt="✨">
+            <div style="text-align: left;">
+              <div style="font-size: 0.82rem; font-weight: 800; color: #e9d5ff;" data-i18n="item_mega_cone_name">Мегашишка (+1 ур.)</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);"><span data-i18n="in_inventory">В инвентаре:</span> <span id="hollow-mega-cone-count" style="font-weight: 800; color: #38bdf8;">0 шт.</span></div>
+            </div>
+          </div>
+          <button id="hollow-use-mega-btn" class="inventory-item-use-btn" onclick="useInventoryItem('mega_cone')" style="padding: 6px 12px; font-size: 0.75rem;">
+            <span data-i18n="inventory_use_btn">Использовать</span>
+          </button>
+        </div>
       </div>
 
       <!-- Starter Offer (+3 Levels for 10 TON) -->
@@ -1750,6 +1879,26 @@
       </div>
 
       <div id="hollow-status-msg" style="margin-top: 6px; font-size: 0.8rem; color: var(--accent-gold); min-height: 16px;"></div>
+    </div>
+  </div>
+
+  <!-- Inventory Modal (Инвентарь Енота) -->
+  <div id="inventory-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeInventoryModal()">
+    <div class="tutorial-modal inventory-modal" style="width: 92%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; padding: 18px 16px 20px; position: relative; border: 1px solid rgba(168, 85, 247, 0.45); background: linear-gradient(180deg, #191424 0%, #121214 100%); box-shadow: 0 10px 40px rgba(168, 85, 247, 0.25);">
+      <button class="close-modal-btn" onclick="closeInventoryModal()">✕</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span style="font-size: 1.6rem;">🎒</span>
+        <div style="text-align: left;">
+          <h3 class="tutorial-title" style="margin: 0; text-align: left; font-size: 1.2rem; color: #e9d5ff;" data-i18n="inventory_title">Инвентарь Енота</h3>
+          <div style="font-size: 0.72rem; color: var(--text-secondary);" data-i18n="inventory_desc">Хранилище редких артефактов и предметов</div>
+        </div>
+      </div>
+
+      <div id="inventory-modal-list" style="overflow-y: auto; overflow-x: hidden; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 10px; min-height: 160px;">
+        <!-- Dynamic Inventory Items -->
+      </div>
+
+      <div id="inventory-status-msg" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-gold); min-height: 18px;"></div>
     </div>
   </div>
 
@@ -2118,6 +2267,10 @@
     </div>
 
     <div class="home__title-badges">
+      <button class="badge-icon-button" id="header-inventory-btn" onclick="openInventoryModal(); triggerHaptic('selection');" aria-label="Inventory" title="Инвентарь">
+        <span class="badge-icon-button__icon">🎒</span>
+        <div class="badge-icon-button__badge" id="header-inventory-badge" style="background: linear-gradient(135deg, #a855f7, #06b6d4); color: #fff;">0</div>
+      </button>
       <button class="badge-icon-button" id="header-wallet-btn" onclick="handleTonWalletButtonClick(); triggerHaptic('selection');" aria-label="Wallet">
         <span class="badge-icon-button__icon" id="header-wallet-icon">👛</span>
         <div class="badge-icon-button__badge" id="header-wallet-badge">TON</div>
@@ -2220,6 +2373,11 @@
 
       <!-- Right Column Badges -->
       <div class="home__bottom-right">
+        <button class="offer-badge" onclick="openInventoryModal(); triggerHaptic('light');" title="Инвентарь" data-i18n-title="menu_inventory">
+          <div class="offer-badge__timer" style="background: linear-gradient(135deg, #a855f7, #06b6d4); color: #fff;" id="inventory-badge-count">0</div>
+          <span class="offer-badge__icon">🎒</span>
+          <div class="offer-badge__label" data-i18n="menu_inventory">Инвентарь</div>
+        </button>
         <button class="offer-badge" onclick="openTotalizator(); triggerHaptic('light');">
           <div class="offer-badge__timer offer-badge__timer--live">LIVE</div>
           <span class="offer-badge__icon">🎲</span>
@@ -2431,7 +2589,7 @@
   if (tg.expand) tg.expand();
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.09.05.4';
+  const APP_VERSION = '2026.09.05.5';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
@@ -2652,7 +2810,16 @@
       ton_pack_02_title: "Пакет «Старт»",
       ton_pack_05_title: "Пакет «Грибник»",
       ton_pack_10_title: "Пакет «Богатый Енот»",
-      ton_pack_30_title: "Пакет «Хранилище Леса»"
+      ton_pack_30_title: "Пакет «Хранилище Леса»",
+      menu_inventory: "Инвентарь",
+      inventory_title: "🎒 Инвентарь Енота",
+      inventory_desc: "Хранилище редких артефактов и предметов",
+      inventory_empty: "В инвентаре пока пусто. Выбивайте редкие артефакты в рулетке!",
+      inventory_use_btn: "Использовать",
+      in_inventory: "В инвентаре:",
+      item_mega_cone_name: "Мегашишка",
+      item_mega_cone_desc: "Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (удваивает суточную добычу шишек).",
+      item_rarity_legendary: "Легендарный"
     },
     en: {
       lang_btn: "EN",
@@ -2825,7 +2992,16 @@
       ton_pack_02_title: "«Start» Pack",
       ton_pack_05_title: "«Mushroomer» Pack",
       ton_pack_10_title: "«Rich Raccoon» Pack",
-      ton_pack_30_title: "«Forest Vault» Pack"
+      ton_pack_30_title: "«Forest Vault» Pack",
+      menu_inventory: "Inventory",
+      inventory_title: "🎒 Raccoon Inventory",
+      inventory_desc: "Storage for rare artifacts and items",
+      inventory_empty: "Inventory is empty. Win rare artifacts in roulette!",
+      inventory_use_btn: "Use",
+      in_inventory: "In inventory:",
+      item_mega_cone_name: "Mega Cone",
+      item_mega_cone_desc: "Legendary artifact! Instantly boosts Hollow level by +1 (doubles daily pinecone harvest).",
+      item_rarity_legendary: "Legendary"
     }
   };
 
@@ -3360,6 +3536,18 @@
       }
     }
 
+    // Обновляем количество Мегашишек в блоке Дупла
+    const megaConeItem = inventoryState.items.find(i => i.id === 'mega_cone');
+    const megaCount = megaConeItem ? megaConeItem.quantity : 0;
+    const hollowMegaCountEl = document.getElementById('hollow-mega-cone-count');
+    if (hollowMegaCountEl) {
+      hollowMegaCountEl.innerText = `${megaCount} шт.`;
+    }
+    const hollowUseMegaBtn = document.getElementById('hollow-use-mega-btn');
+    if (hollowUseMegaBtn) {
+      hollowUseMegaBtn.disabled = (megaCount <= 0 || level >= 10);
+    }
+
     // Стартовый оффер (+3 уровня за 10 TON) доступен только на 1-м уровне
     if (starterOfferCard) {
       starterOfferCard.style.display = (level === 1) ? 'block' : 'none';
@@ -3375,10 +3563,185 @@
     renderHollowModalContent(canClaim, remaining);
     document.getElementById('token-bonus-overlay').classList.add('active');
     fetchHollowStatusFromServer();
+    fetchInventory();
   }
 
   function closeHollowModal() {
     document.getElementById('token-bonus-overlay').classList.remove('active');
+  }
+
+  // ==================== INVENTORY STATE & ACTIONS ====================
+  let inventoryState = {
+    items: [],
+    totalCount: 0,
+    is_loading: false
+  };
+
+  async function fetchInventory() {
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+      const res = await fetch(`/api/inventory?userId=${userId}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        inventoryState.items = data.inventory || [];
+        inventoryState.totalCount = inventoryState.items.reduce((acc, item) => acc + (item.quantity || 0), 0);
+        updateInventoryBadges();
+        renderInventoryModal();
+        
+        // Обновляем количество в открытом Дупле
+        const megaConeItem = inventoryState.items.find(i => i.id === 'mega_cone');
+        const count = megaConeItem ? megaConeItem.quantity : 0;
+        const hollowMegaCountEl = document.getElementById('hollow-mega-cone-count');
+        if (hollowMegaCountEl) {
+          hollowMegaCountEl.innerText = `${count} шт.`;
+        }
+        const hollowUseMegaBtn = document.getElementById('hollow-use-mega-btn');
+        if (hollowUseMegaBtn) {
+          hollowUseMegaBtn.disabled = (count <= 0 || (hollowState.level || 1) >= 10);
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки инвентаря:', e);
+    }
+  }
+
+  function updateInventoryBadges() {
+    const headerBadge = document.getElementById('header-inventory-badge');
+    const rightBadge = document.getElementById('inventory-badge-count');
+    const countStr = String(inventoryState.totalCount);
+
+    if (headerBadge) headerBadge.innerText = countStr;
+    if (rightBadge) rightBadge.innerText = countStr;
+  }
+
+  function openInventoryModal() {
+    const statusMsg = document.getElementById('inventory-status-msg');
+    if (statusMsg) statusMsg.innerText = '';
+    renderInventoryModal();
+    document.getElementById('inventory-modal-overlay').classList.add('active');
+    fetchInventory();
+  }
+
+  function closeInventoryModal() {
+    document.getElementById('inventory-modal-overlay').classList.remove('active');
+  }
+
+  function renderInventoryModal() {
+    const listEl = document.getElementById('inventory-modal-list');
+    if (!listEl) return;
+
+    if (!inventoryState.items || inventoryState.items.length === 0) {
+      listEl.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px 10px; color: var(--text-secondary); text-align:center;">
+          <span style="font-size: 2.8rem; margin-bottom: 10px; opacity: 0.6;">🎒</span>
+          <p style="font-size: 0.85rem; line-height: 1.45; max-width: 260px;">${i18n[currentLang]?.inventory_empty || 'В инвентаре пока пусто. Выбивайте редкие артефакты в рулетке!'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = inventoryState.items.map(item => {
+      const name = i18n[currentLang]?.[`item_${item.id}_name`] || item.name;
+      const desc = i18n[currentLang]?.[`item_${item.id}_desc`] || item.description;
+      const rarity = i18n[currentLang]?.[`item_rarity_${item.rarity}`] || (item.rarity === 'legendary' ? 'Легендарный' : 'Редкий');
+      const iconSrc = item.icon || (item.id === 'mega_cone' ? 'mega_cone.png' : 'cone.png');
+      const isMaxHollow = item.id === 'mega_cone' && (hollowState.level || 1) >= 10;
+
+      return `
+        <div class="inventory-item-card">
+          <div class="inventory-item-header">
+            <div class="inventory-item-icon-wrap">
+              <img src="${iconSrc}" class="inventory-item-icon" alt="${name}">
+              <div class="inventory-item-badge-qty">x${item.quantity}</div>
+            </div>
+            <div class="inventory-item-info">
+              <div class="inventory-item-title-row">
+                <span class="inventory-item-title">${name}</span>
+                <span class="inventory-item-rarity">${rarity}</span>
+              </div>
+              <div class="inventory-item-desc">${desc}</div>
+            </div>
+          </div>
+          <div class="inventory-item-actions">
+            <button class="inventory-item-use-btn" ${isMaxHollow ? 'disabled' : ''} onclick="useInventoryItem('${item.id}')">
+              ${isMaxHollow ? 'MAX LVL' : (i18n[currentLang]?.inventory_use_btn || 'Использовать')}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function useInventoryItem(itemId) {
+    const userId = getUserId();
+    if (!userId) return;
+
+    const statusMsg = document.getElementById('inventory-status-msg');
+    const hollowStatusMsg = document.getElementById('hollow-status-msg');
+
+    if (itemId === 'mega_cone' && (hollowState.level || 1) >= 10) {
+      triggerHaptic('warning');
+      const msg = '🏆 У вас уже максимальный 10-й уровень Дупла!';
+      if (statusMsg) { statusMsg.style.color = 'var(--accent-gold)'; statusMsg.innerText = msg; }
+      if (hollowStatusMsg) { hollowStatusMsg.style.color = 'var(--accent-gold)'; hollowStatusMsg.innerText = msg; }
+      tg.showAlert(msg);
+      return;
+    }
+
+    if (statusMsg) {
+      statusMsg.style.color = 'var(--accent-gold)';
+      statusMsg.innerText = '⏳ Активация предмета...';
+    }
+    if (hollowStatusMsg) {
+      hollowStatusMsg.style.color = 'var(--accent-gold)';
+      hollowStatusMsg.innerText = '⏳ Активация Мегашишки...';
+    }
+
+    try {
+      const res = await fetch('/api/inventory/use', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg.initData || ''
+        },
+        body: JSON.stringify({ userId: userId, itemId: itemId })
+      });
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        triggerHaptic('success');
+        const successMsg = data.message || '🎉 Предмет успешно активирован!';
+        if (statusMsg) {
+          statusMsg.style.color = '#00ff88';
+          statusMsg.innerText = successMsg;
+        }
+        if (hollowStatusMsg) {
+          hollowStatusMsg.style.color = '#00ff88';
+          hollowStatusMsg.innerText = successMsg;
+        }
+
+        tg.showAlert(successMsg);
+
+        // Обновляем данные
+        await fetchInventory();
+        await fetchHollowStatusFromServer();
+        if (typeof updateUserInfo === 'function') updateUserInfo();
+        syncStats();
+      } else {
+        triggerHaptic('error');
+        const err = data.message || 'Ошибка использования предмета';
+        if (statusMsg) { statusMsg.style.color = '#ff5252'; statusMsg.innerText = err; }
+        if (hollowStatusMsg) { hollowStatusMsg.style.color = '#ff5252'; hollowStatusMsg.innerText = err; }
+        tg.showAlert(err);
+      }
+    } catch (e) {
+      console.error('Ошибка useInventoryItem:', e);
+      triggerHaptic('error');
+      if (statusMsg) { statusMsg.style.color = '#ff5252'; statusMsg.innerText = 'Ошибка соединения'; }
+      if (hollowStatusMsg) { hollowStatusMsg.style.color = '#ff5252'; hollowStatusMsg.innerText = 'Ошибка соединения'; }
+    }
   }
 
   function openBonusModal() {
@@ -6312,6 +6675,13 @@
       tg.showAlert(data.message);
     }
 
+    // Обновление инвентаря (выигрыш в рулетке / покупка)
+    if (data.type === 'inventory_updated') {
+      fetchInventory();
+      fetchHollowStatusFromServer();
+      loadTokenBalance();
+    }
+
     // Quest complete
     if (data.type === 'quest_complete' && data.id) {
       markAsCompleted(data.id);
@@ -6459,6 +6829,7 @@
         fetchEnergyFromServer();
         updateEnergyUI();
         initDailyBonus();
+        fetchInventory();
         initRaccoonTapSystem();
         checkStartParamReferral();
         console.log('🦝 Raccoon Life WebApp ready!');
