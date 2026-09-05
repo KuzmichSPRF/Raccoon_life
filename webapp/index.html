@@ -2414,13 +2414,15 @@
     expand: () => {},
     openLink: (url) => window.open(url, '_blank'),
     openTelegramLink: (url) => window.open(url, '_blank'),
-    HapticFeedback: { impactOccurred: () => {}, notificationOccurred: () => {} }
+    HapticFeedback: { impactOccurred: () => {}, notificationOccurred: () => {}, selectionChanged: () => {} },
+    BackButton: { show: () => {}, hide: () => {}, onClick: () => {}, offClick: () => {} },
+    showAlert: (msg) => alert(msg)
   };
   if (tg.ready) tg.ready();
   if (tg.expand) tg.expand();
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.08.30.7';
+  const APP_VERSION = '2026.09.05.1';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
@@ -3138,44 +3140,6 @@
     document.getElementById('tutorial-overlay').classList.remove('active');
   }
 
-  // ==================== DAILY BONUS SYSTEM (EVERY 24 HOURS) ====================
-  let dailyBonusState = {
-    can_claim: true,
-    time_remaining: 0,
-    last_claim: null,
-    bonus_amount: 1000,
-    last_synced_at: Date.now(),
-    is_claiming: false
-  };
-  let bonusTickerInterval = null;
-
-  function initDailyBonus() {
-    fetchBonusStatus();
-    if (bonusTickerInterval) clearInterval(bonusTickerInterval);
-    bonusTickerInterval = setInterval(tickBonusCountdown, 1000);
-  }
-
-  function fetchBonusStatus() {
-    const userId = getUserId();
-    if (!userId) return;
-
-    fetch(`/api/bonus/status?userId=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'X-Telegram-Init-Data': tg.initData || ''
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'ok' && data.bonus) {
-        dailyBonusState.can_claim = data.bonus.can_claim;
-        dailyBonusState.time_remaining = data.bonus.time_remaining || 0;
-        dailyBonusState.last_claim = data.bonus.last_claim;
-        dailyBonusState.bonus_amount = data.bonus.bonus_amount || 1000;
-        dailyBonusState.last_synced_at = Date.now();
-        updateBonusUI();
   // ==================== HOLLOW (ДУПЛО) STATE & ACTIONS ====================
   let hollowState = {
     level: 1,
@@ -4138,15 +4102,19 @@
     const header = document.getElementById('app-header');
     const bottomNav = document.getElementById('bottom-nav');
 
-    tg.BackButton.offClick(handleBack);
+    if (tg.BackButton && typeof tg.BackButton.offClick === 'function') {
+      tg.BackButton.offClick(handleBack);
+    }
 
     if (screenId === 'cover-screen') {
-      tg.BackButton.hide();
+      if (tg.BackButton && typeof tg.BackButton.hide === 'function') tg.BackButton.hide();
       if (header) header.style.display = 'none';
       if (bottomNav) bottomNav.style.display = 'none';
     } else if (screenId === 'reader-screen') {
-      tg.BackButton.show();
-      tg.BackButton.onClick(handleBack);
+      if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+      }
       if (header) header.style.display = 'none';
       if (bottomNav) bottomNav.style.display = 'none';
     } else {
@@ -4154,25 +4122,35 @@
       if (bottomNav) bottomNav.style.display = 'flex';
 
       if (screenId === 'main-menu') {
-        tg.BackButton.show();
-        tg.BackButton.onClick(handleBack);
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
         updateBottomNav('nav-home');
         setTimeout(() => loadTokenBalance(), 200);
       } else if (screenId === 'rating-screen') {
-        tg.BackButton.show();
-        tg.BackButton.onClick(handleBack);
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
         updateBottomNav('nav-rating');
       } else if (screenId === 'shop-screen') {
-        tg.BackButton.show();
-        tg.BackButton.onClick(handleBack);
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
         updateBottomNav('nav-shop');
       } else if (screenId === 'tot-screen') {
-        tg.BackButton.show();
-        tg.BackButton.onClick(handleBack);
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
         updateBottomNav('');
       } else if (screenId === 'list-screen') {
-        tg.BackButton.show();
-        tg.BackButton.onClick(handleBack);
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
         if (currentCategory === 'quests' || currentCategory === 'qt_2') updateBottomNav('nav-quests');
         else if (currentCategory === 'games') updateBottomNav('nav-games');
         else updateBottomNav('');
