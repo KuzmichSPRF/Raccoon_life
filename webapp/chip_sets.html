@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🎨 Мастерская Фишек</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #ec4899;
+      --primary-gradient: linear-gradient(135deg, #ec4899, #8b5cf6);
+      --accent: #8b5cf6;
+      --gold: #ffd700;
+      --bg-color: #0d0d11;
+      --card-bg: rgba(22, 22, 28, 0.78);
+      --card-elevated: rgba(32, 32, 42, 0.88);
+      --card-border: 1px solid rgba(255, 255, 255, 0.1);
+      --card-border-glow: 1px solid rgba(236, 72, 153, 0.35);
+      --text-main: #ffffff;
+      --text-sec: rgba(255, 255, 255, 0.65);
+      --text-muted: rgba(255, 255, 255, 0.45);
+      --green: #22c55e;
+      --red: #ef4444;
+      --orange: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        linear-gradient(180deg, rgba(13, 13, 17, 0.75) 0%, rgba(13, 13, 17, 0.92) 100%),
+        url('images/chip_sets_bg.jpg');
+      background-position: center top;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 14px 40px;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 18px;
+      border: var(--card-border);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: #fff;
+      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .back-btn:active { transform: scale(0.92); }
+
+    .header-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+    .header-title {
+      font-weight: 900;
+      font-size: 1.05rem;
+      background: linear-gradient(135deg, #fff, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.02em;
+    }
+    .header-subtitle {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-sec);
+    }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: #fff;
+      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .icon-btn:active { transform: scale(0.92); }
+
+    /* Segmented Navigation Tabs */
+    .tabs-nav {
+      display: flex;
+      background: rgba(18, 18, 24, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 4px;
+      border-radius: 16px;
+      border: var(--card-border);
+      gap: 4px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-sec);
+      font-size: 0.76rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.22s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--primary-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45);
+      font-weight: 800;
+    }
+    .tab-btn:active { transform: scale(0.96); }
+
+    /* Content Panes */
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tab-pane.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Sets List & Cards */
+    .sets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .set-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: var(--card-border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .set-card:hover {
+      border-color: rgba(236, 72, 153, 0.4);
+    }
+
+    .set-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .set-author-wrap {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .set-author-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(236, 72, 153, 0.4);
+    }
+
+    .set-author-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .set-author-name {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .set-created-at {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .set-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .badge-count {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+    }
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .badge-approved {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #4ade80;
+    }
+    .badge-rejected {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    .set-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+    }
+
+    .set-desc {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-sec);
+      line-height: 1.35;
+    }
+
+    .set-preview-wrap {
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #101014;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      position: relative;
+      cursor: pointer;
+    }
+    .set-preview-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+    .set-preview-wrap:active .set-preview-img {
+      transform: scale(0.98);
+    }
+    .set-preview-zoom-hint {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .set-rejection-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: #fca5a5;
+      line-height: 1.35;
+    }
+
+    .set-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .vote-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 8px 14px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .vote-btn:active { transform: scale(0.92); }
+    .vote-btn.voted {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(139, 92, 246, 0.25));
+      border-color: rgba(236, 72, 153, 0.65);
+      color: #f472b6;
+      box-shadow: 0 0 14px rgba(236, 72, 153, 0.3);
+    }
+
+    .vote-btn .heart-icon {
+      font-size: 1.05rem;
+      transition: transform 0.2s;
+    }
+    .vote-btn.voted .heart-icon {
+      transform: scale(1.2);
+    }
+
+    .share-btn {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: var(--text-sec);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.15s;
+    }
+    .share-btn:active { transform: scale(0.92); }
+
+    /* Empty States */
+    .empty-state {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: var(--card-border);
+      padding: 36px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .empty-icon {
+      font-size: 2.8rem;
+      filter: drop-shadow(0 4px 12px rgba(236, 72, 153, 0.4));
+    }
+    .empty-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .empty-desc {
+      font-size: 0.8rem;
+      color: var(--text-sec);
+      max-width: 280px;
+      line-height: 1.4;
+    }
+    .empty-action-btn {
+      background: var(--primary-gradient);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 6px;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+    }
+    .empty-action-btn:active { transform: scale(0.94); }
+
+    /* Studio / Creator Page */
+    .creator-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 20px;
+      border: var(--card-border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .count-selector {
+      display: flex;
+      gap: 8px;
+    }
+    .count-option {
+      flex: 1;
+      padding: 10px 4px;
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: var(--text-sec);
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .count-option.active {
+      background: var(--primary-gradient);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+    }
+    .count-option:active { transform: scale(0.95); }
+
+    /* Background Upload Area */
+    .bg-upload-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .bg-upload-zone:hover {
+      border-color: rgba(236, 72, 153, 0.6);
+      background: rgba(236, 72, 153, 0.05);
+    }
+    .bg-preview-img {
+      max-height: 140px;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Slots Grid */
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .chip-slot {
+      aspect-ratio: 1;
+      background: var(--card-elevated);
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, border-color 0.2s;
+    }
+    .chip-slot:active { transform: scale(0.95); }
+    .chip-slot.filled {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: #141418;
+    }
+
+    .slot-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      z-index: 2;
+    }
+
+    .chip-slot-canvas {
+      width: 82%;
+      height: 82%;
+      object-fit: contain;
+      border-radius: 50%;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+    }
+
+    /* Composite Canvas Preview Section */
+    .composite-preview-section {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .composite-canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Form Inputs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .text-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .text-input:focus {
+      border-color: #ec4899;
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
+    }
+    textarea.text-input {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary-gradient);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.45);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .submit-btn:active { transform: scale(0.97); }
+    .submit-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-toast {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    /* Modal Cropper */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 390px;
+      background: #16161c;
+      border: var(--card-border);
+      border-radius: 24px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #fff;
+    }
+    .modal-close-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .cropper-viewport {
+      width: 100%;
+      height: 280px;
+      background: #09090c;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cropper-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .cropper-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .zoom-slider {
+      flex: 1;
+      accent-color: #ec4899;
+    }
+    .rotate-btn {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-secondary {
+      flex: 1;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: var(--card-border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-primary {
+      flex: 1;
+      padding: 12px;
+      background: var(--primary-gradient);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-left">
+      <button class="back-btn" onclick="navigateBack()">←</button>
+      <div class="header-title-wrap">
+        <span class="header-title">🎨 Коллекции Фишек</span>
+        <span class="header-subtitle">Мастерская и Галерея Сетов</span>
+      </div>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" onclick="refreshCurrentTab()" title="Обновить">🔄</button>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('top')">🔥 Топ сетов</button>
+    <button class="tab-btn" onclick="switchTab('new')">⚡ Новые</button>
+    <button class="tab-btn" onclick="switchTab('my')">⭐ Мои сеты</button>
+    <button class="tab-btn" onclick="switchTab('create')">🎨 Создать сет</button>
+  </div>
+
+  <!-- TAB 1: Top Sets -->
+  <div id="tab-top" class="tab-pane active">
+    <div id="sets-list-top" class="sets-list">
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Загрузка топ сетов...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: New Sets -->
+  <div id="tab-new" class="tab-pane">
+    <div id="sets-list-new" class="sets-list">
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Загрузка новых сетов...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: My Sets -->
+  <div id="tab-my" class="tab-pane">
+    <div id="sets-list-my" class="sets-list">
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Загрузка ваших сетов...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Create Set Studio -->
+  <div id="tab-create" class="tab-pane">
+    <div class="creator-box">
+      <!-- 1. Count selector -->
+      <div class="section-label">1. Количество фишек в сете</div>
+      <div class="count-selector">
+        <div class="count-option" onclick="selectCount(3)">3 фишки</div>
+        <div class="count-option" onclick="selectCount(6)">6 фишек</div>
+        <div class="count-option active" onclick="selectCount(9)">9 фишек</div>
+      </div>
+
+      <!-- 2. Background uploader -->
+      <div class="section-label">2. Фоновое изображение сета</div>
+      <input type="file" id="bg-file-input" accept="image/*" style="display: none;" onchange="onBgFileSelected(event)">
+      <div class="bg-upload-zone" onclick="triggerBgUpload()">
+        <div id="bg-upload-empty">
+          <div style="font-size: 2rem; margin-bottom: 6px;">🖼️</div>
+          <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">Загрузить фон коллекции</div>
+          <div style="font-size: 0.72rem; color: var(--text-sec); margin-top: 4px;">Будет фоновой плашкой под каждой фишкой</div>
+        </div>
+        <div id="bg-upload-filled" style="display: none;">
+          <img id="bg-preview-img" class="bg-preview-img" alt="Background preview">
+          <div style="margin-top: 8px; font-size: 0.75rem; font-weight: 800; color: #f472b6;">Нажмите, чтобы настроить обрезку</div>
+        </div>
+      </div>
+
+      <!-- 3. Slots Grid -->
+      <div class="section-label">3. Загрузите изображения фишек</div>
+      <input type="file" id="slot-file-input" accept="image/*" style="display: none;" onchange="onSlotFileSelected(event)">
+      <div id="slots-grid" class="slots-grid"></div>
+
+      <!-- 4. Composite Preview -->
+      <div id="composite-preview-section" class="composite-preview-section">
+        <div class="section-label">4. Предпросмотр коллажа сета</div>
+        <canvas id="composite-canvas" class="composite-canvas"></canvas>
+      </div>
+
+      <!-- 5. Form details -->
+      <div class="section-label">5. Информация о сете</div>
+      <div class="form-group">
+        <input type="text" id="set-title-input" class="text-input" placeholder="Название коллекции (до 60 символов)" maxlength="60">
+      </div>
+      <div class="form-group">
+        <textarea id="set-desc-input" class="text-input" placeholder="Описание или идея сета (необязательно)" maxlength="250"></textarea>
+      </div>
+
+      <!-- Submit & Status -->
+      <button id="submit-set-btn" class="submit-btn" onclick="submitChipSet()">
+        <span>🚀 Отправить сет на модерацию</span>
+      </button>
+      <div id="status-toast" class="status-toast"></div>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE CROPPER MODAL -->
+<div id="cropper-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span id="cropper-modal-title" class="modal-title">Настройка кадрирования</span>
+      <button class="modal-close-btn" onclick="closeCropperModal()">✕</button>
+    </div>
+
+    <div class="cropper-viewport" id="cropper-viewport">
+      <canvas id="cropper-canvas" class="cropper-canvas"></canvas>
+    </div>
+
+    <div class="cropper-controls">
+      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-sec);">Масштаб</span>
+      <input type="range" id="cropper-zoom-slider" class="zoom-slider" min="0.5" max="3" step="0.01" value="1" oninput="onZoomSliderChanged(this.value)">
+      <button class="rotate-btn" onclick="rotateCropperImage()">↻ 90°</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeCropperModal()">Отмена</button>
+      <button class="btn-primary" onclick="applyCroppedImage()">Готово ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN ZOOM MODAL -->
+<div id="zoom-modal" class="modal-overlay" onclick="closeZoomModal()">
+  <div class="modal-card" style="max-width: 420px; background: rgba(18, 18, 24, 0.95);" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span id="zoom-modal-title" class="modal-title">Просмотр сета</span>
+      <button class="modal-close-btn" onclick="closeZoomModal()">✕</button>
+    </div>
+    <div style="width: 100%; border-radius: 14px; overflow: hidden; background: #101014; margin-top: 4px;">
+      <img id="zoom-modal-img" style="width: 100%; height: auto; display: block;" alt="Zoom image">
+    </div>
+    <div id="zoom-modal-desc" style="font-size: 0.85rem; color: var(--text-sec); line-height: 1.4;"></div>
+  </div>
+</div>
+
+<script>
+  // ==================== STATE ====================
+  const tg = window.Telegram?.WebApp;
+  let currentTab = 'top';
+  let userId = null;
+
+  const studioState = {
+    count: 9,
+    bgData: null,         // { base64, img, rawImg }
+    chipsData: [],        // [ { base64, img, rawImg } ]
+    currentSlotIndex: 0,
+    isSubmitting: false
+  };
+
+  const cropperState = {
+    mode: 'chip',         // 'chip' or 'bg'
+    slotIndex: 0,
+    img: null,
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    rotation: 0,
+    targetAspect: 1,
+    isDragging: false,
+    startX: 0,
+    startY: 0
+  };
+
+  // ==================== TELEGRAM WEBAPP INIT ====================
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    if (tg.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => navigateBack());
+    }
+  }
+
+  function triggerHaptic(type = 'light') {
+    if (tg?.HapticFeedback) {
+      if (type === 'light') tg.HapticFeedback.impactOccurred('light');
+      else if (type === 'medium') tg.HapticFeedback.impactOccurred('medium');
+      else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+      else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+    }
+  }
+
+  function getUserId() {
+    if (userId) return userId;
+    if (tg?.initDataUnsafe?.user?.id) {
+      userId = tg.initDataUnsafe.user.id;
+      return userId;
+    }
+    const saved = localStorage.getItem('raccoon_user_id');
+    if (saved) {
+      userId = parseInt(saved, 10);
+      return userId;
+    }
+    return 0;
+  }
+
+  function navigateBack() {
+    triggerHaptic('light');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = 'index.html';
+    }
+  }
+
+  // ==================== VOLUMETRIC 3D CHIP DRAWING ====================
+  function drawRoundChipToCanvas(canvas, img) {
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 2;
+
+    ctx.clearRect(0, 0, size, size);
+
+    // 1. Clip and draw inner image
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, 0, 0, size, size);
+
+    // Inset depth vignette
+    const innerGrad = ctx.createRadialGradient(cx, cy, r * 0.75, cx, cy, r);
+    innerGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    innerGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.12)');
+    innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+    ctx.fillStyle = innerGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Volumetric 3D Bevel Rim (Объемный металлический кант без желтизны)
+    ctx.save();
+    const rimWidth = Math.max(3, size * 0.042);
+    const rimRadius = r - rimWidth / 2;
+
+    const bevelGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    bevelGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    bevelGrad.addColorStop(0.3, 'rgba(210, 215, 225, 0.6)');
+    bevelGrad.addColorStop(0.7, 'rgba(70, 75, 85, 0.6)');
+    bevelGrad.addColorStop(1, 'rgba(12, 14, 18, 0.95)');
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, rimRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = bevelGrad;
+    ctx.lineWidth = rimWidth;
+    ctx.stroke();
+
+    // Inner groove
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - rimWidth, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.lineWidth = Math.max(1, size * 0.015);
+    ctx.stroke();
+
+    // Outer edge
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(15, 18, 22, 0.8)';
+    ctx.lineWidth = Math.max(1, size * 0.015);
+    ctx.stroke();
+
+    // Top-left highlight reflection arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, rimRadius, Math.PI * 1.05, Math.PI * 1.85);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = Math.max(1.5, rimWidth * 0.4);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
+  // ==================== TABS MANAGEMENT ====================
+  function switchTab(tabName) {
+    triggerHaptic('light');
+    currentTab = tabName;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+    const tabBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+    if (tabBtn) tabBtn.classList.add('active');
+
+    const pane = document.getElementById(`tab-${tabName}`);
+    if (pane) pane.classList.add('active');
+
+    if (tabName === 'top') loadSets('top');
+    else if (tabName === 'new') loadSets('new');
+    else if (tabName === 'my') loadMySets();
+    else if (tabName === 'create') renderSlots();
+  }
+
+  function refreshCurrentTab() {
+    triggerHaptic('medium');
+    if (currentTab === 'top') loadSets('top');
+    else if (currentTab === 'new') loadSets('new');
+    else if (currentTab === 'my') loadMySets();
+  }
+
+  // ==================== LOAD & DISPLAY SETS ====================
+  async function loadSets(sort = 'top') {
+    const container = document.getElementById(`sets-list-${sort}`);
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Загрузка сетов...</div>
+      </div>
+    `;
+
+    try {
+      const uid = getUserId();
+      const res = await fetch(`/api/chip_sets/list?sort=${sort}&user_id=${uid}`);
+      const data = await res.json();
+
+      if (data.status === 'ok' && data.sets && data.sets.length > 0) {
+        renderSetsCards(container, data.sets, false);
+      } else {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🎨</div>
+            <div class="empty-title">Пока нет сетов</div>
+            <div class="empty-desc">Будьте первым, кто создаст уникальную коллекцию фишек!</div>
+            <button class="empty-action-btn" onclick="switchTab('create')">✨ Создать сет</button>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки сетов:', err);
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Не удалось загрузить</div>
+          <div class="empty-desc">${err.message || 'Ошибка сети'}</div>
+          <button class="empty-action-btn" onclick="loadSets('${sort}')">🔄 Повторить</button>
+        </div>
+      `;
+    }
+  }
+
+  async function loadMySets() {
+    const container = document.getElementById('sets-list-my');
+    if (!container) return;
+
+    const uid = getUserId();
+    if (!uid) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔒</div>
+          <div class="empty-title">Авторизация</div>
+          <div class="empty-desc">Откройте приложение через Telegram бота</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-title">Загрузка ваших сетов...</div>
+      </div>
+    `;
+
+    try {
+      const res = await fetch(`/api/chip_sets/my?user_id=${uid}`);
+      const data = await res.json();
+
+      if (data.status === 'ok' && data.sets && data.sets.length > 0) {
+        renderSetsCards(container, data.sets, true);
+      } else {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⭐</div>
+            <div class="empty-title">У вас нет созданных сетов</div>
+            <div class="empty-desc">Создайте свой авторский сет и отправьте его на модерацию!</div>
+            <button class="empty-action-btn" onclick="switchTab('create')">🎨 Создать сет</button>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки моих сетов:', err);
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Ошибка загрузки</div>
+          <div class="empty-desc">${err.message || 'Ошибка сети'}</div>
+        </div>
+      `;
+    }
+  }
+
+  function renderSetsCards(container, sets, isMyTab) {
+    container.innerHTML = '';
+
+    sets.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'set-card';
+
+      // Header with author & status
+      let statusBadgeHtml = '';
+      if (isMyTab) {
+        if (item.status === 'approved') statusBadgeHtml = '<span class="badge badge-approved">✅ Одобрен</span>';
+        else if (item.status === 'rejected') statusBadgeHtml = '<span class="badge badge-rejected">❌ Отклонен</span>';
+        else statusBadgeHtml = '<span class="badge badge-pending">⏳ На модерации</span>';
+      }
+
+      let rejectionHtml = '';
+      if (isMyTab && item.status === 'rejected' && item.rejection_reason) {
+        rejectionHtml = `
+          <div class="set-rejection-box">
+            <b>Причина отказа:</b> ${escapeHtml(item.rejection_reason)}
+          </div>
+        `;
+      }
+
+      const collageUrl = item.collage_url || `images/chip_sets/${item.id}/collage.png`;
+      const isVoted = item.user_has_voted || false;
+      const votes = item.votes_count || 0;
+
+      card.innerHTML = `
+        <div class="set-card-header">
+          <div class="set-author-wrap">
+            <div class="set-author-avatar">🦝</div>
+            <div class="set-author-info">
+              <span class="set-author-name">${escapeHtml(item.author_name || 'Анонимный Енот')}</span>
+              <span class="set-created-at">${escapeHtml(item.created_at ? item.created_at.substring(0, 10) : '')}</span>
+            </div>
+          </div>
+          <div class="set-badges">
+            <span class="badge badge-count">🎯 ${item.chips_count} фишек</span>
+            ${statusBadgeHtml}
+          </div>
+        </div>
+
+        <div class="set-title">${escapeHtml(item.title || 'Без названия')}</div>
+        ${item.description ? `<div class="set-desc">${escapeHtml(item.description)}</div>` : ''}
+        ${rejectionHtml}
+
+        <div class="set-preview-wrap" onclick="openZoomModal('${collageUrl}', '${escapeHtml(item.title)}')">
+          <img class="set-preview-img" src="${collageUrl}" alt="Collage preview" onerror="this.src='images/chip_raccoon.png'">
+          <div class="set-preview-zoom-hint">🔍 Увеличить</div>
+        </div>
+
+        <div class="set-card-footer">
+          <button class="vote-btn ${isVoted ? 'voted' : ''}" id="vote-btn-${item.id}" onclick="voteForSet(${item.id})">
+            <span class="heart-icon">${isVoted ? '❤️' : '🤍'}</span>
+            <span id="vote-count-${item.id}">${votes}</span>
+          </button>
+          <button class="share-btn" onclick="shareSet(${item.id}, '${escapeHtml(item.title)}')">
+            <span>🔗 Поделиться</span>
+          </button>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  async function voteForSet(setId) {
+    const uid = getUserId();
+    if (!uid) {
+      alert('Пользователь не авторизован');
+      return;
+    }
+
+    triggerHaptic('medium');
+    const btn = document.getElementById(`vote-btn-${setId}`);
+    const countSpan = document.getElementById(`vote-count-${setId}`);
+
+    try {
+      const res = await fetch('/api/chip_sets/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg?.initData || ''
+        },
+        body: JSON.stringify({ userId: uid, set_id: setId })
+      });
+      const data = await res.json();
+
+      if (data.status === 'ok') {
+        if (btn) {
+          if (data.voted) {
+            btn.classList.add('voted');
+            btn.querySelector('.heart-icon').innerText = '❤️';
+          } else {
+            btn.classList.remove('voted');
+            btn.querySelector('.heart-icon').innerText = '🤍';
+          }
+        }
+        if (countSpan) countSpan.innerText = data.votes_count;
+        triggerHaptic('success');
+      }
+    } catch (err) {
+      console.error('Ошибка голосования:', err);
+    }
+  }
+
+  function shareSet(setId, title) {
+    triggerHaptic('light');
+    const text = `Посмотри авторский сет фишек «${title}» в Raccoon Life!`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin + '/chip_sets.html')}&text=${encodeURIComponent(text)}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl);
+    else window.open(shareUrl, '_blank');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ==================== STUDIO CONSTRUCTOR ====================
+  function selectCount(num) {
+    triggerHaptic('light');
+    studioState.count = num;
+    document.querySelectorAll('.count-option').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+    renderSlots();
+    updateCompositePreview();
+  }
+
+  function triggerBgUpload() {
+    triggerHaptic('light');
+    if (studioState.bgData && studioState.bgData.rawImg) {
+      openCropperModal({ mode: 'bg', img: studioState.bgData.rawImg });
+    } else {
+      const input = document.getElementById('bg-file-input');
+      if (input) { input.value = ''; input.click(); }
+    }
+  }
+
+  function onBgFileSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const rawImg = new Image();
+      rawImg.onload = () => {
+        openCropperModal({ mode: 'bg', img: rawImg });
+      };
+      rawImg.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderSlots() {
+    const grid = document.getElementById('slots-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    for (let i = 0; i < studioState.count; i++) {
+      const slot = document.createElement('div');
+      const item = studioState.chipsData[i];
+      slot.className = `chip-slot ${item ? 'filled' : ''}`;
+
+      slot.onclick = () => {
+        studioState.currentSlotIndex = i;
+        if (item && item.rawImg) {
+          openCropperModal({ mode: 'chip', slotIndex: i, img: item.rawImg });
+        } else {
+          const input = document.getElementById('slot-file-input');
+          if (input) { input.value = ''; input.click(); }
+        }
+      };
+
+      if (item) {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'chip-slot-canvas';
+        canvas.width = 160;
+        canvas.height = 160;
+        drawRoundChipToCanvas(canvas, item.img);
+        slot.appendChild(canvas);
+
+        const badge = document.createElement('span');
+        badge.className = 'slot-badge';
+        badge.innerText = `✓ #${i + 1}`;
+        slot.appendChild(badge);
+      } else {
+        slot.innerHTML = `
+          <div style="font-size: 1.8rem; opacity: 0.6;">➕</div>
+          <span class="slot-badge">#${i + 1}</span>
+        `;
+      }
+
+      grid.appendChild(slot);
+    }
+  }
+
+  function onSlotFileSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const rawImg = new Image();
+      rawImg.onload = () => {
+        openCropperModal({
+          mode: 'chip',
+          slotIndex: studioState.currentSlotIndex,
+          img: rawImg
+        });
+      };
+      rawImg.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ==================== LIVE COMPOSITE PREVIEW ====================
+  function updateCompositePreview() {
+    const section = document.getElementById('composite-preview-section');
+    const canvas = document.getElementById('composite-canvas');
+    if (!section || !canvas) return;
+
+    if (!studioState.bgData) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'flex';
+    const count = studioState.count;
+    const cols = 3;
+    const rows = Math.ceil(count / 3);
+
+    const tileSize = 280;
+    const chipSize = 220;
+    const gap = 30;
+    const margin = 35;
+
+    const canvasW = margin * 2 + cols * tileSize + (cols - 1) * gap;
+    const canvasH = margin * 2 + rows * tileSize + (rows - 1) * gap;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    // Dark canvas background
+    ctx.fillStyle = '#121216';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    const bgImg = studioState.bgData.img;
+    const bgMin = Math.min(bgImg.width, bgImg.height);
+    const bgSx = (bgImg.width - bgMin) / 2;
+    const bgSy = (bgImg.height - bgMin) / 2;
+
+    for (let i = 0; i < count; i++) {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      const tileX = margin + c * (tileSize + gap);
+      const tileY = margin + r * (tileSize + gap);
+
+      // Tile shadow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = '#1e1e24';
+      drawRoundedRectPath(ctx, tileX, tileY, tileSize, tileSize, 22);
+      ctx.fill();
+      ctx.restore();
+
+      // Separate square background for each chip
+      ctx.save();
+      drawRoundedRectPath(ctx, tileX, tileY, tileSize, tileSize, 22);
+      ctx.clip();
+      ctx.drawImage(bgImg, bgSx, bgSy, bgMin, bgMin, tileX, tileY, tileSize, tileSize);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      const item = studioState.chipsData[i];
+      const chipOffset = Math.floor((tileSize - chipSize) / 2);
+      const chipX = tileX + chipOffset;
+      const chipY = tileY + chipOffset;
+
+      if (item) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+        ctx.beginPath();
+        ctx.arc(chipX + chipSize / 2, chipY + chipSize / 2, chipSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fill();
+        ctx.restore();
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = chipSize;
+        offCanvas.height = chipSize;
+        drawRoundChipToCanvas(offCanvas, item.img);
+        ctx.drawImage(offCanvas, chipX, chipY, chipSize, chipSize);
+      } else {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(chipX + chipSize / 2, chipY + chipSize / 2, chipSize / 2 - 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.setLineDash([8, 8]);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fill();
+        ctx.font = 'bold 32px Montserrat, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`#${i + 1}`, chipX + chipSize / 2, chipY + chipSize / 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ==================== SUBMIT SET ====================
+  async function submitChipSet() {
+    if (studioState.isSubmitting) return;
+
+    const titleInput = document.getElementById('set-title-input');
+    const descInput = document.getElementById('set-desc-input');
+    const statusMsg = document.getElementById('status-toast');
+    const submitBtn = document.getElementById('submit-set-btn');
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    const desc = descInput ? descInput.value.trim() : '';
+    const count = studioState.count;
+
+    if (!title) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Введите название коллекции!';
+      triggerHaptic('error');
+      return;
+    }
+
+    if (!studioState.bgData) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Загрузите фоновое изображение сета!';
+      triggerHaptic('error');
+      return;
+    }
+
+    const missing = [];
+    for (let i = 0; i < count; i++) {
+      if (!studioState.chipsData[i]) missing.push(i + 1);
+    }
+    if (missing.length > 0) {
+      if (statusMsg) statusMsg.innerText = `⚠️ Загрузите все фишки (не хватает #${missing.join(', #')})!`;
+      triggerHaptic('error');
+      return;
+    }
+
+    const uid = getUserId();
+    if (!uid) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Пользователь не авторизован!';
+      triggerHaptic('error');
+      return;
+    }
+
+    studioState.isSubmitting = true;
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusMsg) statusMsg.innerText = '⏳ Создание и отправка сета...';
+
+    const chipsB64 = studioState.chipsData.slice(0, count).map(c => c.base64);
+
+    try {
+      const res = await fetch('/api/chip_sets/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg?.initData || ''
+        },
+        body: JSON.stringify({
+          userId: uid,
+          title: title,
+          description: desc,
+          chips_count: count,
+          background_image: studioState.bgData.base64,
+          chips: chipsB64
+        })
+      });
+
+      let data = null;
+      try {
+        const text = await res.text();
+        data = JSON.parse(text);
+      } catch (e) {}
+
+      if (res.ok && data && data.status === 'ok') {
+        triggerHaptic('success');
+        if (statusMsg) statusMsg.innerText = '✅ Сет успешно отправлен на модерацию!';
+        setTimeout(() => {
+          switchTab('my');
+          if (titleInput) titleInput.value = '';
+          if (descInput) descInput.value = '';
+          studioState.bgData = null;
+          studioState.chipsData = [];
+          document.getElementById('bg-upload-empty').style.display = 'block';
+          document.getElementById('bg-upload-filled').style.display = 'none';
+          if (statusMsg) statusMsg.innerText = '';
+        }, 1500);
+      } else {
+        const errMsg = (data && (data.error || data.message)) || `Ошибка сервера (${res.status})`;
+        triggerHaptic('error');
+        if (statusMsg) statusMsg.innerText = '❌ ' + errMsg;
+      }
+    } catch (err) {
+      console.error('Ошибка submitChipSet:', err);
+      triggerHaptic('error');
+      if (statusMsg) statusMsg.innerText = '❌ ' + (err.message || 'Ошибка сети');
+    } finally {
+      studioState.isSubmitting = false;
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  // ==================== CROPPER MODAL ====================
+  function openCropperModal(opts) {
+    cropperState.mode = opts.mode;
+    cropperState.slotIndex = opts.slotIndex || 0;
+    cropperState.img = opts.img;
+    cropperState.zoom = 1;
+    cropperState.panX = 0;
+    cropperState.panY = 0;
+    cropperState.rotation = 0;
+    cropperState.targetAspect = 1;
+
+    const titleEl = document.getElementById('cropper-modal-title');
+    if (titleEl) {
+      titleEl.innerText = opts.mode === 'chip' ? `Кадрирование фишки #${opts.slotIndex + 1}` : 'Кадрирование фона сета';
+    }
+
+    const slider = document.getElementById('cropper-zoom-slider');
+    if (slider) slider.value = 1;
+
+    const modal = document.getElementById('cropper-modal');
+    if (modal) modal.style.display = 'flex';
+
+    initCropperEvents();
+    renderCropper();
+  }
+
+  function closeCropperModal() {
+    const modal = document.getElementById('cropper-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function onZoomSliderChanged(val) {
+    cropperState.zoom = parseFloat(val);
+    renderCropper();
+  }
+
+  function rotateCropperImage() {
+    cropperState.rotation = (cropperState.rotation + 90) % 360;
+    renderCropper();
+  }
+
+  function initCropperEvents() {
+    const vp = document.getElementById('cropper-viewport');
+    if (!vp || vp._hasEvents) return;
+    vp._hasEvents = true;
+
+    vp.addEventListener('pointerdown', e => {
+      cropperState.isDragging = true;
+      cropperState.startX = e.clientX - cropperState.panX;
+      cropperState.startY = e.clientY - cropperState.panY;
+      vp.setPointerCapture(e.pointerId);
+    });
+
+    vp.addEventListener('pointermove', e => {
+      if (!cropperState.isDragging) return;
+      cropperState.panX = e.clientX - cropperState.startX;
+      cropperState.panY = e.clientY - cropperState.startY;
+      renderCropper();
+    });
+
+    const endDrag = e => {
+      cropperState.isDragging = false;
+      try { vp.releasePointerCapture(e.pointerId); } catch(err){}
+    };
+    vp.addEventListener('pointerup', endDrag);
+    vp.addEventListener('pointercancel', endDrag);
+  }
+
+  function renderCropper() {
+    const canvas = document.getElementById('cropper-canvas');
+    const vp = document.getElementById('cropper-viewport');
+    if (!canvas || !vp || !cropperState.img) return;
+
+    const w = vp.clientWidth;
+    const h = vp.clientHeight;
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const cropSize = Math.min(w, h) * 0.78;
+
+    // Draw user image
+    ctx.save();
+    ctx.translate(cx + cropperState.panX, cy + cropperState.panY);
+    ctx.rotate((cropperState.rotation * Math.PI) / 180);
+    ctx.scale(cropperState.zoom, cropperState.zoom);
+    ctx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+    ctx.restore();
+
+    // Dark overlay mask outside crop area
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Cutout
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    if (cropperState.mode === 'chip') {
+      ctx.arc(cx, cy, cropSize / 2, 0, Math.PI * 2);
+    } else {
+      drawRoundedRectPath(ctx, cx - cropSize / 2, cy - cropSize / 2, cropSize, cropSize, 20);
+    }
+    ctx.fill();
+    ctx.restore();
+
+    // Frame stroke
+    ctx.save();
+    ctx.strokeStyle = '#ec4899';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    if (cropperState.mode === 'chip') {
+      ctx.arc(cx, cy, cropSize / 2, 0, Math.PI * 2);
+    } else {
+      drawRoundedRectPath(ctx, cx - cropSize / 2, cy - cropSize / 2, cropSize, cropSize, 20);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function applyCroppedImage() {
+    if (!cropperState.img) return;
+
+    const vp = document.getElementById('cropper-viewport');
+    const cropSize = Math.min(vp.clientWidth, vp.clientHeight) * 0.78;
+
+    if (cropperState.mode === 'chip') {
+      const outSize = 300;
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = outSize;
+      outCanvas.height = outSize;
+      const outCtx = outCanvas.getContext('2d');
+
+      const scaleRatio = outSize / cropSize;
+      outCtx.translate(outSize / 2 + cropperState.panX * scaleRatio, outSize / 2 + cropperState.panY * scaleRatio);
+      outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+
+      const b64 = outCanvas.toDataURL('image/jpeg', 0.85);
+      const croppedImg = new Image();
+      croppedImg.onload = () => {
+        const idx = cropperState.slotIndex;
+        studioState.chipsData[idx] = {
+          base64: b64,
+          img: croppedImg,
+          rawImg: cropperState.img
+        };
+        renderSlots();
+        updateCompositePreview();
+        closeCropperModal();
+        triggerHaptic('success');
+      };
+      croppedImg.src = b64;
+    } else {
+      const outSize = 800;
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = outSize;
+      outCanvas.height = outSize;
+      const outCtx = outCanvas.getContext('2d');
+
+      const scaleRatio = outSize / cropSize;
+      outCtx.translate(outSize / 2 + cropperState.panX * scaleRatio, outSize / 2 + cropperState.panY * scaleRatio);
+      outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+
+      const b64 = outCanvas.toDataURL('image/jpeg', 0.82);
+      const croppedImg = new Image();
+      croppedImg.onload = () => {
+        studioState.bgData = {
+          base64: b64,
+          img: croppedImg,
+          rawImg: cropperState.img
+        };
+
+        document.getElementById('bg-upload-empty').style.display = 'none';
+        document.getElementById('bg-upload-filled').style.display = 'block';
+        document.getElementById('bg-preview-img').src = b64;
+
+        updateCompositePreview();
+        closeCropperModal();
+        triggerHaptic('success');
+      };
+      croppedImg.src = b64;
+    }
+  }
+
+  // ==================== FULLSCREEN ZOOM MODAL ====================
+  function openZoomModal(imgUrl, title, desc = '') {
+    triggerHaptic('light');
+    const imgEl = document.getElementById('zoom-modal-img');
+    const titleEl = document.getElementById('zoom-modal-title');
+    const descEl = document.getElementById('zoom-modal-desc');
+    const modal = document.getElementById('zoom-modal');
+
+    if (imgEl) imgEl.src = imgUrl;
+    if (titleEl) titleEl.innerText = title;
+    if (descEl) descEl.innerText = desc;
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeZoomModal() {
+    const modal = document.getElementById('zoom-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  // ==================== INIT ====================
+  window.addEventListener('DOMContentLoaded', () => {
+    getUserId();
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['top', 'new', 'my', 'create'].includes(tabParam)) {
+      switchTab(tabParam);
+    } else {
+      renderSlots();
+      loadSets('top');
+    }
+  });
+</script>
+</body>
+</html>
