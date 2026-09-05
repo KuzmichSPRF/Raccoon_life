@@ -96,7 +96,7 @@
     .arena {
       display: flex;
       justify-content: space-around;
-      align-items: center;
+      align-items: flex-start;
       background: radial-gradient(circle at center, rgba(168,85,247,0.08) 0%, rgba(18,18,20,0) 75%), var(--card-bg);
       border-radius: 24px;
       border: var(--border-subtle);
@@ -111,10 +111,12 @@
       flex-direction: column;
       align-items: center;
       gap: 8px;
+      width: 130px;
     }
     .chip-frame {
       width: 96px;
       height: 96px;
+      box-sizing: border-box;
       border-radius: 50%;
       position: relative;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -123,6 +125,7 @@
       background: #18181a;
       border: 2px solid rgba(255,255,255,0.15);
       cursor: pointer;
+      flex-shrink: 0;
     }
     .chip-frame:hover {
       transform: scale(1.06);
@@ -275,6 +278,7 @@
       font-size: 1.3rem;
       font-weight: 900;
       color: rgba(255,255,255,0.25);
+      margin-top: 36px;
     }
 
     /* Grade selection buttons */

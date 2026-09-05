@@ -96,7 +96,7 @@
     .arena {
       display: flex;
       justify-content: space-around;
-      align-items: center;
+      align-items: flex-start;
       padding: 14px 8px 18px;
       background: radial-gradient(circle at center, rgba(229,57,53,0.08) 0%, rgba(18,18,20,0) 70%), var(--card-bg);
       border-radius: 20px;
@@ -110,6 +110,7 @@
       font-size: 1.2rem;
       color: rgba(255, 255, 255, 0.2);
       text-shadow: 0 0 10px rgba(229, 57, 53, 0.4);
+      margin-top: 36px;
     }
     .fighter-wrapper {
       display: flex;
@@ -120,6 +121,7 @@
     .chip-frame {
       width: 96px;
       height: 96px;
+      box-sizing: border-box;
       border-radius: 50%;
       position: relative;
       transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -128,6 +130,7 @@
       background: #18181a;
       border: 2px solid rgba(255,255,255,0.15);
       cursor: pointer;
+      flex-shrink: 0;
     }
     .chip-frame:hover {
       transform: scale(1.06);

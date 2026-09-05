@@ -699,6 +699,8 @@
       max-width: 390px !important;
       max-height: 90vh;
       overflow-y: auto;
+      overflow-x: hidden;
+      box-sizing: border-box;
       padding: 16px 16px !important;
       text-align: center;
       background: linear-gradient(180deg, #1c1813 0%, #111113 100%) !important;
@@ -827,6 +829,9 @@
       padding: 9px 10px;
       margin-bottom: 8px;
       text-align: left;
+      box-sizing: border-box;
+      width: 100%;
+      overflow: hidden;
     }
     .hollow-upgrade-header {
       display: flex;
@@ -936,6 +941,78 @@
       transition: transform 0.125s ease;
     }
     .hollow-starter-card__btn:active { transform: scale(0.96); }
+
+    .hollow-mega-cone-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(6,182,212,0.15));
+      border: 1px solid rgba(168,85,247,0.4);
+      border-radius: 14px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .hollow-mega-cone-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .hollow-mega-cone-img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(168,85,247,0.6));
+      flex-shrink: 0;
+    }
+    .hollow-mega-cone-info {
+      text-align: left;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .hollow-mega-cone-name {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #e9d5ff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hollow-mega-cone-inv {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .hollow-use-mega-btn {
+      background: linear-gradient(135deg, #9333ea, #06b6d4);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 8px rgba(147, 51, 234, 0.4);
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .hollow-use-mega-btn:active {
+      transform: scale(0.96);
+    }
+    .hollow-use-mega-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
     .bonus-timer-grid {
       display: flex;
@@ -1853,16 +1930,16 @@
         </div>
 
         <!-- Quick Mega Cone Use in Hollow -->
-        <div id="hollow-mega-cone-box" class="hollow-mega-cone-box" style="display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(6,182,212,0.15)); border: 1px solid rgba(168,85,247,0.4); border-radius: 14px; padding: 10px 12px; margin-top: 10px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="mega_cone.png" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(168,85,247,0.6));" alt="✨">
-            <div style="text-align: left;">
-              <div style="font-size: 0.82rem; font-weight: 800; color: #e9d5ff;" data-i18n="item_mega_cone_name">Мегашишка (+1 ур.)</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);"><span data-i18n="in_inventory">В инвентаре:</span> <span id="hollow-mega-cone-count" style="font-weight: 800; color: #38bdf8;">0 шт.</span></div>
+        <div id="hollow-mega-cone-box" class="hollow-mega-cone-box">
+          <div class="hollow-mega-cone-left">
+            <img src="mega_cone.png" class="hollow-mega-cone-img" alt="✨">
+            <div class="hollow-mega-cone-info">
+              <div class="hollow-mega-cone-name" data-i18n="item_mega_cone_name">Мегашишка (+1 ур.)</div>
+              <div class="hollow-mega-cone-inv"><span data-i18n="in_inventory">В инвентаре:</span> <span id="hollow-mega-cone-count" style="font-weight: 800; color: #38bdf8;">0 шт.</span></div>
             </div>
           </div>
-          <button id="hollow-use-mega-btn" class="inventory-item-use-btn" onclick="useInventoryItem('mega_cone')" style="padding: 6px 12px; font-size: 0.75rem;">
-            <span data-i18n="inventory_use_btn">Использовать</span>
+          <button id="hollow-use-mega-btn" class="hollow-use-mega-btn" onclick="useInventoryItem('mega_cone')">
+            <span data-i18n="inventory_use_btn">Применить</span>
           </button>
         </div>
       </div>
