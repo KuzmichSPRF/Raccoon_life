@@ -147,6 +147,14 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({
+        'status': 'error',
+        'error': 'Размер отправляемых данных слишком большой (413). Попробуйте перезагрузить страницу или использовать другие фото.'
+    }), 413
+
+
 def get_moscow_now():
     """Текущее время в Москве."""
     try:

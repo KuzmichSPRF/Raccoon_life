@@ -8291,7 +8291,7 @@
 
     if (cropperState.mode === 'chip') {
       const outCanvas = document.createElement('canvas');
-      const outSize = 400;
+      const outSize = 300;
       outCanvas.width = outSize;
       outCanvas.height = outSize;
       const outCtx = outCanvas.getContext('2d');
@@ -8302,7 +8302,8 @@
       outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
       outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
 
-      const b64 = outCanvas.toDataURL('image/png');
+      // Сжатие JPEG 0.85 для мгновенной отправки без ошибки 413
+      const b64 = outCanvas.toDataURL('image/jpeg', 0.85);
       const croppedImg = new Image();
       croppedImg.onload = () => {
         const idx = cropperState.slotIndex;
@@ -8318,7 +8319,7 @@
       };
       croppedImg.src = b64;
     } else {
-      const outW = 1200;
+      const outW = 800;
       const outH = Math.round(outW / cropperState.targetAspect);
       const outCanvas = document.createElement('canvas');
       outCanvas.width = outW;
@@ -8331,7 +8332,8 @@
       outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
       outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
 
-      const b64 = outCanvas.toDataURL('image/jpeg', 0.90);
+      // Сжатие фона JPEG 0.82
+      const b64 = outCanvas.toDataURL('image/jpeg', 0.82);
       const croppedImg = new Image();
       croppedImg.onload = () => {
         chipSetsState.creatorBgData = {
