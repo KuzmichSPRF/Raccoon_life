@@ -3250,6 +3250,9 @@
     <!-- Hollow Modal (Дупло Енота) -->
     <div id="token-bonus-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeHollowModal()">
       <div class="tutorial-modal hollow-modal">
+        <div class="bottom-sheet__divider-wrap" style="padding: 2px 0 10px 0; cursor: pointer;" onclick="closeHollowModal()">
+          <div class="bottom-sheet__divider" style="background: rgba(255, 215, 0, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeHollowModal()">✕</button>
 
         <!-- Modal Header -->
@@ -5822,13 +5825,188 @@
       if (statusMsg) statusMsg.innerText = '';
 
       renderHollowModalContent(canClaim, remaining);
-      document.getElementById('token-bonus-overlay').classList.add('active');
+      const overlay = document.getElementById('token-bonus-overlay');
+      if (overlay) {
+        const modal = overlay.querySelector('.hollow-modal');
+        if (modal) {
+          modal.style.transform = '';
+          modal.style.opacity = '';
+          modal.style.transition = '';
+        }
+        overlay.style.opacity = '';
+        overlay.style.backgroundColor = '';
+        overlay.style.transition = '';
+        overlay.classList.add('active');
+      }
       fetchHollowStatusFromServer();
       fetchInventory();
+      triggerHaptic('light');
+
+      // Обеспечиваем работу кнопки BackButton в Telegram WebApp
+      if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+        tg.BackButton.show();
+        tg.BackButton.onClick(handleBack);
+      }
     }
 
     function closeHollowModal() {
-      document.getElementById('token-bonus-overlay').classList.remove('active');
+      const overlay = document.getElementById('token-bonus-overlay');
+      if (!overlay || !overlay.classList.contains('active')) return;
+      const modal = overlay.querySelector('.hollow-modal');
+      if (modal) {
+        modal.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+        modal.style.transform = 'translateY(30px) scale(0.96)';
+        modal.style.opacity = '0';
+      }
+      overlay.style.transition = 'opacity 0.22s ease';
+      overlay.style.opacity = '0';
+
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.style.opacity = '';
+        overlay.style.backgroundColor = '';
+        overlay.style.transition = '';
+        if (modal) {
+          modal.style.transform = '';
+          modal.style.opacity = '';
+          modal.style.transition = '';
+        }
+      }, 220);
+      triggerHaptic('light');
+    }
+
+    function initHollowModalGestures() {
+      const overlay = document.getElementById('token-bonus-overlay');
+      if (!overlay) return;
+      const modal = overlay.querySelector('.hollow-modal');
+      if (!modal) return;
+
+      let startX = 0;
+      let startY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      let isDraggingY = false;
+      let isDraggingX = false;
+      let startTime = 0;
+
+      function onTouchStart(e) {
+        if (!overlay.classList.contains('active')) return;
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        currentX = startX;
+        currentY = startY;
+        startTime = Date.now();
+        isDraggingY = false;
+        isDraggingX = false;
+      }
+
+      function onTouchMove(e) {
+        if (!overlay.classList.contains('active')) return;
+        const touch = e.touches ? e.touches[0] : e;
+        currentX = touch.clientX;
+        currentY = touch.clientY;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        if (!isDraggingY && !isDraggingX) {
+          // Свайп вниз (когда прокрутка вверху)
+          if (deltaY > 6 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && modal.scrollTop <= 3) {
+            isDraggingY = true;
+            modal.style.transition = 'none';
+            overlay.style.transition = 'none';
+          }
+          // Свайп слева направо (свайп назад)
+          else if (deltaX > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+            isDraggingX = true;
+            modal.style.transition = 'none';
+            overlay.style.transition = 'none';
+          }
+        }
+
+        if (isDraggingY) {
+          if (deltaY > 0) {
+            if (e.cancelable) e.preventDefault();
+            modal.style.transform = `translateY(${deltaY}px)`;
+            const op = Math.max(0, 1 - deltaY / 360);
+            overlay.style.opacity = op.toString();
+          }
+        } else if (isDraggingX) {
+          if (deltaX > 0) {
+            if (e.cancelable) e.preventDefault();
+            modal.style.transform = `translateX(${deltaX}px)`;
+            const op = Math.max(0, 1 - deltaX / 360);
+            overlay.style.opacity = op.toString();
+          }
+        }
+      }
+
+      function onTouchEnd(e) {
+        if (!isDraggingY && !isDraggingX) return;
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+        const elapsed = Math.max(1, Date.now() - startTime);
+
+        if (isDraggingY) {
+          isDraggingY = false;
+          const velocityY = deltaY / elapsed;
+          if (deltaY > 60 || velocityY > 0.35) {
+            modal.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+            overlay.style.transition = 'opacity 0.22s ease';
+            modal.style.transform = 'translateY(100%)';
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+              closeHollowModal();
+            }, 200);
+          } else {
+            modal.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+            overlay.style.transition = 'opacity 0.22s ease';
+            modal.style.transform = 'translateY(0)';
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+              modal.style.transform = '';
+              modal.style.transition = '';
+              overlay.style.opacity = '';
+              overlay.style.transition = '';
+            }, 220);
+          }
+        } else if (isDraggingX) {
+          isDraggingX = false;
+          const velocityX = deltaX / elapsed;
+          if (deltaX > 60 || velocityX > 0.35) {
+            modal.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+            overlay.style.transition = 'opacity 0.22s ease';
+            modal.style.transform = 'translateX(100%)';
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+              closeHollowModal();
+            }, 200);
+          } else {
+            modal.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+            overlay.style.transition = 'opacity 0.22s ease';
+            modal.style.transform = 'translateX(0)';
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+              modal.style.transform = '';
+              modal.style.transition = '';
+              overlay.style.opacity = '';
+              overlay.style.transition = '';
+            }, 220);
+          }
+        }
+      }
+
+      modal.addEventListener('touchstart', onTouchStart, { passive: true });
+      modal.addEventListener('touchmove', onTouchMove, { passive: false });
+      modal.addEventListener('touchend', onTouchEnd, { passive: true });
+      modal.addEventListener('touchcancel', onTouchEnd, { passive: true });
+      overlay.addEventListener('touchstart', (e) => {
+        if (e.target === overlay) onTouchStart(e);
+      }, { passive: true });
+      overlay.addEventListener('touchmove', (e) => {
+        if (e.target === overlay) onTouchMove(e);
+      }, { passive: false });
+      overlay.addEventListener('touchend', onTouchEnd, { passive: true });
     }
 
     // ==================== INVENTORY STATE & ACTIONS ====================
@@ -6711,9 +6889,16 @@
         return;
       }
 
-      // 2. Закрытие оверлеев / диалоговых окон
-      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #hollow-modal-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #stars-offer-overlay.active, #news-submit-overlay.active, .offer-modal.active');
-      if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper') {
+      // 2. Закрытие Дупла (Hollow Modal)
+      const hollowOverlay = document.getElementById('token-bonus-overlay');
+      if (hollowOverlay && hollowOverlay.classList.contains('active')) {
+        closeHollowModal();
+        return;
+      }
+
+      // 3. Закрытие оверлеев / диалоговых окон
+      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #tutorial-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #stars-offer-overlay.active, #news-submit-overlay.active, #bet-modal-overlay.active, #season-complete-overlay.active, #image-cropper-overlay.active, .offer-modal.active');
+      if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper' && activeOverlay.id !== 'token-bonus-overlay') {
         activeOverlay.classList.remove('active');
         triggerHaptic('light');
         return;
@@ -10175,6 +10360,7 @@
           fetchInventory();
           initRaccoonTapSystem();
           initPlayBottomSheetGestures();
+          initHollowModalGestures();
           checkStartParamReferral();
           console.log('🦝 Raccoon Life WebApp ready!');
           console.log('👤 User ID:', getUserId());
