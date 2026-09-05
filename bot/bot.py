@@ -883,6 +883,34 @@ def _add_missing_columns(cursor):
         except Exception as e:
             logger.error(f"Ошибка миграции таблицы referrals: {e}")
 
+    # Проверка и нормализация путей сетов фишек (миграция для старых записей с ведущими слэшами)
+    try:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_chip_sets'")
+        if cursor.fetchone():
+            cursor.execute("SELECT id, preview_collage, background_image, chips_json FROM custom_chip_sets")
+            sets_rows = cursor.fetchall()
+            for s_row in sets_rows:
+                sid = s_row['id']
+                p_col = str(s_row['preview_collage'] or '').lstrip('/\\').replace('\\', '/')
+                b_img = str(s_row['background_image'] or '').lstrip('/\\').replace('\\', '/')
+                raw_cj = s_row['chips_json'] or '[]'
+                try:
+                    chips_arr = json.loads(raw_cj) if isinstance(raw_cj, str) else raw_cj
+                    if isinstance(chips_arr, list):
+                        chips_arr = [str(c).lstrip('/\\').replace('\\', '/') for c in chips_arr]
+                        new_cj = json.dumps(chips_arr)
+                    else:
+                        new_cj = raw_cj
+                except Exception:
+                    new_cj = raw_cj
+                cursor.execute("""
+                    UPDATE custom_chip_sets 
+                    SET preview_collage = ?, background_image = ?, chips_json = ? 
+                    WHERE id = ?
+                """, (p_col, b_img, new_cj, sid))
+    except Exception as e:
+        logger.warning(f"Миграция путей custom_chip_sets: {e}")
+
 def ensure_user_exists(user_id: int, user_data: dict = None):
     """Гарантирует существование пользователя в БД и сохраняет его username/имя"""
     if not user_id:
@@ -3340,12 +3368,6 @@ def index_route():
     return app.send_static_file('index.html')
 
 
-@app.route('/<path:filename>')
-def static_files(filename):
-    """Отдача статических файлов из webapp/"""
-    return app.send_static_file(filename)
-
-
 @app.route('/images/<path:filename>')
 def images_files(filename):
     """Отдача картинок из webapp/images/"""
@@ -3360,11 +3382,23 @@ def webapp_images_files(filename):
     return send_from_directory(str(webapp_img_dir), filename)
 
 
+@app.route('/sets/<path:filename>')
+def sets_files(filename):
+    """Отдача картинок сетов напрямую из webapp/images/sets/"""
+    return send_from_directory(str(SETS_IMG_DIR), filename)
+
+
 @app.route('/image/<path:filename>')
 def image_files(filename):
     """Отдача картинок из webapp/images/ (для обратной совместимости)."""
     webapp_img_dir = WEBAPP_DIR / 'images'
     return send_from_directory(str(webapp_img_dir), filename)
+
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    """Отдача статических файлов из webapp/"""
+    return app.send_static_file(filename)
 
 
 @app.route('/api/boss_hp', methods=['GET'])
