@@ -4552,6 +4552,9 @@ def api_casino_roulette():
         if bet_amount < 1000:
             return jsonify({'error': 'Минимальная ставка в рулетке: 1,000 шишек', 'minBet': 1000}), 400
 
+        if bet_type not in ['red', 'black', 'green']:
+            return jsonify({'error': 'Invalid betType. Must be red, black or green'}), 400
+
         # Конфигурация рулетки (15 секторов: 1 зелёный, 7 красных, 7 чёрных)
         segments = [
             {'type': 'green', 'value': 0},
@@ -7441,6 +7444,12 @@ def api_chip_sets_vote():
         data = request.get_json()
         set_id = int(data.get('setId') or data.get('set_id') or 0)
         user_id = int(data.get('userId') or data.get('user_id') or 0)
+
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user and auth_user.get('id'):
+                user_id = int(auth_user['id'])
 
         if set_id <= 0 or user_id <= 0:
             return jsonify({'error': 'setId and userId required'}), 400
