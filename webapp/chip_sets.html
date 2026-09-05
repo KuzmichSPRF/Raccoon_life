@@ -364,6 +364,39 @@
       border: 1px solid rgba(239, 68, 68, 0.4);
       color: #f87171;
     }
+    .badge-rank {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 9px;
+      border-radius: 9px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .badge-rank-1 {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.35), rgba(245, 158, 11, 0.2));
+      border: 1.5px solid #fbbf24;
+      color: #fef08a;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+    }
+    .badge-rank-2 {
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.3), rgba(148, 163, 184, 0.15));
+      border: 1.5px solid #cbd5e1;
+      color: #f8fafc;
+      box-shadow: 0 0 10px rgba(203, 213, 225, 0.25);
+    }
+    .badge-rank-3 {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.3), rgba(180, 83, 9, 0.15));
+      border: 1.5px solid #d97706;
+      color: #fed7aa;
+      box-shadow: 0 0 10px rgba(217, 119, 6, 0.25);
+    }
+    .badge-rank-other {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e2e8f0;
+    }
 
     .set-title {
       font-size: 1.05rem;
@@ -1432,7 +1465,7 @@
       if (data.is_admin !== undefined) isUserAdmin = Boolean(data.is_admin);
 
       if (data.status === 'ok' && data.sets && data.sets.length > 0) {
-        renderSetsCards(container, data.sets, false);
+        renderSetsCards(container, data.sets, false, sort);
       } else {
         container.innerHTML = `
           <div class="empty-state">
@@ -1515,10 +1548,10 @@
     return path.replace(/^\/+/, '');
   }
 
-  function renderSetsCards(container, sets, isMyTab) {
+  function renderSetsCards(container, sets, isMyTab, sort = 'top') {
     container.innerHTML = '';
 
-    sets.forEach(item => {
+    sets.forEach((item, idx) => {
       const card = document.createElement('div');
       card.className = 'set-card';
 
@@ -1527,6 +1560,20 @@
         if (item.status === 'approved') statusBadgeHtml = '<span class="badge badge-approved">✅ Одобрен</span>';
         else if (item.status === 'rejected') statusBadgeHtml = '<span class="badge badge-rejected">❌ Отклонен</span>';
         else statusBadgeHtml = '<span class="badge badge-pending">⏳ На модерации</span>';
+      }
+
+      let rankBadgeHtml = '';
+      if (!isMyTab && (sort === 'top' || currentTab === 'top')) {
+        const place = idx + 1;
+        if (place === 1) {
+          rankBadgeHtml = '<span class="badge badge-rank badge-rank-1">🥇 1 место</span>';
+        } else if (place === 2) {
+          rankBadgeHtml = '<span class="badge badge-rank badge-rank-2">🥈 2 место</span>';
+        } else if (place === 3) {
+          rankBadgeHtml = '<span class="badge badge-rank badge-rank-3">🥉 3 место</span>';
+        } else {
+          rankBadgeHtml = `<span class="badge badge-rank badge-rank-other">🏅 #${place}</span>`;
+        }
       }
 
       let rejectionHtml = '';
@@ -1559,9 +1606,9 @@
           <div class="set-chips-row">
             <div class="set-chips-row-label">🎯 Фишки в сете (${chipsUrls.length} шт.):</div>
             <div class="set-chips-row-list">
-              ${chipsUrls.map((cUrl, idx) => `
-                <div class="set-chip-mini" title="Фишка #${idx+1}">
-                  <img src="${cUrl}" alt="Фишка #${idx+1}" onerror="this.src='images/chip_raccoon.png'" />
+              ${chipsUrls.map((cUrl, cIdx) => `
+                <div class="set-chip-mini" title="Фишка #${cIdx+1}">
+                  <img src="${cUrl}" alt="Фишка #${cIdx+1}" onerror="this.src='images/chip_raccoon.png'" />
                 </div>
               `).join('')}
             </div>
@@ -1579,6 +1626,7 @@
             </div>
           </div>
           <div class="set-badges">
+            ${rankBadgeHtml}
             <span class="badge badge-count">🎯 ${item.chips_count || chipsUrls.length || 3} фишек</span>
             ${statusBadgeHtml}
           </div>

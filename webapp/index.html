@@ -2018,6 +2018,39 @@
       border: 0.5px solid rgba(236, 72, 153, 0.4);
       white-space: nowrap;
     }
+    .chipset-rank-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .chipset-rank-1 {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.35), rgba(245, 158, 11, 0.2));
+      border: 1px solid #fbbf24;
+      color: #fef08a;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+    }
+    .chipset-rank-2 {
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.3), rgba(148, 163, 184, 0.15));
+      border: 1px solid #cbd5e1;
+      color: #f8fafc;
+      box-shadow: 0 0 8px rgba(203, 213, 225, 0.25);
+    }
+    .chipset-rank-3 {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.3), rgba(180, 83, 9, 0.15));
+      border: 1px solid #d97706;
+      color: #fed7aa;
+      box-shadow: 0 0 8px rgba(217, 119, 6, 0.25);
+    }
+    .chipset-rank-other {
+      background: rgba(255, 255, 255, 0.08);
+      border: 0.5px solid rgba(255, 255, 255, 0.2);
+      color: #e2e8f0;
+    }
     .chipset-desc {
       font-size: 0.78rem;
       color: var(--text-muted);
@@ -7845,7 +7878,7 @@
     }
 
     listContainer.innerHTML = '';
-    sets.forEach(set => {
+    sets.forEach((set, idx) => {
       const card = document.createElement('div');
       card.className = 'chipset-card';
       
@@ -7854,6 +7887,15 @@
       const votesCount = set.votes_count || 0;
       const collageUrl = (set.preview_collage || '').replace(/^\/+/, '');
       const chips = (set.chips || []).map(c => String(c).replace(/^\/+/, ''));
+
+      let rankBadgeHtml = '';
+      if (!chipSetsState.currentSort || chipSetsState.currentSort === 'top') {
+        const place = idx + 1;
+        if (place === 1) rankBadgeHtml = `<span class="chipset-rank-badge chipset-rank-1">🥇 1 место</span>`;
+        else if (place === 2) rankBadgeHtml = `<span class="chipset-rank-badge chipset-rank-2">🥈 2 место</span>`;
+        else if (place === 3) rankBadgeHtml = `<span class="chipset-rank-badge chipset-rank-3">🥉 3 место</span>`;
+        else rankBadgeHtml = `<span class="chipset-rank-badge chipset-rank-other">🏅 #${place}</span>`;
+      }
 
       let adminDeleteBtn = '';
       if (chipSetsState.isAdmin) {
@@ -7880,7 +7922,10 @@
         <div class="chipset-info-bar">
           <div class="chipset-title-row">
             <div class="chipset-title">${escapeHtml(set.title)}</div>
-            <span class="chipset-count-badge">${chipsCount} ${i18n[currentLang]?.chips_count_tag || 'фишек'}</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              ${rankBadgeHtml}
+              <span class="chipset-count-badge">${chipsCount} ${i18n[currentLang]?.chips_count_tag || 'фишек'}</span>
+            </div>
           </div>
           ${set.description ? `<div class="chipset-desc">${escapeHtml(set.description)}</div>` : ''}
           ${chipsRowHtml}
