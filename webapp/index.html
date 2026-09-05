@@ -1951,14 +1951,6 @@
         </div>
 
         <div class="play-bottom-sheet__grid">
-          <!-- Найди Фишку -->
-          <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎯 Найди Фишку' : '🎯 Find the Chip', url: 'find_chip.html', type: 'iframe' });">
-            <div class="play-bottom-sheet__title">
-              <div><span class="play-bottom-sheet__icon">🎯</span><span data-i18n="game_find_chip">Найди Фишку</span></div>
-              <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="cone.png" class="cone-icon" alt="🌰"></span></div>
-            </div>
-            <div class="play-bottom-sheet__description" data-i18n="game_find_chip_desc">Угадай правильную фишку и забери шишки!</div>
-          </button>
 
           <!-- Морской Бой -->
           <button class="play-bottom-sheet__button" onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
@@ -3582,7 +3574,7 @@
     if (!url) return false;
     // Рулетка НЕ требует энергии (исключена)
     if (url.includes('casino_roulette.html')) return false;
-    const gameUrls = ['find_chip.html', 'battleship.html', 'boss_game.html', 'tower_game.html', 'vladeos_pvp.html', 'game.html'];
+    const gameUrls = ['battleship.html', 'boss_game.html', 'tower_game.html', 'vladeos_pvp.html', 'game.html'];
     return gameUrls.some(g => url.includes(g));
   }
 
@@ -5385,7 +5377,6 @@
       games: {
         title: t.menu_games,
         items: [
-          { title: currentLang === 'ru' ? "🎯 Найди Фишку" : "🎯 Find the Chip", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "find_chip.html", type: "iframe" },
           { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" },
           { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },
           { title: currentLang === 'ru' ? "Башня 3.0" : "Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
