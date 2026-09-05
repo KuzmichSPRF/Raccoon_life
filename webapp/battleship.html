@@ -238,14 +238,20 @@
     
     .btn {
       flex: 1;
-      padding: 13px;
+      padding: 11px 8px;
       border: none;
       border-radius: 12px;
-      font-size: 0.9rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       text-transform: uppercase;
       cursor: pointer;
       transition: all 0.15s;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
+      font-family: inherit;
     }
     
     .btn:active {
@@ -282,6 +288,7 @@
       margin-bottom: 12px;
       text-align: center;
       border: var(--border-subtle);
+      box-sizing: border-box;
     }
     
     .ship-selector-title {
@@ -300,15 +307,17 @@
     }
     
     .ship-btn {
-      padding: 8px 12px;
+      padding: 6px 10px;
       border: 1px solid rgba(255,255,255,0.12);
       background: var(--card-elevated);
       color: var(--text-main);
       border-radius: 10px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
+      box-sizing: border-box;
     }
     
     .ship-btn:hover {
@@ -329,14 +338,19 @@
     
     .rotate-btn {
       margin-top: 10px;
-      padding: 9px 18px;
+      padding: 8px 14px;
       background: var(--card-elevated);
       border: 1px solid rgba(229, 57, 53, 0.4);
       color: #fff;
       border-radius: 10px;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     
     .rotate-btn:active {

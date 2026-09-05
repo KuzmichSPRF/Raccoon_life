@@ -347,30 +347,35 @@
     .controls-card {
       background: var(--card-bg);
       border-radius: 20px;
-      padding: 14px;
+      padding: 12px;
       border: var(--border-subtle);
       box-shadow: 0 6px 20px rgba(0,0,0,0.3);
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .btn-action {
       background: var(--card-elevated);
       border: var(--border-subtle);
       border-radius: 14px;
-      padding: 12px 10px;
+      padding: 8px 10px;
       color: #fff;
       font-family: inherit;
       font-weight: 700;
       font-size: 0.8rem;
       cursor: pointer;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       gap: 4px;
       transition: all 0.15s ease;
-      min-height: 56px;
+      min-height: 50px;
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .btn-action:active {
       transform: scale(0.96);
@@ -386,12 +391,30 @@
       grid-column: span 2;
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       font-weight: 800;
-      padding: 14px;
+      padding: 10px 14px;
       border: none;
-      flex-direction: row;
-      gap: 8px;
+    }
+    .btn-action-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
+      text-align: left;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+    .btn-action-title {
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: #fff;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .btn-special-1 {
       border: 1px solid rgba(255, 145, 0, 0.35);
@@ -408,27 +431,34 @@
       box-shadow: 0 4px 16px rgba(168, 85, 247, 0.25);
     }
     .cost-pill {
-      font-size: 0.65rem;
-      padding: 2px 8px;
+      font-size: 0.62rem;
+      padding: 2px 6px;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.12);
-      font-weight: 700;
+      font-weight: 800;
       color: var(--game-yellow);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .btn-cookie-row {
       grid-column: span 2;
       background: rgba(255, 255, 255, 0.04);
       border: var(--border-subtle);
       border-radius: 12px;
-      padding: 10px;
+      padding: 8px 10px;
       color: #fff;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+      line-height: 1.25;
+      text-align: center;
+      box-sizing: border-box;
       transition: all 0.15s;
     }
     .btn-cookie-row:active { transform: scale(0.97); }
@@ -575,19 +605,27 @@
   <!-- Action Controls -->
   <div class="controls-card" id="controls">
     <button class="btn-action btn-main-strike" id="btn-atk" onclick="action('attack')">
-      <span>🥊 Обычный удар</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🥊 Обычный удар</span>
+      </div>
       <span class="cost-pill">+20 NRG</span>
     </button>
     <button class="btn-action btn-special-1" id="sp1" onclick="action('trash')" disabled>
-      <span>🗑️ Мусорный залп</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🗑️ Мусор</span>
+      </div>
       <span class="cost-pill">40 NRG</span>
     </button>
     <button class="btn-action btn-special-2" id="sp2" onclick="action('snack')" disabled>
-      <span>🥨 Перекус (Лечение)</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🥨 Снэк</span>
+      </div>
       <span class="cost-pill">30 NRG</span>
     </button>
     <button class="btn-action btn-special-3" id="sp3" onclick="action('rage')" disabled>
-      <span>🔥 Ярость Енота (УЛЬТА)</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🔥 Ярость Енота (УЛЬТА)</span>
+      </div>
       <span class="cost-pill">80 NRG</span>
     </button>
     <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
@@ -747,6 +785,16 @@
       if (p1Name) p1Name.innerText = t.rac;
       const botName = document.getElementById('bot-name');
       if (botName) botName.innerText = t.clo;
+      
+      const bAtk = document.querySelector('#btn-atk .btn-action-title');
+      if (bAtk) bAtk.innerText = t.btnA;
+      const bSp1 = document.querySelector('#sp1 .btn-action-title');
+      if (bSp1) bSp1.innerText = t.btnS1;
+      const bSp2 = document.querySelector('#sp2 .btn-action-title');
+      if (bSp2) bSp2.innerText = t.btnS2;
+      const bSp3 = document.querySelector('#sp3 .btn-action-title');
+      if (bSp3) bSp3.innerText = t.btnS3;
+
       const cookieBtn = document.getElementById('btn-cookie');
       if (cookieBtn) cookieBtn.innerHTML = `<span>${t.btnC}</span>`;
       const popupTitle = document.getElementById('popup-title');

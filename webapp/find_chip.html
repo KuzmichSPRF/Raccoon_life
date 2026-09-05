@@ -351,24 +351,29 @@
       font-family: inherit;
       font-weight: 800;
       border-radius: 12px;
-      padding: 10px 18px;
+      padding: 8px 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
     }
     .nav-btn:active { transform: scale(0.94); }
     .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .depth-badge {
       background: rgba(255, 255, 255, 0.06);
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 10px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 800;
       color: #ffd700;
       border: var(--border-subtle);
+      white-space: nowrap;
     }
 
     /* Stats Panel */
@@ -377,12 +382,16 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
       margin: 10px 0;
+      box-sizing: border-box;
     }
     .stat-card {
       background: var(--card-bg);
       border-radius: 14px;
       padding: 8px 6px;
       border: var(--border-subtle);
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .stat-label {
       font-size: 0.65rem;
@@ -390,10 +399,16 @@
       text-transform: uppercase;
       font-weight: 700;
       margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .stat-value {
       font-size: 1.15rem;
       font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .stat-value.found { color: var(--game-green); }
     .stat-value.missed { color: var(--chip-miss); }
@@ -401,16 +416,20 @@
 
     /* Action Buttons */
     .btn-main {
-      padding: 14px;
+      padding: 12px 14px;
       border: none;
       border-radius: 14px;
       font-weight: 800;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       text-transform: uppercase;
       cursor: pointer;
       font-family: inherit;
       width: 100%;
       transition: transform 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
     }
     .btn-main:active { transform: scale(0.97); }
     .btn-start {

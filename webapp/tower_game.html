@@ -355,18 +355,20 @@
     .controls-card {
       background: var(--card-bg);
       border-radius: 20px;
-      padding: 14px;
+      padding: 12px;
       border: var(--border-subtle);
       box-shadow: 0 6px 20px rgba(0,0,0,0.3);
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .btn-action {
       background: var(--card-elevated);
       border: var(--border-subtle);
       border-radius: 14px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       color: #fff;
       font-family: inherit;
       font-weight: 700;
@@ -376,9 +378,12 @@
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
-      gap: 6px;
+      gap: 4px;
       transition: all 0.15s ease;
-      min-height: 52px;
+      min-height: 50px;
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .btn-action:active { transform: scale(0.96); }
     .btn-action:disabled {
@@ -391,28 +396,39 @@
       grid-column: span 2;
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       font-weight: 800;
-      padding: 12px 14px;
+      padding: 10px 14px;
       border: none;
     }
     .btn-action-content {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 2px;
+      gap: 1px;
       text-align: left;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
     }
     .btn-action-title {
       font-weight: 800;
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       color: #fff;
-      line-height: 1.2;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .btn-action-desc {
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       font-weight: 700;
       color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .btn-sp1 {
       border: 1px solid rgba(255, 145, 0, 0.35);
@@ -428,28 +444,34 @@
       background: linear-gradient(180deg, #2d1838 0%, #1f1127 100%);
     }
     .cost-pill {
-      font-size: 0.65rem;
-      padding: 2px 8px;
+      font-size: 0.62rem;
+      padding: 2px 6px;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.12);
       font-weight: 800;
       color: var(--game-yellow);
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .btn-cookie-row {
       grid-column: span 2;
       background: rgba(255, 255, 255, 0.04);
       border: var(--border-subtle);
       border-radius: 12px;
-      padding: 10px;
+      padding: 8px 10px;
       color: #fff;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+      line-height: 1.25;
+      text-align: center;
+      box-sizing: border-box;
     }
     .btn-cookie-row:disabled {
       opacity: 0.35;
@@ -463,12 +485,15 @@
       color: #fff;
       border: none;
       border-radius: 14px;
-      padding: 14px;
+      padding: 12px 14px;
       font-weight: 900;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       cursor: pointer;
       font-family: inherit;
       display: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
     @keyframes popIn {

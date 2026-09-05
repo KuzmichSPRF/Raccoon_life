@@ -439,32 +439,37 @@
     .controls-card {
       background: var(--card-bg);
       border-radius: 20px;
-      padding: 14px;
+      padding: 12px;
       border: var(--border-subtle);
       max-width: 360px;
       margin: 0 auto;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .btn-action {
       background: var(--card-elevated);
       border: var(--border-subtle);
       border-radius: 14px;
-      padding: 12px 8px;
+      padding: 8px 10px;
       color: #fff;
       font-family: inherit;
-      font-weight: 800;
+      font-weight: 700;
       font-size: 0.8rem;
       cursor: pointer;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       gap: 4px;
       transition: all 0.15s;
-      min-height: 54px;
+      min-height: 50px;
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .btn-action:active { transform: scale(0.96); }
     .btn-action:disabled {
@@ -478,9 +483,28 @@
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
       font-size: 0.9rem;
-      padding: 14px;
-      flex-direction: row;
-      gap: 8px;
+      font-weight: 800;
+      padding: 10px 14px;
+    }
+    .btn-action-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
+      text-align: left;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+    .btn-action-title {
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: #fff;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .btn-sp1 {
       border: 1px solid rgba(255, 145, 0, 0.35);
@@ -499,12 +523,14 @@
       background: linear-gradient(180deg, #2a2618 0%, #1c1a12 100%);
     }
     .cost-pill {
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       padding: 2px 6px;
-      border-radius: 6px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.12);
-      font-weight: 700;
+      font-weight: 800;
       color: var(--game-yellow);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .cone-icon {
@@ -695,23 +721,33 @@
   <!-- Action Controls -->
   <div class="controls-card" id="controls">
     <button class="btn-action btn-main-strike" id="btn-basic" onclick="attack('basic')">
-      <span>⚔️ Обычный удар</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">⚔️ Обычный удар</span>
+      </div>
       <span class="cost-pill">+20 NRG</span>
     </button>
     <button class="btn-action btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>
-      <span>🔥 Сильный удар</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🔥 Сильный удар</span>
+      </div>
       <span class="cost-pill">40 NRG</span>
     </button>
     <button class="btn-action btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>
-      <span>💥 УЛЬТИМЕЙТ</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">💥 УЛЬТИМЕЙТ</span>
+      </div>
       <span class="cost-pill">80 NRG</span>
     </button>
     <button class="btn-action btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>
-      <span>💚 Лечение</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">💚 Лечение</span>
+      </div>
       <span class="cost-pill">50 NRG</span>
     </button>
     <button class="btn-action btn-cookie" id="btn-cookie" onclick="buyCookie()">
-      <span>🍪 100 HP</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title">🍪 100 HP</span>
+      </div>
       <span class="cost-pill">100 <img src="images/cone.png" class="cone-icon" alt="🌰"></span>
     </button>
   </div>

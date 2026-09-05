@@ -268,14 +268,17 @@
       background: var(--bg-secondary);
       border: 1.5px solid var(--border-subtle);
       border-radius: 14px;
-      padding: 10px 6px;
+      padding: 8px 4px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-      min-height: 60px;
+      min-height: 56px;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     .bet-choice-card:active { transform: scale(0.96); }
     .bet-choice-card.active {
@@ -289,17 +292,28 @@
 
     .bet-choice-title {
       font-weight: 900;
-      font-size: 0.85rem;
+      font-size: clamp(0.72rem, 3.2vw, 0.85rem);
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 4px;
       text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .bet-choice-mult {
-      font-size: 0.72rem;
+      font-size: clamp(0.65rem, 2.8vw, 0.72rem);
       font-weight: 700;
       color: var(--text-sec);
       margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     /* Bet Amount Controls */
@@ -331,6 +345,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      box-sizing: border-box;
       transition: background 0.15s;
     }
     .step-btn:active { transform: scale(0.94); background: var(--bg-elevated-hover); }
@@ -339,6 +355,7 @@
       position: relative;
       display: flex;
       align-items: center;
+      min-width: 0;
     }
     .bet-input-field {
       width: 100%;
@@ -352,6 +369,8 @@
       text-align: center;
       outline: none;
       padding: 0 30px 0 10px;
+      box-sizing: border-box;
+      min-width: 0;
     }
     .bet-input-field:focus {
       border-color: var(--gold);
@@ -373,13 +392,18 @@
       background: var(--bg-elevated);
       border: 1px solid var(--border-subtle);
       border-radius: 8px;
-      padding: 6px 2px;
-      font-size: 0.7rem;
+      padding: 6px 1px;
+      font-size: clamp(0.62rem, 2.5vw, 0.72rem);
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
       text-align: center;
       transition: all 0.12s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      box-sizing: border-box;
     }
     .preset-chip:active { transform: scale(0.92); background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -389,8 +413,8 @@
       color: white;
       border: none;
       border-radius: 16px;
-      padding: 14px;
-      font-size: 1.05rem;
+      padding: 12px 14px;
+      font-size: clamp(0.85rem, 4vw, 1.05rem);
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -402,7 +426,15 @@
       justify-content: center;
       gap: 8px;
       width: 100%;
-      min-height: 52px;
+      min-height: 48px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .spin-cta-btn > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
     .spin-cta-btn:active { transform: scale(0.97); }
     .spin-cta-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
