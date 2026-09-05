@@ -8575,8 +8575,15 @@
         })
       });
 
-      const data = await res.json();
-      if (data.status === 'ok') {
+      let data = null;
+      try {
+        const text = await res.text();
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error('Ошибка парсинга ответа:', parseErr);
+      }
+
+      if (res.ok && data && data.status === 'ok') {
         triggerHaptic('success');
         if (statusMsg) statusMsg.innerText = '✅ ' + (i18n[currentLang]?.set_submitted_toast || 'Сет отправлен на модерацию!');
         setTimeout(() => {
@@ -8592,13 +8599,14 @@
           if (statusMsg) statusMsg.innerText = '';
         }, 1500);
       } else {
+        const errMsg = (data && (data.error || data.message)) || `Ошибка сервера (${res.status})`;
         triggerHaptic('error');
-        if (statusMsg) statusMsg.innerText = '❌ ' + (data.error || 'Ошибка отправки');
+        if (statusMsg) statusMsg.innerText = '❌ ' + errMsg;
       }
     } catch (err) {
       console.error('Ошибка submitCustomChipSet:', err);
       triggerHaptic('error');
-      if (statusMsg) statusMsg.innerText = '❌ Ошибка сети при отправке сета';
+      if (statusMsg) statusMsg.innerText = '❌ ' + (err.message || 'Ошибка сети при отправке сета');
     } finally {
       chipSetsState.isSubmitting = false;
       if (submitBtn) submitBtn.disabled = false;

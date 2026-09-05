@@ -6599,9 +6599,17 @@ def decode_base64_image(data_str: str) -> bytes:
     """Декодирует base64 строку или data URL в байты."""
     if not data_str:
         return b""
-    if "," in data_str:
-        data_str = data_str.split(",", 1)[1]
-    return base64.b64decode(data_str)
+    try:
+        if "," in data_str:
+            data_str = data_str.split(",", 1)[1]
+        data_str = data_str.strip().replace(" ", "+")
+        missing_padding = len(data_str) % 4
+        if missing_padding:
+            data_str += "=" * (4 - missing_padding)
+        return base64.b64decode(data_str)
+    except Exception as e:
+        logger.error(f"❌ Ошибка decode_base64_image: {e}")
+        return b""
 
 
 def generate_round_chip(raw_bytes: bytes, diameter: int = 320) -> Image.Image:
