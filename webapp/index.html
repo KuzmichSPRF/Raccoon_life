@@ -2508,7 +2508,7 @@
         <button id="tab-chipsets-new" class="chipsets-tab" onclick="switchChipSetsTab('new'); triggerHaptic('selection');">
           <span>🕒</span> <span data-i18n="tab_sets_new">Новые</span>
         </button>
-        <button id="tab-chipsets-create" class="chipsets-tab" onclick="switchChipSetsTab('create'); triggerHaptic('selection');" style="display: none;">
+        <button id="tab-chipsets-create" class="chipsets-tab" onclick="switchChipSetsTab('create'); triggerHaptic('selection');">
           <span>➕</span> <span data-i18n="tab_sets_create">Создать сет</span>
         </button>
       </div>
@@ -7780,7 +7780,7 @@
         
         const createTabBtn = document.getElementById('tab-chipsets-create');
         if (createTabBtn) {
-          createTabBtn.style.display = chipSetsState.isAdmin ? 'flex' : 'none';
+          createTabBtn.style.display = 'flex';
         }
 
         renderChipSetsList(chipSetsState.sets);
@@ -7802,7 +7802,7 @@
         <div style="text-align: center; padding: 30px 14px; background: rgba(0,0,0,0.25); border-radius: 16px; border: 1px dashed var(--border-subtle); color: var(--text-secondary);">
           <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🎨</span>
           <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">${i18n[currentLang]?.sets_empty || 'Пока нет опубликованных сетов'}</div>
-          ${chipSetsState.isAdmin ? '<button class="button button-type-secondary" style="margin-top: 12px; font-size: 11px; padding: 6px 14px; border-radius: 10px;" onclick="switchChipSetsTab(\'create\')">➕ Создать первый сет</button>' : ''}
+          <button class="button button-type-secondary" style="margin-top: 12px; font-size: 11px; padding: 6px 14px; border-radius: 10px;" onclick="switchChipSetsTab('create')">➕ Создать первый сет</button>
         </div>
       `;
       return;

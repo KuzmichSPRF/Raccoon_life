@@ -6830,6 +6830,7 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
     collage_rel_path = f"/images/sets/set_{author_id}_{ts}/{collage_fname}"
 
     # 4. БД
+    ensure_user_exists(author_id)
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -6845,8 +6846,11 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
         set_id = cursor.lastrowid
         conn.commit()
 
-        # Отправляем карточку модерации
-        send_chip_set_moderation_card(set_id, author_id, author_name, title, description, chips_count, collage_path)
+        # Отправляем карточку модерации (не прерывая создание при сбое Telegram)
+        try:
+            send_chip_set_moderation_card(set_id, author_id, author_name, title, description, chips_count, collage_path)
+        except Exception as err:
+            logger.error(f"⚠️ Ошибка отправки карточки модерации сета #{set_id}: {err}")
 
         return {'status': 'ok', 'set_id': set_id}
     except Exception as e:
@@ -7025,27 +7029,41 @@ def toggle_chip_set_vote_db(set_id: int, user_id: int) -> dict:
 @app.route('/api/chip_sets/create', methods=['POST'])
 @limiter.limit("20 per minute")
 def api_chip_sets_create():
-    """Создание сета фишек (только админ)"""
+    """Создание сета фишек и отправка на модерацию"""
     try:
         if not request.is_json:
             return jsonify({'error': 'JSON required'}), 400
 
         data = request.get_json()
         user_id = int(data.get('userId') or data.get('user_id') or 0)
+        author_name = "Игрок"
 
         # Авторизация через init_data если передана
         init_data = request.headers.get('X-Telegram-Init-Data')
-        author_name = "Админ"
         if init_data:
             auth_user = validate_webapp_data(init_data)
             if auth_user:
                 user_id = int(auth_user.get('id', user_id))
                 author_name = auth_user.get('username') or f"{auth_user.get('first_name', '')} {auth_user.get('last_name', '')}".strip() or f"User {user_id}"
 
-        # Проверка прав: сейчас создание доступно только админу
-        if user_id != ADMIN_ID:
-            logger.warning(f"🚫 Неадмин {user_id} попытался создать сет фишек")
-            return jsonify({'error': 'Функция создания сетов пока доступна только администратору'}), 403
+        if user_id <= 0:
+            return jsonify({'error': 'Некорректный ID пользователя'}), 400
+
+        # Пытаемся получить актуальное имя автора из базы
+        try:
+            ensure_user_exists(user_id)
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+            u_row = cursor.fetchone()
+            if u_row:
+                if u_row['username']:
+                    author_name = f"@{u_row['username']}"
+                elif u_row['first_name'] or u_row['last_name']:
+                    author_name = f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip()
+            conn.close()
+        except Exception as err:
+            logger.warning(f"Ошибка получения имени автора #{user_id}: {err}")
 
         title = str(data.get('title', '')).strip()
         description = str(data.get('description', '')).strip()
