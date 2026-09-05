@@ -1337,7 +1337,10 @@
     <div class="modal-card" style="max-width: 440px; background: rgba(18, 18, 24, 0.96);"
       onclick="event.stopPropagation()">
       <div class="modal-header">
-        <span id="zoom-modal-title" class="modal-title">Просмотр сета</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="back-btn" style="width: 32px; height: 32px; font-size: 1rem;" onclick="closeZoomModal()" title="Назад">←</button>
+          <span id="zoom-modal-title" class="modal-title">Просмотр сета</span>
+        </div>
         <button class="modal-close-btn" onclick="closeZoomModal()">✕</button>
       </div>
 
@@ -1787,7 +1790,6 @@
           </div>
           <div class="set-badges">
             ${rankBadgeHtml}
-            <span class="badge badge-count">🎯 ${item.chips_count || chipsUrls.length || 3} фишек</span>
             ${statusBadgeHtml}
           </div>
         </div>
@@ -2552,6 +2554,13 @@
       if (tabsWrap) tabsWrap.style.display = 'flex';
       switchModalView(initialView, chipIdx);
       if (modal) modal.style.display = 'flex';
+
+      try {
+        if (window.Telegram?.WebApp?.BackButton) {
+          Telegram.WebApp.BackButton.show();
+          Telegram.WebApp.BackButton.onClick(closeZoomModal);
+        }
+      } catch (e) { }
     }
 
     function switchModalView(view, chipIdx = null) {
@@ -2616,12 +2625,26 @@
       if (titleEl) titleEl.innerText = title;
       if (descEl) descEl.innerText = desc;
       if (modal) modal.style.display = 'flex';
+
+      try {
+        if (window.Telegram?.WebApp?.BackButton) {
+          Telegram.WebApp.BackButton.show();
+          Telegram.WebApp.BackButton.onClick(closeZoomModal);
+        }
+      } catch (e) { }
     }
 
     function closeZoomModal() {
       const modal = document.getElementById('zoom-modal');
       if (modal) modal.style.display = 'none';
       activeModalSet = null;
+
+      try {
+        if (window.Telegram?.WebApp?.BackButton) {
+          Telegram.WebApp.BackButton.offClick(closeZoomModal);
+          // If we are on root sets tab, keep back button handler or hide if appropriate
+        }
+      } catch (e) { }
     }
 
     // ==================== INIT ====================

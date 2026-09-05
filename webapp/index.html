@@ -619,6 +619,75 @@
       line-height: 1;
     }
 
+    .offer-icon-combo {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(26px, 6.5vw, 32px);
+      height: clamp(26px, 6.5vw, 32px);
+      margin: 1px 0;
+    }
+
+    .offer-cone-img {
+      width: clamp(22px, 5.5vw, 26px);
+      height: clamp(22px, 5.5vw, 26px);
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    .offer-sub-badge {
+      position: absolute;
+      bottom: -3px;
+      right: -4px;
+      font-size: 10px;
+      line-height: 1;
+      background: rgba(14, 14, 18, 0.95);
+      border-radius: 50%;
+      padding: 1.5px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+    }
+
+    .offer-sub-badge--stars {
+      border-color: #ffd700;
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+    }
+
+    .offer-sub-badge--ton {
+      border-color: #00ff88;
+      box-shadow: 0 0 6px rgba(0, 255, 136, 0.7);
+    }
+
+    .balance-add-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e, #10b981);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-left: 5px;
+      box-shadow: 0 2px 6px rgba(34, 197, 94, 0.5);
+      transition: transform 0.12s, box-shadow 0.15s;
+      flex-shrink: 0;
+    }
+
+    .balance-add-btn:active {
+      transform: scale(0.85);
+      box-shadow: 0 1px 3px rgba(34, 197, 94, 0.8);
+    }
+
     .offer-badge__label {
       font-size: 8px;
       font-weight: 700;
@@ -1690,6 +1759,43 @@
       letter-spacing: 0.04em;
     }
 
+    .play-sheet-header-panel {
+      margin-bottom: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .play-sheet-energy-badge {
+      font-size: 13px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(18, 18, 24, 0.95));
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      padding: 11px 15px;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .play-sheet-energy-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .play-sheet-energy-val {
+      color: #22c55e;
+      font-weight: 800;
+      font-size: 0.88rem;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+
     .play-bottom-sheet__block {
       margin-bottom: 12px;
     }
@@ -1714,7 +1820,7 @@
     .play-bottom-sheet__grid {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 9px;
     }
 
     .play-bottom-sheet__button {
@@ -1752,6 +1858,39 @@
     .play-bottom-sheet__fee {
       font-size: 11px;
       font-weight: 700;
+    }
+
+    .play-mode-reward-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      background: rgba(255, 215, 0, 0.12);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      color: #ffd700;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .play-mode-reward-badge--raid {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #f87171;
+    }
+
+    .play-mode-reward-badge--gold {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 149, 0, 0.25));
+      border-color: rgba(255, 215, 0, 0.5);
+      color: #ffd700;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+    }
+
+    .play-mode-reward-badge--pink {
+      background: rgba(236, 72, 153, 0.16);
+      border-color: rgba(236, 72, 153, 0.4);
+      color: #f472b6;
     }
 
     .play-bottom-sheet__description {
@@ -3859,6 +3998,11 @@
       </div>
 
       <div class="home__title-badges">
+        <button class="badge-icon-button" id="header-inventory-btn"
+          onclick="openInventoryModal(); triggerHaptic('selection');" aria-label="Inventory" title="Инвентарь">
+          <span class="badge-icon-button__icon">🎒</span>
+          <div class="badge-icon-button__badge" id="header-inventory-badge">0</div>
+        </button>
         <button class="badge-icon-button" id="header-wallet-btn"
           onclick="handleTonWalletButtonClick(); triggerHaptic('selection');" aria-label="Wallet">
           <span class="badge-icon-button__icon" id="header-wallet-icon">👛</span>
@@ -3898,10 +4042,11 @@
     <div id="main-menu" class="screen">
       <!-- Resource Pills Bar -->
       <div class="home__profile-buttons">
-        <button class="home__profile" onclick="syncStats(); triggerHaptic('light');" title="Баланс шишек"
+        <button class="home__profile" onclick="openOfferModal('stars'); triggerHaptic('light');" title="Купить / получить шишки"
           data-i18n-title="balance_tooltip">
           <span class="profile-pill-icon"><img src="images/cone.png" class="cone-icon" alt="🌰"></span>
           <span id="token-balance">0</span>
+          <span class="balance-add-btn" onclick="event.stopPropagation(); openOfferModal('stars'); triggerHaptic('impact');" title="Пополнить шишки">+</span>
         </button>
         <button class="home__profile" onclick="renderCategory('quests'); triggerHaptic('light');"
           title="Прогресс квестов" data-i18n-title="quests_progress_tooltip">
@@ -3928,7 +4073,10 @@
           <button class="offer-badge offer-badge--stars" onclick="openOfferModal('stars'); triggerHaptic('light');"
             title="10,000 Шишек за 100 Звёзд" data-i18n-title="stars_offer_tooltip">
             <div class="offer-badge__timer offer-badge__timer--stars">100⭐</div>
-            <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));">⭐</span>
+            <div class="offer-icon-combo">
+              <img src="images/cone.png" class="offer-cone-img" alt="🌲">
+              <span class="offer-sub-badge offer-sub-badge--stars">⭐</span>
+            </div>
             <div class="offer-badge__label"
               style="color: #ffd700; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
               10k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
@@ -3938,7 +4086,10 @@
           <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_02'); triggerHaptic('light');"
             title="20,000 Шишек за 2.0 GRAM">
             <div class="offer-badge__timer offer-badge__timer--ton">2 GRAM</div>
-            <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
+            <div class="offer-icon-combo">
+              <img src="images/cone.png" class="offer-cone-img" alt="🌲">
+              <span class="offer-sub-badge offer-sub-badge--ton">💎</span>
+            </div>
             <div class="offer-badge__label"
               style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
               20k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
@@ -3948,7 +4099,10 @@
           <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_05'); triggerHaptic('light');"
             title="60,000 Шишек за 5.0 GRAM (+20%)">
             <div class="offer-badge__timer offer-badge__timer--hot">5 GRAM</div>
-            <span class="offer-badge__icon" style="filter: drop-shadow(0 0 6px rgba(0, 136, 204, 0.6));">💎</span>
+            <div class="offer-icon-combo">
+              <img src="images/cone.png" class="offer-cone-img" alt="🌲">
+              <span class="offer-sub-badge offer-sub-badge--ton">💎</span>
+            </div>
             <div class="offer-badge__label"
               style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
               60k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
@@ -3958,7 +4112,10 @@
           <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_10'); triggerHaptic('light');"
             title="150,000 Шишек за 10.0 GRAM (ХИТ)">
             <div class="offer-badge__timer offer-badge__timer--live">10 GRAM</div>
-            <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.7));">💎</span>
+            <div class="offer-icon-combo">
+              <img src="images/cone.png" class="offer-cone-img" alt="🌲">
+              <span class="offer-sub-badge offer-sub-badge--ton">💎</span>
+            </div>
             <div class="offer-badge__label"
               style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
               150k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
@@ -3968,7 +4125,10 @@
           <button class="offer-badge offer-badge--ton" onclick="openOfferModal('pack_30'); triggerHaptic('light');"
             title="500,000 Шишек за 30.0 GRAM (VIP)">
             <div class="offer-badge__timer offer-badge__timer--vip">30 GRAM</div>
-            <span class="offer-badge__icon" style="filter: drop-shadow(0 0 8px rgba(156, 39, 176, 0.8));">💎</span>
+            <div class="offer-icon-combo">
+              <img src="images/cone.png" class="offer-cone-img" alt="🌲">
+              <span class="offer-sub-badge offer-sub-badge--ton">💎</span>
+            </div>
             <div class="offer-badge__label"
               style="color: #00ff88; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
               500k <img src="images/cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌲"></div>
@@ -3994,13 +4154,6 @@
             <span class="offer-badge__icon">🛒</span>
             <div class="offer-badge__label" data-i18n="menu_shop">Рынок</div>
           </button>
-          <button class="offer-badge" onclick="openInventoryModal(); triggerHaptic('light');" title="Инвентарь"
-            data-i18n-title="menu_inventory">
-            <div class="offer-badge__timer" style="background: linear-gradient(135deg, #a855f7, #06b6d4); color: #fff;"
-              id="inventory-badge-count">0</div>
-            <span class="offer-badge__icon">🎒</span>
-            <div class="offer-badge__label" data-i18n="menu_inventory">Инвентарь</div>
-          </button>
           <button class="offer-badge" onclick="openTotalizator(); triggerHaptic('light');">
             <div class="offer-badge__timer offer-badge__timer--live">LIVE</div>
             <span class="offer-badge__icon">🎲</span>
@@ -4011,11 +4164,6 @@
             <div class="offer-badge__timer offer-badge__timer--hot">HOT</div>
             <span class="offer-badge__icon">🎰</span>
             <div class="offer-badge__label" data-i18n="menu_roulette">Рулетка</div>
-          </button>
-          <button class="offer-badge" onclick="showLeaderboard(); triggerHaptic('light');">
-            <div class="offer-badge__timer offer-badge__timer--gold" data-i18n="top_badge">ТОП</div>
-            <span class="offer-badge__icon">🏆</span>
-            <div class="offer-badge__label" data-i18n="menu_rating">Рейтинг</div>
           </button>
         </div>
       </div>
@@ -4050,10 +4198,13 @@
         <button class="bottom-sheet__hide" onclick="togglePlayBottomSheet(false)" data-i18n="btn_hide">Скрыть</button>
 
         <div class="play-bottom-sheet">
-          <div class="play-bottom-sheet__block">
-            <div class="play-bottom-sheet__energy">
-              <div data-i18n="energy_accumulation">⚡ Накопление энергии</div>
-              <span id="play-sheet-energy-text" data-i18n="energy_full">30/30 (Полная)</span>
+          <div class="play-sheet-header-panel">
+            <div class="play-sheet-energy-badge">
+              <div class="play-sheet-energy-title">
+                <span>⚡</span>
+                <span data-i18n="energy_accumulation">Накопление энергии</span>
+              </div>
+              <div class="play-sheet-energy-val" id="play-sheet-energy-text" data-i18n="energy_full">30/30 (Полная)</div>
             </div>
           </div>
 
@@ -4063,10 +4214,8 @@
             <button class="play-bottom-sheet__button"
               onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
               <div class="play-bottom-sheet__title">
-                <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span>
-                </div>
-                <div class="play-bottom-sheet__fee"><span class="trans--gold">+100 <img src="images/cone.png"
-                      class="cone-icon" alt="🌰"></span></div>
+                <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span></div>
+                <div class="play-mode-reward-badge">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_battleship_desc">Классическая морская баталия
                 против енота</div>
@@ -4077,8 +4226,7 @@
               onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🔺 Босс Енотов' : '🔺 Raccoon Boss', url: 'boss_game.html', type: 'iframe' });">
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">🔺</span><span data-i18n="game_boss">Босс Енотов</span></div>
-                <div class="play-bottom-sheet__fee"><span class="trans--red" data-i18n="game_boss_hp">1 млрд HP</span>
-                </div>
+                <div class="play-mode-reward-badge play-mode-reward-badge--raid">+50-500 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_boss_desc">Сразись с Мировым Боссом вместе со
                 всеми игроками!</div>
@@ -4089,8 +4237,7 @@
               onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🏰 Башня 3.0' : '🏰 Tower 3.0', url: 'tower_game.html', type: 'iframe' });">
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">🏰</span><span data-i18n="game_tower">Башня 3.0</span></div>
-                <div class="play-bottom-sheet__fee"><span class="trans--gold">1-10 <img src="images/cone.png"
-                      class="cone-icon" alt="🌰">/<span data-i18n="lvl_short">ур</span></span></div>
+                <div class="play-mode-reward-badge">1-10 <img src="images/cone.png" class="cone-icon" alt="🌰">/<span data-i18n="lvl_short">ур</span></div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_tower_desc">Покори этажи башни испытаний</div>
             </button>
@@ -4101,9 +4248,7 @@
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">⚔️</span><span data-i18n="game_vladeos">PVP: Vladeos</span>
                 </div>
-                <div class="play-bottom-sheet__fee"><span class="trans--orange">5% <span
-                      data-i18n="chance_word">шанс</span> 100 <img src="images/cone.png" class="cone-icon"
-                      alt="🌰"></span></div>
+                <div class="play-mode-reward-badge">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_vladeos_desc">Сражение с легендарным
                 противником</div>
@@ -4115,8 +4260,7 @@
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">🎲</span><span data-i18n="game_chips_battle">Битва
                     фишек</span></div>
-                <div class="play-bottom-sheet__fee"><span class="trans--gold">+10 <img src="images/cone.png"
-                      class="cone-icon" alt="🌰"></span></div>
+                <div class="play-mode-reward-badge">+10 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_chips_battle_desc">Динамичные дуэли на фишках
               </div>
@@ -4128,8 +4272,8 @@
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">🎰</span><span data-i18n="game_roulette">Енотная
                     Рулетка</span></div>
-                <div class="play-bottom-sheet__fee"><span class="trans--gold" data-i18n="jackpot_label">🔥
-                    ДЖЕКПОТ</span></div>
+                <div class="play-mode-reward-badge play-mode-reward-badge--gold" data-i18n="jackpot_label">🔥
+                    ДЖЕКПОТ</div>
               </div>
               <div class="play-bottom-sheet__description" data-i18n="game_roulette_desc">Крути колесо фортуны и
                 выигрывай кучу шишек!</div>
@@ -4141,7 +4285,7 @@
               onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎨 Коллекции Фишек' : '🎨 Chip Sets Studio', url: 'chip_sets.html', type: 'iframe' });">
               <div class="play-bottom-sheet__title">
                 <div><span class="play-bottom-sheet__icon">🎨</span><span>Коллекции Фишек</span></div>
-                <div class="play-bottom-sheet__fee"><span style="color: #f472b6; font-weight: 800;">🔥 NEW</span></div>
+                <div class="play-mode-reward-badge play-mode-reward-badge--pink">🔥 NEW</div>
               </div>
               <div class="play-bottom-sheet__description">Создавай свои наборы фишек, голосуй за лучшие сеты!</div>
             </button>
@@ -4179,9 +4323,12 @@
 
     <!-- Totalizator Screen -->
     <div id="tot-screen" class="screen">
-      <div class="tot-brand" aria-label="EnotXbet">
-        <span class="tot-brand-icon">🦝</span>
-        <span class="tot-brand-text">EnotXbet</span>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h2 class="section-title" data-i18n="menu_tot">EnotXbet</h2>
+        <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary"
+          style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
+          ← <span data-i18n="btn_back">Назад</span>
+        </button>
       </div>
       <div class="rating-tabs" style="flex-wrap: wrap;">
         <button class="rating-tab active" id="tab-tot-events" onclick="loadTotEvents(); triggerHaptic('selection');"
@@ -4226,10 +4373,6 @@
       <button class="nav__item" id="nav-quests" onclick="renderCategory('quests'); triggerHaptic('selection');">
         <span class="nav-icon">❓</span>
         <span data-i18n="menu_quests">Квесты</span>
-      </button>
-      <button class="nav__item" id="nav-games" onclick="togglePlayBottomSheet(true); triggerHaptic('selection');">
-        <span class="nav-icon">🎮</span>
-        <span data-i18n="menu_games">Игры</span>
       </button>
       <button class="nav__item" id="nav-news" onclick="renderCategory('newspapers'); triggerHaptic('selection');">
         <span class="nav-icon">📰</span>
