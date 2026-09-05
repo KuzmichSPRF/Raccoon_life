@@ -588,25 +588,36 @@
 
     .modal-chips-grid {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
-      max-height: 220px;
-      overflow-y: auto;
-      padding: 4px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 6px 4px;
+      justify-content: flex-start;
+      margin-top: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .modal-chips-grid::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .modal-chips-grid::-webkit-scrollbar-thumb {
+      background: rgba(236, 72, 153, 0.4);
+      border-radius: 4px;
     }
 
     .modal-chip-item {
-      width: 58px;
-      height: 58px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       overflow: hidden;
       border: 2px solid rgba(255, 255, 255, 0.2);
       cursor: pointer;
       background: #14141a;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-      transition: transform 0.15s, border-color 0.15s;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      flex-shrink: 0;
     }
 
     .modal-chip-item:active {
@@ -615,7 +626,8 @@
 
     .modal-chip-item.active {
       border-color: #ec4899;
-      box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+      box-shadow: 0 0 12px rgba(236, 72, 153, 0.7);
+      transform: scale(1.05);
     }
 
     .modal-chip-item img {
@@ -1024,15 +1036,18 @@
 
     .modal-card {
       width: 100%;
-      max-width: 390px;
+      max-width: 420px;
+      max-height: 90vh;
+      overflow-y: auto;
       background: #16161c;
       border: var(--card-border);
-      border-radius: 24px;
-      padding: 18px;
+      border-radius: 22px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
       box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+      scrollbar-width: thin;
     }
 
     .modal-header {
@@ -1354,24 +1369,24 @@
 
       <!-- Main Image View -->
       <div
-        style="width: 100%; border-radius: 14px; overflow: hidden; background: #101014; margin-top: 6px; position: relative;">
+        style="width: 100%; border-radius: 14px; overflow: hidden; background: #101014; margin-top: 4px; position: relative; display: flex; align-items: center; justify-content: center; min-height: 140px;">
         <img id="zoom-modal-img"
-          style="width: 100%; height: auto; display: block; max-height: 380px; object-fit: contain; margin: 0 auto;"
+          style="width: 100%; height: auto; display: block; max-height: clamp(150px, 28vh, 230px); object-fit: contain; margin: 0 auto;"
           alt="Zoom image" onerror="this.src='images/chip_raccoon.png'">
       </div>
 
       <!-- Chips Grid inside Modal -->
-      <div id="modal-chips-grid-wrap" style="display: none; width: 100%;">
+      <div id="modal-chips-grid-wrap" style="display: none; width: 100%; margin-top: 2px;">
         <div
-          style="font-size: 0.72rem; font-weight: 700; color: var(--text-sec); margin-top: 8px; text-transform: uppercase;">
+          style="font-size: 0.7rem; font-weight: 700; color: var(--text-sec); text-transform: uppercase; margin-bottom: 2px;">
           Нажмите на фишку для просмотра:</div>
         <div class="modal-chips-grid" id="modal-chips-grid"></div>
       </div>
 
-      <div id="zoom-modal-desc" style="font-size: 0.82rem; color: var(--text-sec); line-height: 1.4; margin-top: 4px;">
+      <div id="zoom-modal-desc" style="font-size: 0.8rem; color: var(--text-sec); line-height: 1.35; margin-top: 2px;">
       </div>
 
-      <div id="zoom-modal-footer" style="margin-top: 14px; width: 100%;">
+      <div id="zoom-modal-footer" style="margin-top: 6px; width: 100%;">
         <button class="share-btn" id="modal-share-btn" style="width: 100%; justify-content: center; padding: 10px 14px; font-size: 0.88rem;" onclick="shareCurrentModalSet()">
           <span>🔗 Поделиться этим сетом</span>
         </button>
