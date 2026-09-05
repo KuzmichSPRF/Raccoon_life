@@ -262,44 +262,47 @@
     }
     .fighter-label.purple { color: #c084fc; }
 
-    .dmg-popup {
-      position: absolute;
-      top: -18px;
-      left: 50%;
-      transform: translateX(-50%) scale(0.6);
-      font-size: 1.25rem;
-      font-weight: 900;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      z-index: 10;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
-      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .dmg-popup.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-10px) scale(1.15);
-    }
-    .dmg-popup.player-dmg {
-      color: #33BD1C;
-      text-shadow: 0 0 16px rgba(51, 189, 28, 0.8), 0 2px 10px rgba(0,0,0,0.9);
-    }
-    .dmg-popup.vladeos-dmg {
-      color: #c084fc;
-      text-shadow: 0 0 16px rgba(192, 132, 252, 0.8), 0 2px 10px rgba(0,0,0,0.9);
-    }
-
     .score {
-      font-size: 2rem;
+      font-size: 2.4rem;
       font-weight: 900;
-      color: #ffd700;
+      color: #fff;
       opacity: 0;
-      transform: scale(0.5);
+      transform: scale(0.6);
       transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
-      min-height: 38px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      margin-top: 4px;
+      padding: 4px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      letter-spacing: -0.5px;
     }
-    .score.visible { opacity: 1; transform: scale(1); }
+    .score.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .score.winner {
+      color: #33BD1C !important;
+      background: rgba(51, 189, 28, 0.15) !important;
+      border-color: rgba(51, 189, 28, 0.5) !important;
+      box-shadow: 0 0 20px rgba(51, 189, 28, 0.35), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    }
+    .score.loser {
+      color: rgba(255, 255, 255, 0.4) !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border-color: rgba(255, 255, 255, 0.06) !important;
+    }
+    .score.winner-vladeos {
+      color: #FF3B30 !important;
+      background: rgba(255, 59, 48, 0.15) !important;
+      border-color: rgba(255, 59, 48, 0.5) !important;
+      box-shadow: 0 0 20px rgba(255, 59, 48, 0.35), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    }
 
     .score-breakdown {
       display: flex;
@@ -454,7 +457,6 @@
     <div class="cap-wrapper">
       <div id="p-cap" class="chip-frame player" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <div id="p-dmg-popup" class="dmg-popup"></div>
         <img src="images/chip_raccoon.png" alt="Player Raccoon" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label">Вы</div>
@@ -466,7 +468,6 @@
     <div class="cap-wrapper">
       <div id="v-cap" class="chip-frame vladeos" onclick="inspectVladeosChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
-        <div id="v-dmg-popup" class="dmg-popup"></div>
         <img src="images/chip_vladeos.png" alt="Champion Vladeos" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label purple">Vladeos</div>
@@ -806,27 +807,14 @@
 
         pScore.innerText = pScoreVal;
         vScore.innerText = vScoreVal;
-        pScore.classList.add('visible');
-        vScore.classList.add('visible');
-
-        const pPopup = document.getElementById('p-dmg-popup');
-        const vPopup = document.getElementById('v-dmg-popup');
-        if (pPopup) {
-          pPopup.innerText = `💥 ${pScoreVal}`;
-          pPopup.className = 'dmg-popup show player-dmg';
-        }
-        if (vPopup) {
-          vPopup.innerText = `💥 ${vScoreVal}`;
-          vPopup.className = 'dmg-popup show vladeos-dmg';
-        }
   
         if (data.win) {
           playSfx('win');
           triggerHaptic('success');
           msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
-          pScore.style.color = '#33BD1C';
-          vScore.style.color = 'rgba(255,255,255,0.4)';
+          pScore.className = 'score visible winner';
+          vScore.className = 'score visible loser';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true, lootDrop: data.loot_drop }, '*');
           if (data.loot_drop) {
             try { window.parent.postMessage({ type: 'loot_dropped', item: data.loot_drop }, '*'); } catch(e) {}
@@ -838,8 +826,8 @@
           triggerHaptic('error');
           msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
           msg.style.color = 'var(--accent)';
-          pScore.style.color = 'rgba(255,255,255,0.4)';
-          vScore.style.color = '#FF3B30';
+          pScore.className = 'score visible loser';
+          vScore.className = 'score visible winner-vladeos';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
           setTimeout(() => {
             showPopupResult(false, 0, null, pScoreVal, vScoreVal);
@@ -901,14 +889,8 @@
     }
 
     function resetGame() {
-      pScore.classList.remove('visible');
-      vScore.classList.remove('visible');
-      pScore.style.color = '#ffd700';
-      vScore.style.color = '#ffd700';
-      const pPopup = document.getElementById('p-dmg-popup');
-      const vPopup = document.getElementById('v-dmg-popup');
-      if (pPopup) pPopup.className = 'dmg-popup';
-      if (vPopup) vPopup.className = 'dmg-popup';
+      pScore.className = 'score';
+      vScore.className = 'score';
       gradeSelection.classList.remove('hidden');
       msg.innerText = t.msgStart;
       msg.style.color = 'var(--text-main)';
