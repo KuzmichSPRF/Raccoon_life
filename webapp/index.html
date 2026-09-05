@@ -4301,15 +4301,17 @@
 
           <div class="play-bottom-sheet__grid">
 
-            <!-- Морской Бой -->
+            <!-- Енотная Рулетка -->
             <button class="play-bottom-sheet__button"
-              onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
+              onclick="togglePlayBottomSheet(false); handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette });">
               <div class="play-bottom-sheet__title">
-                <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span></div>
-                <div class="play-mode-reward-badge">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
+                <div><span class="play-bottom-sheet__icon">🎰</span><span data-i18n="game_roulette">Енотная
+                    Рулетка</span></div>
+                <div class="play-mode-reward-badge play-mode-reward-badge--gold" data-i18n="jackpot_label">🔥
+                    ДЖЕКПОТ</div>
               </div>
-              <div class="play-bottom-sheet__description" data-i18n="game_battleship_desc">Классическая морская баталия
-                против енота</div>
+              <div class="play-bottom-sheet__description" data-i18n="game_roulette_desc">Крути колесо фортуны и
+                выигрывай кучу шишек!</div>
             </button>
 
             <!-- Босс Енотов -->
@@ -4357,28 +4359,15 @@
               </div>
             </button>
 
-            <!-- Енотная Рулетка -->
+            <!-- Морской Бой -->
             <button class="play-bottom-sheet__button"
-              onclick="togglePlayBottomSheet(false); handleItemClick({ url: 'casino_roulette.html', type: 'iframe', title: '🎰 ' + i18n[currentLang].menu_roulette });">
+              onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '⚓ Морской Бой' : '⚓ Battleship', url: 'battleship.html', type: 'iframe' });">
               <div class="play-bottom-sheet__title">
-                <div><span class="play-bottom-sheet__icon">🎰</span><span data-i18n="game_roulette">Енотная
-                    Рулетка</span></div>
-                <div class="play-mode-reward-badge play-mode-reward-badge--gold" data-i18n="jackpot_label">🔥
-                    ДЖЕКПОТ</div>
+                <div><span class="play-bottom-sheet__icon">⚓</span><span data-i18n="game_battleship">Морской Бой</span></div>
+                <div class="play-mode-reward-badge">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
               </div>
-              <div class="play-bottom-sheet__description" data-i18n="game_roulette_desc">Крути колесо фортуны и
-                выигрывай кучу шишек!</div>
-            </button>
-
-            <!-- Мастерская Фишек (Сеты) -->
-            <button class="play-bottom-sheet__button"
-              style="border-color: rgba(236, 72, 153, 0.4); background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(139, 92, 246, 0.12));"
-              onclick="togglePlayBottomSheet(false); handleItemClick({ title: currentLang === 'ru' ? '🎨 Коллекции Фишек' : '🎨 Chip Sets Studio', url: 'chip_sets.html', type: 'iframe' });">
-              <div class="play-bottom-sheet__title">
-                <div><span class="play-bottom-sheet__icon">🎨</span><span>Коллекции Фишек</span></div>
-                <div class="play-mode-reward-badge play-mode-reward-badge--pink">🔥 NEW</div>
-              </div>
-              <div class="play-bottom-sheet__description">Создавай свои наборы фишек, голосуй за лучшие сеты!</div>
+              <div class="play-bottom-sheet__description" data-i18n="game_battleship_desc">Классическая морская баталия
+                против енота</div>
             </button>
           </div>
         </div>
@@ -8617,12 +8606,12 @@
         games: {
           title: t.menu_games,
           items: [
-            { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" },
+            { title: currentLang === 'ru' ? "🎰 Енотная Рулетка" : "🎰 Casino Roulette", desc: currentLang === 'ru' ? "Крути рулетку и выигрывай" : "Spin & Win Cones", url: "casino_roulette.html", type: "iframe" },
             { title: currentLang === 'ru' ? "🔺 Босс Енотов" : "🔺 Raccoon Boss", desc: currentLang === 'ru' ? "1 млрд HP" : "1 billion HP", url: "boss_game.html", type: "iframe" },
-            { title: currentLang === 'ru' ? "Башня 3.0" : "Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
-            { title: currentLang === 'ru' ? "PVP: Vladeos" : "PVP: @curt3311", desc: currentLang === 'ru' ? "100 Шишек (5% шанс)" : "100 Cones (5% chance)", url: "vladeos_pvp.html", type: "iframe" },
-            { title: currentLang === 'ru' ? "Битва фишек" : "Caps Battle", desc: currentLang === 'ru' ? "10 Шишек за победу" : "10 Cones per win", url: "game.html", type: "iframe" },
-            { title: currentLang === 'ru' ? "🎨 Коллекции Фишек" : "🎨 Chip Sets Studio", desc: currentLang === 'ru' ? "Конструктор и голосование" : "Studio & Voting", url: "chip_sets.html", type: "iframe" }
+            { title: currentLang === 'ru' ? "🏰 Башня 3.0" : "🏰 Tower 3.0", desc: currentLang === 'ru' ? "1-10 Шишек за уровень" : "1-10 Cones per level", url: "tower_game.html", type: "iframe" },
+            { title: "⚔️ PVP: Vladeos", desc: currentLang === 'ru' ? "100 Шишек (5% шанс)" : "100 Cones (5% chance)", url: "vladeos_pvp.html", type: "iframe" },
+            { title: currentLang === 'ru' ? "🎲 Битва фишек" : "🎲 Caps Battle", desc: currentLang === 'ru' ? "10 Шишек за победу" : "10 Cones per win", url: "game.html", type: "iframe" },
+            { title: currentLang === 'ru' ? "⚓ Морской Бой" : "⚓ Battleship", desc: currentLang === 'ru' ? "100 Шишек за победу" : "100 Cones per win", url: "battleship.html", type: "iframe" }
           ]
         },
         partners: {
