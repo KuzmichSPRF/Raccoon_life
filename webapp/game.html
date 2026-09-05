@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Raccoon Times: Битва Титанов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Raccoon Times: Битва Фишек</title>
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #E53935;
@@ -14,164 +14,457 @@
       --card-bg: #18181A;
       --card-elevated: #222224;
       --text-main: #FFFFFF;
-      --text-sec: rgba(255, 255, 255, 0.6);
+      --text-sec: rgba(255, 255, 255, 0.65);
       --game-green: #33BD1C;
       --game-yellow: #FFD700;
-      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+      --border-glow: 1px solid rgba(229, 57, 53, 0.4);
     }
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-      text-align: center; 
-      background-color: var(--bg-color); 
-      margin: 0; 
-      padding: 12px 14px; 
-      color: var(--text-main); 
+    body {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 12px 14px 24px;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    
-    .status-box { 
-      background: var(--card-bg); border-radius: 14px; padding: 12px; margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-height: 50px; display: flex; 
-      align-items: center; justify-content: center; font-weight: 700; color: var(--text-main);
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .game-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      border: var(--border-subtle);
+    }
+    .sound-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .sound-btn:active { transform: scale(0.9); }
+
+    /* Status Box */
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--text-main);
       border: var(--border-subtle);
       font-size: 0.95rem;
+      line-height: 1.35;
+      letter-spacing: -0.2px;
     }
 
-    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 14px; }
-    
-    .cap { width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); 
-            display: flex; align-items: center; justify-content: center; font-size: 38px; 
-            background: var(--card-bg); position: relative; transition: all 0.3s ease; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
-    
-    .cap.active { border-color: var(--primary); transform: scale(1.08); box-shadow: 0 0 16px rgba(229, 57, 53, 0.4); }
-    
-    /* Анимации */
-    @keyframes crit-shake { 0% {transform: rotate(0);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0);} }
-    .crit { animation: crit-shake 0.2s infinite; border-color: var(--game-yellow) !important; box-shadow: 0 0 15px var(--game-yellow) !important; }
-    .heal-effect { border-color: var(--game-green) !important; box-shadow: 0 0 20px var(--game-green) !important; }
-    
-    .animate-attack { transform: translateX(50px) scale(1.2) !important; }
-    .animate-bot-attack { transform: translateX(-50px) scale(1.2) !important; }
-
-    /* Полоски */
-    .bars { width: 100px; margin-top: 10px; }
-    .bar-label { font-size: 8px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; color: var(--text-sec); }
-    .bar { height: 6px; background: #222224; border-radius: 3px; overflow: hidden; border: none; margin-bottom: 6px; }
-    .fill { height: 100%; transition: width 0.4s ease; }
-    .hp { background: var(--game-green); }
-    .energy { background: var(--game-yellow); }
-
-    /* Кнопки приемов */
-    .controls { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; 
-      background: var(--card-bg); padding: 14px; border-radius: 16px; 
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    /* Battle Arena */
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 14px 8px 18px;
+      background: radial-gradient(circle at center, rgba(229,57,53,0.08) 0%, rgba(18,18,20,0) 70%), var(--card-bg);
+      border-radius: 20px;
       border: var(--border-subtle);
+      margin-bottom: 14px;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
-    .btn { 
-      padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
-      color: white; font-size: 0.8rem; transition: transform 0.1s;
+    .vs-divider {
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.2);
+      text-shadow: 0 0 10px rgba(229, 57, 53, 0.4);
+    }
+    .fighter-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 130px;
+    }
+    .chip-frame {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      padding: 3px;
+      background: #18181a;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .chip-frame.player-chip {
+      border-color: #00e5ff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+    }
+    .chip-frame.bot-chip {
+      border-color: #ff9100;
+      box-shadow: 0 0 20px rgba(255, 145, 0, 0.35);
+    }
+    .chip-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .fighter-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+
+    /* Bars */
+    .bars {
+      width: 100%;
+      margin-top: 4px;
+    }
+    .bar-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      margin-bottom: 3px;
       text-transform: uppercase;
     }
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
-
-    .btn-std { 
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
-      grid-column: span 2; font-size: 0.95rem; padding: 14px; 
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45); 
+    .bar-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
     }
-    .btn-sp1 { background: #e67e22; }
-    .btn-sp2 { background: #9b59b6; }
-    .btn-sp3 { background: var(--accent); box-shadow: 0 0 12px rgba(229, 57, 53, 0.3); }
-
-    #restart-btn {
-      animation: pulse 1.5s infinite;
+    .bar-fill {
+      height: 100%;
+      transition: width 0.35s ease-out;
+      border-radius: 6px;
     }
-    @keyframes pulse {
+    .bar-fill.hp {
+      background: linear-gradient(90deg, #33BD1C, #64dd17);
+      box-shadow: 0 0 10px rgba(51, 189, 28, 0.5);
+    }
+    .bar-fill.energy {
+      background: linear-gradient(90deg, #ff9100, #FFD700);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    /* Combat Animations */
+    .animate-attack {
+      animation: playerStrike 0.35s ease-in-out;
+    }
+    .animate-bot-attack {
+      animation: botStrike 0.35s ease-in-out;
+    }
+    @keyframes playerStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(30px) rotate(8deg); }
+      100% { transform: scale(1) translateX(0); }
+    }
+    @keyframes botStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(-30px) rotate(-8deg); }
+      100% { transform: scale(1) translateX(0); }
+    }
+    .crit {
+      animation: critShake 0.35s ease-in-out !important;
+      border-color: #ffd700 !important;
+      box-shadow: 0 0 25px #ffd700 !important;
+    }
+    @keyframes critShake {
+      0%, 100% { transform: rotate(0); }
+      20% { transform: rotate(12deg) scale(1.1); }
+      40% { transform: rotate(-12deg) scale(1.1); }
+      60% { transform: rotate(8deg); }
+      80% { transform: rotate(-8deg); }
+    }
+    .heal-effect {
+      border-color: #33bd1c !important;
+      box-shadow: 0 0 25px #33bd1c !important;
+      animation: healPulse 0.4s ease-in-out;
+    }
+    @keyframes healPulse {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.12); filter: brightness(1.3); }
     }
 
-    .log { font-size: 0.75rem; margin-top: 12px; color: var(--text-sec); }
-    
-    /* Reward Popup */
+    /* Controls Grid */
+    .controls-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 14px;
+      border: var(--border-subtle);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-action {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 10px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      min-height: 56px;
+    }
+    .btn-action:active {
+      transform: scale(0.96);
+    }
+    .btn-action:disabled {
+      opacity: 0.38;
+      background: #19191c !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
+    }
+    .btn-main-strike {
+      grid-column: span 2;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 14px;
+      border: none;
+      flex-direction: row;
+      gap: 8px;
+    }
+    .btn-special-1 {
+      border: 1px solid rgba(255, 145, 0, 0.35);
+      background: linear-gradient(180deg, #2a221b 0%, #1e1915 100%);
+    }
+    .btn-special-2 {
+      border: 1px solid rgba(51, 189, 28, 0.35);
+      background: linear-gradient(180deg, #19271a 0%, #131d14 100%);
+    }
+    .btn-special-3 {
+      grid-column: span 2;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      background: linear-gradient(180deg, #2d1838 0%, #1f1127 100%);
+      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.25);
+    }
+    .cost-pill {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      font-weight: 700;
+      color: var(--game-yellow);
+    }
+    .btn-cookie-row {
+      grid-column: span 2;
+      background: rgba(255, 255, 255, 0.04);
+      border: var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+    .btn-cookie-row:active { transform: scale(0.97); }
+    .btn-cookie-row:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .cone-icon {
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.15em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
+    }
+
+    .log-box {
+      font-size: 0.72rem;
+      color: var(--text-sec);
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
+    /* Popup */
     .reward-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; align-items: center;
-      justify-content: center; z-index: 1000;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
     }
     .reward-popup {
       background: var(--card-bg);
-      border-radius: 20px; padding: 28px 24px; text-align: center;
-      border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; max-width: 88%;
-      width: 300px;
+      border-radius: 24px;
+      padding: 28px 24px;
+      text-align: center;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      width: 100%;
+      max-width: 320px;
     }
     @keyframes popIn {
       from { transform: scale(0.85); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-    .reward-icon { font-size: 3rem; margin-bottom: 8px; }
-    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 6px; }
-    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .cone-icon {
-      display: inline-block;
-      width: 1.2em;
-      height: 1.2em;
-      vertical-align: -0.2em;
-      object-fit: contain;
-      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
-    }
+    .reward-icon { font-size: 3.2rem; margin-bottom: 6px; }
+    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 4px; }
+    .reward-amount { font-size: 1.5rem; font-weight: 900; color: #ffd700; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 16px; }
     .btn-continue {
-      margin-top: 18px; padding: 13px 32px; 
+      width: 100%;
+      padding: 14px;
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
-      color: white; border: none; border-radius: 12px; font-weight: 800;
-      font-size: 0.95rem; cursor: pointer; text-transform: uppercase;
-      width: 100%;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-family: inherit;
     }
   </style>
 </head>
 <body>
 
-  <div class="status-box" id="msg">Твой ход, Енот! <br>Выбирай прием.</div>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="game-badge">💥 <span id="mode-title">БИТВА ФИШЕК</span></div>
+    <button class="sound-btn" id="snd-toggle" onclick="toggleAudio()" title="Звук">🔊</button>
+  </div>
 
+  <!-- Status Box -->
+  <div class="status-box" id="msg">Твой ход, Енот! Выбирай прием.</div>
+
+  <!-- Arena -->
   <div class="arena">
-    <div id="p1-area">
-      <div id="p1-cap" class="cap active">🦝</div>
-      <div class="bars">
-        <span class="bar-label">HP</span>
-        <div class="bar"><div id="p1-hp" class="fill hp" style="width: 100%;"></div></div>
-        <span class="bar-label">Энергия</span>
-        <div class="bar"><div id="p1-nrg" class="fill energy" style="width: 0%;"></div></div>
+    <div class="fighter-wrapper" id="p1-area">
+      <div id="p1-cap" class="chip-frame player-chip">
+        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
       </div>
-      <p><b>Енот</b></p>
+      <div class="fighter-title" id="p1-name">Енот</div>
+      <div class="bars">
+        <div class="bar-row">
+          <span>HP</span>
+          <span id="p1-hp-num">100%</span>
+        </div>
+        <div class="bar-track">
+          <div id="p1-hp" class="bar-fill hp" style="width: 100%;"></div>
+        </div>
+        <div class="bar-row">
+          <span id="p1-nrg-lbl">Энергия</span>
+          <span id="p1-nrg-num">0%</span>
+        </div>
+        <div class="bar-track">
+          <div id="p1-nrg" class="bar-fill energy" style="width: 0%;"></div>
+        </div>
+      </div>
     </div>
 
-    <div id="bot-area">
-      <div id="bot-cap" class="cap">🤡</div>
-      <div class="bars">
-        <span class="bar-label">HP</span>
-        <div class="bar"><div id="bot-hp" class="fill hp" style="width: 100%;"></div></div>
-        <span class="bar-label">Энергия</span>
-        <div class="bar"><div id="bot-nrg" class="fill energy" style="width: 0%;"></div></div>
+    <div class="vs-divider">VS</div>
+
+    <div class="fighter-wrapper" id="bot-area">
+      <div id="bot-cap" class="chip-frame bot-chip">
+        <img src="chip_enemy.png" alt="Rival Grunt" class="chip-img" onerror="this.src='cone.png'">
       </div>
-      <p><b>Клоун</b></p>
+      <div class="fighter-title" id="bot-name">Клоун-Бунтарь</div>
+      <div class="bars">
+        <div class="bar-row">
+          <span>HP</span>
+          <span id="bot-hp-num">100%</span>
+        </div>
+        <div class="bar-track">
+          <div id="bot-hp" class="bar-fill hp" style="width: 100%;"></div>
+        </div>
+        <div class="bar-row">
+          <span id="bot-nrg-lbl">Энергия</span>
+          <span id="bot-nrg-num">0%</span>
+        </div>
+        <div class="bar-track">
+          <div id="bot-nrg" class="bar-fill energy" style="width: 0%;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="controls" id="controls">
-    <button class="btn btn-std" onclick="action('attack')">Обычный удар (+20 Энергии)</button>
-    <button class="btn btn-sp1" id="sp1" onclick="action('trash')" disabled>Мусорный залп (40 Энергии)</button>
-    <button class="btn btn-sp2" id="sp2" onclick="action('snack')" disabled>Перекус (30 Энергии)</button>
-    <button class="btn btn-sp3" id="sp3" onclick="action('rage')" disabled>Ярость Енота (80 Энергии)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</button>
+  <!-- Action Controls -->
+  <div class="controls-card" id="controls">
+    <button class="btn-action btn-main-strike" id="btn-atk" onclick="action('attack')">
+      <span>🥊 Обычный удар</span>
+      <span class="cost-pill">+20 NRG</span>
+    </button>
+    <button class="btn-action btn-special-1" id="sp1" onclick="action('trash')" disabled>
+      <span>🗑️ Мусорный залп</span>
+      <span class="cost-pill">40 NRG</span>
+    </button>
+    <button class="btn-action btn-special-2" id="sp2" onclick="action('snack')" disabled>
+      <span>🥨 Перекус (Лечение)</span>
+      <span class="cost-pill">30 NRG</span>
+    </button>
+    <button class="btn-action btn-special-3" id="sp3" onclick="action('rage')" disabled>
+      <span>🔥 Ярость Енота (УЛЬТА)</span>
+      <span class="cost-pill">80 NRG</span>
+    </button>
+    <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
+      <span>🍪 Восстановить 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</span>
+    </button>
   </div>
+
+  <div class="log-box" id="log">Битва началась...</div>
 
   <!-- Reward Popup -->
   <div class="reward-overlay" id="reward-overlay">
@@ -183,28 +476,127 @@
     </div>
   </div>
 
-  <div class="log" id="log">Битва началась...</div>
-
   <script>
     let pHP = 100, pNRG = 0;
     let bHP = 100, bNRG = 0;
     let active = true;
     let pStats = { maxHp: 100 };
     let _gameStarted = false;
+    let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'hit') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'crit') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'heal') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.2);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'win') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.setValueAtTime(400, now + 0.1);
+          osc.frequency.setValueAtTime(520, now + 0.2);
+          osc.frequency.setValueAtTime(660, now + 0.3);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      } catch (e) {}
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'heavy') window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          else if (type === 'medium') window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+          else if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(type === 'heavy' ? 40 : 15);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      soundMuted = !soundMuted;
+      localStorage.setItem('rl_sound_muted', soundMuted);
+      const btn = document.getElementById('snd-toggle');
+      if (btn) btn.innerText = soundMuted ? '🔇' : '🔊';
+      if (!soundMuted) playSfx('tap');
+    }
+
+    // Initialize sound toggle state
+    const sndBtn = document.getElementById('snd-toggle');
+    if (sndBtn) sndBtn.innerText = soundMuted ? '🔇' : '🔊';
 
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
-        msgStart: "Твой ход, Енот! <br>Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун",
-        btnA: "Обычный удар (+20 Энергии)", btnS1: "Мусорный залп (40 Энергии)", btnS2: "Перекус (30 Энергии)", btnS3: "Ярость Енота (80 Энергии)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        modeTitle: "БИТВА ФИШЕК",
+        msgStart: "Твой ход, Енот! Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун-Бунтарь",
+        btnA: "🥊 Обычный удар", btnS1: "🗑️ Мусорный залп", btnS2: "🥨 Перекус", btnS3: "🔥 Ярость Енота (УЛЬТА)",
+        btnC: '🍪 Восстановить 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Битва началась...",
-        victory: "Победа!", defeat: "Поражение!", cont: "Продолжить"
+        victory: "Победа!", defeat: "Поражение!", cont: "Продолжить", playAgain: "Сыграть ещё"
       },
       en: {
-        msgStart: "Your turn, Raccoon! <br>Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Clown",
-        btnA: "Basic Attack (+20 Energy)", btnS1: "Trash Volley (40 Energy)", btnS2: "Snack (30 Energy)", btnS3: "Raccoon Rage (80 Energy)", btnC: '🍪 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        modeTitle: "CAPS BATTLE",
+        msgStart: "Your turn, Raccoon! Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Rebel Clown",
+        btnA: "🥊 Basic Strike", btnS1: "🗑️ Trash Volley", btnS2: "🥨 Quick Snack", btnS3: "🔥 Raccoon Rage (ULT)",
+        btnC: '🍪 Restore 100 HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Battle started...",
-        victory: "Victory!", defeat: "Defeat!", cont: "Continue"
+        victory: "Victory!", defeat: "Defeat!", cont: "Continue", playAgain: "Play Again"
       }
     };
     let t = translations[lang] || translations.ru;
@@ -212,27 +604,20 @@
     function applyLang(selectedLang) {
       lang = selectedLang || 'ru';
       t = translations[lang] || translations.ru;
+      const modeEl = document.getElementById('mode-title');
+      if (modeEl) modeEl.innerText = t.modeTitle;
       const msgEl = document.getElementById('msg');
       if (msgEl && active) msgEl.innerHTML = t.msgStart;
-      const barLabels = document.querySelectorAll('.bar-label');
-      if (barLabels.length >= 4) {
-        barLabels[1].innerText = t.enL;
-        barLabels[3].innerText = t.enL;
-      }
-      const p1Name = document.querySelector('#p1-area p b');
+      const p1Nrg = document.getElementById('p1-nrg-lbl');
+      if (p1Nrg) p1Nrg.innerText = t.enL;
+      const botNrg = document.getElementById('bot-nrg-lbl');
+      if (botNrg) botNrg.innerText = t.enL;
+      const p1Name = document.getElementById('p1-name');
       if (p1Name) p1Name.innerText = t.rac;
-      const botName = document.querySelector('#bot-area p b');
+      const botName = document.getElementById('bot-name');
       if (botName) botName.innerText = t.clo;
-      const btnA = document.querySelector('.btn-std');
-      if (btnA) btnA.innerText = t.btnA;
-      const sp1 = document.getElementById('sp1');
-      if (sp1) sp1.innerText = t.btnS1;
-      const sp2 = document.getElementById('sp2');
-      if (sp2) sp2.innerText = t.btnS2;
-      const sp3 = document.getElementById('sp3');
-      if (sp3) sp3.innerText = t.btnS3;
       const cookieBtn = document.getElementById('btn-cookie');
-      if (cookieBtn) cookieBtn.innerHTML = t.btnC;
+      if (cookieBtn) cookieBtn.innerHTML = `<span>${t.btnC}</span>`;
       const popupTitle = document.getElementById('popup-title');
       if (popupTitle) popupTitle.innerText = t.victory;
       const popupBtn = document.getElementById('popup-btn');
@@ -310,14 +695,12 @@
         if (e.data.lang) {
           applyLang(e.data.lang);
         }
-        // Сбрасываем флаг чтобы start вызвался заново с правильным userId
         _gameStarted = false;
         startGame();
       } else if (e.data.type === 'language_changed') {
         applyLang(e.data.lang);
       }
     });
-
 
     async function startGame() {
       if (_gameStarted) return;
@@ -333,13 +716,11 @@
           updateUI();
           if (logEl) logEl.innerText = '✅ Игра готова!';
       } else {
-          if (logEl) logEl.innerText = '❌ Ошибка: ' + (data ? JSON.stringify(data) : 'нет ответа сервера');
+          if (logEl) logEl.innerText = '❌ Ошибка подключения';
       }
-      // Убеждаемся что кнопки разблокированы
       toggleBtns(false);
     }
 
-    // Запускаем сразу (на случай если DOMContentLoaded уже был)
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', startGame);
     } else {
@@ -354,24 +735,23 @@
             const headers = { 'Content-Type': 'application/json' };
             const initData = getInitData();
             if (initData) headers['X-Telegram-Init-Data'] = initData;
-            if (logEl && actionType !== 'start') logEl.innerText = '📡 userId=' + userId + ' action=' + actionType;
 
             const res = await fetch('/api/game/clown', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ userId: userId, action: actionType })
             });
-            const json = await res.json();
-            if (logEl && actionType !== 'start') logEl.innerText = '📥 ' + JSON.stringify(json).substring(0, 80);
-            return json;
+            return await res.json();
         } catch(e) {
-            if (logEl) logEl.innerText = '💥 Fetch error: ' + e.message;
+            if (logEl) logEl.innerText = '💥 Ошибка сети: ' + e.message;
             return null;
         }
     }
 
     async function action(type) {
       if (!active) return;
+      triggerHaptic('medium');
+      playSfx('tap');
       toggleBtns(true);
 
       const data = await apiCall(type);
@@ -386,12 +766,6 @@
           return;
       }
 
-      // Логирование действия
-      if (typeof logGameAction === 'function') {
-        logGameAction('PLAYER_ACTION', { type: type, dmg: data.player_log?.dmg, heal: data.player_log?.heal });
-      }
-
-      // Синхронизируем ВСЕ данные с ответом сервера
       pHP = data.player_log.pHP;
       bHP = data.player_log.bHP;
       pNRG = data.player_log.pNRG;
@@ -414,7 +788,6 @@
                      data.bot_log.action === 'heal' ? (lang === 'ru' ? "🤡 Клоун достал аптечку из шляпы!" : "🤡 Clown pulled a medkit from his hat!") : (lang === 'ru' ? "🤡 Клоун бьет резиновым молотком!" : "🤡 Clown hits with a rubber hammer!");
           if(data.bot_log.is_crit) bTxt = (lang === 'ru' ? "🎈 КРИТ: " : "🎈 CRIT: ") + bTxt;
 
-          // Синхронизируем ВСЕ данные после хода клоуна
           pHP = data.bot_log.pHP;
           bHP = data.bot_log.bHP;
           pNRG = data.bot_log.pNRG;
@@ -425,28 +798,24 @@
           if (data.game_over && !data.win) {
               setTimeout(() => endGame(lang === 'ru' ? "Клоун оказался хитрее... Енот повержен 🤡" : "Clown was trickier... Raccoon defeated 🤡", false), 1000);
           } else {
-              setTimeout(() => toggleBtns(false), 1000);
+              setTimeout(() => toggleBtns(false), 800);
           }
-      }, 1500);
+      }, 1200);
     }
     
     function buyCookie() {
       if (!active) return;
-
+      triggerHaptic('medium');
       let userId = getUserId();
-
       if (!userId) {
         document.getElementById('log').innerText = "❌ Ошибка: нет user_id";
         return;
       }
 
-      // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
-
       document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
 
-      // Списываем 100 шишек
       fetch('/api/sync', {
         method: 'POST',
         headers: {
@@ -460,23 +829,16 @@
           reason: 'cookie_heal'
         })
       })
-      .then(r => {
-        console.log('Response status:', r.status);
-        return r.json();
-      })
+      .then(r => r.json())
       .then(result => {
-        console.log('Result:', result);
-
-        // Проверяем статус ответа
         if (result.status === 'error') {
           const errorMsg = result.message || 'Ошибка сервера';
-          console.error('API Error:', errorMsg);
-
           if (errorMsg.includes('Insufficient') || errorMsg.includes('недостаточно')) {
             document.getElementById('log').innerText = lang === 'ru' ? "❌ Недостаточно шишек!" : "❌ Not enough cones!";
           } else {
             document.getElementById('log').innerText = "❌ " + errorMsg;
           }
+          triggerHaptic('error');
           return;
         }
 
@@ -485,10 +847,10 @@
             window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
           }
 
-          // Восстанавливаем 100% здоровья и обновляем состояние на сервере
           pHP = pStats.maxHp;
+          playSfx('heal');
+          triggerHaptic('success');
           
-          // Обновляем состояние на сервере через game/clown endpoint
           fetch('/api/game/clown', {
             method: 'POST',
             headers: {
@@ -503,9 +865,7 @@
           })
           .then(r => r.json())
           .then(healResult => {
-            console.log('Heal result:', healResult);
             if (healResult.status === 'ok' && healResult.state) {
-              // Синхронизируем состояние с сервером
               pHP = healResult.state.pHP || pHP;
               pNRG = healResult.state.pNRG || pNRG;
               bHP = healResult.state.bHP || bHP;
@@ -514,22 +874,17 @@
             updateUI();
           })
           .catch(err => {
-            console.error('Heal sync error:', err);
             updateUI();
           });
           
           document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
-          // Анимация лечения
           const cap = document.getElementById('p1-cap');
           cap.classList.add('heal-effect');
-          setTimeout(() => cap.classList.remove('heal-effect'), 400);
-        } else {
-          document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
+          setTimeout(() => cap.classList.remove('heal-effect'), 500);
         }
       })
       .catch(err => {
-        console.error('❌ Error:', err);
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
       })
       .finally(() => {
@@ -544,29 +899,45 @@
       const cap = document.getElementById(attackerId);
       const log = document.getElementById('log');
       
-      // Логика урона
       if (dmg > 0) {
         cap.classList.add(attackerId === 'p1-cap' ? 'animate-attack' : 'animate-bot-attack');
-        if (crit) cap.classList.add('crit');
+        if (crit) {
+          cap.classList.add('crit');
+          playSfx('crit');
+          triggerHaptic('heavy');
+        } else {
+          playSfx('hit');
+          triggerHaptic('medium');
+        }
       }
       
       if (heal > 0) {
         cap.classList.add('heal-effect');
+        playSfx('heal');
+        triggerHaptic('medium');
       }
 
       setTimeout(() => {
         cap.classList.remove('animate-attack', 'animate-bot-attack', 'crit', 'heal-effect');
         updateUI();
         document.getElementById('msg').innerHTML = txt;
-        log.innerText = `${lang === 'ru' ? 'Действие' : 'Action'}: ${txt} (${dmg > 0 ? -dmg + ' HP' : '+' + heal + ' HP'})`;
-      }, 400);
+        log.innerText = `${txt} (${dmg > 0 ? -dmg + ' HP' : '+' + heal + ' HP'})`;
+      }, 350);
     }
 
     function updateUI() {
-      document.getElementById('p1-hp').style.width = Math.max(0, pHP) + "%";
-      document.getElementById('bot-hp').style.width = Math.max(0, bHP) + "%";
+      const p1HpVal = Math.max(0, pHP);
+      const botHpVal = Math.max(0, bHP);
+
+      document.getElementById('p1-hp').style.width = p1HpVal + "%";
+      document.getElementById('bot-hp').style.width = botHpVal + "%";
+      document.getElementById('p1-hp-num').innerText = p1HpVal + "%";
+      document.getElementById('bot-hp-num').innerText = botHpVal + "%";
+
       document.getElementById('p1-nrg').style.width = pNRG + "%";
       document.getElementById('bot-nrg').style.width = bNRG + "%";
+      document.getElementById('p1-nrg-num').innerText = pNRG + "%";
+      document.getElementById('bot-nrg-num').innerText = bNRG + "%";
 
       document.getElementById('sp1').disabled = (pNRG < 40);
       document.getElementById('sp2').disabled = (pNRG < 30);
@@ -574,29 +945,26 @@
     }
 
     function toggleBtns(val) {
-      const btns = document.querySelectorAll('.btn');
+      const btns = document.querySelectorAll('.btn-action');
       btns.forEach(b => b.disabled = val);
       if (!val) updateUI();
     }
 
-    function endGame(txt) {
+    function endGame(txt, isWin) {
       active = false;
       updateUI();
       document.getElementById('msg').innerHTML = txt;
-
       document.getElementById('controls').style.opacity = "0.5";
       toggleBtns(true);
 
-      // Отправляем результат родителю (победа если у бота <= 0 HP)
-      const isWin = (bHP <= 0);
-      
-      // Логирование результата игры
-      if (typeof logGameAction === 'function') {
-        logGameAction('GAME_END', { win: isWin, player_hp: pHP, bot_hp: bHP });
+      if (isWin) {
+        playSfx('win');
+        triggerHaptic('success');
+      } else {
+        triggerHaptic('error');
       }
-      
-      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
 
+      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
       showPopupResult(isWin);
     }
     
@@ -610,19 +978,19 @@
       
       if (isWin) {
         icon.innerText = '🎉';
-        title.innerText = lang === 'ru' ? 'Победа!' : 'Victory!';
+        title.innerText = t.victory;
         title.style.color = '#ffd700';
-        amountEl.style.display = 'block';
-        amountEl.textContent = lang === 'ru' ? '+10 Шишек' : '+10 Cones';
+        amountEl.style.display = 'flex';
+        amountEl.innerHTML = `+10 <img src="cone.png" class="cone-icon" alt="🌰">`;
         popup.style.borderColor = '#ffd700';
-        btn.innerText = lang === 'ru' ? 'Продолжить' : 'Continue';
+        btn.innerText = t.cont;
       } else {
         icon.innerText = '💀';
-        title.innerText = lang === 'ru' ? 'Поражение!' : 'Defeat!';
+        title.innerText = t.defeat;
         title.style.color = 'var(--accent)';
         amountEl.style.display = 'none';
         popup.style.borderColor = 'var(--accent)';
-        btn.innerText = lang === 'ru' ? 'Сыграть ещё' : 'Play Again';
+        btn.innerText = t.playAgain;
       }
       
       overlay.style.display = 'flex';
@@ -643,8 +1011,6 @@
       }
       
       active = true;
-      
-      // Сбрасываем UI
       document.getElementById('msg').innerHTML = t.msgStart;
       document.getElementById('log').innerText = t.logSt;
       document.getElementById('controls').style.opacity = "1";

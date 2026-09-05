@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Битва с Боссом Енотов</title>
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #E53935;
@@ -14,81 +14,110 @@
       --card-bg: #18181A;
       --card-elevated: #222224;
       --text-main: #FFFFFF;
-      --text-sec: rgba(255, 255, 255, 0.6);
+      --text-sec: rgba(255, 255, 255, 0.65);
       --game-green: #33BD1C;
       --game-yellow: #FFD700;
       --boss-gold: #FFD700;
-      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+      --border-glow: 1px solid rgba(255, 215, 0, 0.35);
     }
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
       margin: 0;
-      padding: 12px 14px 40px;
+      padding: 12px 14px 24px;
       color: var(--text-main);
       min-height: 100vh;
       overflow-x: hidden;
     }
-    .boss-title {
-      font-size: 1.1rem;
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .game-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 215, 0, 0.08);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
       font-weight: 800;
       color: var(--boss-gold);
-      text-transform: uppercase;
-      margin-bottom: 2px;
+      border: 1px solid rgba(255, 215, 0, 0.25);
     }
-    .boss-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-sec);
-      margin-bottom: 8px;
-      font-weight: 500;
+    .sound-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
     }
+    .sound-btn:active { transform: scale(0.9); }
+
+    /* Raid Status Pill */
     .raid-status-pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 215, 0, 0.08);
-      border: 1px solid rgba(255, 215, 0, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+      border: var(--border-subtle);
       border-radius: 20px;
-      padding: 5px 14px;
+      padding: 6px 16px;
       font-size: 0.72rem;
-      color: #ffd700;
-      font-weight: 600;
+      color: var(--text-sec);
+      font-weight: 700;
       margin-bottom: 12px;
     }
     .live-dot {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       background: #00ff88;
       border-radius: 50%;
       box-shadow: 0 0 8px #00ff88;
       animation: pulseLive 1.5s infinite;
     }
     @keyframes pulseLive {
-      0% { transform: scale(0.9); opacity: 0.7; }
+      0%, 100% { transform: scale(0.9); opacity: 0.7; }
       50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.9); opacity: 0.7; }
     }
+
+    /* Stats Grid */
     .player-stats {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
       margin-bottom: 12px;
-      flex-wrap: wrap;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .stat-badge {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 8px 14px;
+      border-radius: 14px;
+      padding: 8px 6px;
       border: var(--border-subtle);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
     .stat-badge .value {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 800;
       color: var(--primary);
     }
@@ -96,141 +125,125 @@
       font-size: 0.65rem;
       text-transform: uppercase;
       color: var(--text-sec);
-      font-weight: 600;
+      font-weight: 700;
     }
+
+    /* Arena */
     .arena {
       display: flex;
       justify-content: space-around;
-      align-items: flex-end;
-      margin-top: 14px;
+      align-items: center;
+      background: radial-gradient(circle at center, rgba(255, 215, 0, 0.08) 0%, rgba(18,18,20,0) 75%), var(--card-bg);
+      border-radius: 20px;
+      border: var(--border-subtle);
+      padding: 14px 10px;
+      margin-bottom: 12px;
+      max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.4);
     }
-    .player-area, .boss-area {
+    .fighter-box {
       display: flex;
       flex-direction: column;
       align-items: center;
+      width: 120px;
     }
-    .player-name, .boss-name {
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-top: 6px;
-      color: var(--text-sec);
-    }
-    .cap {
-      width: 70px;
-      height: 70px;
+    .chip-frame {
+      width: 86px;
+      height: 86px;
       border-radius: 50%;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      padding: 2px;
+      background: #18181a;
       border: 2px solid rgba(255,255,255,0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 35px;
-      background: var(--card-bg);
-      position: relative;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
-    .cap.active {
-      border-color: var(--primary);
-      transform: scale(1.08);
-      box-shadow: 0 0 16px rgba(229, 57, 53, 0.4);
+    .chip-frame.player {
+      border-color: #00e5ff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
     }
-    .cap.hit {
-      animation: playerHit 0.3s ease-in-out;
+    .chip-frame.boss {
+      width: 96px;
+      height: 96px;
+      border-color: #ffd700;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.45);
+      animation: bossBreath 3s ease-in-out infinite;
     }
-    @keyframes playerHit {
-      0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(0.5) drop-shadow(0 0 10px red); }
+    @keyframes bossBreath {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
     }
-    .heal-effect {
-      border-color: #33BD1C !important;
-      box-shadow: 0 0 20px #33BD1C !important;
-      animation: playerHeal 0.4s ease-in-out;
-    }
-    @keyframes playerHeal {
-      0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(1.3) drop-shadow(0 0 15px #33BD1C); }
-    }
-    .animate-attack {
-      transform: translateX(50px) scale(1.2) !important;
-    }
-    .bars {
-      width: 80px;
-      margin-top: 8px;
-    }
-    .bar-label {
-      font-size: 8px;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-      display: block;
-      color: var(--text-sec);
-    }
-    .bar {
-      height: 6px;
-      background: #222224;
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 5px;
-    }
-    .fill {
-      height: 100%;
-      transition: width 0.4s ease;
-    }
-    .hp { background: var(--game-green); }
-    .energy { background: var(--game-yellow); }
-
-    .boss-triangle {
-      width: 0;
-      height: 0;
-      border-left: 55px solid transparent;
-      border-right: 55px solid transparent;
-      border-bottom: 95px solid var(--boss-gold);
-      position: relative;
-      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
-      animation: bossPulse 3s ease-in-out infinite;
-    }
-    @keyframes bossPulse {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
-      50% { transform: scale(1.05); filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); }
-    }
-    .boss-triangle::after {
-      content: '👁️';
-      position: absolute;
-      font-size: 40px;
-      left: 50%;
-      top: 55%;
-      transform: translate(-50%, -50%);
-      z-index: 10;
-      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
-      animation: eyeGlow 2s ease-in-out infinite;
-    }
-    @keyframes eyeGlow {
-      0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
-      50% { filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.9)); }
-    }
-    .boss-triangle.hit {
-      animation: bossHit 0.3s ease-in-out;
-    }
-    @keyframes bossHit {
-      0%, 100% { filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5)); }
-      50% { filter: drop-shadow(0 0 40px rgba(229, 57, 53, 0.9)); }
-    }
-    .boss-triangle.animate-boss-attack {
-      animation: bossAttackAnim 0.3s ease-in-out !important;
-    }
-    @keyframes bossAttackAnim {
-      0%, 100% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(-50px) scale(1.1); filter: drop-shadow(0 0 35px rgba(229, 57, 53, 0.9)); }
-    }
-    .boss-hp-container {
+    .chip-img {
       width: 100%;
-      max-width: 320px;
-      margin: 10px auto;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .fighter-name {
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-top: 6px;
+      color: #fff;
+    }
+    .boss-name-gold {
+      color: var(--boss-gold);
+      font-size: 0.85rem;
+    }
+
+    /* Player Bars */
+    .bars {
+      width: 100%;
+      margin-top: 4px;
+    }
+    .bar-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      margin-bottom: 2px;
+    }
+    .bar-track {
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .bar-fill {
+      height: 100%;
+      transition: width 0.35s ease;
+    }
+    .bar-fill.hp {
+      background: linear-gradient(90deg, #33BD1C, #64dd17);
+    }
+    .bar-fill.energy {
+      background: linear-gradient(90deg, #ff9100, #FFD700);
+    }
+
+    /* Global Boss HP Container */
+    .boss-hp-section {
+      width: 100%;
+      max-width: 360px;
+      margin: 8px auto 12px;
+      text-align: left;
+    }
+    .boss-hp-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--boss-gold);
+      margin-bottom: 4px;
+      text-transform: uppercase;
     }
     .boss-hp-bar {
       width: 100%;
-      height: 24px;
-      background: #18181A;
+      height: 22px;
+      background: #18181a;
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid rgba(255, 215, 0, 0.4);
@@ -239,105 +252,185 @@
     }
     .boss-hp-fill {
       height: 100%;
-      background: linear-gradient(90deg, #FF3B30, #ff8800, var(--boss-gold));
-      transition: width 0.5s ease;
-      position: relative;
+      background: linear-gradient(90deg, #FF3B30, #ff9100, var(--boss-gold));
+      transition: width 0.4s ease;
     }
     .boss-hp-text {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: 800;
-      font-size: 0.75rem;
-      text-shadow: 0 0 8px rgba(0,0,0,0.8);
-      z-index: 5;
-    }
-    .status-box {
-      background: var(--card-bg);
-      border-radius: 14px;
-      padding: 12px;
-      margin: 16px auto 0;
-      max-width: 350px;
-      min-height: 50px;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
+      font-weight: 900;
+      font-size: 0.75rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      color: #fff;
+    }
+
+    /* Animations */
+    .chip-frame.hit {
+      animation: hitFlash 0.3s ease-in-out;
+    }
+    @keyframes hitFlash {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.6) drop-shadow(0 0 15px #ff3b30); }
+    }
+    .chip-frame.heal-effect {
+      border-color: #33BD1C !important;
+      box-shadow: 0 0 25px #33BD1C !important;
+      animation: healFlash 0.4s ease-in-out;
+    }
+    @keyframes healFlash {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); filter: brightness(1.3); }
+    }
+    .animate-attack {
+      animation: playerStrike 0.35s ease-in-out;
+    }
+    .animate-boss-attack {
+      animation: bossStrike 0.35s ease-in-out;
+    }
+    @keyframes playerStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(30px); }
+      100% { transform: scale(1) translateX(0); }
+    }
+    @keyframes bossStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(-30px); }
+      100% { transform: scale(1) translateX(0); }
+    }
+
+    /* Status Box */
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin: 0 auto 12px;
+      max-width: 360px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
       color: var(--text-main);
       border: var(--border-subtle);
       font-size: 0.9rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
-    .controls {
+
+    /* Controls Grid */
+    .controls-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 14px;
+      border: var(--border-subtle);
+      max-width: 360px;
+      margin: 0 auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 14px;
-      background: var(--card-bg);
-      padding: 14px;
-      border-radius: 16px;
+    }
+    .btn-action {
+      background: var(--card-elevated);
       border: var(--border-subtle);
-      max-width: 350px;
-      margin-left: auto;
-      margin-right: auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    }
-    .btn {
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-weight: 700;
+      border-radius: 14px;
+      padding: 12px 8px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 0.8rem;
       cursor: pointer;
-      color: white;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s;
+      min-height: 54px;
     }
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
-    .btn-std {
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+    .btn-action:active { transform: scale(0.96); }
+    .btn-action:disabled {
+      opacity: 0.35;
+      background: #19191c !important;
+      border-color: transparent !important;
+      cursor: not-allowed;
+    }
+    .btn-main-strike {
       grid-column: span 2;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
       font-size: 0.9rem;
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      padding: 14px;
+      flex-direction: row;
+      gap: 8px;
     }
-    .btn-sp1 { background: #e67e22; }
-    .btn-sp2 { background: #9b59b6; }
+    .btn-sp1 {
+      border: 1px solid rgba(255, 145, 0, 0.35);
+      background: linear-gradient(180deg, #2a221b 0%, #1e1915 100%);
+    }
+    .btn-sp2 {
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      background: linear-gradient(180deg, #2d1838 0%, #1f1127 100%);
+    }
     .btn-sp3 {
-      background: #E53935;
-      box-shadow: 0 0 12px rgba(229, 57, 53, 0.3);
+      border: 1px solid rgba(51, 189, 28, 0.35);
+      background: linear-gradient(180deg, #19271a 0%, #131d14 100%);
     }
+    .btn-cookie {
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      background: linear-gradient(180deg, #2a2618 0%, #1c1a12 100%);
+    }
+    .cost-pill {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      font-weight: 700;
+      color: var(--game-yellow);
+    }
+
+    .cone-icon {
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.15em;
+      object-fit: contain;
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
+    }
+
+    /* Floating Damage */
     .damage-number {
       position: fixed;
       font-size: 1.8rem;
-      font-weight: 800;
+      font-weight: 900;
       color: var(--accent);
       text-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
       pointer-events: none;
-      animation: damageFloat 1s ease-out forwards;
+      animation: damageFloat 0.9s ease-out forwards;
       z-index: 1000;
     }
     @keyframes damageFloat {
       0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+      100% { opacity: 0; transform: translateY(-70px) scale(1.4); }
     }
-    .log {
-      font-size: 0.75rem;
-      margin-top: 10px;
+
+    .log-box {
+      font-size: 0.72rem;
       color: var(--text-sec);
-      min-height: 1.2em;
+      margin-top: 10px;
     }
+
+    /* Leaderboard */
     .raid-leaderboard-box {
-      margin-top: 16px;
+      margin: 16px auto 0;
       background: var(--card-bg);
       border: var(--border-subtle);
-      border-radius: 16px;
-      padding: 12px 14px;
-      max-width: 350px;
-      margin-left: auto;
-      margin-right: auto;
+      border-radius: 20px;
+      padding: 14px;
+      max-width: 360px;
       text-align: left;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
     .raid-leaderboard-header {
       display: flex;
@@ -361,17 +454,17 @@
       justify-content: space-between;
       align-items: center;
       font-size: 0.75rem;
-      padding: 6px 8px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      border-radius: 10px;
       background: rgba(255, 255, 255, 0.03);
     }
     .raid-top-item:nth-child(1) {
       background: rgba(255, 215, 0, 0.08);
-      border: 1px solid rgba(255, 215, 0, 0.2);
+      border: 1px solid rgba(255, 215, 0, 0.25);
     }
     .raid-rank {
       font-weight: 800;
-      width: 22px;
+      width: 24px;
       color: #ffd700;
     }
     .raid-player-name {
@@ -380,24 +473,29 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       color: #eee;
-      font-weight: 600;
-      margin: 0 6px;
+      font-weight: 700;
+      margin: 0 8px;
     }
     .raid-dmg-val {
-      font-weight: 700;
+      font-weight: 800;
       color: #00ff88;
     }
   </style>
 </head>
 <body>
-  <div class="boss-title">🔺 Секретная Организация Енотов 🔺</div>
-  <div class="boss-subtitle">Все игроки против Единого БОССА</div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="game-badge">👑 <span>МИРОВОЙ БОСС</span></div>
+    <button class="sound-btn" id="snd-toggle" onclick="toggleAudio()" title="Звук">🔊</button>
+  </div>
 
   <div class="raid-status-pill">
     <span class="live-dot"></span>
-    <span id="raid-status-text">🌍 МИРОВОЙ РЕЙД: <b id="raid-fighters-count">0</b> бойцов • 💀 Убит <b id="raid-kills-count">0</b> раз</span>
+    <span id="raid-status-text">РЕЙД: <b id="raid-fighters-count">0</b> бойцов • 💀 Убит <b id="raid-kills-count">0</b> раз</span>
   </div>
 
+  <!-- Player Stats Grid -->
   <div class="player-stats">
     <div class="stat-badge">
       <div class="value" id="total-dmg">0</div>
@@ -413,43 +511,83 @@
     </div>
   </div>
 
+  <!-- Arena -->
   <div class="arena">
-    <div class="player-area">
-      <div id="player-cap" class="cap active">🦝</div>
-      <div class="bars">
-        <span class="bar-label">HP <span id="p-hp-text">100</span></span>
-        <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
-        <span class="bar-label">Энергия <span id="p-nrg-text">0</span></span>
-        <div class="bar"><div id="p-nrg" class="fill energy" style="width: 0%;"></div></div>
+    <div class="fighter-box">
+      <div id="player-cap" class="chip-frame player">
+        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
       </div>
-      <div class="player-name">Вы</div>
-    </div>
-
-    <div class="boss-area">
-      <div class="boss-triangle" id="boss"></div>
-      <div class="boss-hp-container">
-        <div class="boss-hp-bar">
-          <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
-          <div class="boss-hp-text" id="boss-hp-text">1B HP</div>
+      <div class="fighter-name">Вы (Енот)</div>
+      <div class="bars">
+        <div class="bar-row">
+          <span>HP</span>
+          <span id="p-hp-text">100</span>
+        </div>
+        <div class="bar-track">
+          <div id="p-hp" class="bar-fill hp" style="width: 100%;"></div>
+        </div>
+        <div class="bar-row">
+          <span>Энергия</span>
+          <span id="p-nrg-text">0</span>
+        </div>
+        <div class="bar-track">
+          <div id="p-nrg" class="bar-fill energy" style="width: 0%;"></div>
         </div>
       </div>
-      <div class="boss-name">БОСС</div>
+    </div>
+
+    <div style="font-weight: 900; font-size: 1.1rem; color: rgba(255,255,255,0.25);">VS</div>
+
+    <div class="fighter-box">
+      <div id="boss" class="chip-frame boss">
+        <img src="chip_boss.png" alt="World Boss" class="chip-img" onerror="this.src='cone.png'">
+      </div>
+      <div class="fighter-name boss-name-gold">ГЕНЕРАЛ ЕНОТОВ</div>
     </div>
   </div>
 
-  <div class="status-box" id="msg">Атакуй БОССА! Вместе мы сильнее!</div>
-
-  <div class="controls">
-    <button class="btn btn-std" id="btn-basic" onclick="attack('basic')">⚔️ Удар (+20 эн)</button>
-    <button class="btn btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>🔥 Сильный (40)</button>
-    <button class="btn btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>💥 Ульта (80)</button>
-    <button class="btn btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>💚 Лечение (50)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: #ff69b4; grid-column: 2 / 3;">🍪 100 HP (100 Шишек)</button>
+  <!-- Global Boss HP Bar -->
+  <div class="boss-hp-section">
+    <div class="boss-hp-header">
+      <span>Здоровье Босса</span>
+      <span id="boss-hp-pct">100%</span>
+    </div>
+    <div class="boss-hp-bar">
+      <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
+      <div class="boss-hp-text" id="boss-hp-text">1,000,000,000 HP</div>
+    </div>
   </div>
 
-  <div class="log" id="log">Битва началась!</div>
+  <!-- Status Box -->
+  <div class="status-box" id="msg">Атакуй БОССА! Вместе мы сильнее!</div>
 
-  <!-- Рейдовый лидерборд -->
+  <!-- Action Controls -->
+  <div class="controls-card" id="controls">
+    <button class="btn-action btn-main-strike" id="btn-basic" onclick="attack('basic')">
+      <span>⚔️ Обычный удар</span>
+      <span class="cost-pill">+20 NRG</span>
+    </button>
+    <button class="btn-action btn-sp1" id="btn-sp1" onclick="attack('strong')" disabled>
+      <span>🔥 Сильный удар</span>
+      <span class="cost-pill">40 NRG</span>
+    </button>
+    <button class="btn-action btn-sp2" id="btn-sp2" onclick="attack('ultimate')" disabled>
+      <span>💥 УЛЬТИМЕЙТ</span>
+      <span class="cost-pill">80 NRG</span>
+    </button>
+    <button class="btn-action btn-sp3" id="btn-sp3" onclick="attack('heal')" disabled>
+      <span>💚 Лечение</span>
+      <span class="cost-pill">50 NRG</span>
+    </button>
+    <button class="btn-action btn-cookie" id="btn-cookie" onclick="buyCookie()">
+      <span>🍪 100 HP</span>
+      <span class="cost-pill">100 <img src="cone.png" class="cone-icon" alt="🌰"></span>
+    </button>
+  </div>
+
+  <div class="log-box" id="log">Битва началась!</div>
+
+  <!-- Leaderboard -->
   <div class="raid-leaderboard-box">
     <div class="raid-leaderboard-header">
       <span id="raid-lead-title">👑 Топ охотников за боссом</span>
@@ -471,25 +609,104 @@
     let gameActive = true;
     let tgUserId = null;
     let tgInitData = '';
+    let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
+
+    // Sound Synthesizer
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'hit') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'crit') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(350, now);
+          osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'heal') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(550, now + 0.2);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      } catch (e) {}
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'heavy') window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          else if (type === 'medium') window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+          else if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(type === 'heavy' ? 40 : 15);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      soundMuted = !soundMuted;
+      localStorage.setItem('rl_sound_muted', soundMuted);
+      const btn = document.getElementById('snd-toggle');
+      if (btn) btn.innerText = soundMuted ? '🔇' : '🔊';
+      if (!soundMuted) playSfx('tap');
+    }
+    const sndBtn = document.getElementById('snd-toggle');
+    if (sndBtn) sndBtn.innerText = soundMuted ? '🔇' : '🔊';
 
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
-        t1: "🔺 Секретная Организация Енотов 🔺", t2: "Все игроки против Единого БОССА",
-        s1: "Ваш урон", s2: "Ударов", s3: "Критов", s4: "Вы", s5: "БОСС", s6: "Энергия",
+        s1: "Ваш урон", s2: "Ударов", s3: "Критов",
         msg: "Атакуй БОССА! Вместе мы сильнее!",
-        b1: "⚔️ Удар (+20 эн)", b2: "🔥 Сильный (40)", b3: "💥 Ульта (80)", b4: "💚 Лечение (50)", b5: "🍪 100 HP (100 Шишек)",
         log: "Битва началась!",
-        raidFighters: "бойцов", raidKills: "Убит", raidTimes: "раз", raidLead: "👑 Топ охотников за боссом",
+        raidLead: "👑 Топ охотников за боссом",
         emptyLead: "Станьте первым, кто нанесет урон!"
       },
       en: {
-        t1: "🔺 Secret Raccoon Organization 🔺", t2: "All players against the Global BOSS",
-        s1: "Your Damage", s2: "Hits", s3: "Crits", s4: "You", s5: "BOSS", s6: "Energy",
+        s1: "Your Damage", s2: "Hits", s3: "Crits",
         msg: "Attack the BOSS! Together we are stronger!",
-        b1: "⚔️ Attack (+20 en)", b2: "🔥 Strong (40)", b3: "💥 Ult (80)", b4: "💚 Heal (50)", b5: "🍪 100 HP (100 Cones)",
         log: "Battle started!",
-        raidFighters: "fighters", raidKills: "Defeated", raidTimes: "times", raidLead: "👑 Top Boss Hunters",
+        raidLead: "👑 Top Boss Hunters",
         emptyLead: "Be the first to deal damage!"
       }
     };
@@ -498,42 +715,19 @@
     function applyLang(selectedLang) {
       lang = selectedLang || 'ru';
       t = translations[lang] || translations.ru;
-      const t1El = document.querySelector('.boss-title');
-      if (t1El) t1El.innerText = t.t1;
-      const t2El = document.querySelector('.boss-subtitle');
-      if (t2El) t2El.innerText = t.t2;
-      const labels = document.querySelectorAll('.label');
+      const labels = document.querySelectorAll('.stat-badge .label');
       if (labels.length >= 3) {
         labels[0].innerText = t.s1;
         labels[1].innerText = t.s2;
         labels[2].innerText = t.s3;
       }
-      const pName = document.querySelector('.player-name');
-      if (pName) pName.innerText = t.s4;
-      const bName = document.querySelector('.boss-name');
-      if (bName) bName.innerText = t.s5;
-      const nrgText = document.getElementById('p-nrg-text');
-      if (nrgText && nrgText.parentElement && nrgText.parentElement.childNodes[0]) {
-        nrgText.parentElement.childNodes[0].nodeValue = t.s6 + " ";
-      }
       const msgEl = document.getElementById('msg');
       if (msgEl && gameActive) msgEl.innerText = t.msg;
-      const btnBasic = document.getElementById('btn-basic');
-      if (btnBasic) btnBasic.innerText = t.b1;
-      const sp1 = document.getElementById('btn-sp1');
-      if (sp1) sp1.innerText = t.b2;
-      const sp2 = document.getElementById('btn-sp2');
-      if (sp2) sp2.innerText = t.b3;
-      const sp3 = document.getElementById('btn-sp3');
-      if (sp3) sp3.innerText = t.b4;
-      const cookieBtn = document.getElementById('btn-cookie');
-      if (cookieBtn) cookieBtn.innerText = t.b5;
       const leadTitle = document.getElementById('raid-lead-title');
       if (leadTitle) leadTitle.innerText = t.raidLead;
     }
 
     applyLang(lang);
-
 
     function getUserId() {
       try {
@@ -600,12 +794,8 @@
           tgUserId = parseInt(e.data.userId, 10);
           localStorage.setItem('rl_user_id', tgUserId);
         }
-        if (e.data.initData) {
-          tgInitData = e.data.initData;
-        }
-        if (e.data.lang) {
-          applyLang(e.data.lang);
-        }
+        if (e.data.initData) tgInitData = e.data.initData;
+        if (e.data.lang) applyLang(e.data.lang);
         loadPlayerStats();
         loadBossHP();
       } else if (e.data.type === 'language_changed') {
@@ -613,7 +803,6 @@
       }
     });
 
-    // Загрузка HP босса и данных рейда с сервера
     async function loadBossHP() {
       try {
         const res = await fetch(API_URL + '?t=' + Date.now(), { cache: 'no-store' });
@@ -667,7 +856,6 @@
       }[tag] || tag));
     }
 
-    // Загрузка статистики игрока с сервера
     async function loadPlayerStats() {
       try {
         const uid = tgUserId || getUserId();
@@ -702,8 +890,10 @@
       const percent = Math.max(0, (bossHP / bossMaxHP) * 100);
       const fillEl = document.getElementById('boss-hp-fill');
       const textEl = document.getElementById('boss-hp-text');
+      const pctEl = document.getElementById('boss-hp-pct');
       if (fillEl) fillEl.style.width = percent + '%';
       if (textEl) textEl.innerText = formatNumber(Math.ceil(bossHP)) + ' HP';
+      if (pctEl) pctEl.innerText = percent.toFixed(2) + '%';
     }
 
     function updatePlayerHP() {
@@ -748,17 +938,17 @@
       const rect = target.getBoundingClientRect();
       const el = document.createElement('div');
       el.className = 'damage-number';
-      el.innerText = isCrit ? '💥' + damage : '-' + damage;
-      el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 60) + 'px';
+      el.innerText = isCrit ? '💥 ' + damage : '-' + damage;
+      el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 50) + 'px';
       el.style.top = (rect.top + rect.height / 2) + 'px';
-      if (isCrit) { el.style.fontSize = '2rem'; el.style.color = '#ffd700'; }
+      if (isCrit) { el.style.fontSize = '2.2rem'; el.style.color = '#ffd700'; }
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 1000);
+      setTimeout(() => el.remove(), 900);
     }
 
     function buyCookie() {
       if (!gameActive) return;
-      
+      triggerHaptic('medium');
       const uid = tgUserId || getUserId();
       if (!uid) {
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет ID пользователя." : "❌ Error: no user ID.";
@@ -792,6 +982,8 @@
 
           playerHP = playerMaxHP;
           updatePlayerHP();
+          playSfx('heal');
+          triggerHaptic('success');
           document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
           const cap = document.getElementById('player-cap');
@@ -802,10 +994,10 @@
         } else {
           const errorMsg = result.message || (lang === 'ru' ? 'Недостаточно шишек!' : 'Not enough cones!');
           document.getElementById('log').innerText = "❌ " + errorMsg;
+          triggerHaptic('error');
         }
       })
       .catch(err => {
-        console.error('❌ Network Error:', err);
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
       })
       .finally(() => {
@@ -822,13 +1014,16 @@
       if (type === 'ultimate' && playerEnergy < 80) return;
       if (type === 'heal' && playerEnergy < 50) return;
 
+      playSfx('tap');
+      triggerHaptic('medium');
+
       let uid = tgUserId || getUserId();
       if (!uid) {
         uid = 999999;
         tgUserId = uid;
       }
 
-      const buttons = document.querySelectorAll('.btn');
+      const buttons = document.querySelectorAll('.btn-action');
       buttons.forEach(btn => btn.disabled = true);
       document.getElementById('msg').innerText = lang === 'ru' ? "Атакуем..." : "Attacking...";
 
@@ -847,7 +1042,6 @@
 
         if (data.status === 'error' || data.error) {
             const errorMsg = data.message || data.error || (lang === 'ru' ? 'Сбой API' : 'API failure');
-            console.error('❌ API Error:', errorMsg);
             document.getElementById('msg').innerText = (lang === 'ru' ? "❌ Ошибка: " : "❌ Error: ") + errorMsg;
             updateEnergy();
             return;
@@ -870,13 +1064,19 @@
             playerHP = Math.min(playerMaxHP, playerHP + heal);
             message = (lang === 'ru' ? '💚 Лечение +' : '💚 Heal +') + heal + (lang === 'ru' ? ' HP! -50 эн' : ' HP! -50 en');
             updatePlayerHP();
+            playSfx('heal');
         }
 
         if (type !== 'heal') {
           if (isCrit) {
             playerStats.crits = (playerStats.crits || 0) + 1;
             message = (lang === 'ru' ? '💥 КРИТ! ' : '💥 CRIT! ') + message;
+            playSfx('crit');
+            triggerHaptic('heavy');
+          } else {
+            playSfx('hit');
           }
+
           if (data.boss_hp !== undefined) {
             bossHP = data.boss_hp;
           }
@@ -907,7 +1107,6 @@
         document.getElementById('msg').innerText = message;
         document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
 
-        // Ответный удар босса
         if (bossDamage > 0) {
           setTimeout(() => {
             playerHP = Math.max(0, playerHP - bossDamage);
@@ -915,8 +1114,9 @@
             
             let counterMsg = (lang === 'ru' ? '💥 Босс ответил на ' : '💥 Boss countered for ') + bossDamage + (lang === 'ru' ? ' урона!' : ' damage!');
             document.getElementById('msg').innerText = message + "\n" + counterMsg;
-            document.getElementById('log').innerText = (lang === 'ru' ? 'Энергия: ' : 'Energy: ') + Math.floor(playerEnergy) + ' | HP: ' + Math.floor(playerHP) + (lang === 'ru' ? ' | Урон: ' : ' | Damage: ') + (type === 'heal' ? '0' : damage);
             showDamageNumber(bossDamage, false, true);
+            playSfx('hit');
+            triggerHaptic('medium');
 
             const bossEl = document.getElementById('boss');
             if (bossEl) {
@@ -942,7 +1142,6 @@
         }
 
       } catch (err) {
-        console.error('❌ Attack error:', err);
         document.getElementById('msg').innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
         updateEnergy();
       }
@@ -950,12 +1149,12 @@
 
     function gameOver() {
       gameActive = false;
-      
+      triggerHaptic('error');
       document.getElementById('msg').innerText = lang === 'ru' ? '💀 ВЫ ПРОИГРАЛИ! Босс оказался сильнее...' : '💀 YOU LOST! The Boss was too strong...';
       document.getElementById('msg').style.color = 'var(--accent)';
       document.getElementById('log').innerText = lang === 'ru' ? 'Возврат в меню игры...' : 'Returning to menu...';
 
-      document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+      document.querySelectorAll('.btn-action').forEach(btn => btn.disabled = true);
 
       setTimeout(() => {
         window.parent.postMessage({ type: 'game_over', game: 'boss' }, '*');
@@ -963,13 +1162,10 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        console.log('=== BOSS RAID INIT ===');
         gameActive = true;
-        
         loadPlayerStats();
         loadBossHP();
         setInterval(loadBossHP, 3000);
-        
         updateEnergy();
         updatePlayerHP();
         updateStatsUI();

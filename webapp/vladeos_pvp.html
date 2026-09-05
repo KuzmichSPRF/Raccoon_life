@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PVP: Vladeos</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #E53935;
@@ -14,169 +14,308 @@
       --card-bg: #18181A;
       --card-elevated: #222224;
       --text-main: #FFFFFF;
-      --text-sec: rgba(255, 255, 255, 0.6);
+      --text-sec: rgba(255, 255, 255, 0.65);
       --game-green: #33BD1C;
-      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+      --game-yellow: #FFD700;
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+      --border-glow: 1px solid rgba(168, 85, 247, 0.4);
     }
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
       margin: 0;
-      padding: 14px;
+      padding: 12px 14px 24px;
       color: var(--text-main);
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 360px;
+      margin-bottom: 12px;
+    }
+    .game-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(168, 85, 247, 0.1);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .sound-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
     }
+    .sound-btn:active { transform: scale(0.9); }
+
     .status-box {
-      background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-height: 50px; display: flex;
-      align-items: center; justify-content: center; font-weight: 700; color: var(--text-main);
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--text-main);
       border: var(--border-subtle);
-      font-size: 1rem;
+      font-size: 0.95rem;
       width: 100%;
       max-width: 360px;
     }
+
     .arena {
-      display: flex; justify-content: center; align-items: center; gap: 24px;
-      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: radial-gradient(circle at center, rgba(168,85,247,0.08) 0%, rgba(18,18,20,0) 75%), var(--card-bg);
+      border-radius: 24px;
+      border: var(--border-subtle);
+      padding: 20px 14px;
+      margin-bottom: 20px;
       width: 100%;
+      max-width: 360px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     }
     .cap-wrapper {
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
-    .cap {
-      width: 88px; height: 88px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15);
-      display: flex; align-items: center; justify-content: center; font-size: 40px;
-      background: var(--card-bg); position: relative; transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      z-index: 2;
+    .chip-frame {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      padding: 3px;
+      background: #18181a;
+      border: 2px solid rgba(255,255,255,0.15);
     }
-    .cap.player { border-color: #E53935; box-shadow: 0 0 16px rgba(229,57,53,0.35); }
-    .cap.vladeos { border-color: #9b59b6; box-shadow: 0 0 16px rgba(155,89,182,0.35); }
-    
-    .score {
-      font-size: 2.2rem;
+    .chip-frame.player {
+      border-color: #00e5ff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+    }
+    .chip-frame.vladeos {
+      border-color: #c084fc;
+      box-shadow: 0 0 22px rgba(168, 85, 247, 0.45);
+    }
+    .chip-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .fighter-label {
+      font-size: 0.8rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: #fff;
+    }
+    .fighter-label.purple { color: #c084fc; }
+
+    .score {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffd700;
       opacity: 0;
       transform: scale(0.5);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+      min-height: 38px;
     }
     .score.visible { opacity: 1; transform: scale(1); }
-    
+
+    .vs-text {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.25);
+    }
+
+    /* Grade selection buttons */
     .controls {
-      display: flex; flex-direction: column; gap: 10px;
-      width: 100%; max-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      max-width: 320px;
     }
     .btn {
-      padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
-      color: white; font-size: 0.95rem; transition: transform 0.1s;
+      padding: 13px;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s;
       text-transform: uppercase;
       background: var(--card-elevated);
       border: var(--border-subtle);
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .btn:active { transform: scale(0.96); }
-    
+
     .btn-common { color: #a1a1aa; }
-    .btn-rare { color: #0088cc; border-color: rgba(0,136,204,0.4); }
-    .btn-epic { color: #9b59b6; border-color: rgba(155,89,182,0.4); }
-    .btn-legend { color: #f1c40f; border-color: rgba(241,196,15,0.4); }
-    .btn-diamond { 
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
-      color: white; 
+    .btn-rare { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .btn-epic { color: #c084fc; border-color: rgba(192, 132, 252, 0.3); }
+    .btn-legend { color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); }
+    .btn-diamond {
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      color: white;
       border: none;
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
+      font-weight: 900;
     }
 
     .hidden { display: none !important; }
 
     /* Animations */
-    @keyframes clash-left {
-      0% { transform: translateX(0); }
-      40% { transform: translateX(35px) rotate(10deg); }
-      100% { transform: translateX(0); }
+    @keyframes clashLeft {
+      0% { transform: scale(1) translateX(0); }
+      40% { transform: scale(1.15) translateX(45px) rotate(12deg); }
+      100% { transform: scale(1) translateX(0); }
     }
-    @keyframes clash-right {
-      0% { transform: translateX(0); }
-      40% { transform: translateX(-35px) rotate(-10deg); }
-      100% { transform: translateX(0); }
+    @keyframes clashRight {
+      0% { transform: scale(1) translateX(0); }
+      40% { transform: scale(1.15) translateX(-45px) rotate(-12deg); }
+      100% { transform: scale(1) translateX(0); }
     }
-    .anim-left { animation: clash-left 0.4s ease-in-out; }
-    .anim-right { animation: clash-right 0.4s ease-in-out; }
-    
-    /* Reward Popup */
+    .anim-left { animation: clashLeft 0.4s ease-in-out; }
+    .anim-right { animation: clashRight 0.4s ease-in-out; }
+
+    /* Popup */
     .reward-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; align-items: center;
-      justify-content: center; z-index: 1000;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
     }
     .reward-popup {
       background: var(--card-bg);
-      border-radius: 20px; padding: 28px 24px; text-align: center;
-      border: 1px solid rgba(255, 215, 0, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; max-width: 88%;
-      width: 300px;
+      border-radius: 24px;
+      padding: 28px 24px;
+      text-align: center;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      width: 100%;
+      max-width: 320px;
     }
     @keyframes popIn {
       from { transform: scale(0.85); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-    .reward-icon { font-size: 3rem; margin-bottom: 8px; }
-    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 6px; }
-    .reward-amount { font-size: 1.8rem; font-weight: 800; color: #ffd700; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .reward-icon { font-size: 3.2rem; margin-bottom: 6px; }
+    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 4px; }
+    .reward-amount {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
     .cone-icon {
-      display: inline-block;
-      width: 1.2em;
-      height: 1.2em;
-      vertical-align: -0.2em;
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.15em;
       object-fit: contain;
-      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
     }
     .btn-continue {
-      margin-top: 18px; padding: 13px 32px; 
+      width: 100%;
+      padding: 14px;
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
-      color: white; border: none; border-radius: 12px; font-weight: 800;
-      font-size: 0.95rem; cursor: pointer; text-transform: uppercase;
-      width: 100%;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-family: inherit;
     }
   </style>
 </head>
 <body>
 
-  <div class="header-info">
-    <div class="title" data-i18n="pvp_vladeos">PVP: VLADEOS</div>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="game-badge">⚔️ <span>PVP: VLADEOS</span></div>
+    <button class="sound-btn" id="snd-toggle" onclick="toggleAudio()" title="Звук">🔊</button>
   </div>
 
+  <!-- Status Box -->
   <div class="status-box" id="msg">Выбери грейд фишки</div>
 
+  <!-- Arena -->
   <div class="arena">
     <div class="cap-wrapper">
-      <div id="p-cap" class="cap player">🦝</div>
+      <div id="p-cap" class="chip-frame player">
+        <img src="chip_raccoon.png" alt="Player Raccoon" class="chip-img" onerror="this.src='cone.png'">
+      </div>
+      <div class="fighter-label">Вы</div>
       <div id="p-score" class="score">0</div>
     </div>
-    <div style="font-size: 2rem; font-weight: 800; color: #333;">VS</div>
+
+    <div class="vs-text">VS</div>
+
     <div class="cap-wrapper">
-      <div id="v-cap" class="cap vladeos">😎</div>
+      <div id="v-cap" class="chip-frame vladeos">
+        <img src="chip_vladeos.png" alt="Champion Vladeos" class="chip-img" onerror="this.src='cone.png'">
+      </div>
+      <div class="fighter-label purple">Vladeos</div>
       <div id="v-score" class="score">0</div>
     </div>
   </div>
 
+  <!-- Controls -->
   <div id="grade-selection" class="controls">
     <button class="btn btn-common" onclick="tryPlay('common')">Common</button>
     <button class="btn btn-rare" onclick="tryPlay('rare')">Rare</button>
     <button class="btn btn-epic" onclick="tryPlay('epic')">Epic</button>
     <button class="btn btn-legend" onclick="tryPlay('legend')">Legend</button>
-    <button class="btn btn-diamond" onclick="tryPlay('diamond')">Diamond 💎</button>
+    <button class="btn btn-diamond" onclick="tryPlay('diamond')">💎 Diamond</button>
   </div>
 
   <!-- Reward Popup -->
@@ -191,6 +330,81 @@
 
   <script>
     let lang = localStorage.getItem('rl_lang') || 'ru';
+    let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
+
+    // Sound Synthesizer
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'clash') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(70, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'win') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.setValueAtTime(450, now + 0.1);
+          osc.frequency.setValueAtTime(600, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      } catch (e) {}
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'heavy') window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          else if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(type === 'heavy' ? 40 : 15);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      soundMuted = !soundMuted;
+      localStorage.setItem('rl_sound_muted', soundMuted);
+      const btn = document.getElementById('snd-toggle');
+      if (btn) btn.innerText = soundMuted ? '🔇' : '🔊';
+      if (!soundMuted) playSfx('tap');
+    }
+    const sndBtn = document.getElementById('snd-toggle');
+    if (sndBtn) sndBtn.innerText = soundMuted ? '🔇' : '🔊';
+
     const translations = {
       ru: {
         msgStart: "Выбери грейд фишки",
@@ -201,7 +415,7 @@
         defeatTitle: "Поражение!",
         btnCont: "Продолжить",
         insults: [
-          "Не солидно...", "Ставка говно!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
+          "Не солидно...", "Ставка слабовата!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
         ]
       },
       en: {
@@ -213,7 +427,7 @@
         defeatTitle: "Defeat!",
         btnCont: "Continue",
         insults: [
-          "Not cool...", "Trash bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
+          "Not cool...", "Too weak bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
         ]
       }
     };
@@ -267,12 +481,6 @@
       } catch (e) {}
 
       try {
-        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initDataUnsafe?.user?.id) {
-          return window.parent.Telegram.WebApp.initDataUnsafe.user.id;
-        }
-      } catch (e) {}
-
-      try {
         let storedId = localStorage.getItem('rl_temp_user_id');
         if (!storedId) {
           storedId = String(Math.floor(Math.random() * 1000000) + 100000);
@@ -313,12 +521,13 @@
     });
 
     function tryPlay(grade) {
+      playSfx('tap');
       if (grade !== 'diamond') {
+        triggerHaptic('error');
         const randomInsult = insults[Math.floor(Math.random() * insults.length)];
         msg.innerText = randomInsult;
         msg.style.color = '#ff5555';
         
-        // Shake effect on buttons
         gradeSelection.style.transform = "translateX(5px)";
         setTimeout(() => gradeSelection.style.transform = "translateX(-5px)", 50);
         setTimeout(() => gradeSelection.style.transform = "translateX(0)", 100);
@@ -334,8 +543,9 @@
     }
 
     function playGame() {
+      triggerHaptic('heavy');
+      playSfx('clash');
       gradeSelection.classList.add('hidden');
-      // Результат отправится в showResult() после определения победы/поражения
 
       msg.innerText = lang === 'ru' ? "БИТВА!" : "BATTLE!";
 
@@ -371,12 +581,15 @@
         vScore.classList.add('visible');
   
         if (data.win) {
+          playSfx('win');
+          triggerHaptic('success');
           msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
           showPopupResult(true, 100);
         } else {
-          msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "@curt3311 won! 🏆";
+          triggerHaptic('error');
+          msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
           msg.style.color = 'var(--accent)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
           showPopupResult(false, 0);
@@ -396,15 +609,15 @@
       
       if (isWin) {
         icon.innerText = '🎉';
-        title.innerText = lang === 'ru' ? 'Победа!' : 'Victory!';
+        title.innerText = t.victoryTitle;
         title.style.color = '#ffd700';
-        amountEl.style.display = 'block';
-        amountEl.textContent = '+' + amount + (lang === 'ru' ? ' Шишек' : ' Cones');
+        amountEl.style.display = 'flex';
+        amountEl.innerHTML = `+${amount} <img src="cone.png" class="cone-icon" alt="🌰">`;
         popup.style.borderColor = '#ffd700';
-        btn.innerText = lang === 'ru' ? 'Продолжить' : 'Continue';
+        btn.innerText = t.btnCont;
       } else {
         icon.innerText = '💀';
-        title.innerText = lang === 'ru' ? 'Поражение!' : 'Defeat!';
+        title.innerText = t.defeatTitle;
         title.style.color = 'var(--accent)';
         amountEl.style.display = 'none';
         popup.style.borderColor = 'var(--accent)';
@@ -418,7 +631,6 @@
       document.getElementById('reward-overlay').style.display = 'none';
       resetGame();
     }
-    
 
     function resetGame() {
       pScore.classList.remove('visible');

@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Башня 3.0: Путь Енота</title>
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #E53935;
@@ -14,160 +14,531 @@
       --card-bg: #18181A;
       --card-elevated: #222224;
       --text-main: #FFFFFF;
-      --text-sec: rgba(255, 255, 255, 0.6);
+      --text-sec: rgba(255, 255, 255, 0.65);
       --game-green: #33BD1C;
       --game-yellow: #FFD700;
       --boss-color: #9b59b6;
-      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+      --border-glow: 1px solid rgba(229, 57, 53, 0.4);
     }
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-      text-align: center; 
-      background-color: var(--bg-color); 
-      margin: 0; 
-      padding: 12px 14px; 
-      color: var(--text-main); 
+    body {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 12px 14px 24px;
+      color: var(--text-main);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    
-    .header-info {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 14px; padding: 0 4px;
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
     }
     .level-badge {
-      background: var(--primary); padding: 6px 16px; border-radius: 20px;
-      font-weight: 800; font-size: 1rem; box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sound-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .sound-btn:active { transform: scale(0.9); }
+
+    /* Status Box */
+    .status-box {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--text-main);
+      border: var(--border-subtle);
+      font-size: 0.95rem;
+    }
+
+    /* Arena */
+    .arena {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: radial-gradient(circle at center, rgba(229,57,53,0.08) 0%, rgba(18,18,20,0) 70%), var(--card-bg);
+      border-radius: 20px;
+      border: var(--border-subtle);
+      padding: 14px 8px 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .fighter-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 130px;
+    }
+    .chip-frame {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      padding: 2px;
+      background: #18181a;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .chip-frame.player-chip {
+      border-color: #00e5ff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+    }
+    .chip-frame.enemy-chip {
+      border-color: #ff9100;
+      box-shadow: 0 0 20px rgba(255, 145, 0, 0.35);
+    }
+    .chip-frame.boss-chip {
+      border-color: #a855f7;
+      box-shadow: 0 0 22px rgba(168, 85, 247, 0.5);
+      animation: pulseBoss 2s infinite;
+    }
+    @keyframes pulseBoss {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .chip-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .enemy-icon-overlay {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      background: #18181a;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .fighter-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-top: 6px;
+      margin-bottom: 2px;
       color: #fff;
     }
 
-    .status-box { 
-      background: var(--card-bg); border-radius: 14px; padding: 12px; margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-height: 50px; display: flex; 
-      align-items: center; justify-content: center; font-weight: 700; color: var(--text-main);
-      border: var(--border-subtle); font-size: 0.95rem;
+    /* Bars */
+    .bars {
+      width: 100%;
+      margin-top: 4px;
+    }
+    .bar-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      margin-bottom: 2px;
+    }
+    .bar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .bar-fill {
+      height: 100%;
+      transition: width 0.35s ease;
+    }
+    .bar-fill.hp {
+      background: linear-gradient(90deg, #33BD1C, #64dd17);
+    }
+    .bar-fill.energy {
+      background: linear-gradient(90deg, #ff9100, #FFD700);
     }
 
-    .arena { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 10px; }
-    
-    .cap { width: 76px; height: 76px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); 
-            display: flex; align-items: center; justify-content: center; font-size: 36px; 
-            background: var(--card-bg); position: relative; transition: all 0.3s ease; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
-    
-    .cap.active { border-color: var(--primary); transform: scale(1.08); box-shadow: 0 0 16px rgba(229, 57, 53, 0.4); }
-    .cap.boss { border-color: var(--boss-color); box-shadow: 0 0 20px rgba(155, 89, 182, 0.6); animation: pulse 2s infinite; }
+    /* Combat Animations */
+    .animate-attack {
+      animation: playerStrike 0.35s ease-in-out;
+    }
+    .animate-enemy-attack {
+      animation: enemyStrike 0.35s ease-in-out;
+    }
+    @keyframes playerStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(30px) rotate(8deg); }
+      100% { transform: scale(1) translateX(0); }
+    }
+    @keyframes enemyStrike {
+      0% { transform: scale(1) translateX(0); }
+      50% { transform: scale(1.15) translateX(-30px) rotate(-8deg); }
+      100% { transform: scale(1) translateX(0); }
+    }
+    .crit {
+      animation: critShake 0.35s ease-in-out !important;
+      border-color: #ffd700 !important;
+      box-shadow: 0 0 25px #ffd700 !important;
+    }
+    @keyframes critShake {
+      0%, 100% { transform: rotate(0); }
+      20% { transform: rotate(12deg) scale(1.1); }
+      40% { transform: rotate(-12deg) scale(1.1); }
+      60% { transform: rotate(8deg); }
+      80% { transform: rotate(-8deg); }
+    }
+    .heal-effect {
+      border-color: #33bd1c !important;
+      box-shadow: 0 0 25px #33bd1c !important;
+      animation: healPulse 0.4s ease-in-out;
+    }
+    @keyframes healPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); filter: brightness(1.3); }
+    }
 
-    @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
-    .animate-attack { transform: translateX(50px) scale(1.2) !important; }
-    .animate-enemy-attack { transform: translateX(-50px) scale(1.2) !important; }
-    .crit { border-color: var(--game-yellow) !important; box-shadow: 0 0 15px var(--game-yellow) !important; }
-    .heal-effect { border-color: var(--game-green) !important; box-shadow: 0 0 20px var(--game-green) !important; }
+    /* Controls */
+    .controls-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 14px;
+      border: var(--border-subtle);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-action {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 10px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      min-height: 54px;
+    }
+    .btn-action:active { transform: scale(0.96); }
+    .btn-action:disabled {
+      opacity: 0.35;
+      background: #19191c !important;
+      border-color: transparent !important;
+      cursor: not-allowed;
+    }
+    .btn-main-strike {
+      grid-column: span 2;
+      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 14px;
+      border: none;
+      flex-direction: row;
+      gap: 8px;
+    }
+    .btn-sp1 {
+      border: 1px solid rgba(255, 145, 0, 0.35);
+      background: linear-gradient(180deg, #2a221b 0%, #1e1915 100%);
+    }
+    .btn-sp2 {
+      border: 1px solid rgba(51, 189, 28, 0.35);
+      background: linear-gradient(180deg, #19271a 0%, #131d14 100%);
+    }
+    .btn-sp3 {
+      grid-column: span 2;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      background: linear-gradient(180deg, #2d1838 0%, #1f1127 100%);
+    }
+    .cost-pill {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      font-weight: 700;
+      color: var(--game-yellow);
+    }
+    .btn-cookie-row {
+      grid-column: span 2;
+      background: rgba(255, 255, 255, 0.04);
+      border: var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-next-level {
+      grid-column: span 2;
+      background: linear-gradient(180deg, #33BD1C 0%, #2e7d32 100%);
+      box-shadow: 0 4px 16px rgba(51, 189, 28, 0.45);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-weight: 900;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: none;
+      text-transform: uppercase;
+      font-family: inherit;
+    }
 
-    .bars { width: 100px; margin-top: 10px; }
-    .bar-label { font-size: 8px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; color: var(--text-sec); }
-    .bar { height: 6px; background: #222224; border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
-    .fill { height: 100%; transition: width 0.4s ease; }
-    .hp { background: var(--game-green); }
-    .energy { background: var(--game-yellow); }
-
-    .controls { 
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; 
-      background: var(--card-bg); padding: 14px; border-radius: 16px; 
-      border: var(--border-subtle); box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    }
-    .btn { 
-      padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
-      color: white; font-size: 0.8rem; text-transform: uppercase;
-      transition: transform 0.1s;
-    }
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; }
-    .btn-std { 
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
-      grid-column: span 2; font-size: 0.9rem;
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
-    }
-    .btn-sp1 { background: #e67e22; }
-    .btn-sp2 { background: #9b59b6; }
-    .btn-sp3 { background: var(--accent); }
-    .btn-next { 
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%); 
-      grid-column: span 2; font-size: 1rem; padding: 14px; display: none; color: #fff; 
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
-    }
     .cone-icon {
-      display: inline-block;
-      width: 1.2em;
-      height: 1.2em;
-      vertical-align: -0.2em;
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.15em;
       object-fit: contain;
-      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
     }
-
-    .log { font-size: 0.75rem; margin-top: 12px; color: var(--text-sec); min-height: 1.2em;}
+    .log-box {
+      font-size: 0.72rem;
+      color: var(--text-sec);
+      margin-top: 10px;
+      min-height: 16px;
+    }
   </style>
 </head>
 <body>
 
-  <div class="header-info">
-    <div class="level-badge" id="lvl-display">LVL 1</div>
-    <div style="font-size: 0.9rem; color: var(--text-sec); font-weight: 600;">Башня 3.0</div>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="level-badge" id="lvl-display">🏰 LVL 1</div>
+    <button class="sound-btn" id="snd-toggle" onclick="toggleAudio()" title="Звук">🔊</button>
   </div>
 
+  <!-- Status Box -->
   <div class="status-box" id="msg">Новый противник!</div>
 
+  <!-- Arena -->
   <div class="arena">
-    <div id="player-area">
-      <div id="p-cap" class="cap active">🦝</div>
+    <div class="fighter-wrapper" id="player-area">
+      <div id="p-cap" class="chip-frame player-chip">
+        <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
+      </div>
+      <div class="fighter-title" id="p-name">Вы (Енот)</div>
       <div class="bars">
-        <span class="bar-label">HP <span id="p-hp-text">100</span></span>
-        <div class="bar"><div id="p-hp" class="fill hp" style="width: 100%;"></div></div>
-        <span class="bar-label">Энергия</span>
-        <div class="bar"><div id="p-nrg" class="fill energy" style="width: 0%;"></div></div>
+        <div class="bar-row">
+          <span>HP</span>
+          <span id="p-hp-text">100</span>
+        </div>
+        <div class="bar-track">
+          <div id="p-hp" class="bar-fill hp" style="width: 100%;"></div>
+        </div>
+        <div class="bar-row">
+          <span>Энергия</span>
+          <span id="p-nrg-text">0</span>
+        </div>
+        <div class="bar-track">
+          <div id="p-nrg" class="bar-fill energy" style="width: 0%;"></div>
+        </div>
       </div>
     </div>
 
-    <div id="enemy-area">
-      <div id="e-cap" class="cap">❓</div>
-      <div class="bars">
-        <span class="bar-label">HP <span id="e-hp-text">100</span></span>
-        <div class="bar"><div id="e-hp" class="fill hp" style="width: 100%;"></div></div>
+    <div style="font-weight: 900; font-size: 1.1rem; color: rgba(255,255,255,0.25);">VS</div>
+
+    <div class="fighter-wrapper" id="enemy-area">
+      <div id="e-cap" class="chip-frame enemy-chip">
+        <img src="chip_enemy.png" id="e-img" alt="Enemy" class="chip-img" onerror="this.src='cone.png'">
+        <div class="enemy-icon-overlay" id="e-icon">⚪</div>
       </div>
-      <p id="e-name" style="font-size: 0.8rem; font-weight: 700; margin-top: 5px;">Враг</p>
+      <div class="fighter-title" id="e-name">Враг</div>
+      <div class="bars">
+        <div class="bar-row">
+          <span>HP</span>
+          <span id="e-hp-text">100</span>
+        </div>
+        <div class="bar-track">
+          <div id="e-hp" class="bar-fill hp" style="width: 100%;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="controls">
-    <button class="btn btn-std" id="btn-atk" onclick="playerTurn('attack')">Удар (+20 Эн)</button>
-    <button class="btn btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>Мусор (40)</button>
-    <button class="btn btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>Снэк (30)</button>
-    <button class="btn btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>УЛЬТА (80)</button>
-    <button class="btn btn-std" id="btn-cookie" onclick="buyCookie()" style="background: var(--card-elevated); border: var(--border-subtle); grid-column: span 2;">🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</button>
-    <button class="btn btn-next" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
+  <!-- Controls -->
+  <div class="controls-card">
+    <button class="btn-action btn-main-strike" id="btn-atk" onclick="playerTurn('attack')">
+      <span>🥊 Удар</span>
+      <span class="cost-pill">+20 NRG</span>
+    </button>
+    <button class="btn-action btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>
+      <span>🗑️ Мусор</span>
+      <span class="cost-pill">40 NRG</span>
+    </button>
+    <button class="btn-action btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>
+      <span>🥨 Снэк (Лечение)</span>
+      <span class="cost-pill">30 NRG</span>
+    </button>
+    <button class="btn-action btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>
+      <span>🔥 Ярость Енота (УЛЬТА)</span>
+      <span class="cost-pill">80 NRG</span>
+    </button>
+    <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
+      <span>🍪 Восстановить 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)</span>
+    </button>
+    <button class="btn-next-level" id="btn-next" onclick="nextLevel()">СЛЕДУЮЩИЙ УРОВЕНЬ ➜</button>
   </div>
   
-  <div class="log" id="log">...</div>
+  <div class="log-box" id="log">...</div>
 
   <script>
     let level = 1;
     let pStats = { hp: 100, maxHp: 100, nrg: 0 };
     let eStats = { hp: 100, maxHp: 100, dmg: 10 };
-    let turn = true; // true = player
+    let turn = true;
+    let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
+
+    // Sound Synthesizer
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'hit') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'crit') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(650, now + 0.1);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'heal') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.2);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'win') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.setValueAtTime(450, now + 0.1);
+          osc.frequency.setValueAtTime(600, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+      } catch (e) {}
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'heavy') window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          else if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(type === 'heavy' ? 40 : 15);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      soundMuted = !soundMuted;
+      localStorage.setItem('rl_sound_muted', soundMuted);
+      const btn = document.getElementById('snd-toggle');
+      if (btn) btn.innerText = soundMuted ? '🔇' : '🔊';
+      if (!soundMuted) playSfx('tap');
+    }
+    const sndBtn = document.getElementById('snd-toggle');
+    if (sndBtn) sndBtn.innerText = soundMuted ? '🔇' : '🔊';
 
     let lang = localStorage.getItem('rl_lang') || 'ru';
     const translations = {
       ru: {
         title: "Башня 3.0", msgSt: "Новый противник!", enL: "Энергия",
-        btnA: "Удар (+20 Эн)", btnS1: "Мусор (40)", btnS2: "Снэк (30)", btnS3: "УЛЬТА (80)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnA: "🥊 Удар", btnS1: "🗑️ Мусор", btnS2: "🥨 Снэк", btnS3: "🔥 Ярость Енота (УЛЬТА)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         btnN: "СЛЕДУЮЩИЙ УРОВЕНЬ ➜", enemy: "Враг"
       },
       en: {
         title: "Tower 3.0", msgSt: "New Enemy!", enL: "Energy",
-        btnA: "Attack (+20 En)", btnS1: "Trash (40)", btnS2: "Snack (30)", btnS3: "ULT (80)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
+        btnA: "🥊 Strike", btnS1: "🗑️ Trash", btnS2: "🥨 Snack", btnS3: "🔥 Raccoon Rage (ULT)", btnC: '🍪 100% HP (100 <img src="cone.png" class="cone-icon" alt="🌰">)',
         btnN: "NEXT LEVEL ➜", enemy: "Enemy"
       }
     };
@@ -217,28 +588,12 @@
       lang = selectedLang || 'ru';
       t = translations[lang] || translations.ru;
       updateEnemiesList();
-      const headers = document.querySelectorAll('.header-info div');
-      if (headers.length >= 2) headers[1].innerText = t.title;
       const msgEl = document.getElementById('msg');
       if (msgEl) msgEl.innerText = t.msgSt;
-      const barLabels = document.querySelectorAll('.bar-label');
-      if (barLabels.length >= 2 && barLabels[1].childNodes[0]) {
-        barLabels[1].childNodes[0].nodeValue = t.enL;
-      }
-      const btnAtk = document.getElementById('btn-atk');
-      if (btnAtk) btnAtk.innerText = t.btnA;
-      const sp1 = document.getElementById('btn-sp1');
-      if (sp1) sp1.innerText = t.btnS1;
-      const sp2 = document.getElementById('btn-sp2');
-      if (sp2) sp2.innerText = t.btnS2;
-      const sp3 = document.getElementById('btn-sp3');
-      if (sp3) sp3.innerText = t.btnS3;
       const cookieBtn = document.getElementById('btn-cookie');
-      if (cookieBtn) cookieBtn.innerHTML = t.btnC;
+      if (cookieBtn) cookieBtn.innerHTML = `<span>${t.btnC}</span>`;
       const btnNext = document.getElementById('btn-next');
       if (btnNext) btnNext.innerText = t.btnN;
-      const eName = document.getElementById('e-name');
-      if (eName && !turn) eName.innerText = t.enemy;
     }
 
     applyLang(lang);
@@ -268,12 +623,6 @@
       try {
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user?.id) {
           return window.Telegram.WebApp.initDataUnsafe.user.id;
-        }
-      } catch (e) {}
-
-      try {
-        if (window.parent && window.parent.Telegram && window.parent.Telegram.WebApp && window.parent.Telegram.WebApp.initDataUnsafe?.user?.id) {
-          return window.parent.Telegram.WebApp.initDataUnsafe.user.id;
         }
       } catch (e) {}
 
@@ -318,13 +667,6 @@
       }
     });
 
-
-    // Запускаем сразу (на случай если DOMContentLoaded уже был)
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initGame);
-    } else {
-      initGame();
-    }
     async function apiCall(actionType) {
         let userId = getUserId();
         if (!userId) userId = 999999;
@@ -354,20 +696,23 @@
     }
 
     async function startLevel() {
-      document.getElementById('lvl-display').innerText = "LVL " + level;
+      document.getElementById('lvl-display').innerText = "🏰 LVL " + level;
       document.getElementById('btn-next').style.display = 'none';
       toggleButtons(false);
 
-      // Генерация врага
       let enemyTemplate;
       let isBoss = (level % 10 === 0);
+      const enemyCap = document.getElementById('e-cap');
+      const enemyImg = document.getElementById('e-img');
 
       if (isBoss) {
         enemyTemplate = BOSS;
-        document.getElementById('e-cap').classList.add('boss');
+        enemyCap.classList.add('boss-chip');
+        enemyImg.src = 'chip_boss.png';
       } else {
         enemyTemplate = ENEMIES[Math.floor(Math.random() * ENEMIES.length)];
-        document.getElementById('e-cap').classList.remove('boss');
+        enemyCap.classList.remove('boss-chip');
+        enemyImg.src = 'chip_enemy.png';
       }
 
       const data = await apiCall('start');
@@ -378,15 +723,15 @@
           pStats.hp = data.state.pHP;
           pStats.nrg = data.state.pNRG;
       } else if (data && data.error === 'Too Many Requests') {
-          document.getElementById('msg').innerText = lang === 'ru' ? "Слишком быстро! Подождите пару секунд..." : "Too fast! Wait a few seconds...";
+          document.getElementById('msg').innerText = lang === 'ru' ? "Слишком быстро! Подождите..." : "Too fast! Wait...";
           document.getElementById('msg').style.color = "var(--accent)";
           return;
       }
 
-      // UI врага
       document.getElementById('e-name').innerText = enemyTemplate.name;
-      document.getElementById('e-cap').innerText = enemyTemplate.icon;
+      document.getElementById('e-icon').innerText = enemyTemplate.icon;
       document.getElementById('msg').innerText = isBoss ? (lang === 'ru' ? "БОСС: КОТОПЕТУХ!" : "BOSS: CATROOSTER!") : (lang === 'ru' ? "Враг: " : "Enemy: ") + enemyTemplate.name;
+      document.getElementById('msg').style.color = 'var(--text-main)';
 
       turn = true;
       updateUI();
@@ -395,6 +740,8 @@
     async function playerTurn(actionType) {
       if (!turn) return;
       turn = false;
+      playSfx('tap');
+      triggerHaptic('medium');
       toggleButtons(true);
       
       const data = await apiCall(actionType);
@@ -426,7 +773,7 @@
               pStats.hp = data.state.pHP;
               pStats.nrg = data.state.pNRG;
           }
-          setTimeout(winLevel, 1000);
+          setTimeout(winLevel, 900);
           return;
       }
 
@@ -441,27 +788,30 @@
           updateUI();
 
           if (data.game_over && !data.win) {
+              triggerHaptic('error');
               document.getElementById('msg').innerText = lang === 'ru' ? "ВЫ ПРОИГРАЛИ!" : "YOU LOST!";
-              document.getElementById('msg').style.color = "red";
+              document.getElementById('msg').style.color = "var(--accent)";
               setTimeout(() => location.reload(), 2000);
           } else {
               turn = true;
               toggleButtons(false);
           }
-      }, 1500);
+      }, 1200);
     }
 
     function winLevel() {
+      playSfx('win');
+      triggerHaptic('success');
       document.getElementById('msg').innerText = lang === 'ru' ? "ПОБЕДА! (+30 HP)" : "VICTORY! (+30 HP)";
       document.getElementById('msg').style.color = "var(--game-green)";
       updateUI();
       document.getElementById('btn-next').style.display = 'block';
-      toggleButtons(true); // disable combat buttons
+      toggleButtons(true);
     }
 
     function nextLevel() {
+      playSfx('tap');
       level++;
-      // Отправляем прогресс родителю: текущий уровень и факт прохождения предыдущего
       window.parent.postMessage({ type: 'tower_update', level: level, passed_level: true }, '*');
       document.getElementById('msg').style.color = "var(--text-main)";
       startLevel();
@@ -471,30 +821,31 @@
       const el = document.getElementById(id);
       if (dmg > 0) {
         el.classList.add(id === 'p-cap' ? 'animate-attack' : 'animate-enemy-attack');
-        if (crit) el.classList.add('crit');
+        if (crit) {
+          el.classList.add('crit');
+          playSfx('crit');
+          triggerHaptic('heavy');
+        } else {
+          playSfx('hit');
+        }
       }
-      if (heal > 0) el.classList.add('heal-effect');
-      setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 400);
+      if (heal > 0) {
+        el.classList.add('heal-effect');
+        playSfx('heal');
+      }
+      setTimeout(() => el.classList.remove('animate-attack', 'animate-enemy-attack', 'crit', 'heal-effect'), 380);
     }
 
     function buyCookie() {
       let userId = getUserId();
-
       if (!userId) {
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет user_id" : "❌ Error: no user_id";
         return;
       }
 
-      // Блокируем кнопку на время запроса
       const cookieBtn = document.getElementById('btn-cookie');
       cookieBtn.disabled = true;
-
       document.getElementById('log').innerText = lang === 'ru' ? "🍪 Покупка печеньки..." : "🍪 Buying cookie...";
-
-      // Логирование покупки
-      if (typeof logGameAction === 'function') {
-        logGameAction('COOKIE_PURCHASE', { game: 'tower', userId: userId });
-      }
 
       apiCall('cookie')
       .then(result => {
@@ -503,36 +854,24 @@
             window.parent.postMessage({ type: 'token_balance', balance: result.tokens.balance }, '*');
           }
 
-          // Синхронизируем состояние с сервером
           pStats.hp = result.state.pHP || 100;
           pStats.nrg = result.state.pNRG || pStats.nrg;
           updateUI();
+          playSfx('heal');
+          triggerHaptic('success');
           document.getElementById('log').innerText = lang === 'ru' ? "🍪 100% HP восстановлено!" : "🍪 100% HP restored!";
 
           const cap = document.getElementById('p-cap');
           cap.classList.add('heal-effect');
           setTimeout(() => cap.classList.remove('heal-effect'), 400);
-        } else if (result.status === 'error') {
-          // Обработка ошибки (например, недостаточно шишек)
+        } else {
           const errorMsg = result.error || 'Ошибка сервера';
           document.getElementById('log').innerText = "❌ " + errorMsg;
-          
-          // Логирование ошибки
-          if (typeof logApiError === 'function') {
-            logApiError('/api/game/tower', errorMsg, null);
-          }
-        } else {
-          document.getElementById('log').innerText = lang === 'ru' ? "❌ Неизвестная ошибка!" : "❌ Unknown error!";
+          triggerHaptic('error');
         }
       })
       .catch(err => {
-        console.error('❌ Error:', err);
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка сети!" : "❌ Network error!";
-        
-        // Логирование ошибки сети
-        if (typeof logApiError === 'function') {
-          logApiError('/api/game/tower', err, null);
-        }
       })
       .finally(() => {
         setTimeout(() => {
@@ -545,6 +884,7 @@
       document.getElementById('p-hp').style.width = Math.max(0, (pStats.hp / pStats.maxHp) * 100) + "%";
       document.getElementById('p-hp-text').innerText = Math.max(0, pStats.hp);
       document.getElementById('p-nrg').style.width = pStats.nrg + "%";
+      document.getElementById('p-nrg-text').innerText = pStats.nrg + "%";
       
       document.getElementById('e-hp').style.width = Math.max(0, (eStats.hp / eStats.maxHp) * 100) + "%";
       document.getElementById('e-hp-text').innerText = Math.max(0, eStats.hp);
@@ -556,17 +896,19 @@
 
     function toggleButtons(disabled) {
       ['btn-atk', 'btn-sp1', 'btn-sp2', 'btn-sp3'].forEach(id => {
-        document.getElementById(id).disabled = disabled;
+        const b = document.getElementById(id);
+        if (b) b.disabled = disabled;
       });
-      // Кнопка печеньки всегда доступна
       const cookieBtn = document.getElementById('btn-cookie');
-      if (cookieBtn) {
-        cookieBtn.disabled = false;
-      }
-      if (!disabled) updateUI(); // Re-check energy
+      if (cookieBtn) cookieBtn.disabled = false;
+      if (!disabled) updateUI();
     }
 
-    initGame();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGame);
+    } else {
+      initGame();
+    }
   </script>
 </body>
 </html>

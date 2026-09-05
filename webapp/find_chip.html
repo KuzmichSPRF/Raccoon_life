@@ -2,497 +2,559 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title data-i18n="title">Найди Фишку</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #E53935;
-      --accent: #E53935;
+      --accent: #FF3B30;
       --bg-color: #121214;
       --card-bg: #18181A;
       --card-elevated: #222224;
       --text-main: #FFFFFF;
-      --text-sec: rgba(255, 255, 255, 0.6);
+      --text-sec: rgba(255, 255, 255, 0.65);
       --game-green: #33BD1C;
       --game-yellow: #FFD700;
       --chip-found: #FFD700;
       --chip-miss: #E53935;
-      --btn-red: #E53935;
-      --border-subtle: 0.5px solid rgba(255, 255, 255, 0.08);
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+      --border-glow: 1px solid rgba(255, 215, 0, 0.35);
     }
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       text-align: center;
       background-color: var(--bg-color);
       margin: 0;
-      padding: 12px 14px;
+      padding: 12px 14px 20px;
       color: var(--text-main);
-      height: 100vh;
-      overflow-x: hidden;
-      overflow-y: auto;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
     }
 
-    .header-info {
+    /* Top Bar */
+    .top-bar {
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 12px;
-      gap: 12px;
-      flex-shrink: 0;
     }
-
-    .target-display {
-      background: var(--card-bg);
-      padding: 10px 20px;
-      border-radius: 24px;
-      font-weight: 800;
-      font-size: 1rem;
-      border: 1px solid rgba(229, 57, 53, 0.4);
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.15);
-      color: #fff;
-      display: flex;
+    .game-badge {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      border: var(--border-subtle);
     }
-
-    .target-chip-preview {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--chip-found), #ff9500);
-      color: #000;
-      border: 2px solid #fff;
+    .sound-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
-      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .sound-btn:active { transform: scale(0.9); }
+
+    /* Target Box */
+    .target-header {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      border: var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .target-info-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .target-chip-preview {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #1e1e24 url('chip_raccoon.png') center/cover no-repeat;
+      border: 2px solid #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: #ffd700;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
       box-shadow: 0 0 16px rgba(255, 215, 0, 0.4);
     }
+    .target-details {
+      text-align: left;
+    }
+    .target-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .target-number {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #ffd700;
+      line-height: 1.1;
+    }
 
-    .status-box {
+    .status-pill {
       background: var(--card-bg);
       border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--text-main);
       border: var(--border-subtle);
-      font-size: 0.9rem;
-      min-height: 44px;
-      flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .game-container {
+    /* Container for scrolling chips */
+    .game-viewport {
       position: relative;
       width: 100%;
-      max-width: 200px;
+      max-width: 280px;
+      height: 240px;
       margin: 0 auto;
-      height: 230px;
-      background: #0f0f11;
-      border-radius: 16px;
+      background: radial-gradient(circle at center, #19191d 0%, #0d0d0f 100%);
+      border-radius: 20px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-      flex-shrink: 0;
+      border: var(--border-subtle);
+      box-shadow: inset 0 0 25px rgba(0,0,0,0.9), 0 6px 20px rgba(0,0,0,0.4);
     }
-
     .chip-track {
       position: absolute;
       left: 0;
       right: 0;
       top: 0;
-      transition: transform 0.3s ease-out;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      padding: 6px;
     }
-
     .chip-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 6px;
-      height: 58px;
-      box-sizing: border-box;
+      gap: 10px;
+      padding: 6px 8px;
+      height: 60px;
     }
-
     .chip {
-      width: 100%;
-      height: 100%;
-      min-width: 46px;
-      border-radius: 50%;
+      height: 48px;
+      border-radius: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       font-weight: 800;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      user-select: none;
-      border: 2px solid rgba(255,255,255,0.15);
+      background: linear-gradient(145deg, #25252b, #19191d);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
-
     .chip:active {
-      transform: scale(0.9);
+      transform: scale(0.92);
+      border-color: #ffd700;
     }
-
-    .chip.normal-chip {
-      background: linear-gradient(135deg, #2a2a2e, #1c1c20);
-      color: var(--text-main);
-    }
-
     .chip.clicked {
-      animation: chipClick 0.3s ease forwards;
+      animation: chipPop 0.3s ease forwards;
     }
-
-    @keyframes chipClick {
+    @keyframes chipPop {
       0% { transform: scale(1); }
       50% { transform: scale(1.2); }
       100% { transform: scale(0); opacity: 0; }
     }
 
-    .controls-area {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
-      flex-grow: 1;
-      justify-content: center;
+    /* Radar / Distance Progress Bar */
+    .radar-bar-container {
+      margin: 8px auto;
+      width: 100%;
+      max-width: 280px;
     }
-
-    .scroll-controls {
+    .radar-label {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .scroll-info {
-      font-size: 0.9rem;
-      color: var(--text-sec);
-      min-width: 80px;
+      justify-content: space-between;
+      font-size: 0.68rem;
       font-weight: 700;
+      color: var(--text-sec);
+      margin-bottom: 4px;
+    }
+    .radar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .radar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff9100, #33bd1c);
+      transition: width 0.25s ease;
     }
 
-    .scroll-btn {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      border: var(--border-subtle);
-      background: var(--card-elevated);
-      color: white;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: all 0.15s;
+    /* Scroll Navigation Controls */
+    .nav-controls {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    .nav-btn {
+      background: var(--card-elevated);
+      border: var(--border-subtle);
+      color: #fff;
+      font-family: inherit;
+      font-weight: 800;
+      border-radius: 12px;
+      padding: 10px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      transition: all 0.15s;
+    }
+    .nav-btn:active { transform: scale(0.94); }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .depth-badge {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #ffd700;
+      border: var(--border-subtle);
     }
 
-    .scroll-btn:active {
-      transform: scale(0.92);
-      background: #2a2a2e;
-    }
-
-    .scroll-btn:disabled {
-      background: #18181A;
-      color: rgba(255,255,255,0.2);
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
+    /* Stats Panel */
     .stats-panel {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
+      margin: 10px 0;
     }
-
     .stat-card {
       background: var(--card-bg);
       border-radius: 14px;
-      padding: 10px 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      padding: 8px 6px;
       border: var(--border-subtle);
     }
-
     .stat-label {
       font-size: 0.65rem;
       color: var(--text-sec);
       text-transform: uppercase;
-      margin-bottom: 3px;
-      font-weight: 600;
+      font-weight: 700;
+      margin-bottom: 2px;
     }
-
     .stat-value {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 800;
-      color: var(--text-main);
     }
-
     .stat-value.found { color: var(--game-green); }
     .stat-value.missed { color: var(--chip-miss); }
     .stat-value.attempts { color: var(--game-yellow); }
 
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .btn {
-      padding: 13px 24px;
+    /* Action Buttons */
+    .btn-main {
+      padding: 14px;
       border: none;
-      border-radius: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      color: white;
+      border-radius: 14px;
+      font-weight: 800;
       font-size: 0.95rem;
       text-transform: uppercase;
-      transition: transform 0.1s, box-shadow 0.1s;
+      cursor: pointer;
+      font-family: inherit;
+      width: 100%;
+      transition: transform 0.15s;
     }
-
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { background: #222224 !important; color: #555; opacity: 0.5; cursor: not-allowed; }
-
+    .btn-main:active { transform: scale(0.97); }
     .btn-start {
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
       color: #fff;
-      width: 100%;
+      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
     }
-
     .btn-restart {
       background: var(--card-elevated);
-      border: var(--border-subtle);
       color: #fff;
+      border: var(--border-subtle);
       display: none;
-      width: 100%;
     }
 
-    .log {
-      font-size: 0.75rem;
-      margin-top: 5px;
+    .log-box {
+      font-size: 0.72rem;
       color: var(--text-sec);
-      min-height: 1.2em;
-      flex-shrink: 0;
+      margin-top: 8px;
     }
 
     /* Reward Popup */
     .reward-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      backdrop-filter: blur(8px);
+      padding: 20px;
     }
-
     .reward-popup {
       background: var(--card-bg);
-      border-radius: 20px;
-      padding: 28px 24px;
+      border-radius: 24px;
+      padding: 28px 22px;
       text-align: center;
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.8);
       animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      max-width: 88%;
-      width: 320px;
+      width: 100%;
+      max-width: 320px;
     }
-
     @keyframes popIn {
       from { transform: scale(0.85); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-
-    .reward-icon {
-      font-size: 3.5rem;
-      margin-bottom: 10px;
-    }
-
-    .reward-title {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--chip-found);
-      margin-bottom: 8px;
-    }
-
-    .reward-stats {
-      background: rgba(0,0,0,0.25);
-      border-radius: 12px;
-      padding: 12px;
-      margin: 16px 0;
+    .reward-icon { font-size: 3.2rem; margin-bottom: 6px; }
+    .reward-title { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 4px; }
+    .reward-stats-box {
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin: 14px 0;
       border: var(--border-subtle);
     }
-
-    .reward-stat {
+    .reward-stat-line {
       display: flex;
       justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .reward-stat:last-child { border-bottom: none; }
-
-    .reward-stat-label {
+      padding: 4px 0;
+      font-size: 0.8rem;
       color: var(--text-sec);
-      font-size: 0.85rem;
     }
-
-    .reward-stat-value {
-      color: var(--text-main);
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-
+    .reward-stat-line b { color: #fff; }
     .reward-amount {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--chip-found);
-      margin: 12px 0 16px 0;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffd700;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
+      margin-bottom: 14px;
     }
-
     .cone-icon {
-      display: inline-block;
-      width: 1.2em;
-      height: 1.2em;
-      vertical-align: -0.2em;
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.15em;
       object-fit: contain;
-      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.75));
-    }
-
-    .btn-continue {
-      padding: 14px 32px;
-      background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-weight: 800;
-      font-size: 1rem;
-      cursor: pointer;
-      text-transform: uppercase;
-      box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
-      transition: all 0.2s;
-      width: 100%;
-    }
-
-    .btn-continue:active { transform: scale(0.96); }
-
-    .progress-bar {
-      width: 100%;
-      height: 5px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 8px;
-      flex-shrink: 0;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #FF3B30, #33BD1C);
-      transition: width 0.3s;
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
     }
   </style>
 </head>
 <body>
 
-  <div class="header-info">
-    <div class="target-chip-preview" id="target-preview">?</div>
-    <div class="target-display"><span data-i18n="find">НАЙДИ</span> <span id="target-number">???</span></div>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="game-badge">🔍 <span data-i18n="title">НАЙДИ ФИШКУ</span></div>
+    <button class="sound-btn" id="snd-toggle" onclick="toggleAudio()" title="Звук">🔊</button>
   </div>
 
-  <div class="status-box" id="msg" data-i18n="msgStart">Нажми "Старт" чтобы начать игру</div>
+  <!-- Target Header -->
+  <div class="target-header">
+    <div class="target-info-wrap">
+      <div class="target-chip-preview" id="target-preview">?</div>
+      <div class="target-details">
+        <div class="target-label" data-i18n="find">Целевая фишка</div>
+        <div class="target-number" id="target-number">???</div>
+      </div>
+    </div>
+  </div>
 
-  <div class="game-container" id="game-container">
+  <!-- Status Pill -->
+  <div class="status-pill" id="msg" data-i18n="msgStart">Нажми "Старт" чтобы начать поиск</div>
+
+  <!-- Game Viewport -->
+  <div class="game-viewport" id="game-container">
     <div class="chip-track" id="chip-track"></div>
   </div>
 
-  <div class="progress-bar">
-    <div class="progress-fill" id="progress-fill"></div>
-  </div>
-
-  <div class="controls-area">
-    <div class="scroll-controls">
-      <button class="scroll-btn" id="scroll-up" onclick="scrollTrack(-1)" disabled>▲</button>
-      <span class="scroll-info" id="scroll-info">0</span>
-      <button class="scroll-btn" id="scroll-down" onclick="scrollTrack(1)" disabled>▼</button>
+  <!-- Radar / Progress -->
+  <div class="radar-bar-container">
+    <div class="radar-label">
+      <span>Радар глубины</span>
+      <span id="radar-pct">0%</span>
     </div>
-
-    <div class="stats-panel">
-      <div class="stat-card">
-        <div class="stat-label" data-i18n="found">Найдено</div>
-        <div class="stat-value found" id="found-count">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label" data-i18n="missed">Промахов</div>
-        <div class="stat-value missed" id="missed-count">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label" data-i18n="attempts">Попыток</div>
-        <div class="stat-value attempts" id="attempts-count">0</div>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button class="btn btn-start" id="start-btn" onclick="startGame()" data-i18n="start">▶ Старт</button>
-      <button class="btn btn-restart" id="restart-btn" onclick="restartGame()" data-i18n="restart">🔄 Заново</button>
+    <div class="radar-track">
+      <div class="radar-fill" id="progress-fill"></div>
     </div>
   </div>
 
-  <div class="log" id="log" data-i18n="logStart">Удачи в поиске!</div>
+  <!-- Navigation -->
+  <div class="nav-controls">
+    <button class="nav-btn" id="scroll-up" onclick="scrollTrack(-1)" disabled>▲ Вверх</button>
+    <div class="depth-badge" id="scroll-info">Ряд: 0</div>
+    <button class="nav-btn" id="scroll-down" onclick="scrollTrack(1)" disabled>▼ Вниз</button>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-panel">
+    <div class="stat-card">
+      <div class="stat-label" data-i18n="found">Найдено</div>
+      <div class="stat-value found" id="found-count">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" data-i18n="missed">Промахов</div>
+      <div class="stat-value missed" id="missed-count">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" data-i18n="attempts">Попыток</div>
+      <div class="stat-value attempts" id="attempts-count">0</div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div>
+    <button class="btn-main btn-start" id="start-btn" onclick="startGame()" data-i18n="start">▶ Старт</button>
+    <button class="btn-main btn-restart" id="restart-btn" onclick="restartGame()" data-i18n="restart">🔄 Заново</button>
+  </div>
+
+  <div class="log-box" id="log" data-i18n="logStart">Удачи в поиске!</div>
 
   <!-- Reward Popup -->
   <div class="reward-overlay" id="reward-overlay">
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-title" id="popup-title" data-i18n="victory">Победа!</div>
-      <div class="reward-stats">
-        <div class="reward-stat">
-          <span class="reward-stat-label" data-i18n="time">Время:</span>
-          <span class="reward-stat-value" id="stat-time">0с</span>
+      <div class="reward-stats-box">
+        <div class="reward-stat-line">
+          <span data-i18n="time">Время:</span>
+          <b id="stat-time">0с</b>
         </div>
-        <div class="reward-stat">
-          <span class="reward-stat-label" data-i18n="attempts">Попыток:</span>
-          <span class="reward-stat-value" id="stat-attempts">0</span>
+        <div class="reward-stat-line">
+          <span data-i18n="attempts">Попыток:</span>
+          <b id="stat-attempts">0</b>
         </div>
-        <div class="reward-stat">
-          <span class="reward-stat-label" data-i18n="missed">Промахов:</span>
-          <span class="reward-stat-value" id="stat-missed">0</span>
+        <div class="reward-stat-line">
+          <span data-i18n="missed">Промахов:</span>
+          <b id="stat-missed">0</b>
         </div>
       </div>
       <div class="reward-amount" id="popup-amount">+100 <img src="cone.png" class="cone-icon" alt="🌰"></div>
-      <button class="btn-continue" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
+      <button class="btn-main btn-start" id="popup-btn" onclick="continueGame()" data-i18n="continue">Продолжить</button>
     </div>
   </div>
 
   <script>
     let currentLang = localStorage.getItem('rl_lang') || 'ru';
+    let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
+
+    // Audio synthesizer
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'tap') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'hit') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'miss') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(90, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+      } catch(e) {}
+    }
+
+    function triggerHaptic(type) {
+      try {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          if (type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          else if (type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          else window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(type === 'success' ? 40 : 15);
+        }
+      } catch(e) {}
+    }
+
+    function toggleAudio() {
+      soundMuted = !soundMuted;
+      localStorage.setItem('rl_sound_muted', soundMuted);
+      const btn = document.getElementById('snd-toggle');
+      if (btn) btn.innerText = soundMuted ? '🔇' : '🔊';
+      if (!soundMuted) playSfx('tap');
+    }
+    const sndBtn = document.getElementById('snd-toggle');
+    if (sndBtn) sndBtn.innerText = soundMuted ? '🔇' : '🔊';
+
     const translations = {
       ru: {
         title: "Найди Фишку",
-        find: "НАЙДИ",
-        msgStart: "Найди целевую фишку! Скролль и кликни по ней!",
+        find: "Целевая фишка",
+        msgStart: "Найди целевую фишку! Скролль и нажимай!",
         msgFound: "🎯 ПОПАДАНИЕ! Цель найдена!",
-        msgMiss: "❌ Мимо! Попробуй ещё раз!",
+        msgMiss: "❌ Мимо! Ищи дальше!",
         msgWin: "ПОБЕДА! Цель найдена!",
         found: "Найдено",
         missed: "Промахов",
@@ -513,10 +575,10 @@
       },
       en: {
         title: "Find the Chip",
-        find: "FIND",
-        msgStart: "Find the target chip! Scroll and click on it!",
+        find: "Target Chip",
+        msgStart: "Find the target chip! Scroll and tap on it!",
         msgFound: "🎯 HIT! Target found!",
-        msgMiss: "❌ Miss! Try again!",
+        msgMiss: "❌ Miss! Keep looking!",
         msgWin: "VICTORY! Target found!",
         found: "Found",
         missed: "Missed",
@@ -561,7 +623,6 @@
       totalRows: 0
     };
 
-    // Apply translations to HTML elements
     function applyTranslations() {
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -569,28 +630,21 @@
           el.innerText = translations[currentLang][key];
         }
       });
-      
-      // Update page title
       document.title = t('title');
-      
-      // Update dynamic elements if game is not active
       if (!gameState.active) {
         document.getElementById('msg').innerText = t('msgStart');
         document.getElementById('log').innerText = t('logStart');
       }
     }
 
-    // Apply on load
     applyTranslations();
 
-    // Listen for messages from parent
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'language_changed') {
         currentLang = event.data.lang || 'ru';
         localStorage.setItem('rl_lang', currentLang);
         applyTranslations();
       }
-      // Handle init_game message with language
       if (event.data && event.data.type === 'init_game' && event.data.lang) {
         currentLang = event.data.lang;
         localStorage.setItem('rl_lang', currentLang);
@@ -600,6 +654,8 @@
 
     function startGame() {
       if (gameState.active) return;
+      playSfx('tap');
+      triggerHaptic('light');
 
       gameState.active = true;
       gameState.found = 0;
@@ -610,17 +666,14 @@
       gameState.currentRow = 0;
       gameState.totalRows = INITIAL_ROWS;
 
-      // Generate target number (1-10000)
       gameState.targetNumber = Math.floor(Math.random() * 10000) + 1;
-
-      // Целевая фишка генерируется случайным образом от 100 до 200 скроллов
-      gameState.targetRow = 100 + Math.floor(Math.random() * 101);
+      gameState.targetRow = 40 + Math.floor(Math.random() * 40); // 40-80 rows for fun fast mobile gameplay
       gameState.targetCol = Math.floor(Math.random() * CHIPS_PER_ROW);
 
-      // Update UI
-      document.getElementById('target-number').innerText = gameState.targetNumber;
-      document.getElementById('target-preview').innerText = gameState.targetNumber;
+      document.getElementById('target-number').innerText = '#' + gameState.targetNumber;
+      document.getElementById('target-preview').innerText = '#' + gameState.targetNumber;
       document.getElementById('msg').innerText = t('msgStart');
+      document.getElementById('msg').style.color = 'var(--text-main)';
       document.getElementById('log').innerText = t('logStart');
       document.getElementById('start-btn').style.display = 'none';
       document.getElementById('restart-btn').style.display = 'block';
@@ -629,7 +682,6 @@
       updateStats();
       updateScrollInfo();
 
-      // Generate initial chips
       generateChips(0, INITIAL_ROWS);
       updateScrollButtons();
       updateProgressBar();
@@ -644,22 +696,18 @@
         rowDiv.dataset.row = row;
 
         for (let col = 0; col < CHIPS_PER_ROW; col++) {
-          // Проверяем, является ли эта фишка целевой
           const isTarget = (row === gameState.targetRow && col === gameState.targetCol);
-
-          // Если целевая - используем номер из таргета, иначе случайный
           const chipNumber = isTarget ? gameState.targetNumber : Math.floor(Math.random() * 10000) + 1;
 
           const chip = document.createElement('div');
-          chip.className = 'chip normal-chip';
-          chip.innerText = chipNumber;
+          chip.className = 'chip';
+          chip.innerText = '#' + chipNumber;
           chip.dataset.number = chipNumber;
           chip.dataset.row = row;
           chip.dataset.col = col;
           chip.dataset.isTarget = isTarget;
 
           chip.addEventListener('click', () => handleChipClick(chip, isTarget, chipNumber, row, col));
-
           rowDiv.appendChild(chip);
         }
 
@@ -677,7 +725,6 @@
       updateScrollButtons();
       updateProgressBar();
 
-      // Load more chips when scrolling down near the end
       const rowsUntilEnd = gameState.totalRows - gameState.currentRow - VISIBLE_ROWS;
       if (rowsUntilEnd <= LOAD_MORE_ROWS + 2) {
         generateChips(gameState.totalRows, LOAD_MORE_ROWS);
@@ -686,6 +733,8 @@
 
     function scrollTrack(direction) {
       if (!gameState.active) return;
+      playSfx('tap');
+      triggerHaptic('light');
 
       const newRow = gameState.currentRow + direction;
       const maxRow = Math.max(0, gameState.totalRows - VISIBLE_ROWS);
@@ -696,9 +745,25 @@
       updateTrackPosition();
     }
 
+    // Touch swipe support for smooth mobile scrolling
+    let touchStartY = 0;
+    const viewport = document.getElementById('game-container');
+    viewport.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    viewport.addEventListener('touchmove', (e) => {
+      if (!gameState.active) return;
+      const touchY = e.touches[0].clientY;
+      const diff = touchStartY - touchY;
+      if (Math.abs(diff) > 25) {
+        scrollTrack(diff > 0 ? 1 : -1);
+        touchStartY = touchY;
+      }
+    }, { passive: true });
+
     function updateScrollInfo() {
       const info = document.getElementById('scroll-info');
-      info.innerText = `${gameState.currentRow + 1}`;
+      info.innerText = `Ряд: ${gameState.currentRow + 1}`;
     }
 
     function updateScrollButtons() {
@@ -712,9 +777,10 @@
 
     function updateProgressBar() {
       const fill = document.getElementById('progress-fill');
-      // Прогресс заполняется по мере приближения к целевому ряду
-      const progress = Math.min(100, (gameState.currentRow / Math.max(1, gameState.targetRow)) * 100);
+      const pctText = document.getElementById('radar-pct');
+      const progress = Math.min(100, Math.round((gameState.currentRow / Math.max(1, gameState.targetRow)) * 100));
       fill.style.width = progress + '%';
+      pctText.innerText = progress + '%';
     }
 
     function handleChipClick(chip, isTarget, number, row, col) {
@@ -724,6 +790,8 @@
       chip.classList.add('clicked');
 
       if (isTarget) {
+        playSfx('hit');
+        triggerHaptic('success');
         gameState.found++;
         document.getElementById('msg').innerText = t('msgFound');
         document.getElementById('msg').style.color = 'var(--game-green)';
@@ -731,16 +799,16 @@
         updateStats();
         endGame(true);
       } else {
+        playSfx('miss');
+        triggerHaptic('error');
         gameState.missed++;
         document.getElementById('msg').innerText = t('msgMiss');
         document.getElementById('msg').style.color = 'var(--chip-miss)';
-        document.getElementById('log').innerText = `${t('logMiss')} ${t('logMissWas')} #${number}`;
+        document.getElementById('log').innerText = `${t('logMiss')} #${number}`;
         updateStats();
 
         setTimeout(() => {
-          if (chip.parentElement) {
-            chip.remove();
-          }
+          if (chip.parentElement) chip.remove();
         }, 300);
       }
     }
@@ -757,9 +825,7 @@
       document.getElementById('scroll-down').disabled = true;
 
       const elapsedTime = ((Date.now() - gameState.startTime) / 1000).toFixed(1);
-
       window.parent.postMessage({ type: 'game_complete', game: 'find_chip', win: win, reward: REWARD }, window.location.origin);
-
       showPopupResult(win, elapsedTime);
     }
 
@@ -801,6 +867,7 @@
       document.getElementById('chip-track').innerHTML = '';
       document.getElementById('reward-overlay').style.display = 'none';
       document.getElementById('progress-fill').style.width = '0%';
+      document.getElementById('radar-pct').innerText = '0%';
 
       document.getElementById('msg').innerText = t('msgStart');
       document.getElementById('msg').style.color = 'var(--text-main)';
@@ -811,7 +878,7 @@
       document.getElementById('target-preview').innerText = '?';
       document.getElementById('scroll-up').disabled = true;
       document.getElementById('scroll-down').disabled = true;
-      document.getElementById('scroll-info').innerText = '0';
+      document.getElementById('scroll-info').innerText = 'Ряд: 0';
 
       updateStats();
     }
