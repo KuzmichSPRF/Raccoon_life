@@ -1908,7 +1908,422 @@
       cursor: not-allowed;
       box-shadow: none;
     }
+
+    /* ==================== СЕТЫ ФИШЕК (CHIP SETS) STYLES ==================== */
+    .chipsets-modal {
+      width: 94%;
+      max-width: 440px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 14px 20px;
+      position: relative;
+      border: 1px solid rgba(236, 72, 153, 0.4);
+      background: linear-gradient(180deg, #1f1424 0%, #121214 100%);
+      box-shadow: 0 10px 40px rgba(236, 72, 153, 0.25);
+    }
+    .chipsets-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px;
+      border-radius: 14px;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .chipsets-tab {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .chipsets-tab.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(236, 72, 153, 0.4);
+    }
+    .chipsets-tab:active {
+      transform: scale(0.96);
+    }
+    .chipset-card {
+      background: rgba(25, 20, 32, 0.9);
+      border: 1px solid rgba(236, 72, 153, 0.3);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .chipset-card:hover {
+      border-color: rgba(236, 72, 153, 0.6);
+    }
+    .chipset-preview-wrap {
+      position: relative;
+      width: 100%;
+      background: #0a0a0c;
+      overflow: hidden;
+    }
+    .chipset-preview-img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .chipset-chips-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .chipset-info-bar {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: linear-gradient(180deg, rgba(20, 16, 26, 0.9) 0%, rgba(14, 12, 18, 0.98) 100%);
+    }
+    .chipset-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .chipset-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .chipset-count-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      background: rgba(236, 72, 153, 0.18);
+      color: #f472b6;
+      border: 0.5px solid rgba(236, 72, 153, 0.4);
+      white-space: nowrap;
+    }
+    .chipset-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .chipset-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    }
+    .chipset-author {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .chipset-author b {
+      color: #e9d5ff;
+    }
+    .chipset-vote-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .chipset-vote-btn:active {
+      transform: scale(0.92);
+    }
+    .chipset-vote-btn.voted {
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      border-color: #f43f5e;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(225, 29, 72, 0.5);
+    }
+    .chipset-vote-btn .heart-icon {
+      font-size: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .chipset-vote-btn.voted .heart-icon {
+      transform: scale(1.15);
+    }
+
+    /* Creator Form Styles */
+    .chipset-creator-section {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+    .chipset-creator-label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #e9d5ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chipset-count-selector {
+      display: flex;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chipset-count-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .chipset-count-btn.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border-color: #ec4899;
+      box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+    }
+    .chipset-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #101012;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      font-family: inherit;
+    }
+    .chipset-input:focus {
+      border-color: #ec4899;
+    }
+    .chipset-bg-upload-zone {
+      border: 1.5px dashed rgba(236, 72, 153, 0.5);
+      background: rgba(236, 72, 153, 0.06);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .chipset-bg-upload-zone:hover {
+      background: rgba(236, 72, 153, 0.12);
+      border-color: #ec4899;
+    }
+    .chipset-bg-thumb {
+      max-width: 100%;
+      max-height: 120px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      object-fit: cover;
+    }
+    .chipset-slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .chipset-slot {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .chipset-slot:hover {
+      border-color: #ec4899;
+      background: rgba(236, 72, 153, 0.08);
+    }
+    .chipset-slot.filled {
+      border-style: solid;
+      border-color: rgba(236, 72, 153, 0.5);
+      background: rgba(236, 72, 153, 0.04);
+    }
+    .chipset-slot-canvas {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+      display: block;
+    }
+    .chipset-slot-empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      color: var(--text-secondary);
+    }
+    .chipset-slot-badge {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .chipset-composite-preview-box {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      margin-top: 4px;
+    }
+    .chipset-composite-canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* ==================== IMAGE CROPPER & ADJUSTER STYLES ==================== */
+    .cropper-viewport-container {
+      width: 100%;
+      height: 310px;
+      max-height: 45vh;
+      background: #09090c;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+      border: 1.5px solid rgba(236, 72, 153, 0.35);
+      box-shadow: inset 0 0 24px rgba(0,0,0,0.85);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cropper-viewport-container:active {
+      cursor: grabbing;
+    }
+    .cropper-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .cropper-controls-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .cropper-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cropper-zoom-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .cropper-zoom-btn:active {
+      transform: scale(0.92);
+      background: rgba(236, 72, 153, 0.3);
+    }
+    .cropper-slider {
+      flex: 1;
+      accent-color: #ec4899;
+      height: 6px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .cropper-actions-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    .cropper-tool-btn {
+      padding: 6px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #e5e5ea;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .cropper-tool-btn:hover {
+      background: rgba(236, 72, 153, 0.15);
+      border-color: rgba(236, 72, 153, 0.4);
+      color: #fff;
+    }
+    .cropper-tool-btn:active {
+      transform: scale(0.95);
+    }
   </style>
+
+
 </head>
 <body>
 
@@ -2070,6 +2485,185 @@
       <div id="inventory-status-msg" style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-gold); min-height: 18px;"></div>
     </div>
   </div>
+
+  <!-- Chip Sets Modal (Сеты фишек и конструктор) -->
+  <div id="chip-sets-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeChipSetsModal()">
+    <div class="tutorial-modal chipsets-modal">
+      <button class="close-modal-btn" onclick="closeChipSetsModal()">✕</button>
+      
+      <!-- Modal Header -->
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="font-size: 1.6rem;">🎨</span>
+        <div style="text-align: left;">
+          <h3 class="tutorial-title" style="margin: 0; text-align: left; font-size: 1.2rem; color: #f472b6;" data-i18n="chip_sets_title">🎨 Сеты фишек</h3>
+          <div style="font-size: 0.72rem; color: var(--text-secondary);" data-i18n="chip_sets_desc">Авторские коллекции круглых 3D фишек</div>
+        </div>
+      </div>
+
+      <!-- Tabs (ТОП / Новые / Создать сет) -->
+      <div class="chipsets-tabs">
+        <button id="tab-chipsets-top" class="chipsets-tab active" onclick="switchChipSetsTab('top'); triggerHaptic('selection');">
+          <span>🔥</span> <span data-i18n="tab_sets_top">ТОП</span>
+        </button>
+        <button id="tab-chipsets-new" class="chipsets-tab" onclick="switchChipSetsTab('new'); triggerHaptic('selection');">
+          <span>🕒</span> <span data-i18n="tab_sets_new">Новые</span>
+        </button>
+        <button id="tab-chipsets-create" class="chipsets-tab" onclick="switchChipSetsTab('create'); triggerHaptic('selection');" style="display: none;">
+          <span>➕</span> <span data-i18n="tab_sets_create">Создать сет</span>
+        </button>
+      </div>
+
+      <!-- Sets Gallery Container (List View) -->
+      <div id="chip-sets-list-container" style="overflow-y: auto; overflow-x: hidden; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; min-height: 180px;">
+        <!-- Dynamic Sets Cards rendered here -->
+      </div>
+
+      <!-- Set Creator Container (Step-by-step Builder) -->
+      <div id="chip-sets-creator-container" style="display: none; overflow-y: auto; overflow-x: hidden; flex: 1; padding-right: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+
+          <!-- Step 1: Info & Count Selection -->
+          <div class="chipset-creator-section">
+            <div class="chipset-creator-label">
+              <span>🔢</span> <span data-i18n="set_count_label">Количество фишек в сете:</span>
+            </div>
+            <div class="chipset-count-selector">
+              <button class="chipset-count-btn active" id="chipset-count-3" onclick="selectCreatorChipsCount(3); triggerHaptic('selection');">3 фишки</button>
+              <button class="chipset-count-btn" id="chipset-count-6" onclick="selectCreatorChipsCount(6); triggerHaptic('selection');">6 фишек</button>
+              <button class="chipset-count-btn" id="chipset-count-9" onclick="selectCreatorChipsCount(9); triggerHaptic('selection');">9 фишек</button>
+            </div>
+
+            <div style="margin-top: 6px;">
+              <div class="chipset-creator-label" style="margin-bottom: 4px;">
+                <span>🏷️</span> <span data-i18n="set_title_label">Название коллекции:</span>
+              </div>
+              <input type="text" id="chipset-input-title" class="chipset-input" placeholder="Например, Футурама" maxlength="60" data-i18n-ph="set_title_ph" />
+            </div>
+
+            <div style="margin-top: 4px;">
+              <div class="chipset-creator-label" style="margin-bottom: 4px;">
+                <span>📝</span> <span data-i18n="set_desc_label">Описание коллекции:</span>
+              </div>
+              <input type="text" id="chipset-input-desc" class="chipset-input" placeholder="Краткое описание коллекции..." maxlength="140" data-i18n-ph="set_desc_ph" />
+            </div>
+          </div>
+
+          <!-- Step 2: Background Image Upload -->
+          <div class="chipset-creator-section">
+            <div class="chipset-creator-label">
+              <span>🖼️</span> <span data-i18n="set_bg_upload_label">1. Фоновое изображение</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary);" data-i18n="set_bg_upload_desc">Загрузите красивый фон, на котором будут размещены ваши фишки</div>
+            
+            <input type="file" id="chipset-bg-file-input" accept="image/jpeg, image/png, image/webp" style="display: none;" onchange="handleBgFileSelected(this.files[0])" />
+            <div class="chipset-bg-upload-zone" id="chipset-bg-upload-zone" onclick="handleBgZoneClicked()">
+              <div id="chipset-bg-empty-view">
+                <span style="font-size: 1.8rem;">🌄</span>
+                <div style="font-size: 0.8rem; font-weight: 700; color: #f472b6;">Загрузить фон сета</div>
+                <div style="font-size: 0.68rem; color: var(--text-secondary);">JPG, PNG или WebP</div>
+              </div>
+              <div id="chipset-bg-filled-view" style="display: none; width: 100%; text-align: center;">
+                <img id="chipset-bg-preview-img" class="chipset-bg-thumb" alt="Set Background" />
+                <div style="font-size: 0.72rem; color: #00ff88; font-weight: 700; margin-top: 6px;">✓ Фон настроен (нажмите для кадрирования)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Chips Images Upload -->
+          <div class="chipset-creator-section">
+            <div class="chipset-creator-label">
+              <span>🔘</span> <span data-i18n="set_chips_upload_label">2. Загрузка фишек</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary);" data-i18n="set_chips_upload_desc">Загрузите картинки. Они автоматически превратятся в круглые 3D фишки!</div>
+
+            <!-- Upload Slots Grid (3, 6, or 9) -->
+            <input type="file" id="chipset-slot-file-input" accept="image/jpeg, image/png, image/webp" style="display: none;" onchange="handleChipSlotFileSelected(this.files[0])" />
+            <div id="chipset-slots-grid" class="chipset-slots-grid">
+              <!-- Rendered via JS based on selected count -->
+            </div>
+          </div>
+
+          <!-- Step 4: Live Composite Preview -->
+          <div class="chipset-creator-section" id="chipset-composite-section" style="display: none;">
+            <div class="chipset-creator-label">
+              <span>✨</span> <span>Предпросмотр сета</span>
+            </div>
+            <div class="chipset-composite-preview-box">
+              <canvas id="chipset-composite-canvas" class="chipset-composite-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button id="chipset-submit-btn" class="button button-size-large button-type-primary" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-size: 0.95rem; font-weight: 800; border-radius: 14px; box-shadow: 0 4px 18px rgba(236, 72, 153, 0.4); margin-top: 4px;" onclick="submitCustomChipSet()">
+            <span id="chipset-submit-text" data-i18n="btn_submit_set">🚀 Отправить сет на модерацию</span>
+          </button>
+
+          <div id="chipset-status-msg" style="text-align: center; font-size: 0.8rem; min-height: 18px; color: var(--accent-gold); margin-top: 2px;"></div>
+        </div>
+      </div>
+
+      <div id="chipsets-global-status" style="margin-top: 6px; font-size: 0.8rem; color: var(--accent-gold); min-height: 16px; text-align: center;"></div>
+    </div>
+  </div>
+
+  <!-- Image Cropper & Adjuster Modal -->
+  <div id="image-cropper-overlay" class="tutorial-overlay" style="z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);">
+    <div class="tutorial-modal image-cropper-modal" style="width: 95%; max-width: 440px; max-height: 92vh; padding: 16px 14px 18px; border: 1px solid rgba(236, 72, 153, 0.5); background: linear-gradient(180deg, #1c1424 0%, #101014 100%); box-shadow: 0 10px 40px rgba(0,0,0,0.85);">
+      
+      <!-- Cropper Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">✂️</span>
+          <h3 style="margin: 0; font-size: 1.1rem; color: #fff;" id="cropper-modal-title">Настройка изображения</h3>
+        </div>
+        <button class="close-modal-btn" style="position: static;" onclick="closeImageCropper()">✕</button>
+      </div>
+
+      <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 10px; text-align: center;" id="cropper-modal-hint">
+        Перетаскивайте изображение и масштабируйте ползунком
+      </div>
+
+      <!-- Viewport Canvas Area -->
+      <div class="cropper-viewport-container" id="cropper-viewport-container">
+        <canvas id="cropper-canvas" class="cropper-canvas"></canvas>
+      </div>
+
+      <!-- Zoom & Transform Controls -->
+      <div class="cropper-controls-box">
+        <div class="cropper-slider-row">
+          <span style="font-size: 0.9rem;">🔍</span>
+          <button class="cropper-zoom-btn" onclick="adjustCropperZoom(-0.15); triggerHaptic('light');">−</button>
+          <input type="range" id="cropper-zoom-slider" min="0.3" max="4.0" step="0.02" value="1" class="cropper-slider" oninput="onCropperZoomSlider(this.value)" />
+          <button class="cropper-zoom-btn" onclick="adjustCropperZoom(0.15); triggerHaptic('light');">+</button>
+        </div>
+
+        <div class="cropper-actions-row">
+          <button class="cropper-tool-btn" onclick="cropperPickAnotherImage(); triggerHaptic('light');">
+            <span>📁</span> <span data-i18n="cropper_change_file">Файл</span>
+          </button>
+          <button class="cropper-tool-btn" onclick="rotateCropperImage(); triggerHaptic('light');">
+            <span>🔄</span> <span data-i18n="cropper_rotate">Повернуть</span>
+          </button>
+          <button class="cropper-tool-btn" onclick="resetCropperTransform(); triggerHaptic('light');">
+            <span>🎯</span> <span data-i18n="cropper_center">По центру</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button class="button button-type-secondary" style="flex: 1; border-radius: 12px; padding: 12px; font-size: 0.85rem;" onclick="closeImageCropper()">
+          <span data-i18n="cropper_cancel">Отмена</span>
+        </button>
+        <button class="button button-type-primary" style="flex: 1.5; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-weight: 800; font-size: 0.9rem;" onclick="applyCroppedImage(); triggerHaptic('impact');">
+          ✓ <span data-i18n="cropper_apply">Готово</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
 
   <!-- Season Complete Modal -->
   <div id="season-complete-overlay" class="tutorial-overlay">
@@ -2538,6 +3132,11 @@
 
       <!-- Right Column Badges -->
       <div class="home__bottom-right">
+        <button class="offer-badge" onclick="openChipSetsModal(); triggerHaptic('light');" title="Сеты фишек" data-i18n-title="menu_chip_sets">
+          <div class="offer-badge__timer" style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff;">TOP</div>
+          <span class="offer-badge__icon">🎨</span>
+          <div class="offer-badge__label" data-i18n="menu_chip_sets">Сеты</div>
+        </button>
         <button class="offer-badge" onclick="openInventoryModal(); triggerHaptic('light');" title="Инвентарь" data-i18n-title="menu_inventory">
           <div class="offer-badge__timer" style="background: linear-gradient(135deg, #a855f7, #06b6d4); color: #fff;" id="inventory-badge-count">0</div>
           <span class="offer-badge__icon">🎒</span>
@@ -3001,7 +3600,38 @@
       item_ancient_key_desc: "Древний золотой ключ от тайного сейфа! При открытии дает джекпот +10,000 шишек!",
       item_rarity_rare: "Редкий",
       item_rarity_epic: "Эпический",
-      item_rarity_legendary: "Легендарный"
+      item_rarity_legendary: "Легендарный",
+      menu_chip_sets: "Сеты",
+      chip_sets_title: "🎨 Сеты фишек",
+      chip_sets_desc: "Авторские коллекции круглых 3D фишек. Голосуйте за любимые сеты!",
+      tab_sets_top: "🔥 ТОП",
+      tab_sets_new: "🕒 Новые",
+      tab_sets_create: "➕ Создать сет",
+      create_set_title: "🎨 Конструктор сета фишек",
+      set_count_label: "Количество фишек в сете:",
+      set_title_label: "Название коллекции:",
+      set_title_ph: "Например, Футурама",
+      set_desc_label: "Описание коллекции:",
+      set_desc_ph: "Краткое описание коллекции...",
+      set_bg_upload_label: "1. Фоновое изображение",
+      set_bg_upload_desc: "Загрузите красивый фон, на котором будут размещены ваши фишки",
+      set_chips_upload_label: "2. Загрузка фишек",
+      set_chips_upload_desc: "Загрузите изображения для каждой фишки. Они автоматически превратятся в круглые 3D фишки с объёмным глянцем!",
+      btn_upload_chip: "Выбрать",
+      btn_submit_set: "🚀 Отправить сет на модерацию",
+      set_submitted_toast: "✨ Сет отправлен на модерацию администратору!",
+      vote_btn: "Нравится",
+      voted_btn: "Вам нравится",
+      author_label: "Автор",
+      chips_count_tag: "фишек",
+      sets_empty: "Пока нет опубликованных сетов. Будьте первым, кто создаст коллекцию!",
+      cropper_hint_chip: "Двигайте и увеличивайте картинку, чтобы вместить в круглую фишку",
+      cropper_hint_bg: "Двигайте и масштабируйте фон для идеального кадрирования",
+      cropper_rotate: "Повернуть",
+      cropper_center: "По центру",
+      cropper_cancel: "Отмена",
+      cropper_apply: "Готово",
+      cropper_change_file: "Файл"
     },
     en: {
       lang_btn: "EN",
@@ -3200,9 +3830,41 @@
       item_ancient_key_desc: "Ancient golden key to the secret vault! Unlocks a massive stash of +10,000 cones!",
       item_rarity_rare: "Rare",
       item_rarity_epic: "Epic",
-      item_rarity_legendary: "Legendary"
+      item_rarity_legendary: "Legendary",
+      menu_chip_sets: "Sets",
+      chip_sets_title: "🎨 Chip Sets",
+      chip_sets_desc: "Author collections of round 3D chips. Vote for your favorite sets!",
+      tab_sets_top: "🔥 TOP",
+      tab_sets_new: "🕒 New",
+      tab_sets_create: "➕ Create Set",
+      create_set_title: "🎨 Chip Set Builder",
+      set_count_label: "Chips count in set:",
+      set_title_label: "Collection title:",
+      set_title_ph: "For example, Futurama",
+      set_desc_label: "Collection description:",
+      set_desc_ph: "Short description of the collection...",
+      set_bg_upload_label: "1. Background image",
+      set_bg_upload_desc: "Upload a beautiful background where your chips will be displayed",
+      set_chips_upload_label: "2. Upload chips",
+      set_chips_upload_desc: "Upload images for each chip. They will automatically transform into round 3D chips with specular gloss!",
+      btn_upload_chip: "Choose",
+      btn_submit_set: "🚀 Submit Set for Moderation",
+      set_submitted_toast: "✨ Set submitted for administrator moderation!",
+      vote_btn: "Like",
+      voted_btn: "Liked",
+      author_label: "Author",
+      chips_count_tag: "chips",
+      sets_empty: "No published sets yet. Be the first to create a collection!",
+      cropper_hint_chip: "Drag and zoom image to fit into the round chip",
+      cropper_hint_bg: "Drag and zoom background image for perfect framing",
+      cropper_rotate: "Rotate",
+      cropper_center: "Center",
+      cropper_cancel: "Cancel",
+      cropper_apply: "Done",
+      cropper_change_file: "File"
     }
   };
+
 
   // ==================== HAPTIC & UI HELPERS ====================
   function triggerHaptic(type = 'light') {
@@ -7042,7 +7704,883 @@
     }
   });
 
+
+  // ==================== СЕТЫ ФИШЕК (CUSTOM CHIP SETS) ====================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  let chipSetsState = {
+    currentTab: 'top',
+    isAdmin: false,
+    sets: [],
+    creatorCount: 3,
+    creatorBgData: null,
+    creatorChipsData: [],
+    currentSlotIndex: 0,
+    isSubmitting: false
+  };
+
+  function openChipSetsModal(tab = 'top') {
+    const overlay = document.getElementById('chip-sets-modal-overlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    switchChipSetsTab(tab);
+  }
+
+  function closeChipSetsModal() {
+    const overlay = document.getElementById('chip-sets-modal-overlay');
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  function switchChipSetsTab(tab) {
+    chipSetsState.currentTab = tab;
+    
+    document.getElementById('tab-chipsets-top')?.classList.toggle('active', tab === 'top');
+    document.getElementById('tab-chipsets-new')?.classList.toggle('active', tab === 'new');
+    document.getElementById('tab-chipsets-create')?.classList.toggle('active', tab === 'create');
+
+    const listContainer = document.getElementById('chip-sets-list-container');
+    const creatorContainer = document.getElementById('chip-sets-creator-container');
+
+    if (tab === 'create') {
+      if (listContainer) listContainer.style.display = 'none';
+      if (creatorContainer) {
+        creatorContainer.style.display = 'block';
+        initChipSetCreator();
+      }
+    } else {
+      if (creatorContainer) creatorContainer.style.display = 'none';
+      if (listContainer) {
+        listContainer.style.display = 'flex';
+        loadChipSets(tab);
+      }
+    }
+  }
+
+  async function loadChipSets(sort = 'top') {
+    const listContainer = document.getElementById('chip-sets-list-container');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--text-secondary);"><span style="font-size: 1.5rem;">⏳</span><br/>Загрузка сетов...</div>`;
+
+    const userId = getUserId() || 0;
+    try {
+      const res = await fetch(`/api/chip_sets/list?sort=${sort}&userId=${userId}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        chipSetsState.sets = data.sets || [];
+        chipSetsState.isAdmin = !!data.is_admin;
+        
+        const createTabBtn = document.getElementById('tab-chipsets-create');
+        if (createTabBtn) {
+          createTabBtn.style.display = chipSetsState.isAdmin ? 'flex' : 'none';
+        }
+
+        renderChipSetsList(chipSetsState.sets);
+      } else {
+        listContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #ff5252;">${data.error || 'Ошибка загрузки'}</div>`;
+      }
+    } catch (err) {
+      console.error('Ошибка loadChipSets:', err);
+      listContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #ff5252;">Ошибка сети при загрузке сетов</div>`;
+    }
+  }
+
+  function renderChipSetsList(sets) {
+    const listContainer = document.getElementById('chip-sets-list-container');
+    if (!listContainer) return;
+
+    if (!sets || sets.length === 0) {
+      listContainer.innerHTML = `
+        <div style="text-align: center; padding: 30px 14px; background: rgba(0,0,0,0.25); border-radius: 16px; border: 1px dashed var(--border-subtle); color: var(--text-secondary);">
+          <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🎨</span>
+          <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">${i18n[currentLang]?.sets_empty || 'Пока нет опубликованных сетов'}</div>
+          ${chipSetsState.isAdmin ? '<button class="button button-type-secondary" style="margin-top: 12px; font-size: 11px; padding: 6px 14px; border-radius: 10px;" onclick="switchChipSetsTab(\'create\')">➕ Создать первый сет</button>' : ''}
+        </div>
+      `;
+      return;
+    }
+
+    listContainer.innerHTML = '';
+    sets.forEach(set => {
+      const card = document.createElement('div');
+      card.className = 'chipset-card';
+      
+      const chipsCount = set.chips_count || (set.chips ? set.chips.length : 0);
+      const isVoted = !!set.has_voted;
+      const votesCount = set.votes_count || 0;
+      const collageUrl = set.preview_collage || '';
+
+      card.innerHTML = `
+        <div class="chipset-preview-wrap">
+          <img src="${collageUrl}" class="chipset-preview-img" alt="${escapeHtml(set.title)}" loading="lazy" />
+        </div>
+        <div class="chipset-info-bar">
+          <div class="chipset-title-row">
+            <div class="chipset-title">${escapeHtml(set.title)}</div>
+            <span class="chipset-count-badge">${chipsCount} ${i18n[currentLang]?.chips_count_tag || 'фишек'}</span>
+          </div>
+          ${set.description ? `<div class="chipset-desc">${escapeHtml(set.description)}</div>` : ''}
+          <div class="chipset-footer-row">
+            <div class="chipset-author">
+              <span>👤</span> ${i18n[currentLang]?.author_label || 'Автор:'} <b>${escapeHtml(set.author_name || 'Админ')}</b>
+            </div>
+            <button class="chipset-vote-btn ${isVoted ? 'voted' : ''}" onclick="toggleVoteChipSet(${set.id}, this); triggerHaptic('selection');">
+              <span class="heart-icon">${isVoted ? '❤️' : '🤍'}</span>
+              <span class="votes-num">${votesCount}</span>
+            </button>
+          </div>
+        </div>
+      `;
+      listContainer.appendChild(card);
+    });
+  }
+
+  async function toggleVoteChipSet(setId, btnEl) {
+    const userId = getUserId();
+    if (!userId) {
+      triggerHaptic('warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/chip_sets/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg.initData || ''
+        },
+        body: JSON.stringify({ setId, userId })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        const heartSpan = btnEl.querySelector('.heart-icon');
+        const numSpan = btnEl.querySelector('.votes-num');
+        if (data.has_voted) {
+          btnEl.classList.add('voted');
+          if (heartSpan) heartSpan.innerText = '❤️';
+          triggerHaptic('impact');
+        } else {
+          btnEl.classList.remove('voted');
+          if (heartSpan) heartSpan.innerText = '🤍';
+          triggerHaptic('light');
+        }
+        if (numSpan) numSpan.innerText = data.votes_count;
+      }
+    } catch (err) {
+      console.error('Ошибка toggleVoteChipSet:', err);
+    }
+  }
+
+  // ---------- CREATOR LOGIC ----------
+
+  function initChipSetCreator() {
+    chipSetsState.creatorChipsData = new Array(chipSetsState.creatorCount).fill(null);
+    renderCreatorSlots();
+    updateCompositePreview();
+  }
+
+  function selectCreatorChipsCount(count) {
+    chipSetsState.creatorCount = count;
+    document.getElementById('chipset-count-3')?.classList.toggle('active', count === 3);
+    document.getElementById('chipset-count-6')?.classList.toggle('active', count === 6);
+    document.getElementById('chipset-count-9')?.classList.toggle('active', count === 9);
+
+    const oldData = chipSetsState.creatorChipsData || [];
+    chipSetsState.creatorChipsData = new Array(count).fill(null);
+    for (let i = 0; i < count; i++) {
+      if (oldData[i]) chipSetsState.creatorChipsData[i] = oldData[i];
+    }
+    renderCreatorSlots();
+    updateCompositePreview();
+  }
+
+  function renderCreatorSlots() {
+    const grid = document.getElementById('chipset-slots-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    for (let i = 0; i < chipSetsState.creatorCount; i++) {
+      const slot = document.createElement('div');
+      const itemData = chipSetsState.creatorChipsData[i];
+      slot.className = `chipset-slot ${itemData ? 'filled' : ''}`;
+      slot.onclick = () => {
+        chipSetsState.currentSlotIndex = i;
+        if (itemData && itemData.rawImg) {
+          openImageCropper({ mode: 'chip', slotIndex: i, img: itemData.rawImg });
+        } else {
+          const fileInput = document.getElementById('chipset-slot-file-input');
+          if (fileInput) {
+            fileInput.value = '';
+            fileInput.click();
+          }
+        }
+      };
+
+      if (itemData) {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'chipset-slot-canvas';
+        canvas.width = 160;
+        canvas.height = 160;
+        drawRoundChipToCanvas(canvas, itemData.img);
+        slot.appendChild(canvas);
+        const badge = document.createElement('span');
+        badge.className = 'chipset-slot-badge';
+        badge.innerText = `✓ #${i + 1}`;
+        slot.appendChild(badge);
+      } else {
+        slot.innerHTML = `
+          <div class="chipset-slot-empty-icon">➕</div>
+          <span class="chipset-slot-badge">#${i + 1}</span>
+        `;
+      }
+
+      grid.appendChild(slot);
+    }
+  }
+
+  function handleBgZoneClicked() {
+    if (chipSetsState.creatorBgData && chipSetsState.creatorBgData.rawImg) {
+      openImageCropper({ mode: 'bg', img: chipSetsState.creatorBgData.rawImg });
+    } else {
+      const fileInput = document.getElementById('chipset-bg-file-input');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+  }
+
+  function handleBgFileSelected(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        openImageCropper({ mode: 'bg', img: img });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleChipSlotFileSelected(file) {
+    if (!file) return;
+    const idx = chipSetsState.currentSlotIndex;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        openImageCropper({ mode: 'chip', slotIndex: idx, img: img });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function cropperPickAnotherImage() {
+    if (cropperState.mode === 'chip') {
+      const input = document.getElementById('chipset-slot-file-input');
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+    } else {
+      const input = document.getElementById('chipset-bg-file-input');
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+    }
+  }
+
+  // ==================== INTERACTIVE IMAGE CROPPER ENGINE ====================
+  let cropperState = {
+    active: false,
+    mode: 'chip',
+    slotIndex: 0,
+    img: null,
+    zoom: 1.0,
+    minZoom: 0.2,
+    maxZoom: 4.0,
+    panX: 0,
+    panY: 0,
+    rotation: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    initialPanX: 0,
+    initialPanY: 0,
+    pinchStartDist: 0,
+    pinchStartZoom: 1.0,
+    canvasW: 320,
+    canvasH: 320,
+    targetAspect: 1.0
+  };
+
+  function openImageCropper(config) {
+    cropperState.active = true;
+    cropperState.mode = config.mode || 'chip';
+    cropperState.slotIndex = config.slotIndex !== undefined ? config.slotIndex : 0;
+    cropperState.img = config.img;
+    cropperState.rotation = 0;
+
+    const overlay = document.getElementById('image-cropper-overlay');
+    const titleEl = document.getElementById('cropper-modal-title');
+    const hintEl = document.getElementById('cropper-modal-hint');
+
+    if (cropperState.mode === 'chip') {
+      if (titleEl) titleEl.innerText = `✂️ Настройка фишки #${cropperState.slotIndex + 1}`;
+      if (hintEl) hintEl.innerText = i18n[currentLang]?.cropper_hint_chip || 'Двигайте и увеличивайте картинку, чтобы вместить фишку';
+      cropperState.targetAspect = 1.0;
+    } else {
+      if (titleEl) titleEl.innerText = '✂️ Настройка фона сета';
+      if (hintEl) hintEl.innerText = i18n[currentLang]?.cropper_hint_bg || 'Двигайте и масштабируйте фон для идеального кадрирования';
+      const count = chipSetsState.creatorCount || 3;
+      cropperState.targetAspect = count === 3 ? (1000 / 480) : (count === 6 ? (1000 / 720) : 1.0);
+    }
+
+    if (overlay) overlay.classList.add('active');
+
+    setTimeout(() => {
+      initCropperCanvas();
+      resetCropperTransform();
+      setupCropperGestures();
+    }, 50);
+  }
+
+  function closeImageCropper() {
+    cropperState.active = false;
+    const overlay = document.getElementById('image-cropper-overlay');
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  function initCropperCanvas() {
+    const container = document.getElementById('cropper-viewport-container');
+    const canvas = document.getElementById('cropper-canvas');
+    if (!container || !canvas) return;
+
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    cropperState.canvasW = canvas.width;
+    cropperState.canvasH = canvas.height;
+  }
+
+  function getCropBoxDimensions() {
+    const dpr = window.devicePixelRatio || 1;
+    const cw = cropperState.canvasW || 300 * dpr;
+    const ch = cropperState.canvasH || 300 * dpr;
+
+    if (cropperState.mode === 'chip') {
+      const diameter = Math.min(cw, ch) * 0.76;
+      return { cropW: diameter, cropH: diameter, radius: diameter / 2 };
+    } else {
+      const maxW = cw * 0.88;
+      const maxH = ch * 0.84;
+      let w = maxW;
+      let h = w / cropperState.targetAspect;
+      if (h > maxH) {
+        h = maxH;
+        w = h * cropperState.targetAspect;
+      }
+      return { cropW: w, cropH: h, radius: 0 };
+    }
+  }
+
+  function resetCropperTransform() {
+    if (!cropperState.img) return;
+    cropperState.rotation = 0;
+    cropperState.panX = 0;
+    cropperState.panY = 0;
+
+    const { cropW, cropH } = getCropBoxDimensions();
+    const imgW = (cropperState.rotation % 180 === 0) ? cropperState.img.width : cropperState.img.height;
+    const imgH = (cropperState.rotation % 180 === 0) ? cropperState.img.height : cropperState.img.width;
+
+    const scaleX = cropW / imgW;
+    const scaleY = cropH / imgH;
+    const fitZoom = Math.max(scaleX, scaleY);
+
+    cropperState.minZoom = Math.max(0.1, fitZoom * 0.4);
+    cropperState.maxZoom = Math.max(4.0, fitZoom * 4.0);
+    cropperState.zoom = fitZoom;
+
+    const slider = document.getElementById('cropper-zoom-slider');
+    if (slider) {
+      slider.min = cropperState.minZoom;
+      slider.max = cropperState.maxZoom;
+      slider.value = cropperState.zoom;
+    }
+
+    renderCropper();
+  }
+
+  function renderCropper() {
+    const canvas = document.getElementById('cropper-canvas');
+    if (!canvas || !cropperState.img) return;
+
+    const ctx = canvas.getContext('2d');
+    const cw = canvas.width;
+    const ch = canvas.height;
+    ctx.clearRect(0, 0, cw, ch);
+
+    const cx = cw / 2;
+    const cy = ch / 2;
+    const { cropW, cropH, radius } = getCropBoxDimensions();
+
+    // 1. Draw Image with pan, zoom, rotation
+    ctx.save();
+    ctx.translate(cx + cropperState.panX, cy + cropperState.panY);
+    ctx.rotate((cropperState.rotation * Math.PI) / 180);
+    ctx.scale(cropperState.zoom, cropperState.zoom);
+    ctx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+    ctx.restore();
+
+    // 2. Draw Dark Mask outside the Crop Area
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+    ctx.beginPath();
+    ctx.rect(0, 0, cw, ch);
+
+    if (cropperState.mode === 'chip') {
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2, true);
+    } else {
+      const rx = cx - cropW / 2;
+      const ry = cy - cropH / 2;
+      ctx.rect(rx + cropW, ry, -cropW, cropH);
+    }
+    ctx.fill('evenodd');
+    ctx.restore();
+
+    // 3. Draw Crop Area Guide Borders
+    ctx.save();
+    if (cropperState.mode === 'chip') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = 3 * (window.devicePixelRatio || 1);
+      ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 6 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      const rx = cx - cropW / 2;
+      const ry = cy - cropH / 2;
+      ctx.beginPath();
+      ctx.rect(rx, ry, cropW, cropH);
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = 3 * (window.devicePixelRatio || 1);
+      ctx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+
+      const cl = 20 * (window.devicePixelRatio || 1);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4 * (window.devicePixelRatio || 1);
+      ctx.beginPath(); ctx.moveTo(rx, ry + cl); ctx.lineTo(rx, ry); ctx.lineTo(rx + cl, ry); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx + cropW - cl, ry); ctx.lineTo(rx + cropW, ry); ctx.lineTo(rx + cropW, ry + cl); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx, ry + cropH - cl); ctx.lineTo(rx, ry + cropH); ctx.lineTo(rx + cl, ry + cropH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rx + cropW - cl, ry + cropH); ctx.lineTo(rx + cropW, ry + cropH); ctx.lineTo(rx + cropW, ry + cropH - cl); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function adjustCropperZoom(delta) {
+    setCropperZoom(cropperState.zoom + delta);
+  }
+
+  function onCropperZoomSlider(val) {
+    setCropperZoom(parseFloat(val));
+  }
+
+  function setCropperZoom(val) {
+    cropperState.zoom = Math.max(cropperState.minZoom, Math.min(cropperState.maxZoom, val));
+    const slider = document.getElementById('cropper-zoom-slider');
+    if (slider) slider.value = cropperState.zoom;
+    renderCropper();
+  }
+
+  function rotateCropperImage() {
+    cropperState.rotation = (cropperState.rotation + 90) % 360;
+    renderCropper();
+  }
+
+  let cropperEventsBound = false;
+  function setupCropperGestures() {
+    if (cropperEventsBound) return;
+    const container = document.getElementById('cropper-viewport-container');
+    if (!container) return;
+    cropperEventsBound = true;
+
+    container.addEventListener('pointerdown', (e) => {
+      cropperState.isDragging = true;
+      cropperState.dragStartX = e.clientX;
+      cropperState.dragStartY = e.clientY;
+      cropperState.initialPanX = cropperState.panX;
+      cropperState.initialPanY = cropperState.panY;
+      try { container.setPointerCapture(e.pointerId); } catch(err) {}
+    });
+
+    container.addEventListener('pointermove', (e) => {
+      if (!cropperState.isDragging) return;
+      const dpr = window.devicePixelRatio || 1;
+      const dx = (e.clientX - cropperState.dragStartX) * dpr;
+      const dy = (e.clientY - cropperState.dragStartY) * dpr;
+      cropperState.panX = cropperState.initialPanX + dx;
+      cropperState.panY = cropperState.initialPanY + dy;
+      renderCropper();
+    });
+
+    const stopDrag = () => {
+      cropperState.isDragging = false;
+    };
+    container.addEventListener('pointerup', stopDrag);
+    container.addEventListener('pointercancel', stopDrag);
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      adjustCropperZoom(delta);
+    }, { passive: false });
+
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        cropperState.isDragging = false;
+        cropperState.pinchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        cropperState.pinchStartZoom = cropperState.zoom;
+      }
+    });
+
+    container.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (cropperState.pinchStartDist > 0) {
+          const factor = dist / cropperState.pinchStartDist;
+          setCropperZoom(cropperState.pinchStartZoom * factor);
+        }
+      }
+    }, { passive: false });
+  }
+
+  function applyCroppedImage() {
+    if (!cropperState.img) return;
+
+    const { cropW, cropH } = getCropBoxDimensions();
+
+    if (cropperState.mode === 'chip') {
+      const outCanvas = document.createElement('canvas');
+      const outSize = 400;
+      outCanvas.width = outSize;
+      outCanvas.height = outSize;
+      const outCtx = outCanvas.getContext('2d');
+
+      const scaleRatio = outSize / cropW;
+      outCtx.translate(outSize / 2 + cropperState.panX * scaleRatio, outSize / 2 + cropperState.panY * scaleRatio);
+      outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+
+      const b64 = outCanvas.toDataURL('image/png');
+      const croppedImg = new Image();
+      croppedImg.onload = () => {
+        const idx = cropperState.slotIndex;
+        chipSetsState.creatorChipsData[idx] = {
+          base64: b64,
+          img: croppedImg,
+          rawImg: cropperState.img
+        };
+        renderCreatorSlots();
+        updateCompositePreview();
+        closeImageCropper();
+        triggerHaptic('success');
+      };
+      croppedImg.src = b64;
+    } else {
+      const outW = 1200;
+      const outH = Math.round(outW / cropperState.targetAspect);
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = outW;
+      outCanvas.height = outH;
+      const outCtx = outCanvas.getContext('2d');
+
+      const scaleRatio = outW / cropW;
+      outCtx.translate(outW / 2 + cropperState.panX * scaleRatio, outH / 2 + cropperState.panY * scaleRatio);
+      outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+      outCtx.scale(cropperState.zoom * scaleRatio, cropperState.zoom * scaleRatio);
+      outCtx.drawImage(cropperState.img, -cropperState.img.width / 2, -cropperState.img.height / 2);
+
+      const b64 = outCanvas.toDataURL('image/jpeg', 0.90);
+      const croppedImg = new Image();
+      croppedImg.onload = () => {
+        chipSetsState.creatorBgData = {
+          base64: b64,
+          img: croppedImg,
+          rawImg: cropperState.img
+        };
+
+        const emptyView = document.getElementById('chipset-bg-empty-view');
+        if (emptyView) emptyView.style.display = 'none';
+        const filledView = document.getElementById('chipset-bg-filled-view');
+        if (filledView) filledView.style.display = 'block';
+        const previewImg = document.getElementById('chipset-bg-preview-img');
+        if (previewImg) previewImg.src = b64;
+
+        updateCompositePreview();
+        closeImageCropper();
+        triggerHaptic('success');
+      };
+      croppedImg.src = b64;
+    }
+  }
+
+  function drawRoundChipToCanvas(canvas, img) {
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    ctx.clearRect(0, 0, size, size);
+
+    // Save context for circular clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.drawImage(img, 0, 0, size, size);
+
+    ctx.restore();
+    ctx.save();
+
+    // Outer border
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = size * 0.035;
+    ctx.stroke();
+
+    // Dark inset bevel
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - size * 0.05, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.lineWidth = size * 0.025;
+    ctx.stroke();
+
+    // Gloss crescent highlight at top
+    ctx.beginPath();
+    ctx.arc(size / 2, size * 0.38, size * 0.38, Math.PI, 0, false);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+
+  function updateCompositePreview() {
+    const previewSection = document.getElementById('chipset-composite-section');
+    const canvas = document.getElementById('chipset-composite-canvas');
+    if (!previewSection || !canvas) return;
+
+    if (!chipSetsState.creatorBgData) {
+      previewSection.style.display = 'none';
+      return;
+    }
+
+    previewSection.style.display = 'block';
+    const count = chipSetsState.creatorCount;
+    const canvasW = 1000;
+    const canvasH = count === 3 ? 480 : (count === 6 ? 720 : 1000);
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    // 1. Draw Background
+    const bgImg = chipSetsState.creatorBgData.img;
+    const bgRatio = bgImg.width / bgImg.height;
+    const targetRatio = canvasW / canvasH;
+    let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
+    if (bgRatio > targetRatio) {
+      sw = bgImg.height * targetRatio;
+      sx = (bgImg.width - sw) / 2;
+    } else {
+      sh = bgImg.width / targetRatio;
+      sy = (bgImg.height - sh) / 2;
+    }
+    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // 2. Draw chips grid
+    const cols = 3;
+    const rows = Math.ceil(count / 3);
+    const chipSize = count === 9 ? 230 : (count === 6 ? 250 : 260);
+    const gapX = Math.floor((canvasW - (cols * chipSize)) / (cols + 1));
+    const gapY = Math.floor((canvasH - (rows * chipSize)) / (rows + 1));
+
+    for (let i = 0; i < count; i++) {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      const x = gapX + c * (chipSize + gapX);
+      const y = gapY + r * (chipSize + gapY);
+
+      // Drop shadow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+      ctx.beginPath();
+      ctx.arc(x + chipSize / 2, y + chipSize / 2, chipSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fill();
+      ctx.restore();
+
+      const itemData = chipSetsState.creatorChipsData[i];
+      if (itemData) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = chipSize;
+        offCanvas.height = chipSize;
+        drawRoundChipToCanvas(offCanvas, itemData.img);
+        ctx.drawImage(offCanvas, x, y, chipSize, chipSize);
+      } else {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + chipSize / 2, y + chipSize / 2, chipSize / 2 - 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.setLineDash([8, 8]);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fill();
+        ctx.font = 'bold 36px Montserrat, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`#${i + 1}`, x + chipSize / 2, y + chipSize / 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  async function submitCustomChipSet() {
+    if (chipSetsState.isSubmitting) return;
+
+    const titleInput = document.getElementById('chipset-input-title');
+    const descInput = document.getElementById('chipset-input-desc');
+    const statusMsg = document.getElementById('chipset-status-msg');
+    const submitBtn = document.getElementById('chipset-submit-btn');
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    const description = descInput ? descInput.value.trim() : '';
+    const count = chipSetsState.creatorCount;
+
+    if (!title) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Введите название коллекции!';
+      triggerHaptic('error');
+      return;
+    }
+
+    if (!chipSetsState.creatorBgData) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Загрузите фоновое изображение сета!';
+      triggerHaptic('error');
+      return;
+    }
+
+    const missingChips = [];
+    for (let i = 0; i < count; i++) {
+      if (!chipSetsState.creatorChipsData[i]) missingChips.push(i + 1);
+    }
+
+    if (missingChips.length > 0) {
+      if (statusMsg) statusMsg.innerText = `⚠️ Загрузите все фишки (не хватает #${missingChips.join(', #')})!`;
+      triggerHaptic('error');
+      return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+      if (statusMsg) statusMsg.innerText = '⚠️ Пользователь не авторизован!';
+      triggerHaptic('error');
+      return;
+    }
+
+    chipSetsState.isSubmitting = true;
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusMsg) statusMsg.innerText = '⏳ Создание и отправка сета...';
+
+    const chipsB64List = chipSetsState.creatorChipsData.slice(0, count).map(c => c.base64);
+
+    try {
+      const res = await fetch('/api/chip_sets/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': tg.initData || ''
+        },
+        body: JSON.stringify({
+          userId: userId,
+          title: title,
+          description: description,
+          chips_count: count,
+          background_image: chipSetsState.creatorBgData.base64,
+          chips: chipsB64List
+        })
+      });
+
+      const data = await res.json();
+      if (data.status === 'ok') {
+        triggerHaptic('success');
+        if (statusMsg) statusMsg.innerText = '✅ ' + (i18n[currentLang]?.set_submitted_toast || 'Сет отправлен на модерацию!');
+        setTimeout(() => {
+          switchChipSetsTab('top');
+          if (titleInput) titleInput.value = '';
+          if (descInput) descInput.value = '';
+          chipSetsState.creatorBgData = null;
+          chipSetsState.creatorChipsData = [];
+          const emptyView = document.getElementById('chipset-bg-empty-view');
+          if (emptyView) emptyView.style.display = 'block';
+          const filledView = document.getElementById('chipset-bg-filled-view');
+          if (filledView) filledView.style.display = 'none';
+          if (statusMsg) statusMsg.innerText = '';
+        }, 1500);
+      } else {
+        triggerHaptic('error');
+        if (statusMsg) statusMsg.innerText = '❌ ' + (data.error || 'Ошибка отправки');
+      }
+    } catch (err) {
+      console.error('Ошибка submitCustomChipSet:', err);
+      triggerHaptic('error');
+      if (statusMsg) statusMsg.innerText = '❌ Ошибка сети при отправке сета';
+    } finally {
+      chipSetsState.isSubmitting = false;
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
   // ==================== INIT ====================
+
   // Ждём полной инициализации Telegram WebApp перед загрузкой баланса
   window.addEventListener('DOMContentLoaded', async () => {
     try {

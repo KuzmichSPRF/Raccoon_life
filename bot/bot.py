@@ -21,6 +21,7 @@ from pathlib import Path
 from threading import Thread
 from io import BytesIO
 import requests
+from PIL import Image, ImageDraw, ImageOps, ImageFilter
 from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -104,12 +105,15 @@ security_logger = logging.getLogger('security')  # Отдельный logger д�
 
 DB_PATH = BOT_DIR / "users.db"
 WEBAPP_DIR = PROJECT_DIR / "webapp"
+SETS_IMG_DIR = WEBAPP_DIR / "images" / "sets"
+SETS_IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 logger.info(f"Database path: {DB_PATH.absolute()}")
 logger.info(f"WebApp static folder: {WEBAPP_DIR.absolute()}")
 
 # Flask приложение
 app = Flask(__name__, static_folder=str(WEBAPP_DIR.absolute()), static_url_path='')
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB для загрузки фонов и наборов фишек
 
 # Настройка CORS с ограничениями по происхождению
 ALLOWED_ORIGINS = [
@@ -454,6 +458,38 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(user_id),
                 FOREIGN KEY(referrer_id) REFERENCES users(user_id)
+            )
+        ''')
+
+        # Таблица пользовательских сетов фишек
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS custom_chip_sets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                author_id INTEGER NOT NULL,
+                author_name TEXT,
+                title TEXT NOT NULL,
+                description TEXT,
+                chips_count INTEGER NOT NULL,
+                background_image TEXT,
+                chips_json TEXT NOT NULL,
+                preview_collage TEXT,
+                status TEXT DEFAULT 'pending',
+                votes_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                approved_at TIMESTAMP,
+                FOREIGN KEY(author_id) REFERENCES users(user_id)
+            )
+        ''')
+
+        # Таблица голосов за сеты фишек
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS custom_chip_votes (
+                set_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (set_id, user_id),
+                FOREIGN KEY(set_id) REFERENCES custom_chip_sets(id),
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
         ''')
 
@@ -2671,6 +2707,462 @@ def upgrade_hollow_cones(user_id: int) -> dict:
         'hollow': new_hollow_st,
         'message': f'🎉 Дупло успешно прокачано до уровня {new_level}!\nДобыча: {new_yield:,} шишек/сутки'
     }
+
+
+# ==================== CUSTOM CHIP SETS SYSTEM ====================
+
+def generate_round_chip(raw_bytes: bytes, diameter: int = 300) -> Image.Image:
+    """Обрезает картинку в идеальный круг с 3D-бликом и глянцевым кантом."""
+    img = Image.open(BytesIO(raw_bytes)).convert("RGBA")
+    min_dim = min(img.width, img.height)
+    left = (img.width - min_dim) // 2
+    top = (img.height - min_dim) // 2
+    cropped = img.crop((left, top, left + min_dim, top + min_dim))
+    resized = cropped.resize((diameter, diameter), Image.Resampling.LANCZOS)
+
+    # Круглая маска с суперсэмплингом для идеально гладкого края
+    mask = Image.new('L', (diameter * 2, diameter * 2), 0)
+    d_mask = ImageDraw.Draw(mask)
+    d_mask.ellipse((0, 0, diameter * 2 - 1, diameter * 2 - 1), fill=255)
+    mask = mask.resize((diameter, diameter), Image.Resampling.LANCZOS)
+
+    output = Image.new('RGBA', (diameter, diameter), (0, 0, 0, 0))
+    output.paste(resized, (0, 0), mask=mask)
+
+    # Наложение 3D-блика и канта
+    overlay = Image.new('RGBA', (diameter, diameter), (0, 0, 0, 0))
+    d_ov = ImageDraw.Draw(overlay)
+    # Внешний темный контур
+    d_ov.ellipse((0, 0, diameter - 1, diameter - 1), outline=(0, 0, 0, 160), width=3)
+    # Внутренний светлый кант
+    d_ov.ellipse((3, 3, diameter - 4, diameter - 4), outline=(255, 255, 255, 140), width=2)
+    # Глянцевый полумесяц-блик сверху
+    d_ov.ellipse((int(diameter * 0.15), int(diameter * 0.05), int(diameter * 0.85), int(diameter * 0.45)), fill=(255, 255, 255, 45))
+
+    output = Image.alpha_composite(output, overlay)
+    return output
+
+
+def generate_set_collage(bg_bytes: bytes, chip_images: list, count: int = 9) -> Image.Image:
+    """Генерирует единый коллаж-витрину фишек сета на фоновом изображении."""
+    chip_size = 280
+    gap = 25
+    margin = 35
+
+    cols = 3
+    if count == 3:
+        rows = 1
+    elif count == 6:
+        rows = 2
+    else:
+        rows = 3
+        count = 9
+
+    width = margin * 2 + cols * chip_size + (cols - 1) * gap
+    height = margin * 2 + rows * chip_size + (rows - 1) * gap
+
+    # Создание фоновой подложки
+    if bg_bytes:
+        try:
+            bg_img = Image.open(BytesIO(bg_bytes)).convert("RGBA")
+            scale = max(width / bg_img.width, height / bg_img.height)
+            new_w = int(bg_img.width * scale)
+            new_h = int(bg_img.height * scale)
+            bg_resized = bg_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            bg_left = (new_w - width) // 2
+            bg_top = (new_h - height) // 2
+            collage = bg_resized.crop((bg_left, bg_top, bg_left + width, bg_top + height))
+            
+            # Затемнение/виньетка для лучшей читаемости фишек
+            vignette = Image.new('RGBA', (width, height), (0, 0, 0, 60))
+            collage = Image.alpha_composite(collage, vignette)
+        except Exception as e:
+            logger.error(f"Ошибка загрузки фона сета: {e}")
+            collage = Image.new('RGBA', (width, height), (24, 24, 28, 255))
+    else:
+        collage = Image.new('RGBA', (width, height), (24, 24, 28, 255))
+
+    # Рисуем фишки с мягкими тенями
+    for idx, chip in enumerate(chip_images[:count]):
+        r = idx // cols
+        c = idx % cols
+        x = margin + c * (chip_size + gap)
+        y = margin + r * (chip_size + gap)
+
+        # Тень под фишкой
+        shadow_size = chip_size + 30
+        shadow = Image.new('RGBA', (shadow_size, shadow_size), (0, 0, 0, 0))
+        sh_draw = ImageDraw.Draw(shadow)
+        sh_draw.ellipse((15, 15, shadow_size - 15, shadow_size - 15), fill=(0, 0, 0, 160))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(10))
+
+        collage.paste(shadow, (x - 15, y - 10), shadow)
+
+        # Если фишка другого размера, ресайзим
+        if chip.size != (chip_size, chip_size):
+            chip_to_paste = chip.resize((chip_size, chip_size), Image.Resampling.LANCZOS)
+        else:
+            chip_to_paste = chip
+
+        collage.paste(chip_to_paste, (x, y), chip_to_paste)
+
+    return collage.convert("RGB")
+
+
+def create_custom_chip_set_db(author_id: int, author_name: str, title: str, description: str, 
+                              chips_count: int, bg_base64: str, chips_base64_list: list) -> dict:
+    """Создает сет фишек, обрабатывает картинки через PIL и отправляет карточку на модерацию админу."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(author_id)
+        
+        # 1. Вставляем черновик записи
+        cursor.execute("""
+            INSERT INTO custom_chip_sets (author_id, author_name, title, description, chips_count, chips_json, status)
+            VALUES (?, ?, ?, ?, ?, '[]', 'pending')
+        """, (author_id, author_name, title, description, chips_count))
+        set_id = cursor.lastrowid
+
+        # 2. Обработка фона
+        bg_rel_path = None
+        bg_bytes = None
+        if bg_base64:
+            if ',' in bg_base64:
+                bg_base64 = bg_base64.split(',', 1)[1]
+            try:
+                bg_bytes = base64.b64decode(bg_base64)
+                bg_filename = f"set_{set_id}_bg.jpg"
+                bg_filepath = SETS_IMG_DIR / bg_filename
+                with open(bg_filepath, 'wb') as f:
+                    f.write(bg_bytes)
+                bg_rel_path = f"images/sets/{bg_filename}"
+            except Exception as e:
+                logger.error(f"Ошибка сохранения фона сета #{set_id}: {e}")
+
+        # 3. Обработка круглых фишек
+        chips_paths = []
+        chip_images = []
+        for idx, chip_b64 in enumerate(chips_base64_list[:chips_count]):
+            if ',' in chip_b64:
+                chip_b64 = chip_b64.split(',', 1)[1]
+            try:
+                raw_bytes = base64.b64decode(chip_b64)
+                round_chip = generate_round_chip(raw_bytes, diameter=300)
+                chip_images.append(round_chip)
+
+                chip_filename = f"set_{set_id}_chip_{idx}.png"
+                chip_filepath = SETS_IMG_DIR / chip_filename
+                round_chip.save(chip_filepath, format="PNG")
+                chips_paths.append(f"images/sets/{chip_filename}")
+            except Exception as e:
+                logger.error(f"Ошибка нарезки фишки #{idx} для сета #{set_id}: {e}")
+
+        # 4. Генерация общего коллажа
+        collage_rel_path = None
+        if chip_images:
+            try:
+                collage_img = generate_set_collage(bg_bytes, chip_images, count=chips_count)
+                collage_filename = f"set_{set_id}_collage.jpg"
+                collage_filepath = SETS_IMG_DIR / collage_filename
+                collage_img.save(collage_filepath, format="JPEG", quality=92)
+                collage_rel_path = f"images/sets/{collage_filename}"
+            except Exception as e:
+                logger.error(f"Ошибка генерации коллажа сета #{set_id}: {e}")
+
+        # 5. Обновляем запись в БД
+        cursor.execute("""
+            UPDATE custom_chip_sets 
+            SET background_image = ?, chips_json = ?, preview_collage = ?
+            WHERE id = ?
+        """, (bg_rel_path, json.dumps(chips_paths), collage_rel_path, set_id))
+        conn.commit()
+
+        # 6. Отправка уведомления на модерацию администратору
+        send_chip_set_moderation_card(set_id, author_id, author_name, title, description, chips_count, collage_rel_path)
+
+        return {
+            'status': 'ok',
+            'set_id': set_id,
+            'message': 'Сет успешно отправлен на модерацию!'
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка create_custom_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def send_chip_set_moderation_card(set_id: int, author_id: int, author_name: str, 
+                                  title: str, description: str, chips_count: int, collage_rel_path: str):
+    """Отправляет карточку модерации сета фишек в ЛС администратору с кнопками Одобрить/Отклонить."""
+    if not ADMIN_ID or not BOT_TOKEN:
+        logger.warning("ADMIN_ID или BOT_TOKEN не настроены для модерации сетов")
+        return
+
+    try:
+        text = (
+            f"🎨 <b>НОВЫЙ СЕТ ФИШЕК НА МОДЕРАЦИИ!</b>\n\n"
+            f"🏷 <b>Название:</b> {html.escape(title)}\n"
+            f"📝 <b>Описание:</b> {html.escape(description or 'Без описания')}\n"
+            f"🔢 <b>Количество фишек:</b> {chips_count} шт.\n"
+            f"👤 <b>Автор:</b> {html.escape(author_name or 'Игрок')} (ID: <code>{author_id}</code>)\n"
+            f"🆔 <b>Сет ID:</b> #{set_id}"
+        )
+
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Одобрить и опубликовать", "callback_data": f"chip_set_approve_{set_id}"},
+                    {"text": "❌ Отклонить", "callback_data": f"chip_set_reject_{set_id}"}
+                ]
+            ]
+        }
+
+        api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/"
+
+        if collage_rel_path:
+            collage_full_path = WEBAPP_DIR / collage_rel_path
+            if collage_full_path.exists():
+                with open(collage_full_path, 'rb') as f:
+                    files = {'photo': (f"set_{set_id}.jpg", f, 'image/jpeg')}
+                    payload = {
+                        "chat_id": ADMIN_ID,
+                        "caption": text,
+                        "parse_mode": "HTML",
+                        "reply_markup": json.dumps(reply_markup)
+                    }
+                    requests.post(api_url + "sendPhoto", data=payload, files=files, timeout=20)
+                    logger.info(f"📬 Карточка модерации сета #{set_id} с фото отправлена админу {ADMIN_ID}")
+                    return
+
+        # Fallback без фото
+        requests.post(api_url + "sendMessage", json={
+            "chat_id": ADMIN_ID,
+            "text": text,
+            "parse_mode": "HTML",
+            "reply_markup": reply_markup
+        }, timeout=10)
+        logger.info(f"📬 Карточка модерации сета #{set_id} отправлена админу {ADMIN_ID}")
+    except Exception as e:
+        logger.error(f"Ошибка send_chip_set_moderation_card: {e}")
+
+
+def approve_chip_set_db(set_id: int) -> dict:
+    """Одобряет сет фишек, меняет статус на approved и публикует в Telegram-группу."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'error', 'message': 'Сет не найден'}
+
+        now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE custom_chip_sets SET status = 'approved', approved_at = ? WHERE id = ?", (now_moscow, set_id))
+        conn.commit()
+
+        # Публикация в группу @the_raccoon_times_group
+        publish_chip_set_to_group(row)
+
+        # Уведомление автору
+        try:
+            author_text = (
+                f"🎉 <b>Ваш сет фишек «{html.escape(row['title'])}» одобрен!</b>\n\n"
+                f"Он опубликован в группе и доступен в приложении в разделе <b>«Сеты фишек»</b>.\n"
+                f"Другие игроки уже могут голосовать за ваш сет! 🏆"
+            )
+            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
+                "chat_id": row['author_id'],
+                "text": author_text,
+                "parse_mode": "HTML"
+            }, timeout=6)
+        except Exception as e:
+            logger.error(f"Ошибка уведомления автора сета #{set_id}: {e}")
+
+        logger.info(f"✅ Сет #{set_id} ('{row['title']}') успешно одобрен и опубликован!")
+        return {'status': 'ok', 'message': f'Сет #{set_id} одобрен и опубликован в группе!'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка approve_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def publish_chip_set_to_group(set_row: dict):
+    """Публикует одобренный сет фишек в Telegram группу/канал."""
+    if not BOT_TOKEN:
+        return
+    try:
+        title = set_row['title']
+        description = set_row['description']
+        author_name = set_row['author_name'] or 'Игрок'
+        chips_count = set_row['chips_count']
+        collage_rel = set_row['preview_collage']
+
+        caption = (
+            f"✨ <b>НОВАЯ КОЛЛЕКЦИЯ ФИШЕК В RACCOON LIFE!</b> ✨\n\n"
+            f"🏷 <b>Коллекция:</b> {html.escape(title)}\n"
+            f"📝 <b>Описание:</b> {html.escape(description or 'Авторская коллекция')}\n"
+            f"🔢 <b>Фишек в сете:</b> {chips_count} шт.\n"
+            f"👤 <b>Автор:</b> {html.escape(author_name)}\n\n"
+            f"🗳 <i>Заходите в игру в раздел «Сеты фишек», чтобы оценить и проголосовать за эту коллекцию в ТОПе!</i> 🦝"
+        )
+
+        api_url = f"https://api.telegram.org/bot{BOT_TOKEN}/"
+        group_chat = "@the_raccoon_times_group"
+
+        if collage_rel:
+            collage_full_path = WEBAPP_DIR / collage_rel
+            if collage_full_path.exists():
+                with open(collage_full_path, 'rb') as f:
+                    files = {'photo': (f"set_{set_row['id']}.jpg", f, 'image/jpeg')}
+                    payload = {
+                        "chat_id": group_chat,
+                        "caption": caption,
+                        "parse_mode": "HTML"
+                    }
+                    requests.post(api_url + "sendPhoto", data=payload, files=files, timeout=20)
+                    logger.info(f"📢 Сет #{set_row['id']} опубликован в {group_chat} с фото")
+                    return
+
+        requests.post(api_url + "sendMessage", json={
+            "chat_id": group_chat,
+            "text": caption,
+            "parse_mode": "HTML"
+        }, timeout=10)
+        logger.info(f"📢 Сет #{set_row['id']} опубликован в {group_chat}")
+    except Exception as e:
+        logger.error(f"Ошибка publish_chip_set_to_group: {e}")
+
+
+def reject_chip_set_db(set_id: int) -> dict:
+    """Отклоняет сет фишек."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'error', 'message': 'Сет не найден'}
+
+        cursor.execute("UPDATE custom_chip_sets SET status = 'rejected' WHERE id = ?", (set_id,))
+        conn.commit()
+
+        # Уведомление автору
+        try:
+            author_text = (
+                f"ℹ️ <b>Ваш сет фишек «{html.escape(row['title'])}» был отклонен модератором.</b>\n\n"
+                f"Пожалуйста, убедитесь, что изображения соответствуют правилам и попробуйте снова."
+            )
+            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
+                "chat_id": row['author_id'],
+                "text": author_text,
+                "parse_mode": "HTML"
+            }, timeout=6)
+        except Exception as e:
+            logger.error(f"Ошибка уведомления автора сета #{set_id}: {e}")
+
+        logger.info(f"❌ Сет #{set_id} отклонен")
+        return {'status': 'ok', 'message': f'Сет #{set_id} отклонен.'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка reject_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def get_custom_chip_sets_list(sort: str = 'top', user_id: int = 0) -> list:
+    """Возвращает список одобренных сетов фишек с голосами и флагом has_voted."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        order_by = "votes_count DESC, id DESC" if sort == 'top' else "id DESC"
+        cursor.execute(f"""
+            SELECT id, author_id, author_name, title, description, chips_count, 
+                   background_image, chips_json, preview_collage, votes_count, created_at, approved_at
+            FROM custom_chip_sets
+            WHERE status = 'approved'
+            ORDER BY {order_by}
+            LIMIT 50
+        """)
+        rows = cursor.fetchall()
+
+        # Список сетов, за которые проголосовал текущий пользователь
+        voted_set_ids = set()
+        if user_id > 0:
+            cursor.execute("SELECT set_id FROM custom_chip_votes WHERE user_id = ?", (user_id,))
+            voted_set_ids = {r['set_id'] for r in cursor.fetchall()}
+
+        result = []
+        for r in rows:
+            chips = []
+            try:
+                chips = json.loads(r['chips_json']) if r['chips_json'] else []
+            except Exception:
+                chips = []
+
+            result.append({
+                'id': r['id'],
+                'author_id': r['author_id'],
+                'author_name': r['author_name'] or 'Енот',
+                'title': r['title'],
+                'description': r['description'] or '',
+                'chips_count': r['chips_count'],
+                'background_image': r['background_image'],
+                'chips': chips,
+                'preview_collage': r['preview_collage'],
+                'votes_count': r['votes_count'] or 0,
+                'has_voted': (r['id'] in voted_set_ids),
+                'created_at': r['created_at']
+            })
+
+        return result
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_custom_chip_sets_list: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def toggle_chip_set_vote_db(set_id: int, user_id: int) -> dict:
+    """Голосование за сет фишек (добавление или снятие голоса)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+        
+        cursor.execute("SELECT set_id FROM custom_chip_votes WHERE set_id = ? AND user_id = ?", (set_id, user_id))
+        existing = cursor.fetchone()
+
+        if existing:
+            # Снятие голоса
+            cursor.execute("DELETE FROM custom_chip_votes WHERE set_id = ? AND user_id = ?", (set_id, user_id))
+            cursor.execute("UPDATE custom_chip_sets SET votes_count = MAX(0, votes_count - 1) WHERE id = ?", (set_id,))
+            conn.commit()
+            has_voted = False
+        else:
+            # Добавление голоса
+            cursor.execute("INSERT INTO custom_chip_votes (set_id, user_id) VALUES (?, ?)", (set_id, user_id))
+            cursor.execute("UPDATE custom_chip_sets SET votes_count = votes_count + 1 WHERE id = ?", (set_id,))
+            conn.commit()
+            has_voted = True
+
+        cursor.execute("SELECT votes_count FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        new_votes = row['votes_count'] if row else 0
+
+        return {
+            'status': 'ok',
+            'set_id': set_id,
+            'has_voted': has_voted,
+            'votes_count': new_votes
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка toggle_chip_set_vote_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
 
 
 # ==================== INVENTORY & ITEMS SYSTEM ====================
@@ -6552,7 +7044,521 @@ def api_admin_tot_delete():
         if conn:
             conn.close()
 
+
+# ==================== СЕТЫ ФИШЕК (CUSTOM CHIP SETS) ====================
+
+def decode_base64_image(data_str: str) -> bytes:
+    """Декодирует base64 строку или data URL в байты."""
+    if not data_str:
+        return b""
+    if "," in data_str:
+        data_str = data_str.split(",", 1)[1]
+    return base64.b64decode(data_str)
+
+
+def generate_round_chip(raw_bytes: bytes, diameter: int = 300) -> Image.Image:
+    """
+    Превращает исходное изображение в круглую глянцевую фишку со стильным объёмным 3D-ободком и бликом.
+    """
+    img = Image.open(BytesIO(raw_bytes)).convert("RGBA")
+    w, h = img.size
+    min_dim = min(w, h)
+    left = (w - min_dim) // 2
+    top = (h - min_dim) // 2
+    img = img.crop((left, top, left + min_dim, top + min_dim))
+    img = img.resize((diameter, diameter), Image.Resampling.LANCZOS)
+
+    # Круглая маска с anti-aliasing
+    scale = 4
+    big_size = diameter * scale
+    mask = Image.new('L', (big_size, big_size), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.ellipse((0, 0, big_size - 1, big_size - 1), fill=255)
+    mask = mask.resize((diameter, diameter), Image.Resampling.LANCZOS)
+
+    chip = Image.new('RGBA', (diameter, diameter), (0, 0, 0, 0))
+    chip.paste(img, (0, 0), mask)
+
+    # Рисуем 3D-ободок и глянцевый блик поверх фишки
+    overlay = Image.new('RGBA', (big_size, big_size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    # Внешний темный контур/скос
+    draw.ellipse((0, 0, big_size - 1, big_size - 1), outline=(20, 20, 25, 230), width=scale * 4)
+    # Золотистый/металлический/глянцевый кант
+    draw.ellipse((scale * 4, scale * 4, big_size - 1 - scale * 4, big_size - 1 - scale * 4), outline=(255, 255, 255, 140), width=scale * 3)
+    draw.ellipse((scale * 7, scale * 7, big_size - 1 - scale * 7, big_size - 1 - scale * 7), outline=(0, 0, 0, 80), width=scale * 2)
+
+    # Верхний дугообразный полумесяц-блик (глянец)
+    highlight_box = (int(scale * 12), int(scale * 8), int(big_size - scale * 12), int(big_size * 0.55))
+    draw.chord(highlight_box, start=180, end=0, fill=(255, 255, 255, 75))
+
+    overlay = overlay.resize((diameter, diameter), Image.Resampling.LANCZOS)
+    chip.alpha_composite(overlay)
+    return chip
+
+
+def generate_set_collage(bg_bytes: bytes, chip_images: list, count: int) -> Image.Image:
+    """
+    Создает красивый коллаж сета: на фоне bg_bytes размещаются круглые 3D фишки (3x1, 3x2 или 3x3) с мягкими тенями.
+    """
+    bg = Image.open(BytesIO(bg_bytes)).convert("RGBA")
+    
+    if count == 3:
+        canvas_w, canvas_h = 1000, 480
+    elif count == 6:
+        canvas_w, canvas_h = 1000, 720
+    else:
+        canvas_w, canvas_h = 1000, 1000
+
+    bg = ImageOps.fit(bg, (canvas_w, canvas_h), Image.Resampling.LANCZOS)
+
+    # Затемнение подложки для четкости фишек
+    darken = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 45))
+    bg.alpha_composite(darken)
+
+    cols = 3
+    rows = (count + 2) // 3
+    chip_size = 230 if count == 9 else (250 if count == 6 else 260)
+
+    gap_x = (canvas_w - (cols * chip_size)) // (cols + 1)
+    gap_y = (canvas_h - (rows * chip_size)) // (rows + 1)
+
+    for i, raw_chip in enumerate(chip_images[:count]):
+        r = i // cols
+        c = i % cols
+        x = gap_x + c * (chip_size + gap_x)
+        y = gap_y + r * (chip_size + gap_y)
+
+        chip_img = generate_round_chip(raw_chip, diameter=chip_size)
+
+        # Мягкая тень под фишкой
+        shadow = Image.new('RGBA', (chip_size + 30, chip_size + 30), (0, 0, 0, 0))
+        s_draw = ImageDraw.Draw(shadow)
+        s_draw.ellipse((10, 15, chip_size + 20, chip_size + 25), fill=(0, 0, 0, 140))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(8))
+        bg.alpha_composite(shadow, (x - 10, y - 5))
+
+        bg.alpha_composite(chip_img, (x, y))
+
+    return bg
+
+
+def send_chip_set_moderation_card(set_id: int, author_id: int, author_name: str, title: str, description: str, chips_count: int, collage_path: Path):
+    """Отправляет карточку модерации сета админу в Telegram."""
+    if not ADMIN_ID or not BOT_TOKEN:
+        return
+    try:
+        caption = (
+            f"🎨 <b>МОДЕРАЦИЯ НОВОГО СЕТА ФИШЕК</b>\n\n"
+            f"🆔 <b>Сет ID:</b> <code>{set_id}</code>\n"
+            f"👤 <b>Автор:</b> {html.escape(author_name or 'Аноним')} (<code>{author_id}</code>)\n"
+            f"🏷️ <b>Название:</b> <b>{html.escape(title)}</b>\n"
+            f"📝 <b>Описание:</b> {html.escape(description or '—')}\n"
+            f"🔢 <b>Количество фишек:</b> {chips_count} шт.\n\n"
+            f"<i>Выберите действие:</i>"
+        )
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Одобрить и опубликовать", "callback_data": f"chip_set_approve_{set_id}"},
+                    {"text": "❌ Отклонить", "callback_data": f"chip_set_reject_{set_id}"}
+                ]
+            ]
+        }
+        with open(collage_path, 'rb') as photo_file:
+            files = {'photo': ('collage.jpg', photo_file, 'image/jpeg')}
+            payload = {
+                "chat_id": ADMIN_ID,
+                "caption": caption,
+                "parse_mode": "HTML",
+                "reply_markup": json.dumps(reply_markup)
+            }
+            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
+    except Exception as e:
+        logger.error(f"❌ Ошибка send_chip_set_moderation_card: {e}")
+
+
+def publish_chip_set_to_group(set_data: dict):
+    """Публикация сета в группу @the_raccoon_times_group"""
+    group_chat_id = "@the_raccoon_times_group"
+    preview_path = PROJECT_DIR / "webapp" / set_data['preview_collage'].lstrip('/')
+    caption = (
+        f"🎨 <b>Новая коллекция фишек в Raccoon Life!</b>\n\n"
+        f"🏆 <b>«{html.escape(set_data['title'])}»</b>\n"
+        f"👤 <b>Автор:</b> {html.escape(set_data.get('author_name') or 'Енот-мастер')}\n"
+        f"🔢 <b>Фишек в сете:</b> {set_data['chips_count']} шт.\n"
+    )
+    if set_data.get('description'):
+        caption += f"📝 <i>{html.escape(set_data['description'])}</i>\n\n"
+    else:
+        caption += "\n"
+    caption += "🦝 Заходите в игру, чтобы оценить и проголосовать за лучший сет!"
+
+    try:
+        if preview_path.exists():
+            with open(preview_path, 'rb') as photo_file:
+                files = {'photo': ('set_collage.jpg', photo_file, 'image/jpeg')}
+                payload = {
+                    "chat_id": group_chat_id,
+                    "caption": caption,
+                    "parse_mode": "HTML"
+                }
+                requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
+        else:
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": group_chat_id, "text": caption, "parse_mode": "HTML"},
+                timeout=10
+            )
+    except Exception as e:
+        logger.error(f"❌ Ошибка публикации сета в группу: {e}")
+
+
+def create_custom_chip_set_db(author_id: int, author_name: str, title: str, description: str, chips_count: int, bg_bytes: bytes, chip_bytes_list: list) -> dict:
+    """Сохраняет сет в БД, файлы на диск и отправляет модерацию админу."""
+    ts = int(time.time())
+    set_folder = SETS_IMG_DIR / f"set_{author_id}_{ts}"
+    set_folder.mkdir(parents=True, exist_ok=True)
+
+    # 1. Фон
+    bg_filename = f"bg_{ts}.jpg"
+    bg_path = set_folder / bg_filename
+    bg_img = Image.open(BytesIO(bg_bytes)).convert("RGB")
+    bg_img.save(bg_path, format="JPEG", quality=90)
+    bg_rel_path = f"/images/sets/set_{author_id}_{ts}/{bg_filename}"
+
+    # 2. Фишки
+    chips_rel_paths = []
+    for idx, raw_chip in enumerate(chip_bytes_list):
+        chip_img = generate_round_chip(raw_chip, diameter=320)
+        chip_fname = f"chip_{idx+1}_{ts}.png"
+        chip_path = set_folder / chip_fname
+        chip_img.save(chip_path, format="PNG")
+        chips_rel_paths.append(f"/images/sets/set_{author_id}_{ts}/{chip_fname}")
+
+    # 3. Превью коллаж
+    collage_img = generate_set_collage(bg_bytes, chip_bytes_list, chips_count)
+    collage_fname = f"collage_{ts}.jpg"
+    collage_path = set_folder / collage_fname
+    collage_img.convert("RGB").save(collage_path, format="JPEG", quality=92)
+    collage_rel_path = f"/images/sets/set_{author_id}_{ts}/{collage_fname}"
+
+    # 4. БД
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO custom_chip_sets (
+                author_id, author_name, title, description, chips_count,
+                background_image, chips_json, preview_collage, status, votes_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0)
+        ''', (
+            author_id, author_name, title, description, chips_count,
+            bg_rel_path, json.dumps(chips_rel_paths), collage_rel_path
+        ))
+        set_id = cursor.lastrowid
+        conn.commit()
+
+        # Отправляем карточку модерации
+        send_chip_set_moderation_card(set_id, author_id, author_name, title, description, chips_count, collage_path)
+
+        return {'status': 'ok', 'set_id': set_id}
+    except Exception as e:
+        logger.error(f"❌ Ошибка create_custom_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def approve_chip_set_db(set_id: int) -> dict:
+    """Одобряет сет, публикует в группу и уведомляет автора."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'error', 'message': 'Сет не найден'}
+        
+        now_moscow = get_moscow_now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE custom_chip_sets SET status = 'approved', approved_at = ? WHERE id = ?", (now_moscow, set_id))
+        conn.commit()
+
+        publish_chip_set_to_group(dict(row))
+
+        try:
+            author_id = row['author_id']
+            msg = (
+                f"🎉 <b>Ваш сет фишек одобрен!</b>\n\n"
+                f"Коллекция: <b>{html.escape(row['title'])}</b> ({row['chips_count']} фишек)\n"
+                f"Теперь сет доступен в разделе «Сеты фишек» игры и опубликован в группе!\n"
+                f"Другие игроки уже могут голосовать за ваш сет ❤️"
+            )
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": author_id, "text": msg, "parse_mode": "HTML"},
+                timeout=5
+            )
+        except Exception as e:
+            logger.error(f"Ошибка уведомления автора сета: {e}")
+
+        return {'status': 'ok'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка approve_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def reject_chip_set_db(set_id: int) -> dict:
+    """Отклоняет сет фишек и уведомляет автора."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'status': 'error', 'message': 'Сет не найден'}
+        cursor.execute("UPDATE custom_chip_sets SET status = 'rejected' WHERE id = ?", (set_id,))
+        conn.commit()
+
+        try:
+            author_id = row['author_id']
+            msg = (
+                f"😔 <b>Ваш сет фишек не прошёл модерацию</b>\n\n"
+                f"Коллекция: <b>{html.escape(row['title'])}</b>\n"
+                f"Попробуйте создать новый сет, соблюдая правила сообщества."
+            )
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": author_id, "text": msg, "parse_mode": "HTML"},
+                timeout=5
+            )
+        except Exception as e:
+            logger.error(f"Ошибка уведомления автора об отклонении: {e}")
+
+        return {'status': 'ok'}
+    except Exception as e:
+        logger.error(f"❌ Ошибка reject_chip_set_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def get_custom_chip_sets_list(sort: str = 'top', user_id: int = 0) -> list:
+    """Возвращает список одобренных сетов."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        order_by = "s.votes_count DESC, s.id DESC" if sort == 'top' else "s.approved_at DESC, s.id DESC"
+        cursor.execute(f"""
+            SELECT s.*, 
+                   (SELECT COUNT(*) FROM custom_chip_votes v WHERE v.set_id = s.id AND v.user_id = ?) as has_voted
+            FROM custom_chip_sets s
+            WHERE s.status = 'approved'
+            ORDER BY {order_by}
+            LIMIT 100
+        """, (user_id,))
+        rows = cursor.fetchall()
+        sets = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d['chips'] = json.loads(d['chips_json']) if d.get('chips_json') else []
+            except Exception:
+                d['chips'] = []
+            d['has_voted'] = bool(d.get('has_voted'))
+            sets.append(d)
+        return sets
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_custom_chip_sets_list: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def get_user_chip_sets_db(user_id: int) -> list:
+    """Возвращает сеты, созданные пользователем."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT * FROM custom_chip_sets 
+            WHERE author_id = ? 
+            ORDER BY id DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        sets = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d['chips'] = json.loads(d['chips_json']) if d.get('chips_json') else []
+            except Exception:
+                d['chips'] = []
+            sets.append(d)
+        return sets
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_user_chip_sets_db: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def toggle_chip_set_vote_db(set_id: int, user_id: int) -> dict:
+    """Переключает голос пользователя за сет фишек."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT 1 FROM custom_chip_votes WHERE set_id = ? AND user_id = ?", (set_id, user_id))
+        exists = cursor.fetchone()
+        if exists:
+            cursor.execute("DELETE FROM custom_chip_votes WHERE set_id = ? AND user_id = ?", (set_id, user_id))
+            cursor.execute("UPDATE custom_chip_sets SET votes_count = MAX(0, votes_count - 1) WHERE id = ?", (set_id,))
+            has_voted = False
+        else:
+            cursor.execute("INSERT INTO custom_chip_votes (set_id, user_id) VALUES (?, ?)", (set_id, user_id))
+            cursor.execute("UPDATE custom_chip_sets SET votes_count = votes_count + 1 WHERE id = ?", (set_id,))
+            has_voted = True
+        conn.commit()
+
+        cursor.execute("SELECT votes_count FROM custom_chip_sets WHERE id = ?", (set_id,))
+        row = cursor.fetchone()
+        votes_count = row['votes_count'] if row else 0
+
+        return {'status': 'ok', 'has_voted': has_voted, 'votes_count': votes_count}
+    except Exception as e:
+        logger.error(f"❌ Ошибка toggle_chip_set_vote_db: {e}")
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+# ---------- Flask API Endpoints для сетов фишек ----------
+
+@app.route('/api/chip_sets/create', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_chip_sets_create():
+    """Создание сета фишек (только админ)"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+
+        data = request.get_json()
+        user_id = int(data.get('userId') or data.get('user_id') or 0)
+
+        # Авторизация через init_data если передана
+        init_data = request.headers.get('X-Telegram-Init-Data')
+        author_name = "Админ"
+        if init_data:
+            auth_user = validate_webapp_data(init_data)
+            if auth_user:
+                user_id = int(auth_user.get('id', user_id))
+                author_name = auth_user.get('username') or f"{auth_user.get('first_name', '')} {auth_user.get('last_name', '')}".strip() or f"User {user_id}"
+
+        # Проверка прав: сейчас создание доступно только админу
+        if user_id != ADMIN_ID:
+            logger.warning(f"🚫 Неадмин {user_id} попытался создать сет фишек")
+            return jsonify({'error': 'Функция создания сетов пока доступна только администратору'}), 403
+
+        title = str(data.get('title', '')).strip()
+        description = str(data.get('description', '')).strip()
+        chips_count = int(data.get('chips_count', 3))
+        bg_b64 = data.get('background_image')
+        chips_b64_list = data.get('chips', [])
+
+        if not title:
+            return jsonify({'error': 'Введите название сета'}), 400
+
+        if chips_count not in (3, 6, 9):
+            return jsonify({'error': 'Количество фишек должно быть 3, 6 или 9'}), 400
+
+        if not bg_b64:
+            return jsonify({'error': 'Загрузите фоновое изображение для сета'}), 400
+
+        if len(chips_b64_list) != chips_count:
+            return jsonify({'error': f'Необходимо загрузить ровно {chips_count} изображений для фишек'}), 400
+
+        bg_bytes = decode_base64_image(bg_b64)
+        if not bg_bytes:
+            return jsonify({'error': 'Некорректный формат фонового изображения'}), 400
+
+        chip_bytes_list = []
+        for idx, chip_b64 in enumerate(chips_b64_list):
+            cb = decode_base64_image(chip_b64)
+            if not cb:
+                return jsonify({'error': f'Некорректное изображение фишки #{idx + 1}'}), 400
+            chip_bytes_list.append(cb)
+
+        res = create_custom_chip_set_db(
+            author_id=user_id,
+            author_name=author_name,
+            title=title,
+            description=description,
+            chips_count=chips_count,
+            bg_bytes=bg_bytes,
+            chip_bytes_list=chip_bytes_list
+        )
+
+        if res.get('status') == 'ok':
+            return jsonify({'status': 'ok', 'set_id': res.get('set_id'), 'message': 'Сет отправлен на модерацию!'})
+        else:
+            return jsonify({'error': res.get('message', 'Ошибка создания сета')}), 500
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка api_chip_sets_create: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chip_sets/list', methods=['GET'])
+def api_chip_sets_list():
+    """Получение списка одобренных сетов фишек"""
+    try:
+        sort = request.args.get('sort', 'top')
+        user_id = int(request.args.get('userId', 0))
+        sets = get_custom_chip_sets_list(sort=sort, user_id=user_id)
+        is_admin = (user_id == ADMIN_ID)
+        return jsonify({'status': 'ok', 'sets': sets, 'is_admin': is_admin})
+    except Exception as e:
+        logger.error(f"❌ Ошибка api_chip_sets_list: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chip_sets/my', methods=['GET'])
+def api_chip_sets_my():
+    """Получение сетов текущего пользователя"""
+    try:
+        user_id = int(request.args.get('userId', 0))
+        sets = get_user_chip_sets_db(user_id=user_id)
+        return jsonify({'status': 'ok', 'sets': sets})
+    except Exception as e:
+        logger.error(f"❌ Ошибка api_chip_sets_my: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chip_sets/vote', methods=['POST'])
+@limiter.limit("60 per minute")
+def api_chip_sets_vote():
+    """Голосование за сет фишек"""
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'JSON required'}), 400
+        data = request.get_json()
+        set_id = int(data.get('setId', 0))
+        user_id = int(data.get('userId', 0))
+
+        if set_id <= 0 or user_id <= 0:
+            return jsonify({'error': 'setId and userId required'}), 400
+
+        res = toggle_chip_set_vote_db(set_id, user_id)
+        return jsonify(res)
+    except Exception as e:
+        logger.error(f"❌ Ошибка api_chip_sets_vote: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ==================== TELEGRAM BOT ====================
+
 
 def has_received_welcome_bonus(user_id: int) -> bool:
     """Проверяет получал ли пользователь приветственные шишки через БД"""
@@ -8078,6 +9084,48 @@ async def publish_news_callback(update: Update, context: ContextTypes.DEFAULT_TY
         await query.answer("❌ Ошибка при публикации!", show_alert=True)
 
 
+async def chip_set_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик модерации сетов фишек админом"""
+    query = update.callback_query
+    if update.effective_user.id != ADMIN_ID:
+        await query.answer("❌ У вас нет прав!", show_alert=True)
+        return
+
+    data = query.data  # chip_set_approve_123 or chip_set_reject_123
+    try:
+        parts = data.split('_')
+        action = parts[2]
+        set_id = int(parts[3])
+
+        if action == 'approve':
+            await query.answer("Одобряем и публикуем...")
+            res = approve_chip_set_db(set_id)
+            if res.get('status') == 'ok':
+                curr_caption = query.message.caption_html or ""
+                await query.edit_message_caption(
+                    caption=f"{curr_caption}\n\n✅ <b>СЕТ ОДОБРЕН И ОПУБЛИКОВАН В ГРУППЕ</b>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=None
+                )
+            else:
+                await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
+        elif action == 'reject':
+            await query.answer("Отклоняем...")
+            res = reject_chip_set_db(set_id)
+            if res.get('status') == 'ok':
+                curr_caption = query.message.caption_html or ""
+                await query.edit_message_caption(
+                    caption=f"{curr_caption}\n\n❌ <b>СЕТ ОТКЛОНЁН</b>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=None
+                )
+            else:
+                await query.answer(f"❌ Ошибка: {res.get('message')}", show_alert=True)
+    except Exception as e:
+        logger.error(f"Ошибка обработки chip_set_callback: {e}")
+        await query.answer("❌ Ошибка обработки запроса", show_alert=True)
+
+
 async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Ответ на pre_checkout_query (подтверждение платежа Telegram Stars)"""
     query = update.pre_checkout_query
@@ -8241,6 +9289,7 @@ def main():
     telegram_app.add_handler(CommandHandler("delete_confirm", delete_user_confirm))
     telegram_app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     telegram_app.add_handler(CallbackQueryHandler(publish_news_callback, pattern="^publish_news$"))
+    telegram_app.add_handler(CallbackQueryHandler(chip_set_callback, pattern=r"^chip_set_(approve|reject)_\d+$"))
 
     telegram_app.add_handler(CommandHandler("tot_create", tot_create_cmd))
     telegram_app.add_handler(CommandHandler("tot_active", tot_active_cmd))
