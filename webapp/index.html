@@ -1773,48 +1773,33 @@
 
     .bottom-sheet__divider-wrap {
       width: 100%;
-      padding: 2px 0 6px;
+      padding: 4px 0 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       cursor: grab;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .bottom-sheet__divider-wrap:active {
+      cursor: grabbing;
     }
 
     .bottom-sheet__divider {
-      width: 44px;
+      width: 50px;
       height: 5px;
-      border-radius: 4px;
-      background-color: rgba(255, 255, 255, 0.32);
+      border-radius: 5px;
+      background-color: rgba(255, 255, 255, 0.4);
       margin: 0 auto;
+      transition: background-color 0.15s, transform 0.15s;
     }
 
-    .bottom-sheet__top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-
-    .bottom-sheet__back-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 0.5px solid var(--border-subtle);
-      color: #FFFFFF;
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 10px;
-      padding: 6px 12px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: background-color 0.15s, transform 0.12s;
-    }
-
-    .bottom-sheet__back-btn:active {
-      transform: scale(0.94);
-      background: rgba(255, 255, 255, 0.16);
+    .bottom-sheet__divider-wrap:active .bottom-sheet__divider {
+      background-color: rgba(255, 255, 255, 0.75);
+      transform: scaleX(1.1);
     }
 
     .play-sheet-header-panel {
@@ -4328,13 +4313,6 @@
         <div class="bottom-sheet__divider-wrap" id="play-sheet-drag-handle">
           <div class="bottom-sheet__divider"></div>
         </div>
-        <div class="bottom-sheet__top-row">
-          <button class="bottom-sheet__back-btn" onclick="togglePlayBottomSheet(false); triggerHaptic('light');">
-            <span>←</span> <span data-i18n="btn_back">Назад</span>
-          </button>
-          <span style="font-size: 13px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em;" data-i18n="menu_games">ИГРЫ</span>
-          <div style="width: 65px;"></div>
-        </div>
 
         <div class="play-bottom-sheet">
           <div class="play-sheet-header-panel">
@@ -5093,6 +5071,7 @@
       if (!wrapper) return;
       const sheet = document.getElementById('play-bottom-sheet-block');
       const backdrop = wrapper.querySelector('.bottom-sheet__backdrop');
+      const dragHandle = document.getElementById('play-sheet-drag-handle');
       if (!sheet) return;
 
       let startX = 0;
@@ -5125,8 +5104,8 @@
 
         // Распознаем жест: свайп вниз или свайп слева направо (свайп назад)
         if (!isDraggingY && !isDraggingX) {
-          // Если тянем вниз и прокрутка вверху
-          if (deltaY > 6 && Math.abs(deltaY) > Math.abs(deltaX) && sheet.scrollTop <= 3) {
+          // Если тянем вниз от верхней ручки или при прокрутке вверху
+          if (deltaY > 5 && Math.abs(deltaY) > Math.abs(deltaX) && sheet.scrollTop <= 3) {
             isDraggingY = true;
             sheet.style.transition = 'none';
             if (backdrop) backdrop.style.transition = 'none';
@@ -5172,7 +5151,7 @@
           sheet.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
           if (backdrop) backdrop.style.transition = 'opacity 0.24s ease';
 
-          if (deltaY > 70 || velocityY > 0.4) {
+          if (deltaY > 50 || velocityY > 0.35) {
             sheet.style.transform = 'translateY(100%)';
             if (backdrop) backdrop.style.opacity = '0';
             setTimeout(() => {
@@ -5196,7 +5175,7 @@
           sheet.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
           if (backdrop) backdrop.style.transition = 'opacity 0.24s ease';
 
-          if (deltaX > 70 || velocityX > 0.4) {
+          if (deltaX > 60 || velocityX > 0.35) {
             sheet.style.transform = 'translateX(100%)';
             if (backdrop) backdrop.style.opacity = '0';
             setTimeout(() => {
@@ -5222,12 +5201,25 @@
       sheet.addEventListener('touchend', onTouchEnd, { passive: true });
       sheet.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
-      // Drag handle direct touch
-      const dragHandle = document.getElementById('play-sheet-drag-handle');
       if (dragHandle) {
         dragHandle.addEventListener('touchstart', onTouchStart, { passive: true });
         dragHandle.addEventListener('touchmove', onTouchMove, { passive: false });
         dragHandle.addEventListener('touchend', onTouchEnd, { passive: true });
+      }
+
+      // Drag up on bottom bar to open play menu
+      const homeBottom = document.querySelector('.home__bottom');
+      if (homeBottom) {
+        let bottomStartY = 0;
+        homeBottom.addEventListener('touchstart', (e) => {
+          bottomStartY = e.touches ? e.touches[0].clientY : e.clientY;
+        }, { passive: true });
+        homeBottom.addEventListener('touchend', (e) => {
+          const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+          if (bottomStartY - endY > 40) {
+            togglePlayBottomSheet(true);
+          }
+        }, { passive: true });
       }
     }
 
