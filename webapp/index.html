@@ -8355,6 +8355,20 @@
     }
   }
 
+  function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
   function drawRoundChipToCanvas(canvas, img) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
@@ -8372,25 +8386,18 @@
     ctx.restore();
     ctx.save();
 
-    // Outer border
+    // Clean outer gold/metallic border (no murky top glare)
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.lineWidth = size * 0.035;
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
+    ctx.lineWidth = size * 0.03;
     ctx.stroke();
 
-    // Dark inset bevel
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - size * 0.05, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = size * 0.025;
+    ctx.arc(size / 2, size / 2, size / 2 - size * 0.04, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.lineWidth = size * 0.02;
     ctx.stroke();
-
-    // Gloss crescent highlight at top
-    ctx.beginPath();
-    ctx.arc(size / 2, size * 0.38, size * 0.38, Math.PI, 0, false);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-    ctx.fill();
 
     ctx.restore();
   }
@@ -8408,77 +8415,96 @@
 
     previewSection.style.display = 'block';
     const count = chipSetsState.creatorCount;
-    const canvasW = 1000;
-    const canvasH = count === 3 ? 480 : (count === 6 ? 720 : 1000);
+    const cols = 3;
+    const rows = Math.ceil(count / 3);
+
+    const tileSize = 280;
+    const chipSize = 220;
+    const gap = 30;
+    const margin = 35;
+
+    const canvasW = margin * 2 + cols * tileSize + (cols - 1) * gap;
+    const canvasH = margin * 2 + rows * tileSize + (rows - 1) * gap;
     canvas.width = canvasW;
     canvas.height = canvasH;
 
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvasW, canvasH);
 
-    // 1. Draw Background
-    const bgImg = chipSetsState.creatorBgData.img;
-    const bgRatio = bgImg.width / bgImg.height;
-    const targetRatio = canvasW / canvasH;
-    let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
-    if (bgRatio > targetRatio) {
-      sw = bgImg.height * targetRatio;
-      sx = (bgImg.width - sw) / 2;
-    } else {
-      sh = bgImg.width / targetRatio;
-      sy = (bgImg.height - sh) / 2;
-    }
-    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, canvasW, canvasH);
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    // Dark canvas background
+    ctx.fillStyle = '#121216';
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // 2. Draw chips grid
-    const cols = 3;
-    const rows = Math.ceil(count / 3);
-    const chipSize = count === 9 ? 230 : (count === 6 ? 250 : 260);
-    const gapX = Math.floor((canvasW - (cols * chipSize)) / (cols + 1));
-    const gapY = Math.floor((canvasH - (rows * chipSize)) / (rows + 1));
+    const bgImg = chipSetsState.creatorBgData.img;
+    const bgMin = Math.min(bgImg.width, bgImg.height);
+    const bgSx = (bgImg.width - bgMin) / 2;
+    const bgSy = (bgImg.height - bgMin) / 2;
 
     for (let i = 0; i < count; i++) {
       const r = Math.floor(i / cols);
       const c = i % cols;
-      const x = gapX + c * (chipSize + gapX);
-      const y = gapY + r * (chipSize + gapY);
+      const tileX = margin + c * (tileSize + gap);
+      const tileY = margin + r * (tileSize + gap);
 
-      // Drop shadow
+      // Tile shadow
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 10;
-      ctx.beginPath();
-      ctx.arc(x + chipSize / 2, y + chipSize / 2, chipSize / 2, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = '#1e1e24';
+      drawRoundedRectPath(ctx, tileX, tileY, tileSize, tileSize, 22);
       ctx.fill();
       ctx.restore();
 
+      // Separate square background for each chip
+      ctx.save();
+      drawRoundedRectPath(ctx, tileX, tileY, tileSize, tileSize, 22);
+      ctx.clip();
+      ctx.drawImage(bgImg, bgSx, bgSy, bgMin, bgMin, tileX, tileY, tileSize, tileSize);
+      
+      // Card border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
       const itemData = chipSetsState.creatorChipsData[i];
+      const chipOffset = Math.floor((tileSize - chipSize) / 2);
+      const chipX = tileX + chipOffset;
+      const chipY = tileY + chipOffset;
+
       if (itemData) {
+        // Shadow under the round chip inside the square background
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+        ctx.beginPath();
+        ctx.arc(chipX + chipSize / 2, chipY + chipSize / 2, chipSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fill();
+        ctx.restore();
+
         const offCanvas = document.createElement('canvas');
         offCanvas.width = chipSize;
         offCanvas.height = chipSize;
         drawRoundChipToCanvas(offCanvas, itemData.img);
-        ctx.drawImage(offCanvas, x, y, chipSize, chipSize);
+        ctx.drawImage(offCanvas, chipX, chipY, chipSize, chipSize);
       } else {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(x + chipSize / 2, y + chipSize / 2, chipSize / 2 - 4, 0, Math.PI * 2);
+        ctx.arc(chipX + chipSize / 2, chipY + chipSize / 2, chipSize / 2 - 4, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.setLineDash([8, 8]);
         ctx.lineWidth = 3;
         ctx.stroke();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fill();
-        ctx.font = 'bold 36px Montserrat, sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = 'bold 32px Montserrat, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`#${i + 1}`, x + chipSize / 2, y + chipSize / 2);
+        ctx.fillText(`#${i + 1}`, chipX + chipSize / 2, chipY + chipSize / 2);
         ctx.restore();
       }
     }

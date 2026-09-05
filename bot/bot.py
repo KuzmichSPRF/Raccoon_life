@@ -6604,9 +6604,9 @@ def decode_base64_image(data_str: str) -> bytes:
     return base64.b64decode(data_str)
 
 
-def generate_round_chip(raw_bytes: bytes, diameter: int = 300) -> Image.Image:
+def generate_round_chip(raw_bytes: bytes, diameter: int = 320) -> Image.Image:
     """
-    Превращает исходное изображение в круглую глянцевую фишку со стильным объёмным 3D-ободком и бликом.
+    Превращает исходное изображение в круглую четкую фишку без мутных бликов.
     """
     img = Image.open(BytesIO(raw_bytes)).convert("RGBA")
     w, h = img.size
@@ -6616,7 +6616,7 @@ def generate_round_chip(raw_bytes: bytes, diameter: int = 300) -> Image.Image:
     img = img.crop((left, top, left + min_dim, top + min_dim))
     img = img.resize((diameter, diameter), Image.Resampling.LANCZOS)
 
-    # Круглая маска с anti-aliasing
+    # Круглая маска с anti-aliasing (supersampling 4x)
     scale = 4
     big_size = diameter * scale
     mask = Image.new('L', (big_size, big_size), 0)
@@ -6627,69 +6627,106 @@ def generate_round_chip(raw_bytes: bytes, diameter: int = 300) -> Image.Image:
     chip = Image.new('RGBA', (diameter, diameter), (0, 0, 0, 0))
     chip.paste(img, (0, 0), mask)
 
-    # Рисуем 3D-ободок и глянцевый блик поверх фишки
+    # Аккуратный четкий золотистый кант (без мутных бликов поверх картинки)
     overlay = Image.new('RGBA', (big_size, big_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-
-    # Внешний темный контур/скос
-    draw.ellipse((0, 0, big_size - 1, big_size - 1), outline=(20, 20, 25, 230), width=scale * 4)
-    # Золотистый/металлический/глянцевый кант
-    draw.ellipse((scale * 4, scale * 4, big_size - 1 - scale * 4, big_size - 1 - scale * 4), outline=(255, 255, 255, 140), width=scale * 3)
-    draw.ellipse((scale * 7, scale * 7, big_size - 1 - scale * 7, big_size - 1 - scale * 7), outline=(0, 0, 0, 80), width=scale * 2)
-
-    # Верхний дугообразный полумесяц-блик (глянец)
-    highlight_box = (int(scale * 12), int(scale * 8), int(big_size - scale * 12), int(big_size * 0.55))
-    draw.chord(highlight_box, start=180, end=0, fill=(255, 255, 255, 75))
+    draw.ellipse((0, 0, big_size - 1, big_size - 1), outline=(20, 20, 25, 230), width=scale * 3)
+    draw.ellipse((scale * 3, scale * 3, big_size - 1 - scale * 3, big_size - 1 - scale * 3), outline=(255, 215, 0, 190), width=scale * 2)
+    draw.ellipse((scale * 5, scale * 5, big_size - 1 - scale * 5, big_size - 1 - scale * 5), outline=(0, 0, 0, 90), width=scale)
 
     overlay = overlay.resize((diameter, diameter), Image.Resampling.LANCZOS)
-    chip.alpha_composite(overlay)
+    chip = Image.alpha_composite(chip, overlay)
     return chip
 
 
 def generate_set_collage(bg_bytes: bytes, chip_images: list, count: int) -> Image.Image:
     """
-    Создает красивый коллаж сета: на фоне bg_bytes размещаются круглые 3D фишки (3x1, 3x2 или 3x3) с мягкими тенями.
+    Создает коллаж сета: каждая фишка размещается на отдельном квадратном фоне.
     """
-    bg = Image.open(BytesIO(bg_bytes)).convert("RGBA")
-    
-    if count == 3:
-        canvas_w, canvas_h = 1000, 480
-    elif count == 6:
-        canvas_w, canvas_h = 1000, 720
-    else:
-        canvas_w, canvas_h = 1000, 1000
-
-    bg = ImageOps.fit(bg, (canvas_w, canvas_h), Image.Resampling.LANCZOS)
-
-    # Затемнение подложки для четкости фишек
-    darken = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 45))
-    bg.alpha_composite(darken)
-
     cols = 3
     rows = (count + 2) // 3
-    chip_size = 230 if count == 9 else (250 if count == 6 else 260)
+    
+    tile_size = 280
+    chip_size = 220
+    gap = 30
+    margin = 35
 
-    gap_x = (canvas_w - (cols * chip_size)) // (cols + 1)
-    gap_y = (canvas_h - (rows * chip_size)) // (rows + 1)
+    canvas_w = margin * 2 + cols * tile_size + (cols - 1) * gap
+    canvas_h = margin * 2 + rows * tile_size + (rows - 1) * gap
+
+    # Темный стильный фон холста
+    canvas = Image.new('RGBA', (canvas_w, canvas_h), (18, 18, 22, 255))
+
+    # Подготавливаем квадратный фон для плашек
+    bg_tile = None
+    card_mask = None
+    corner_radius = 24
+    if bg_bytes:
+        try:
+            raw_bg = Image.open(BytesIO(bg_bytes)).convert("RGBA")
+            bg_min = min(raw_bg.width, raw_bg.height)
+            b_left = (raw_bg.width - bg_min) // 2
+            b_top = (raw_bg.height - bg_min) // 2
+            bg_cropped = raw_bg.crop((b_left, b_top, b_left + bg_min, b_top + bg_min))
+            bg_tile = bg_cropped.resize((tile_size, tile_size), Image.Resampling.LANCZOS)
+            
+            # Маска со скругленными углами для квадратного фона
+            scale = 4
+            big_tile_w = tile_size * scale
+            card_mask = Image.new('L', (big_tile_w, big_tile_w), 0)
+            c_draw = ImageDraw.Draw(card_mask)
+            c_draw.rounded_rectangle((0, 0, big_tile_w - 1, big_tile_w - 1), radius=corner_radius * scale, fill=255)
+            card_mask = card_mask.resize((tile_size, tile_size), Image.Resampling.LANCZOS)
+        except Exception as e:
+            logger.error(f"Ошибка подготовки фона плитки: {e}")
+            bg_tile = None
 
     for i, raw_chip in enumerate(chip_images[:count]):
         r = i // cols
         c = i % cols
-        x = gap_x + c * (chip_size + gap_x)
-        y = gap_y + r * (chip_size + gap_y)
+        tile_x = margin + c * (tile_size + gap)
+        tile_y = margin + r * (tile_size + gap)
 
+        # Тень под квадратной карточкой
+        tile_shadow = Image.new('RGBA', (tile_size + 24, tile_size + 24), (0, 0, 0, 0))
+        sh_draw = ImageDraw.Draw(tile_shadow)
+        sh_draw.rounded_rectangle((6, 10, tile_size + 18, tile_size + 20), radius=26, fill=(0, 0, 0, 160))
+        tile_shadow = tile_shadow.filter(ImageFilter.GaussianBlur(10))
+        canvas.alpha_composite(tile_shadow, (tile_x - 12, tile_y - 8))
+
+        # 1. Отдельный квадратный фон фишки
+        if bg_tile and card_mask:
+            card_img = Image.new('RGBA', (tile_size, tile_size), (0, 0, 0, 0))
+            card_img.paste(bg_tile, (0, 0), card_mask)
+
+            # Рамка для квадратной карточки
+            frame_overlay = Image.new('RGBA', (tile_size * 4, tile_size * 4), (0, 0, 0, 0))
+            f_draw = ImageDraw.Draw(frame_overlay)
+            f_draw.rounded_rectangle((0, 0, tile_size * 4 - 1, tile_size * 4 - 1), radius=corner_radius * 4, outline=(255, 255, 255, 80), width=4)
+            frame_overlay = frame_overlay.resize((tile_size, tile_size), Image.Resampling.LANCZOS)
+            card_img = Image.alpha_composite(card_img, frame_overlay)
+
+            canvas.alpha_composite(card_img, (tile_x, tile_y))
+        else:
+            card_img = Image.new('RGBA', (tile_size, tile_size), (28, 28, 34, 255))
+            canvas.alpha_composite(card_img, (tile_x, tile_y))
+
+        # 2. Сама фишка (круглая, четкая, по центру квадратного фона)
         chip_img = generate_round_chip(raw_chip, diameter=chip_size)
+        chip_offset = (tile_size - chip_size) // 2
+        chip_x = tile_x + chip_offset
+        chip_y = tile_y + chip_offset
 
-        # Мягкая тень под фишкой
-        shadow = Image.new('RGBA', (chip_size + 30, chip_size + 30), (0, 0, 0, 0))
-        s_draw = ImageDraw.Draw(shadow)
-        s_draw.ellipse((10, 15, chip_size + 20, chip_size + 25), fill=(0, 0, 0, 140))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(8))
-        bg.alpha_composite(shadow, (x - 10, y - 5))
+        # Тень под фишкой внутри квадратного фона
+        chip_shadow = Image.new('RGBA', (chip_size + 20, chip_size + 20), (0, 0, 0, 0))
+        cs_draw = ImageDraw.Draw(chip_shadow)
+        cs_draw.ellipse((6, 8, chip_size + 14, chip_size + 16), fill=(0, 0, 0, 180))
+        chip_shadow = chip_shadow.filter(ImageFilter.GaussianBlur(6))
+        canvas.alpha_composite(chip_shadow, (chip_x - 10, chip_y - 8))
 
-        bg.alpha_composite(chip_img, (x, y))
+        canvas.alpha_composite(chip_img, (chip_x, chip_y))
 
-    return bg
+    return canvas
 
 
 def send_chip_set_moderation_card(set_id: int, author_id: int, author_name: str, title: str, description: str, chips_count: int, collage_path: Path):
