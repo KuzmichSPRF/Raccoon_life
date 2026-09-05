@@ -1,9 +1,10 @@
 #!/bin/bash
 # Скрипт запуска бота Raccoon Life
 
-BOT_DIR="/home/botuser/my_bot/bot"
-LOG_FILE="/home/botuser/my_bot/bot.log"
-PID_FILE="/home/botuser/my_bot/bot.pid"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BOT_DIR="${BOT_DIR:-$SCRIPT_DIR}"
+LOG_FILE="${LOG_FILE:-$BOT_DIR/bot.log}"
+PID_FILE="${PID_FILE:-$BOT_DIR/bot.pid}"
 
 FLASK_PORT="${FLASK_PORT:-5000}"
 

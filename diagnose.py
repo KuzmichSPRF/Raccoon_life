@@ -124,9 +124,11 @@ def check_dependencies():
     required = {
         'flask': 'Flask',
         'flask_cors': 'Flask-CORS',
+        'flask_limiter': 'Flask-Limiter',
         'telegram': 'python-telegram-bot',
         'dotenv': 'python-dotenv',
-        'requests': 'requests'
+        'requests': 'requests',
+        'PIL': 'Pillow'
     }
     
     all_installed = True
@@ -139,7 +141,7 @@ def check_dependencies():
             all_installed = False
     
     if not all_installed:
-        print_info("Установите: pip install flask flask-cors python-telegram-bot python-dotenv requests")
+        print_info("Установите: pip install -r requirements.txt")
     
     return all_installed
 
