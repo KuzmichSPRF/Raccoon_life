@@ -262,6 +262,33 @@
     }
     .fighter-label.purple { color: #c084fc; }
 
+    .dmg-popup {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.6);
+      font-size: 1.25rem;
+      font-weight: 900;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 10;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .dmg-popup.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-10px) scale(1.15);
+    }
+    .dmg-popup.player-dmg {
+      color: #33BD1C;
+      text-shadow: 0 0 16px rgba(51, 189, 28, 0.8), 0 2px 10px rgba(0,0,0,0.9);
+    }
+    .dmg-popup.vladeos-dmg {
+      color: #c084fc;
+      text-shadow: 0 0 16px rgba(192, 132, 252, 0.8), 0 2px 10px rgba(0,0,0,0.9);
+    }
+
     .score {
       font-size: 2rem;
       font-weight: 900;
@@ -273,6 +300,22 @@
       min-height: 38px;
     }
     .score.visible { opacity: 1; transform: scale(1); }
+
+    .score-breakdown {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 14px;
+      border-radius: 12px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+      border: var(--border-subtle);
+    }
 
     .vs-text {
       font-size: 1.3rem;
@@ -411,6 +454,7 @@
     <div class="cap-wrapper">
       <div id="p-cap" class="chip-frame player" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
+        <div id="p-dmg-popup" class="dmg-popup"></div>
         <img src="images/chip_raccoon.png" alt="Player Raccoon" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label">Вы</div>
@@ -422,6 +466,7 @@
     <div class="cap-wrapper">
       <div id="v-cap" class="chip-frame vladeos" onclick="inspectVladeosChip()" title="Нажми чтобы рассмотреть фишку">
         <span class="chip-zoom-hint">🔍</span>
+        <div id="v-dmg-popup" class="dmg-popup"></div>
         <img src="images/chip_vladeos.png" alt="Champion Vladeos" class="chip-img" onerror="this.src='images/cone.png'">
       </div>
       <div class="fighter-label purple">Vladeos</div>
@@ -456,6 +501,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
+      <div id="popup-breakdown" class="score-breakdown"></div>
       <div class="reward-amount" id="popup-amount">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
@@ -755,41 +801,68 @@
         });
         const data = await res.json();
         
-        pScore.innerText = data.p_score || 0;
-        vScore.innerText = data.v_score || 0;
+        const pScoreVal = data.p_score || 0;
+        const vScoreVal = data.v_score || 0;
+
+        pScore.innerText = pScoreVal;
+        vScore.innerText = vScoreVal;
         pScore.classList.add('visible');
         vScore.classList.add('visible');
+
+        const pPopup = document.getElementById('p-dmg-popup');
+        const vPopup = document.getElementById('v-dmg-popup');
+        if (pPopup) {
+          pPopup.innerText = `💥 ${pScoreVal}`;
+          pPopup.className = 'dmg-popup show player-dmg';
+        }
+        if (vPopup) {
+          vPopup.innerText = `💥 ${vScoreVal}`;
+          vPopup.className = 'dmg-popup show vladeos-dmg';
+        }
   
         if (data.win) {
           playSfx('win');
           triggerHaptic('success');
           msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
+          pScore.style.color = '#33BD1C';
+          vScore.style.color = 'rgba(255,255,255,0.4)';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true, lootDrop: data.loot_drop }, '*');
           if (data.loot_drop) {
             try { window.parent.postMessage({ type: 'loot_dropped', item: data.loot_drop }, '*'); } catch(e) {}
           }
-          showPopupResult(true, 100, data.loot_drop);
+          setTimeout(() => {
+            showPopupResult(true, 100, data.loot_drop, pScoreVal, vScoreVal);
+          }, 1800);
         } else {
           triggerHaptic('error');
           msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
           msg.style.color = 'var(--accent)';
+          pScore.style.color = 'rgba(255,255,255,0.4)';
+          vScore.style.color = '#FF3B30';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
-          showPopupResult(false, 0);
+          setTimeout(() => {
+            showPopupResult(false, 0, null, pScoreVal, vScoreVal);
+          }, 1800);
         }
       } catch(e) {
         msg.innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
       }
     }
     
-    function showPopupResult(isWin, amount, lootDrop) {
+    function showPopupResult(isWin, amount, lootDrop, pScoreVal, vScoreVal) {
       const overlay = document.getElementById('reward-overlay');
       const popup = document.getElementById('reward-popup');
       const icon = document.getElementById('popup-icon');
       const title = document.getElementById('popup-title');
+      const breakdownEl = document.getElementById('popup-breakdown');
       const amountEl = document.getElementById('popup-amount');
       const btn = document.getElementById('popup-btn');
       
+      if (breakdownEl) {
+        breakdownEl.innerHTML = `<span>${lang === 'ru' ? 'Вы' : 'You'}: <b style="color:#33BD1C">${pScoreVal || 0}</b></span> <span style="color:rgba(255,255,255,0.3)">|</span> <span>Vladeos: <b style="color:#c084fc">${vScoreVal || 0}</b></span>`;
+      }
+
       if (isWin) {
         icon.innerText = '🎉';
         title.innerText = t.victoryTitle;
@@ -827,6 +900,12 @@
     function resetGame() {
       pScore.classList.remove('visible');
       vScore.classList.remove('visible');
+      pScore.style.color = '#ffd700';
+      vScore.style.color = '#ffd700';
+      const pPopup = document.getElementById('p-dmg-popup');
+      const vPopup = document.getElementById('v-dmg-popup');
+      if (pPopup) pPopup.className = 'dmg-popup';
+      if (vPopup) vPopup.className = 'dmg-popup';
       gradeSelection.classList.remove('hidden');
       msg.innerText = t.msgStart;
       msg.style.color = 'var(--text-main)';

@@ -5129,6 +5129,8 @@ def api_game_tower():
             save_game_session(user_id, 'tower', state)
         
         if action == 'cookie':
+            if not state or state.get('pHP', 100) <= 0:
+                return jsonify({'status': 'error', 'error': 'Нельзя лечиться после поражения!'}), 400
             spend_result = spend_tokens(user_id, 100, 'cookie_heal')
             if not spend_result: return jsonify({'status': 'error', 'error': 'Недостаточно токенов!'}), 400
             state['pHP'] = 100

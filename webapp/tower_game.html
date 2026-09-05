@@ -366,19 +366,19 @@
       background: var(--card-elevated);
       border: var(--border-subtle);
       border-radius: 14px;
-      padding: 12px 10px;
+      padding: 10px 12px;
       color: #fff;
       font-family: inherit;
       font-weight: 700;
       font-size: 0.8rem;
       cursor: pointer;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      justify-content: center;
-      gap: 4px;
+      justify-content: space-between;
+      gap: 6px;
       transition: all 0.15s ease;
-      min-height: 54px;
+      min-height: 52px;
     }
     .btn-action:active { transform: scale(0.96); }
     .btn-action:disabled {
@@ -393,10 +393,26 @@
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.4);
       font-size: 0.92rem;
       font-weight: 800;
-      padding: 14px;
+      padding: 12px 14px;
       border: none;
-      flex-direction: row;
-      gap: 8px;
+    }
+    .btn-action-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      text-align: left;
+    }
+    .btn-action-title {
+      font-weight: 800;
+      font-size: 0.84rem;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .btn-action-desc {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.7);
     }
     .btn-sp1 {
       border: 1px solid rgba(255, 145, 0, 0.35);
@@ -416,8 +432,9 @@
       padding: 2px 8px;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.12);
-      font-weight: 700;
+      font-weight: 800;
       color: var(--game-yellow);
+      white-space: nowrap;
     }
     .btn-cookie-row {
       grid-column: span 2;
@@ -434,6 +451,11 @@
       justify-content: center;
       gap: 8px;
     }
+    .btn-cookie-row:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      background: #19191c !important;
+    }
     .btn-next-level {
       grid-column: span 2;
       background: linear-gradient(180deg, #33BD1C 0%, #2e7d32 100%);
@@ -445,9 +467,28 @@
       font-weight: 900;
       font-size: 0.95rem;
       cursor: pointer;
-      display: none;
-      text-transform: uppercase;
       font-family: inherit;
+      display: none;
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .log-box {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      border: var(--border-subtle);
+      font-size: 0.8rem;
+      color: var(--text-sec);
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
     }
 
     .cone-icon {
@@ -456,12 +497,6 @@
       vertical-align: -0.15em;
       object-fit: contain;
       filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
-    }
-    .log-box {
-      font-size: 0.72rem;
-      color: var(--text-sec);
-      margin-top: 10px;
-      min-height: 16px;
     }
   </style>
 </head>
@@ -539,20 +574,32 @@
   <!-- Controls -->
   <div class="controls-card">
     <button class="btn-action btn-main-strike" id="btn-atk" onclick="playerTurn('attack')">
-      <span>🥊 Удар</span>
-      <span class="cost-pill">+20 NRG</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title" id="title-atk">🥊 Удар лапой</span>
+        <span class="btn-action-desc" id="desc-atk">15 урона</span>
+      </div>
+      <span class="cost-pill">+20 ⚡</span>
     </button>
     <button class="btn-action btn-sp1" id="btn-sp1" onclick="playerTurn('trash')" disabled>
-      <span>🗑️ Мусор</span>
-      <span class="cost-pill">40 NRG</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title" id="title-sp1">🗑️ Мусор</span>
+        <span class="btn-action-desc" id="desc-sp1">30 урона</span>
+      </div>
+      <span class="cost-pill">40 ⚡</span>
     </button>
     <button class="btn-action btn-sp2" id="btn-sp2" onclick="playerTurn('snack')" disabled>
-      <span>🥨 Снэк (Лечение)</span>
-      <span class="cost-pill">30 NRG</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title" id="title-sp2">🥨 Снэк</span>
+        <span class="btn-action-desc" id="desc-sp2">+40 HP</span>
+      </div>
+      <span class="cost-pill">30 ⚡</span>
     </button>
     <button class="btn-action btn-sp3" id="btn-sp3" onclick="playerTurn('rage')" disabled>
-      <span>🔥 Ярость Енота (УЛЬТА)</span>
-      <span class="cost-pill">80 NRG</span>
+      <div class="btn-action-content">
+        <span class="btn-action-title" id="title-sp3">🔥 Ярость Енота (УЛЬТА)</span>
+        <span class="btn-action-desc" id="desc-sp3">120 урона (Крит)</span>
+      </div>
+      <span class="cost-pill">80 ⚡</span>
     </button>
     <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
       <span>🍪 Восстановить 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)</span>
@@ -567,6 +614,7 @@
     let pStats = { hp: 100, maxHp: 100, nrg: 0 };
     let eStats = { hp: 100, maxHp: 100, dmg: 10 };
     let turn = true;
+    let isGameOver = false;
     let soundMuted = localStorage.getItem('rl_sound_muted') === 'true';
 
     // Sound Synthesizer
@@ -662,12 +710,20 @@
     const translations = {
       ru: {
         title: "Башня 3.0", msgSt: "Новый противник!", enL: "Энергия",
-        btnA: "🥊 Удар", btnS1: "🗑️ Мусор", btnS2: "🥨 Снэк", btnS3: "🔥 Ярость Енота (УЛЬТА)", btnC: '🍪 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
+        atkTitle: "🥊 Удар лапой", atkDesc: "15 урона",
+        s1Title: "🗑️ Мусор", s1Desc: "30 урона",
+        s2Title: "🥨 Снэк", s2Desc: "+40 HP",
+        s3Title: "🔥 Ярость Енота (УЛЬТА)", s3Desc: "120 урона (Крит)",
+        btnC: '🍪 Восстановить 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         btnN: "СЛЕДУЮЩИЙ УРОВЕНЬ ➜", enemy: "Враг"
       },
       en: {
         title: "Tower 3.0", msgSt: "New Enemy!", enL: "Energy",
-        btnA: "🥊 Strike", btnS1: "🗑️ Trash", btnS2: "🥨 Snack", btnS3: "🔥 Raccoon Rage (ULT)", btnC: '🍪 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
+        atkTitle: "🥊 Paw Strike", atkDesc: "15 DMG",
+        s1Title: "🗑️ Trash", s1Desc: "30 DMG",
+        s2Title: "🥨 Snack", s2Desc: "+40 HP",
+        s3Title: "🔥 Raccoon Rage (ULT)", s3Desc: "120 DMG (Crit)",
+        btnC: '🍪 Restore 100% HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         btnN: "NEXT LEVEL ➜", enemy: "Enemy"
       }
     };
@@ -719,6 +775,27 @@
       updateEnemiesList();
       const msgEl = document.getElementById('msg');
       if (msgEl) msgEl.innerText = t.msgSt;
+      
+      const tAtk = document.getElementById('title-atk');
+      const dAtk = document.getElementById('desc-atk');
+      if (tAtk) tAtk.innerText = t.atkTitle;
+      if (dAtk) dAtk.innerText = t.atkDesc;
+
+      const tSp1 = document.getElementById('title-sp1');
+      const dSp1 = document.getElementById('desc-sp1');
+      if (tSp1) tSp1.innerText = t.s1Title;
+      if (dSp1) dSp1.innerText = t.s1Desc;
+
+      const tSp2 = document.getElementById('title-sp2');
+      const dSp2 = document.getElementById('desc-sp2');
+      if (tSp2) tSp2.innerText = t.s2Title;
+      if (dSp2) dSp2.innerText = t.s2Desc;
+
+      const tSp3 = document.getElementById('title-sp3');
+      const dSp3 = document.getElementById('desc-sp3');
+      if (tSp3) tSp3.innerText = t.s3Title;
+      if (dSp3) dSp3.innerText = t.s3Desc;
+
       const cookieBtn = document.getElementById('btn-cookie');
       if (cookieBtn) cookieBtn.innerHTML = `<span>${t.btnC}</span>`;
       const btnNext = document.getElementById('btn-next');
@@ -871,10 +948,12 @@
 
     function initGame() {
       level = 1;
+      isGameOver = false;
       startLevel();
     }
 
     async function startLevel() {
+      isGameOver = false;
       document.getElementById('lvl-display').innerText = "🏰 LVL " + level;
       document.getElementById('btn-next').style.display = 'none';
       toggleButtons(false);
@@ -919,7 +998,7 @@
     }
 
     async function playerTurn(actionType) {
-      if (!turn) return;
+      if (!turn || isGameOver) return;
       turn = false;
       playSfx('tap');
       triggerHaptic('medium');
@@ -969,9 +1048,13 @@
           updateUI();
 
           if (data.game_over && !data.win) {
+              isGameOver = true;
               triggerHaptic('error');
               document.getElementById('msg').innerText = lang === 'ru' ? "ВЫ ПРОИГРАЛИ!" : "YOU LOST!";
               document.getElementById('msg').style.color = "var(--accent)";
+              toggleButtons(true);
+              const cookieBtn = document.getElementById('btn-cookie');
+              if (cookieBtn) cookieBtn.disabled = true;
               setTimeout(() => location.reload(), 2000);
           } else {
               turn = true;
@@ -1027,6 +1110,12 @@
     }
 
     function buyCookie() {
+      if (isGameOver || pStats.hp <= 0) {
+        document.getElementById('log').innerText = lang === 'ru' ? "❌ Нельзя лечиться после поражения!" : "❌ Cannot heal after defeat!";
+        triggerHaptic('error');
+        return;
+      }
+
       let userId = getUserId();
       if (!userId) {
         document.getElementById('log').innerText = lang === 'ru' ? "❌ Ошибка: нет user_id" : "❌ Error: no user_id";
@@ -1065,7 +1154,9 @@
       })
       .finally(() => {
         setTimeout(() => {
-          cookieBtn.disabled = false;
+          if (!isGameOver && pStats.hp > 0) {
+            cookieBtn.disabled = false;
+          }
         }, 500);
       });
     }
@@ -1090,8 +1181,8 @@
         if (b) b.disabled = disabled;
       });
       const cookieBtn = document.getElementById('btn-cookie');
-      if (cookieBtn) cookieBtn.disabled = false;
-      if (!disabled) updateUI();
+      if (cookieBtn) cookieBtn.disabled = disabled || isGameOver || pStats.hp <= 0;
+      if (!disabled && !isGameOver) updateUI();
     }
 
     if (document.readyState === 'loading') {
