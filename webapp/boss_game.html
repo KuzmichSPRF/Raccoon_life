@@ -159,6 +159,13 @@
       padding: 2px;
       background: #18181a;
       border: 2px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+    }
+    .chip-frame:hover {
+      transform: scale(1.06);
+    }
+    .chip-frame:active {
+      transform: scale(0.95);
     }
     .chip-frame.player {
       border-color: #00e5ff;
@@ -181,6 +188,113 @@
       border-radius: 50%;
       object-fit: cover;
       display: block;
+      pointer-events: none;
+    }
+    .chip-zoom-hint {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #ffd700;
+      z-index: 2;
+    }
+
+    /* Chip Zoom Inspection Modal */
+    .chip-zoom-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 16px;
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .chip-zoom-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      max-width: 90vw;
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .chip-zoom-close {
+      position: absolute;
+      top: -20px;
+      right: -10px;
+      background: var(--card-elevated);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    .chip-zoom-frame {
+      width: min(80vw, 340px);
+      height: min(80vw, 340px);
+      border-radius: 50%;
+      padding: 6px;
+      background: #18181a;
+      border: 3px solid #ffd700;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), 0 10px 40px rgba(0,0,0,0.9);
+      transition: all 0.3s ease;
+    }
+    .chip-zoom-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    }
+    .chip-zoom-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #ffd700;
+      margin-top: 18px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      letter-spacing: -0.2px;
+    }
+    .chip-zoom-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-sec);
+      margin-top: 4px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .chip-zoom-tap-close {
+      margin-top: 14px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
     .fighter-name {
       font-size: 0.8rem;
@@ -514,7 +628,8 @@
   <!-- Arena -->
   <div class="arena">
     <div class="fighter-box">
-      <div id="player-cap" class="chip-frame player">
+      <div id="player-cap" class="chip-frame player" onclick="inspectPlayerChip()" title="Нажми чтобы рассмотреть фишку">
+        <span class="chip-zoom-hint">🔍</span>
         <img src="chip_raccoon.png" alt="Raccoon Hero" class="chip-img" onerror="this.src='cone.png'">
       </div>
       <div class="fighter-name">Вы (Енот)</div>
@@ -539,10 +654,24 @@
     <div style="font-weight: 900; font-size: 1.1rem; color: rgba(255,255,255,0.25);">VS</div>
 
     <div class="fighter-box">
-      <div id="boss" class="chip-frame boss">
+      <div id="boss" class="chip-frame boss" onclick="inspectBossChip()" title="Нажми чтобы рассмотреть фишку">
+        <span class="chip-zoom-hint">🔍</span>
         <img src="chip_boss.png" alt="World Boss" class="chip-img" onerror="this.src='cone.png'">
       </div>
       <div class="fighter-name boss-name-gold">ГЕНЕРАЛ ЕНОТОВ</div>
+    </div>
+  </div>
+
+  <!-- Chip Fullscreen Inspection Modal -->
+  <div class="chip-zoom-overlay" id="chip-zoom-overlay" onclick="closeChipZoom()">
+    <div class="chip-zoom-content" onclick="event.stopPropagation()">
+      <button class="chip-zoom-close" onclick="closeChipZoom()">✕</button>
+      <div class="chip-zoom-frame" id="zoom-frame">
+        <img src="chip_boss.png" id="zoom-img" alt="Enlarged Chip" class="chip-zoom-img">
+      </div>
+      <div class="chip-zoom-title" id="zoom-title">Генерал Енотов</div>
+      <div class="chip-zoom-subtitle" id="zoom-subtitle">Мировой Рейдовый Босс</div>
+      <div class="chip-zoom-tap-close">Нажмите в любое место чтобы закрыть</div>
     </div>
   </div>
 
@@ -725,6 +854,53 @@
       if (msgEl && gameActive) msgEl.innerText = t.msg;
       const leadTitle = document.getElementById('raid-lead-title');
       if (leadTitle) leadTitle.innerText = t.raidLead;
+    }
+
+    function openChipZoom(imgSrc, title, subtitle, glowColor, borderColor) {
+      const overlay = document.getElementById('chip-zoom-overlay');
+      const zoomImg = document.getElementById('zoom-img');
+      const zoomTitle = document.getElementById('zoom-title');
+      const zoomSubtitle = document.getElementById('zoom-subtitle');
+      const zoomFrame = document.getElementById('zoom-frame');
+      
+      if (zoomImg) zoomImg.src = imgSrc || 'chip_raccoon.png';
+      if (zoomTitle) zoomTitle.innerText = title || 'Фишка';
+      if (zoomSubtitle) zoomSubtitle.innerText = subtitle || '';
+      if (zoomFrame) {
+        zoomFrame.style.borderColor = borderColor || '#ffd700';
+        zoomFrame.style.boxShadow = `0 0 50px ${glowColor || 'rgba(255,215,0,0.6)'}, 0 10px 40px rgba(0,0,0,0.9)`;
+      }
+      if (overlay) {
+        overlay.style.display = 'flex';
+      }
+      playSfx('tap');
+      triggerHaptic('medium');
+    }
+
+    function closeChipZoom() {
+      const overlay = document.getElementById('chip-zoom-overlay');
+      if (overlay) overlay.style.display = 'none';
+      playSfx('tap');
+    }
+
+    function inspectPlayerChip() {
+      openChipZoom(
+        'chip_raccoon.png',
+        lang === 'ru' ? 'Енот-Воин' : 'Raccoon Hero',
+        lang === 'ru' ? 'Легендарная боевая фишка главного героя' : 'Legendary battle chip of the protagonist',
+        'rgba(0, 229, 255, 0.7)',
+        '#00e5ff'
+      );
+    }
+
+    function inspectBossChip() {
+      openChipZoom(
+        'chip_boss.png',
+        lang === 'ru' ? 'Генерал Енотов' : 'General Raccoon Boss',
+        lang === 'ru' ? 'Мировой Рейдовый Босс 1,000,000,000 HP' : 'World Raid Boss 1,000,000,000 HP',
+        'rgba(255, 215, 0, 0.8)',
+        '#ffd700'
+      );
     }
 
     applyLang(lang);
