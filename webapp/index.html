@@ -1725,15 +1725,15 @@
         </div>
 
         <div id="hollow-max-level-msg" class="hollow-max-level-box" style="display: none;">
-          🏆 <span data-i18n="hollow_max_level">Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</span>
+          🏆 <span data-i18n-html="hollow_max_level">Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</span>
         </div>
       </div>
 
       <!-- Starter Offer (+3 Levels for 10 TON) -->
       <div id="hollow-starter-offer" class="hollow-starter-card" style="display: none;">
         <div class="hollow-starter-card__tag">🔥 SPECIAL OFFER</div>
-        <div class="hollow-starter-card__title" data-i18n="hollow_starter_title">⚡ СУПЕР-СТАРТ ДУПЛА</div>
-        <div class="hollow-starter-card__desc" data-i18n="hollow_starter_desc">+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</div>
+        <div class="hollow-starter-card__title" data-i18n="hollow_starter_title">⚡ ПРОКАЧАЙ ДУПЛО!</div>
+        <div class="hollow-starter-card__desc" data-i18n-html="hollow_starter_desc">+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!</div>
         <button class="hollow-starter-card__btn" onclick="buyHollowStarterTon()">
           <span>🚀</span>
           <span data-i18n="hollow_starter_btn">Купить за 10 TON</span>
@@ -2422,7 +2422,7 @@
   if (tg.expand) tg.expand();
   // URL для кнопки Играть
   const WEBAPP_URL = window.location.origin;
-  const APP_VERSION = '2026.09.05.1';
+  const APP_VERSION = '2026.09.05.3';
   const APP_VERSION_KEY = 'rl_app_version';
 
   async function clearAppCachesAndStorage() {
@@ -2518,9 +2518,9 @@
       hollow_upgrade_desc: "Каждый уровень удваивает (х2) ежедневную добычу шишек!",
       hollow_upgrade_cones_btn: "За шишки",
       hollow_upgrade_gram_btn: "За GRAM",
-      hollow_max_level: "Максимальный 10-й уровень (512,000 🌰/сутки)!",
-      hollow_starter_title: "⚡ СУПЕР-СТАРТ ДУПЛА",
-      hollow_starter_desc: "+3 Уровня Дупла (Сразу 4-й ур. = 8,000 🌰/сутки)!",
+      hollow_max_level: 'Максимальный 10-й уровень (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
+      hollow_starter_title: "⚡ ПРОКАЧАЙ ДУПЛО!",
+      hollow_starter_desc: '+3 Уровня Дупла (Сразу 4-й ур. = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/сутки)!',
       hollow_starter_btn: "Купить за 10 TON",
       hollow_claimed_toast: "🎉 Урожай Дупла успешно собран!",
       raccoon_tired: "Я устал! 😴 Приходи после бонуса!",
@@ -2691,9 +2691,9 @@
       hollow_upgrade_desc: "Each level doubles (x2) your daily cone harvest!",
       hollow_upgrade_cones_btn: "For Cones",
       hollow_upgrade_gram_btn: "For GRAM",
-      hollow_max_level: "Max 10th Level (512,000 🌰/day)!",
-      hollow_starter_title: "⚡ SUPER-START OFFER",
-      hollow_starter_desc: "+3 Hollow Levels (Instantly Level 4 = 8,000 🌰/day)!",
+      hollow_max_level: 'Max 10th Level (512,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
+      hollow_starter_title: "⚡ UPGRADE HOLLOW!",
+      hollow_starter_desc: '+3 Hollow Levels (Instantly Level 4 = 8,000 <img src="cone.png" class="cone-icon" style="width:12px;height:12px;vertical-align:middle;" alt="🌰">/day)!',
       hollow_starter_btn: "Buy for 10 TON",
       hollow_claimed_toast: "🎉 Hollow harvest collected successfully!",
       raccoon_tired: "I'm tired! 😴 Come back after the bonus!",
@@ -3570,7 +3570,7 @@
   }
 
   function buyHollowStarterTon() {
-    handleTonHollowPayment('hollow_starter_10ton', 10.0, '⚡ Супер-Старт Дупла (+3 Уровня)');
+    handleTonHollowPayment('hollow_starter_10ton', 10.0, '⚡ Прокачай дупло! (+3 Уровня)');
   }
 
   async function handleTonHollowPayment(packId, tonAmount, title) {

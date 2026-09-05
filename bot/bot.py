@@ -2367,13 +2367,40 @@ def upgrade_hollow_cones(user_id: int) -> dict:
 
     new_tokens = get_user_tokens(user_id)
     new_hollow_st = get_hollow_status(user_id)
+    new_yield = 1000 * (2 ** (new_level - 1))
+
+    # Отправляем уведомление администратору
+    try:
+        user_name = f"Игрок #{user_id}"
+        conn_u = get_db_connection()
+        try:
+            cursor_u = conn_u.cursor()
+            cursor_u.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+            u_row = cursor_u.fetchone()
+            if u_row:
+                user_name = f"@{u_row['username']}" if u_row['username'] else (f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip() or f"Игрок #{user_id}")
+        finally:
+            conn_u.close()
+
+        admin_text = (
+            f"🌳 <b>ПРОКАЧКА ДУПЛА ЗА ШИШКИ!</b>\n\n"
+            f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+            f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+            f"🌲 <b>Потрачено шишек:</b> {cost:,} 🌰\n"
+            f"🏆 <b>Новый уровень Дупла:</b> {new_level} / 10\n"
+            f"🌰 <b>Добыча в сутки:</b> +{new_yield:,} Шишек/24ч\n"
+            f"💳 <b>Остаток баланса:</b> {new_tokens['balance']:,} Шишек"
+        )
+        notify_admin(admin_text)
+    except Exception as e:
+        logger.error(f"Ошибка отправки уведомления админу о прокачке Дупла за шишки: {e}")
 
     return {
         'status': 'ok',
         'new_level': new_level,
         'new_balance': new_tokens['balance'],
         'hollow': new_hollow_st,
-        'message': f'🎉 Дупло успешно прокачано до уровня {new_level}!\nДобыча: {1000 * (2**(new_level-1)):,} шишек/сутки'
+        'message': f'🎉 Дупло успешно прокачано до уровня {new_level}!\nДобыча: {new_yield:,} шишек/сутки'
     }
 
 
@@ -2959,7 +2986,7 @@ def api_ton_notify_payment():
         if is_hollow_starter:
             ton_amount = 10.0
             cones_amount = 0
-            pack_title = "⚡ Супер-Старт Дупла (+3 Уровня)"
+            pack_title = "⚡ Прокачай дупло! (+3 Уровня)"
         elif is_hollow_gram:
             try:
                 from_level = int(pack_id.split('_')[-1])
@@ -2999,14 +3026,21 @@ def api_ton_notify_payment():
             conn.commit()
 
             # Обрабатываем прокачку Дупла
+            final_hollow_level = 1
             if is_hollow_starter:
                 cursor.execute("UPDATE user_stats SET hollow_level = MAX(COALESCE(hollow_level, 1), 4) WHERE user_id = ?", (user_id,))
                 conn.commit()
-                logger.info(f"⚡ Супер-Старт Дупла: {user_id} получил 4-й уровень Дупла за 10 TON!")
+                cursor.execute("SELECT hollow_level FROM user_stats WHERE user_id = ?", (user_id,))
+                row_h = cursor.fetchone()
+                final_hollow_level = row_h['hollow_level'] if row_h else 4
+                logger.info(f"⚡ Прокачай дупло! {user_id} получил {final_hollow_level}-й уровень Дупла за 10 TON!")
             elif is_hollow_gram:
                 cursor.execute("UPDATE user_stats SET hollow_level = MIN(10, COALESCE(hollow_level, 1) + 1) WHERE user_id = ?", (user_id,))
                 conn.commit()
-                logger.info(f"🌳 Прокачка Дупла за GRAM: {user_id} повысил уровень Дупла!")
+                cursor.execute("SELECT hollow_level FROM user_stats WHERE user_id = ?", (user_id,))
+                row_h = cursor.fetchone()
+                final_hollow_level = row_h['hollow_level'] if row_h else 2
+                logger.info(f"🌳 Прокачка Дупла за GRAM: {user_id} повысил уровень Дупла до {final_hollow_level}!")
         finally:
             conn.close()
 
@@ -3029,18 +3063,42 @@ def api_ton_notify_payment():
         finally:
             conn.close()
 
-        # Отправляем уведомление администратору
-        admin_text = (
-            f"💎 <b>НОВАЯ ОПЛАТА GRAM!</b>\n\n"
-            f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
-            f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
-            f"📦 <b>Пакет:</b> {selected_pack['title_ru']}\n"
-            f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
-            f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
-            f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
-            f"👛 <b>Кошелек получения:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
-            f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
-        )
+        # Формируем и отправляем уведомление администратору
+        if is_hollow_starter:
+            admin_text = (
+                f"⚡ <b>ПРОКАЧАЙ ДУПЛО! (ОПЛАТА 10 TON)</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"💎 <b>Оплачено:</b> 10.0 TON\n"
+                f"🏆 <b>Уровень Дупла:</b> {final_hollow_level} / 10 (+3 Уровня!)\n"
+                f"🌰 <b>Добыча:</b> {1000 * (2**(final_hollow_level-1)):,} Шишек/сутки\n"
+                f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
+            )
+        elif is_hollow_gram:
+            admin_text = (
+                f"🌳 <b>ПРОКАЧКА ДУПЛА ЗА GRAM!</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"💎 <b>Оплачено:</b> {ton_amount} GRAM\n"
+                f"🏆 <b>Новый уровень:</b> {final_hollow_level} / 10\n"
+                f"🌰 <b>Добыча:</b> {1000 * (2**(final_hollow_level-1)):,} Шишек/сутки\n"
+                f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
+            )
+        else:
+            admin_text = (
+                f"💎 <b>НОВАЯ ОПЛАТА GRAM!</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"📦 <b>Пакет:</b> {pack_title}\n"
+                f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
+                f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+                f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
+                f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
+            )
+
         if tx_boc:
             admin_text += f"\n🔗 <b>BOC:</b> <code>{html.escape(tx_boc[:48])}...</code>"
 
@@ -3049,12 +3107,27 @@ def api_ton_notify_payment():
         # Отправляем подтверждение и поздравление игроку в Telegram
         if BOT_TOKEN and user_id:
             try:
-                user_msg = (
-                    f"💎 <b>Оплата {ton_amount} GRAM прошла успешно!</b>\n\n"
-                    f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
-                    f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
-                    f"Приятной игры в <b>Raccoon Life</b>! 🦝"
-                )
+                if is_hollow_starter:
+                    user_msg = (
+                        f"⚡ <b>Оплата 10 TON прошла успешно!</b>\n\n"
+                        f"🌳 Ваше <b>Дупло</b> прокачано до <b>{final_hollow_level}-го уровня</b> (+3 Уровня)!\n"
+                        f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
+                        f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                    )
+                elif is_hollow_gram:
+                    user_msg = (
+                        f"🌳 <b>Оплата {ton_amount} GRAM прошла успешно!</b>\n\n"
+                        f"✨ Ваше <b>Дупло</b> прокачано до <b>{final_hollow_level}-го уровня</b>!\n"
+                        f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
+                        f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                    )
+                else:
+                    user_msg = (
+                        f"💎 <b>Оплата {ton_amount} GRAM прошла успешно!</b>\n\n"
+                        f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
+                        f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
+                        f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                    )
                 requests.post(
                     f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                     json={"chat_id": user_id, "text": user_msg, "parse_mode": "HTML"},
@@ -3066,7 +3139,8 @@ def api_ton_notify_payment():
         return jsonify({
             'status': 'ok',
             'cones_added': cones_amount,
-            'balance': result['balance'] if result else 0
+            'balance': result['balance'] if result else 0,
+            'hollow_level': final_hollow_level if (is_hollow_starter or is_hollow_gram) else None
         })
 
     except Exception as e:
@@ -3079,7 +3153,7 @@ def check_blockchain_incoming_transactions():
     Проверяет блокчейн TON на наличие входящих транзакций на кошелек TON_RECIPIENT_WALLET.
     При обнаружении транзакции с комментарием rl_{userId}_{packId}:
     1. Проверяет хэш транзакции в processed_payments.
-    2. Если транзакция новая и сумма достаточна — автоматически начисляет шишки.
+    2. Если транзакция новая и сумма достаточна — автоматически начисляет шишки или прокачивает Дупло.
     3. Отправляет подтверждение игроку в Telegram.
     4. Отправляет уведомление администратору.
     """
@@ -3113,7 +3187,7 @@ def check_blockchain_incoming_transactions():
                 if not comment.startswith('rl_'):
                     continue
 
-                # Формат комментария: rl_{userId}_{packId} (например rl_12345678_pack_02)
+                # Формат комментария: rl_{userId}_{packId}
                 parts = comment.split('_')
                 if len(parts) < 3:
                     continue
@@ -3123,13 +3197,32 @@ def check_blockchain_incoming_transactions():
                 except ValueError:
                     continue
 
-                pack_id = '_'.join(parts[2:]) # pack_02, pack_05, etc.
-                selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
-                if not selected_pack:
-                    continue
+                pack_id = '_'.join(parts[2:])
+                is_hollow_starter = (pack_id == "hollow_starter_10ton")
+                is_hollow_gram = pack_id.startswith("hollow_gram_")
 
-                expected_nano = int(selected_pack['ton'] * 1e9)
-                if nano_amount < int(expected_nano * 0.95):  # с учетом допустимой погрешности комиссии
+                if is_hollow_starter:
+                    ton_amount = 10.0
+                    cones_amount = 0
+                    pack_title = "⚡ Прокачай дупло! (+3 Уровня)"
+                elif is_hollow_gram:
+                    try:
+                        from_level = int(pack_id.split('_')[-1])
+                    except:
+                        from_level = 1
+                    ton_amount = float(2 * (2 ** (from_level - 1)))
+                    cones_amount = 0
+                    pack_title = f"🌳 Прокачка Дупла ({from_level} → {from_level + 1} ур.)"
+                else:
+                    selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
+                    if not selected_pack:
+                        continue
+                    cones_amount = selected_pack['cones']
+                    ton_amount = selected_pack['ton']
+                    pack_title = selected_pack['title_ru']
+
+                expected_nano = int(ton_amount * 1e9)
+                if nano_amount < int(expected_nano * 0.95):  # с учетом допустимой погрешности
                     continue
 
                 # Проверяем, обрабатывали ли мы уже этот tx_hash
@@ -3144,16 +3237,33 @@ def check_blockchain_incoming_transactions():
                     cursor.execute('''
                         INSERT OR IGNORE INTO processed_payments (payment_id, user_id, payment_type, amount, cones_amount, tx_boc, comment)
                         VALUES (?, ?, 'gram_blockchain', ?, ?, ?, ?)
-                    ''', (tx_hash, user_id, selected_pack['ton'], selected_pack['cones'], tx_hash, comment))
+                    ''', (tx_hash, user_id, ton_amount, cones_amount, tx_hash, comment))
                     conn.commit()
+
+                    final_hollow_level = 1
+                    if is_hollow_starter:
+                        cursor.execute("UPDATE user_stats SET hollow_level = MAX(COALESCE(hollow_level, 1), 4) WHERE user_id = ?", (user_id,))
+                        conn.commit()
+                        cursor.execute("SELECT hollow_level FROM user_stats WHERE user_id = ?", (user_id,))
+                        row_h = cursor.fetchone()
+                        final_hollow_level = row_h['hollow_level'] if row_h else 4
+                        logger.info(f"⚡ [Блокчейн] Прокачай дупло: {user_id} получил {final_hollow_level}-й уровень Дупла!")
+                    elif is_hollow_gram:
+                        cursor.execute("UPDATE user_stats SET hollow_level = MIN(10, COALESCE(hollow_level, 1) + 1) WHERE user_id = ?", (user_id,))
+                        conn.commit()
+                        cursor.execute("SELECT hollow_level FROM user_stats WHERE user_id = ?", (user_id,))
+                        row_h = cursor.fetchone()
+                        final_hollow_level = row_h['hollow_level'] if row_h else 2
+                        logger.info(f"🌳 [Блокчейн] Прокачка Дупла: {user_id} получил {final_hollow_level}-й уровень Дупла!")
                 finally:
                     conn.close()
 
-                # Автоматически начисляем шишки игроку
-                cones_amount = selected_pack['cones']
-                ton_amount = selected_pack['ton']
-                result = add_tokens(user_id, cones_amount, f'blockchain_gram_purchase:{pack_id}:{ton_amount}GRAM')
-                logger.info(f"💎 [Блокчейн-верификатор] Успешно зачислено +{cones_amount} шишек игроку {user_id} (tx: {tx_hash[:16]}...)")
+                # Если это пакет с шишками — начисляем
+                if cones_amount > 0:
+                    result = add_tokens(user_id, cones_amount, f'blockchain_gram_purchase:{pack_id}:{ton_amount}GRAM')
+                    logger.info(f"💎 [Блокчейн-верификатор] Успешно зачислено +{cones_amount} шишек игроку {user_id} (tx: {tx_hash[:16]}...)")
+                else:
+                    result = get_user_tokens(user_id)
 
                 # Получаем данные пользователя для отчета админу
                 user_name = f"Игрок #{user_id}"
@@ -3168,29 +3278,69 @@ def check_blockchain_incoming_transactions():
                     conn.close()
 
                 # Уведомление админу
-                admin_text = (
-                    f"💎 <b>НОВАЯ ОПЛАТА GRAM (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
-                    f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
-                    f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
-                    f"📦 <b>Пакет:</b> {selected_pack['title_ru']}\n"
-                    f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
-                    f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
-                    f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
-                    f"👛 <b>Кошелек получения:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
-                    f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
-                    f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
-                )
+                if is_hollow_starter:
+                    admin_text = (
+                        f"⚡ <b>ПРОКАЧАЙ ДУПЛО (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
+                        f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                        f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                        f"💎 <b>Оплачено:</b> 10.0 TON\n"
+                        f"🏆 <b>Уровень Дупла:</b> {final_hollow_level} / 10\n"
+                        f"🌰 <b>Добыча:</b> {1000 * (2**(final_hollow_level-1)):,} Шишек/сутки\n"
+                        f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                        f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
+                        f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
+                    )
+                elif is_hollow_gram:
+                    admin_text = (
+                        f"🌳 <b>ПРОКАЧКА ДУПЛА ЗА GRAM (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
+                        f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                        f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                        f"💎 <b>Оплачено:</b> {ton_amount} GRAM\n"
+                        f"🏆 <b>Новый уровень:</b> {final_hollow_level} / 10\n"
+                        f"🌰 <b>Добыча:</b> {1000 * (2**(final_hollow_level-1)):,} Шишек/сутки\n"
+                        f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                        f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
+                        f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
+                    )
+                else:
+                    admin_text = (
+                        f"💎 <b>НОВАЯ ОПЛАТА GRAM (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
+                        f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                        f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                        f"📦 <b>Пакет:</b> {pack_title}\n"
+                        f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
+                        f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+                        f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
+                        f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                        f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
+                        f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
+                    )
                 notify_admin(admin_text)
 
                 # Уведомление игроку в Telegram
                 if BOT_TOKEN and user_id:
                     try:
-                        user_msg = (
-                            f"💎 <b>Оплата {ton_amount} GRAM подтверждена в блокчейне!</b>\n\n"
-                            f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
-                            f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
-                            f"Приятной игры в <b>Raccoon Life</b>! 🦝"
-                        )
+                        if is_hollow_starter:
+                            user_msg = (
+                                f"⚡ <b>Оплата 10 TON подтверждена в блокчейне!</b>\n\n"
+                                f"🌳 Ваше <b>Дупло</b> прокачано до <b>{final_hollow_level}-го уровня</b> (+3 Уровня)!\n"
+                                f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
+                                f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                            )
+                        elif is_hollow_gram:
+                            user_msg = (
+                                f"🌳 <b>Оплата {ton_amount} GRAM подтверждена в блокчейне!</b>\n\n"
+                                f"✨ Ваше <b>Дупло</b> прокачано до <b>{final_hollow_level}-го уровня</b>!\n"
+                                f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
+                                f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                            )
+                        else:
+                            user_msg = (
+                                f"💎 <b>Оплата {ton_amount} GRAM подтверждена в блокчейне!</b>\n\n"
+                                f"✨ На ваш игровой баланс зачислено <b>+{cones_amount:,} Шишек</b>!\n"
+                                f"💳 Ваш текущий баланс: <b>{result['balance'] if result else 0:,} Шишек</b>.\n\n"
+                                f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                            )
                         requests.post(
                             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                             json={"chat_id": user_id, "text": user_msg, "parse_mode": "HTML"},
