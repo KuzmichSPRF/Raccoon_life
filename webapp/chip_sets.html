@@ -136,6 +136,81 @@
     }
     .icon-btn:active { transform: scale(0.92); }
 
+    /* Dedicated Separate Action Button: Create Set */
+    .create-set-banner-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(139, 92, 246, 0.26));
+      border: 1px solid rgba(236, 72, 153, 0.45);
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.25);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .create-set-banner-btn:active {
+      transform: scale(0.97);
+    }
+    .create-set-banner-btn:hover {
+      border-color: rgba(236, 72, 153, 0.8);
+      box-shadow: 0 6px 24px rgba(236, 72, 153, 0.4);
+    }
+
+    .create-set-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .create-set-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.45);
+      flex-shrink: 0;
+    }
+
+    .create-set-text-wrap {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    .create-set-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.01em;
+    }
+    .create-set-subtitle {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #f472b6;
+    }
+
+    .create-set-arrow-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      color: #fff;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
     /* Segmented Navigation Tabs */
     .tabs-nav {
       display: flex;
@@ -151,18 +226,18 @@
 
     .tab-btn {
       flex: 1;
-      padding: 9px 4px;
+      padding: 10px 6px;
       border: none;
       background: transparent;
       color: var(--text-sec);
-      font-size: 0.76rem;
+      font-size: 0.82rem;
       font-weight: 700;
       border-radius: 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       transition: all 0.22s ease;
       white-space: nowrap;
     }
@@ -457,6 +532,28 @@
       gap: 14px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     }
+
+    .creator-top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+    .creator-back-to-catalog {
+      background: var(--card-elevated);
+      border: var(--card-border);
+      color: var(--text-sec);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .creator-back-to-catalog:active { transform: scale(0.95); }
 
     .section-label {
       font-size: 0.78rem;
@@ -771,12 +868,23 @@
     </div>
   </div>
 
-  <!-- Tabs Navigation -->
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('top')">🔥 Топ сетов</button>
-    <button class="tab-btn" onclick="switchTab('new')">⚡ Новые</button>
-    <button class="tab-btn" onclick="switchTab('my')">⭐ Мои сеты</button>
-    <button class="tab-btn" onclick="switchTab('create')">🎨 Создать сет</button>
+  <!-- Dedicated Separate Action Button: Create Set -->
+  <button id="create-set-banner" class="create-set-banner-btn" onclick="switchTab('create')">
+    <div class="create-set-banner-content">
+      <div class="create-set-icon-wrap">🎨</div>
+      <div class="create-set-text-wrap">
+        <span class="create-set-title">Создать свой сет фишек</span>
+        <span class="create-set-subtitle">Конструктор • 3D-кант • Модерация</span>
+      </div>
+    </div>
+    <div class="create-set-arrow-badge">➔</div>
+  </button>
+
+  <!-- Segmented Tabs Navigation (Only 3 clean filter tabs) -->
+  <div id="catalog-tabs-nav" class="tabs-nav">
+    <button class="tab-btn active" id="tab-btn-top" onclick="switchTab('top')">🔥 Топ</button>
+    <button class="tab-btn" id="tab-btn-new" onclick="switchTab('new')">⚡ Новые</button>
+    <button class="tab-btn" id="tab-btn-my" onclick="switchTab('my')">⭐ Мои сеты</button>
   </div>
 
   <!-- TAB 1: Top Sets -->
@@ -812,6 +920,14 @@
   <!-- TAB 4: Create Set Studio -->
   <div id="tab-create" class="tab-pane">
     <div class="creator-box">
+      <!-- Top nav inside studio -->
+      <div class="creator-top-nav">
+        <span style="font-weight: 800; font-size: 0.95rem; color: #fff;">🛠️ Студия создания сета</span>
+        <button class="creator-back-to-catalog" onclick="switchTab('top')">
+          <span>← В каталог</span>
+        </button>
+      </div>
+
       <!-- 1. Count selector -->
       <div class="section-label">1. Количество фишек в сете</div>
       <div class="count-selector">
@@ -827,7 +943,7 @@
         <div id="bg-upload-empty">
           <div style="font-size: 2rem; margin-bottom: 6px;">🖼️</div>
           <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">Загрузить фон коллекции</div>
-          <div style="font-size: 0.72rem; color: var(--text-sec); margin-top: 4px;">Будет фоновой плашкой под каждой фишкой</div>
+          <div style="font-size: 0.72rem; color: var(--text-sec); margin-top: 4px;">Квадратная фоновая плашка под каждой фишкой</div>
         </div>
         <div id="bg-upload-filled" style="display: none;">
           <img id="bg-preview-img" class="bg-preview-img" alt="Background preview">
@@ -933,11 +1049,13 @@
 
   // ==================== TELEGRAM WEBAPP INIT ====================
   if (tg) {
-    tg.ready();
-    tg.expand();
+    try { tg.ready(); } catch(e){}
+    try { tg.expand(); } catch(e){}
     if (tg.BackButton) {
-      tg.BackButton.show();
-      tg.BackButton.onClick(() => navigateBack());
+      try {
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => navigateBack());
+      } catch(e){}
     }
   }
 
@@ -956,6 +1074,15 @@
       userId = tg.initDataUnsafe.user.id;
       return userId;
     }
+    if (window.parent && window.parent !== window && typeof window.parent.getUserId === 'function') {
+      try {
+        const pUid = window.parent.getUserId();
+        if (pUid) {
+          userId = pUid;
+          return userId;
+        }
+      } catch(e){}
+    }
     const saved = localStorage.getItem('raccoon_user_id');
     if (saved) {
       userId = parseInt(saved, 10);
@@ -966,6 +1093,26 @@
 
   function navigateBack() {
     triggerHaptic('light');
+    if (currentTab === 'create') {
+      switchTab('top');
+      return;
+    }
+
+    // Если страница открыта внутри iframe в index.html
+    if (window.parent && window.parent !== window) {
+      try {
+        if (typeof window.parent.handleBack === 'function') {
+          window.parent.handleBack();
+          return;
+        }
+      } catch(e){}
+      try {
+        window.parent.postMessage({ type: 'close_reader' }, '*');
+        return;
+      } catch(e){}
+    }
+
+    // Если открыта автономно
     if (window.history.length > 1) {
       window.history.back();
     } else {
@@ -1060,10 +1207,21 @@
     triggerHaptic('light');
     currentTab = tabName;
 
+    const banner = document.getElementById('create-set-banner');
+    const tabsNav = document.getElementById('catalog-tabs-nav');
+
+    if (tabName === 'create') {
+      if (banner) banner.style.display = 'none';
+      if (tabsNav) tabsNav.style.display = 'none';
+    } else {
+      if (banner) banner.style.display = 'flex';
+      if (tabsNav) tabsNav.style.display = 'flex';
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
-    const tabBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+    const tabBtn = document.getElementById(`tab-btn-${tabName}`);
     if (tabBtn) tabBtn.classList.add('active');
 
     const pane = document.getElementById(`tab-${tabName}`);
@@ -1182,7 +1340,6 @@
       const card = document.createElement('div');
       card.className = 'set-card';
 
-      // Header with author & status
       let statusBadgeHtml = '';
       if (isMyTab) {
         if (item.status === 'approved') statusBadgeHtml = '<span class="badge badge-approved">✅ Одобрен</span>';
@@ -1258,7 +1415,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': tg?.initData || ''
+          'X-Telegram-Init-Data': tg?.initData || (window.parent?.Telegram?.WebApp?.initData) || ''
         },
         body: JSON.stringify({ userId: uid, set_id: setId })
       });
@@ -1550,7 +1707,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': tg?.initData || ''
+          'X-Telegram-Init-Data': tg?.initData || (window.parent?.Telegram?.WebApp?.initData) || ''
         },
         body: JSON.stringify({
           userId: uid,

@@ -3323,6 +3323,10 @@
       <span class="nav-icon">🏠</span>
       <span data-i18n="nav_home">Дом</span>
     </button>
+    <button class="nav__item" id="nav-chipsets" onclick="openChipSetsModal(); triggerHaptic('selection');">
+      <span class="nav-icon">🎨</span>
+      <span data-i18n="menu_chip_sets">Сеты</span>
+    </button>
     <button class="nav__item" id="nav-quests" onclick="renderCategory('quests'); triggerHaptic('selection');">
       <span class="nav-icon">❓</span>
       <span data-i18n="menu_quests">Квесты</span>
@@ -3338,10 +3342,6 @@
     <button class="nav__item" id="nav-rating" onclick="showLeaderboard(); triggerHaptic('selection');">
       <span class="nav-icon">🏆</span>
       <span data-i18n="menu_rating">Рейтинг</span>
-    </button>
-    <button class="nav__item" id="nav-chipsets" onclick="openChipSetsModal(); triggerHaptic('selection');">
-      <span class="nav-icon">🎨</span>
-      <span data-i18n="menu_chip_sets">Сеты</span>
     </button>
   </nav>
 </div>
@@ -7610,6 +7610,12 @@
     // Получаем user_id для проверки
     const userId = getUserId();
     console.log('👤 Current user_id:', userId);
+
+    // Закрытие ридера / возврат назад из iframe
+    if (data.type === 'close_reader' || data.type === 'navigate_back') {
+      handleBack();
+      return;
+    }
 
     // Уведомления из iframe
     if (data.type === 'show_alert' && data.message) {
