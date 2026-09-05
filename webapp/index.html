@@ -7852,16 +7852,30 @@
       const chipsCount = set.chips_count || (set.chips ? set.chips.length : 0);
       const isVoted = !!set.has_voted;
       const votesCount = set.votes_count || 0;
-      const collageUrl = set.preview_collage || '';
+      const collageUrl = (set.preview_collage || '').replace(/^\/+/, '');
+      const chips = (set.chips || []).map(c => String(c).replace(/^\/+/, ''));
 
       let adminDeleteBtn = '';
       if (chipSetsState.isAdmin) {
         adminDeleteBtn = `<button class="chipset-delete-btn" onclick="deleteCustomChipSet(${set.id}, '${escapeHtml(set.title)}'); triggerHaptic('impact');" title="Удалить сет">🗑️</button>`;
       }
 
+      let chipsRowHtml = '';
+      if (chips.length > 0) {
+        chipsRowHtml = `
+          <div class="chipset-chips-mini-row" style="display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 2px 0; scrollbar-width: none;">
+            ${chips.map((c, i) => `
+              <div style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.22); flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4); background: #14141a;">
+                <img src="${c}" style="width: 100%; height: 100%; object-fit: cover;" alt="Фишка #${i+1}" onerror="this.src='images/chip_raccoon.png'" />
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
       card.innerHTML = `
         <div class="chipset-preview-wrap">
-          <img src="${collageUrl}" class="chipset-preview-img" alt="${escapeHtml(set.title)}" loading="lazy" />
+          <img src="${collageUrl}" class="chipset-preview-img" alt="${escapeHtml(set.title)}" onerror="this.src='images/chip_raccoon.png'" loading="lazy" />
         </div>
         <div class="chipset-info-bar">
           <div class="chipset-title-row">
@@ -7869,6 +7883,7 @@
             <span class="chipset-count-badge">${chipsCount} ${i18n[currentLang]?.chips_count_tag || 'фишек'}</span>
           </div>
           ${set.description ? `<div class="chipset-desc">${escapeHtml(set.description)}</div>` : ''}
+          ${chipsRowHtml}
           <div class="chipset-footer-row">
             <div class="chipset-author">
               <span>👤</span> ${i18n[currentLang]?.author_label || 'Автор:'} <b>${escapeHtml(set.author_name || 'Админ')}</b>

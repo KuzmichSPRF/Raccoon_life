@@ -424,6 +424,102 @@
       line-height: 1.35;
     }
 
+    .set-chips-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: -2px;
+    }
+    .set-chips-row-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .set-chips-row-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px;
+      scrollbar-width: none;
+    }
+    .set-chips-row-list::-webkit-scrollbar { display: none; }
+    .set-chip-mini {
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #14141a;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s;
+    }
+    .set-chip-mini:active { transform: scale(0.9); }
+    .set-chip-mini:hover { border-color: #ec4899; }
+    .set-chip-mini img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .modal-view-tabs {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .modal-view-tabs::-webkit-scrollbar { display: none; }
+    .modal-vtab-btn {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-sec);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s;
+    }
+    .modal-vtab-btn.active {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(236, 72, 153, 0.4);
+    }
+
+    .modal-chips-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .modal-chip-item {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      background: #14141a;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .modal-chip-item:active { transform: scale(0.92); }
+    .modal-chip-item.active { border-color: #ec4899; box-shadow: 0 0 12px rgba(236, 72, 153, 0.6); }
+    .modal-chip-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
     .set-card-footer {
       display: flex;
       justify-content: space-between;
@@ -1059,17 +1155,33 @@
   </div>
 </div>
 
-<!-- FULLSCREEN ZOOM MODAL -->
+<!-- FULLSCREEN ZOOM & SET DETAILS MODAL -->
 <div id="zoom-modal" class="modal-overlay" onclick="closeZoomModal()">
-  <div class="modal-card" style="max-width: 420px; background: rgba(18, 18, 24, 0.95);" onclick="event.stopPropagation()">
+  <div class="modal-card" style="max-width: 440px; background: rgba(18, 18, 24, 0.96);" onclick="event.stopPropagation()">
     <div class="modal-header">
       <span id="zoom-modal-title" class="modal-title">Просмотр сета</span>
       <button class="modal-close-btn" onclick="closeZoomModal()">✕</button>
     </div>
-    <div style="width: 100%; border-radius: 14px; overflow: hidden; background: #101014; margin-top: 4px;">
-      <img id="zoom-modal-img" style="width: 100%; height: auto; display: block;" alt="Zoom image">
+
+    <!-- View Switcher Tabs -->
+    <div class="modal-view-tabs" id="modal-view-tabs" style="display: none;">
+      <button class="modal-vtab-btn active" id="modal-tab-btn-collage" onclick="switchModalView('collage')">🖼️ Коллаж</button>
+      <button class="modal-vtab-btn" id="modal-tab-btn-bg" onclick="switchModalView('bg')">🎴 Фон</button>
+      <button class="modal-vtab-btn" id="modal-tab-btn-chips" onclick="switchModalView('chips')">🎯 Фишки</button>
     </div>
-    <div id="zoom-modal-desc" style="font-size: 0.85rem; color: var(--text-sec); line-height: 1.4;"></div>
+
+    <!-- Main Image View -->
+    <div style="width: 100%; border-radius: 14px; overflow: hidden; background: #101014; margin-top: 6px; position: relative;">
+      <img id="zoom-modal-img" style="width: 100%; height: auto; display: block; max-height: 380px; object-fit: contain; margin: 0 auto;" alt="Zoom image" onerror="this.src='images/chip_raccoon.png'">
+    </div>
+
+    <!-- Chips Grid inside Modal -->
+    <div id="modal-chips-grid-wrap" style="display: none; width: 100%;">
+      <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-sec); margin-top: 8px; text-transform: uppercase;">Нажмите на фишку для просмотра:</div>
+      <div class="modal-chips-grid" id="modal-chips-grid"></div>
+    </div>
+
+    <div id="zoom-modal-desc" style="font-size: 0.82rem; color: var(--text-sec); line-height: 1.4; margin-top: 4px;"></div>
   </div>
 </div>
 
@@ -1397,6 +1509,12 @@
     }
   }
 
+  function normalizeImgPath(path) {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+    return path.replace(/^\/+/, '');
+  }
+
   function renderSetsCards(container, sets, isMyTab) {
     container.innerHTML = '';
 
@@ -1420,7 +1538,9 @@
         `;
       }
 
-      const collageUrl = item.preview_collage || item.collage_url || '';
+      const collageUrl = normalizeImgPath(item.preview_collage || item.collage_url || '');
+      const bgUrl = normalizeImgPath(item.background_image || '');
+      const chipsUrls = (item.chips || []).map(normalizeImgPath);
       const isVoted = item.has_voted || item.user_has_voted || false;
       const votes = item.votes_count || 0;
 
@@ -1430,6 +1550,22 @@
           <button class="delete-btn" onclick="deleteSet(${item.id}, '${escapeHtml(item.title)}')">
             <span>🗑️ Удалить</span>
           </button>
+        `;
+      }
+
+      let chipsRowHtml = '';
+      if (chipsUrls.length > 0) {
+        chipsRowHtml = `
+          <div class="set-chips-row">
+            <div class="set-chips-row-label">🎯 Фишки в сете (${chipsUrls.length} шт.):</div>
+            <div class="set-chips-row-list">
+              ${chipsUrls.map((cUrl, idx) => `
+                <div class="set-chip-mini" title="Фишка #${idx+1}">
+                  <img src="${cUrl}" alt="Фишка #${idx+1}" onerror="this.src='images/chip_raccoon.png'" />
+                </div>
+              `).join('')}
+            </div>
+          </div>
         `;
       }
 
@@ -1443,7 +1579,7 @@
             </div>
           </div>
           <div class="set-badges">
-            <span class="badge badge-count">🎯 ${item.chips_count} фишек</span>
+            <span class="badge badge-count">🎯 ${item.chips_count || chipsUrls.length || 3} фишек</span>
             ${statusBadgeHtml}
           </div>
         </div>
@@ -1452,10 +1588,12 @@
         ${item.description ? `<div class="set-desc">${escapeHtml(item.description)}</div>` : ''}
         ${rejectionHtml}
 
-        <div class="set-preview-wrap" onclick="openZoomModal('${collageUrl}', '${escapeHtml(item.title)}')">
+        <div class="set-preview-wrap" id="set-preview-wrap-${item.id}">
           <img class="set-preview-img" src="${collageUrl}" alt="Collage preview" onerror="this.src='images/chip_raccoon.png'">
-          <div class="set-preview-zoom-hint">🔍 Увеличить</div>
+          <div class="set-preview-zoom-hint">🔍 Подробнее</div>
         </div>
+
+        ${chipsRowHtml}
 
         <div class="set-card-footer">
           <button class="vote-btn ${isVoted ? 'voted' : ''}" id="vote-btn-${item.id}" onclick="voteForSet(${item.id})">
@@ -1468,6 +1606,22 @@
           ${adminDeleteHtml}
         </div>
       `;
+
+      // Set click handlers
+      const previewEl = card.querySelector(`#set-preview-wrap-${item.id}`);
+      if (previewEl) {
+        previewEl.addEventListener('click', () => {
+          openSetDetailsModal(item, 'collage');
+        });
+      }
+
+      const miniChips = card.querySelectorAll('.set-chip-mini');
+      miniChips.forEach((chipEl, idx) => {
+        chipEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openSetDetailsModal(item, 'chips', idx);
+        });
+      });
 
       container.appendChild(card);
     });
@@ -2130,15 +2284,92 @@
     }
   }
 
-  // ==================== FULLSCREEN ZOOM MODAL ====================
+  // ==================== FULLSCREEN ZOOM & SET DETAILS MODAL ====================
+  let activeModalSet = null;
+  let activeModalChipIndex = 0;
+
+  function openSetDetailsModal(item, initialView = 'collage', chipIdx = 0) {
+    triggerHaptic('light');
+    activeModalSet = item;
+    activeModalChipIndex = chipIdx;
+
+    const titleEl = document.getElementById('zoom-modal-title');
+    const descEl = document.getElementById('zoom-modal-desc');
+    const tabsWrap = document.getElementById('modal-view-tabs');
+    const modal = document.getElementById('zoom-modal');
+
+    if (titleEl) titleEl.innerText = item.title || 'Сет фишек';
+    if (descEl) {
+      descEl.innerHTML = `
+        ${item.description ? `<div style="margin-bottom: 4px; font-weight: 500; color: #fff;">${escapeHtml(item.description)}</div>` : ''}
+        <div style="font-size: 0.75rem; color: var(--text-muted);">Автор: <b>${escapeHtml(item.author_name || 'Енот')}</b> · Фишек: <b>${item.chips_count || (item.chips ? item.chips.length : 0)} шт.</b></div>
+      `;
+    }
+
+    if (tabsWrap) tabsWrap.style.display = 'flex';
+    switchModalView(initialView, chipIdx);
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function switchModalView(view, chipIdx = null) {
+    if (!activeModalSet) return;
+    triggerHaptic('selection');
+
+    if (chipIdx !== null) activeModalChipIndex = chipIdx;
+
+    const collageBtn = document.getElementById('modal-tab-btn-collage');
+    const bgBtn = document.getElementById('modal-tab-btn-bg');
+    const chipsBtn = document.getElementById('modal-tab-btn-chips');
+    const imgEl = document.getElementById('zoom-modal-img');
+    const chipsWrap = document.getElementById('modal-chips-grid-wrap');
+    const chipsGrid = document.getElementById('modal-chips-grid');
+
+    if (collageBtn) collageBtn.className = 'modal-vtab-btn' + (view === 'collage' ? ' active' : '');
+    if (bgBtn) bgBtn.className = 'modal-vtab-btn' + (view === 'bg' ? ' active' : '');
+    if (chipsBtn) chipsBtn.className = 'modal-vtab-btn' + (view === 'chips' ? ' active' : '');
+
+    const collageUrl = normalizeImgPath(activeModalSet.preview_collage || activeModalSet.collage_url || '');
+    const bgUrl = normalizeImgPath(activeModalSet.background_image || '');
+    const chips = (activeModalSet.chips || []).map(normalizeImgPath);
+
+    if (view === 'collage') {
+      if (imgEl) imgEl.src = collageUrl || 'images/chip_raccoon.png';
+      if (chipsWrap) chipsWrap.style.display = 'none';
+    } else if (view === 'bg') {
+      if (imgEl) imgEl.src = bgUrl || collageUrl || 'images/chip_raccoon.png';
+      if (chipsWrap) chipsWrap.style.display = 'none';
+    } else if (view === 'chips') {
+      if (chips.length > 0) {
+        const curChip = chips[activeModalChipIndex] || chips[0];
+        if (imgEl) imgEl.src = curChip;
+        if (chipsWrap) chipsWrap.style.display = 'block';
+        if (chipsGrid) {
+          chipsGrid.innerHTML = chips.map((c, i) => `
+            <div class="modal-chip-item ${i === activeModalChipIndex ? 'active' : ''}" onclick="switchModalView('chips', ${i})">
+              <img src="${c}" alt="Фишка #${i+1}" onerror="this.src='images/chip_raccoon.png'" />
+            </div>
+          `).join('');
+        }
+      } else {
+        if (imgEl) imgEl.src = collageUrl || 'images/chip_raccoon.png';
+        if (chipsWrap) chipsWrap.style.display = 'none';
+      }
+    }
+  }
+
   function openZoomModal(imgUrl, title, desc = '') {
     triggerHaptic('light');
     const imgEl = document.getElementById('zoom-modal-img');
     const titleEl = document.getElementById('zoom-modal-title');
     const descEl = document.getElementById('zoom-modal-desc');
+    const tabsWrap = document.getElementById('modal-view-tabs');
+    const chipsWrap = document.getElementById('modal-chips-grid-wrap');
     const modal = document.getElementById('zoom-modal');
 
-    if (imgEl) imgEl.src = imgUrl;
+    activeModalSet = null;
+    if (tabsWrap) tabsWrap.style.display = 'none';
+    if (chipsWrap) chipsWrap.style.display = 'none';
+    if (imgEl) imgEl.src = normalizeImgPath(imgUrl);
     if (titleEl) titleEl.innerText = title;
     if (descEl) descEl.innerText = desc;
     if (modal) modal.style.display = 'flex';
@@ -2147,6 +2378,7 @@
   function closeZoomModal() {
     const modal = document.getElementById('zoom-modal');
     if (modal) modal.style.display = 'none';
+    activeModalSet = null;
   }
 
   // ==================== INIT ====================

@@ -3346,6 +3346,20 @@ def static_files(filename):
     return app.send_static_file(filename)
 
 
+@app.route('/images/<path:filename>')
+def images_files(filename):
+    """Отдача картинок из webapp/images/"""
+    webapp_img_dir = WEBAPP_DIR / 'images'
+    return send_from_directory(str(webapp_img_dir), filename)
+
+
+@app.route('/webapp/images/<path:filename>')
+def webapp_images_files(filename):
+    """Отдача картинок при запросах через префикс /webapp/images/"""
+    webapp_img_dir = WEBAPP_DIR / 'images'
+    return send_from_directory(str(webapp_img_dir), filename)
+
+
 @app.route('/image/<path:filename>')
 def image_files(filename):
     """Отдача картинок из webapp/images/ (для обратной совместимости)."""
@@ -6873,6 +6887,26 @@ def publish_chip_set_to_group(set_data: dict):
         logger.error(f"❌ Ошибка публикации сета в группу: {e}")
 
 
+def _normalize_chip_set_dict(d: dict) -> dict:
+    """Нормализует пути к изображениям сета (убирая ведущие слэши для идеальной отдачи в WebApp)."""
+    if not d:
+        return d
+    if d.get('preview_collage'):
+        d['preview_collage'] = str(d['preview_collage']).lstrip('/\\').replace('\\', '/')
+    if d.get('background_image'):
+        d['background_image'] = str(d['background_image']).lstrip('/\\').replace('\\', '/')
+    if d.get('chips_json'):
+        try:
+            raw_chips = json.loads(d['chips_json']) if isinstance(d['chips_json'], str) else d['chips_json']
+            d['chips'] = [str(c).lstrip('/\\').replace('\\', '/') for c in raw_chips] if isinstance(raw_chips, list) else []
+        except Exception:
+            d['chips'] = []
+    else:
+        d['chips'] = []
+    d['has_voted'] = bool(d.get('has_voted'))
+    return d
+
+
 def create_custom_chip_set_db(author_id: int, author_name: str, title: str, description: str, chips_count: int, bg_bytes: bytes, chip_bytes_list: list) -> dict:
     """Сохраняет сет в БД, файлы на диск и отправляет модерацию админу."""
     ts = int(time.time())
@@ -6884,7 +6918,7 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
     bg_path = set_folder / bg_filename
     bg_img = Image.open(BytesIO(bg_bytes)).convert("RGB")
     bg_img.save(bg_path, format="JPEG", quality=90)
-    bg_rel_path = f"/images/sets/set_{author_id}_{ts}/{bg_filename}"
+    bg_rel_path = f"images/sets/set_{author_id}_{ts}/{bg_filename}"
 
     # 2. Фишки
     chips_rel_paths = []
@@ -6893,14 +6927,14 @@ def create_custom_chip_set_db(author_id: int, author_name: str, title: str, desc
         chip_fname = f"chip_{idx+1}_{ts}.png"
         chip_path = set_folder / chip_fname
         chip_img.save(chip_path, format="PNG")
-        chips_rel_paths.append(f"/images/sets/set_{author_id}_{ts}/{chip_fname}")
+        chips_rel_paths.append(f"images/sets/set_{author_id}_{ts}/{chip_fname}")
 
     # 3. Превью коллаж
     collage_img = generate_set_collage(bg_bytes, chip_bytes_list, chips_count)
     collage_fname = f"collage_{ts}.jpg"
     collage_path = set_folder / collage_fname
     collage_img.convert("RGB").save(collage_path, format="JPEG", quality=92)
-    collage_rel_path = f"/images/sets/set_{author_id}_{ts}/{collage_fname}"
+    collage_rel_path = f"images/sets/set_{author_id}_{ts}/{collage_fname}"
 
     # 4. БД
     ensure_user_exists(author_id)
@@ -7064,13 +7098,7 @@ def get_custom_chip_sets_list(sort: str = 'top', user_id: int = 0) -> list:
         rows = cursor.fetchall()
         sets = []
         for r in rows:
-            d = dict(r)
-            try:
-                d['chips'] = json.loads(d['chips_json']) if d.get('chips_json') else []
-            except Exception:
-                d['chips'] = []
-            d['has_voted'] = bool(d.get('has_voted'))
-            sets.append(d)
+            sets.append(_normalize_chip_set_dict(dict(r)))
         return sets
     except Exception as e:
         logger.error(f"❌ Ошибка get_custom_chip_sets_list: {e}")
@@ -7092,12 +7120,7 @@ def get_user_chip_sets_db(user_id: int) -> list:
         rows = cursor.fetchall()
         sets = []
         for r in rows:
-            d = dict(r)
-            try:
-                d['chips'] = json.loads(d['chips_json']) if d.get('chips_json') else []
-            except Exception:
-                d['chips'] = []
-            sets.append(d)
+            sets.append(_normalize_chip_set_dict(dict(r)))
         return sets
     except Exception as e:
         logger.error(f"❌ Ошибка get_user_chip_sets_db: {e}")
