@@ -1723,12 +1723,18 @@
       position: fixed;
       inset: 0;
       z-index: 1000;
-      display: none;
+      display: flex;
       align-items: flex-end;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: visibility 0.26s ease, opacity 0.26s ease;
     }
 
     .bottom-sheet__wrapper.active {
-      display: flex;
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .bottom-sheet__backdrop {
@@ -1737,6 +1743,12 @@
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bottom-sheet__wrapper.active .bottom-sheet__backdrop {
+      opacity: 1;
     }
 
     .bottom-sheet__block {
@@ -1749,19 +1761,14 @@
       overflow-y: auto;
       border-top: 0.5px solid var(--border-subtle);
       box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75);
-      animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transform: translateY(100%);
+      transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
       touch-action: pan-y;
       will-change: transform;
     }
 
-    @keyframes sheetSlideUp {
-      from {
-        transform: translateY(100%);
-      }
-
-      to {
-        transform: translateY(0);
-      }
+    .bottom-sheet__wrapper.active .bottom-sheet__block {
+      transform: translateY(0);
     }
 
     .bottom-sheet__divider-wrap {
@@ -5056,15 +5063,17 @@
       const sheetBlock = document.getElementById('play-bottom-sheet-block');
       const backdrop = sheetWrapper.querySelector('.bottom-sheet__backdrop');
 
+      // Сбрасываем инлайн стили свайпов
+      if (sheetBlock) {
+        sheetBlock.style.transform = '';
+        sheetBlock.style.transition = '';
+      }
+      if (backdrop) {
+        backdrop.style.opacity = '';
+        backdrop.style.transition = '';
+      }
+
       if (isOpen) {
-        if (sheetBlock) {
-          sheetBlock.style.transform = '';
-          sheetBlock.style.transition = '';
-        }
-        if (backdrop) {
-          backdrop.style.opacity = '';
-          backdrop.style.transition = '';
-        }
         sheetWrapper.classList.add('active');
         triggerHaptic('impact');
 
@@ -5074,25 +5083,7 @@
           tg.BackButton.onClick(handleBack);
         }
       } else {
-        if (sheetBlock) {
-          sheetBlock.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
-          sheetBlock.style.transform = 'translateY(100%)';
-        }
-        if (backdrop) {
-          backdrop.style.transition = 'opacity 0.22s ease';
-          backdrop.style.opacity = '0';
-        }
-        setTimeout(() => {
-          sheetWrapper.classList.remove('active');
-          if (sheetBlock) {
-            sheetBlock.style.transform = '';
-            sheetBlock.style.transition = '';
-          }
-          if (backdrop) {
-            backdrop.style.opacity = '';
-            backdrop.style.transition = '';
-          }
-        }, 220);
+        sheetWrapper.classList.remove('active');
         triggerHaptic('light');
       }
     }
@@ -5178,15 +5169,15 @@
         if (isDraggingY) {
           isDraggingY = false;
           const velocityY = deltaY / elapsed;
-          sheet.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
-          if (backdrop) backdrop.style.transition = 'opacity 0.22s ease';
+          sheet.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+          if (backdrop) backdrop.style.transition = 'opacity 0.24s ease';
 
           if (deltaY > 70 || velocityY > 0.4) {
             sheet.style.transform = 'translateY(100%)';
             if (backdrop) backdrop.style.opacity = '0';
             setTimeout(() => {
               togglePlayBottomSheet(false);
-            }, 200);
+            }, 220);
           } else {
             sheet.style.transform = 'translateY(0)';
             if (backdrop) backdrop.style.opacity = '1';
@@ -5197,20 +5188,20 @@
                 backdrop.style.opacity = '';
                 backdrop.style.transition = '';
               }
-            }, 220);
+            }, 240);
           }
         } else if (isDraggingX) {
           isDraggingX = false;
           const velocityX = deltaX / elapsed;
-          sheet.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
-          if (backdrop) backdrop.style.transition = 'opacity 0.22s ease';
+          sheet.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+          if (backdrop) backdrop.style.transition = 'opacity 0.24s ease';
 
           if (deltaX > 70 || velocityX > 0.4) {
             sheet.style.transform = 'translateX(100%)';
             if (backdrop) backdrop.style.opacity = '0';
             setTimeout(() => {
               togglePlayBottomSheet(false);
-            }, 200);
+            }, 220);
           } else {
             sheet.style.transform = 'translateX(0)';
             if (backdrop) backdrop.style.opacity = '1';
@@ -5221,7 +5212,7 @@
                 backdrop.style.opacity = '';
                 backdrop.style.transition = '';
               }
-            }, 220);
+            }, 240);
           }
         }
       }
