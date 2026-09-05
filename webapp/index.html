@@ -503,7 +503,7 @@
       height: 100%;
       min-height: 0;
       max-height: 100%;
-      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
       box-sizing: border-box;
       overflow: hidden;
     }
@@ -1953,20 +1953,24 @@
     /* CapsGame Navigation Dock */
     .nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+      left: 12px;
+      right: 12px;
+      max-width: 456px;
+      margin: 0 auto;
       height: var(--nav-height);
-      background-color: rgba(18, 18, 20, 0.95);
+      background-color: rgba(22, 22, 26, 0.90);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-top: 0.5px solid var(--border-subtle);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
       display: flex;
       align-items: center;
       justify-content: space-around;
-      padding: 0 4px env(safe-area-inset-bottom, 0px);
+      padding: 0 6px;
       z-index: 100;
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.15);
+      box-sizing: border-box;
     }
 
     .nav__item {
