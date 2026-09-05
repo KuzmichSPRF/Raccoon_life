@@ -2921,17 +2921,20 @@ def get_user_inventory(user_id: int) -> list:
                 'name_en': item_id,
                 'desc_ru': 'Предмет инвентаря',
                 'desc_en': 'Inventory item',
-                'icon': 'cone.png',
+                'icon': 'images/item_energy_drink.svg' if 'energy' in item_id else 'images/cone.png',
                 'usable': True,
                 'rarity': 'rare'
             })
             inventory.append({
+                'id': item_id,
                 'item_id': item_id,
                 'quantity': r['quantity'],
+                'name': meta.get('name_ru') or item_id,
                 'name_ru': meta.get('name_ru'),
                 'name_en': meta.get('name_en'),
                 'desc_ru': meta.get('desc_ru'),
                 'desc_en': meta.get('desc_en'),
+                'description': meta.get('desc_ru'),
                 'icon': meta.get('icon'),
                 'usable': meta.get('usable', True),
                 'rarity': meta.get('rarity', 'common'),
@@ -4334,7 +4337,8 @@ def api_get_inventory():
         return jsonify({
             'status': 'ok',
             'user_id': user_id,
-            'items': items
+            'items': items,
+            'inventory': items
         })
     except Exception as e:
         logger.error(f"Ошибка api_get_inventory: {e}")

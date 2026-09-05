@@ -5633,13 +5633,13 @@
         const res = await fetch(`/api/inventory?userId=${userId}&t=${Date.now()}`);
         const data = await res.json();
         if (data.status === 'ok') {
-          inventoryState.items = data.inventory || [];
+          inventoryState.items = data.items || data.inventory || [];
           inventoryState.totalCount = inventoryState.items.reduce((acc, item) => acc + (item.quantity || 0), 0);
           updateInventoryBadges();
           renderInventoryModal();
 
           // Обновляем количество в открытом Дупле
-          const megaConeItem = inventoryState.items.find(i => i.id === 'mega_cone');
+          const megaConeItem = inventoryState.items.find(i => (i.id === 'mega_cone' || i.item_id === 'mega_cone'));
           const count = megaConeItem ? megaConeItem.quantity : 0;
           const hollowMegaCountEl = document.getElementById('hollow-mega-cone-count');
           if (hollowMegaCountEl) {
@@ -5684,23 +5684,25 @@
         listEl.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px 10px; color: var(--text-secondary); text-align:center;">
           <span style="font-size: 2.8rem; margin-bottom: 10px; opacity: 0.6;">🎒</span>
-          <p style="font-size: 0.85rem; line-height: 1.45; max-width: 260px;">${i18n[currentLang]?.inventory_empty || 'В инвентаре пока пусто. Выбивайте редкие артефакты в рулетке!'}</p>
+          <p style="font-size: 0.85rem; line-height: 1.45; max-width: 260px;">${i18n[currentLang]?.inventory_empty || 'В инвентаре пока пусто. Выбивайте редкие трофеи в играх и рулетке!'}</p>
         </div>
       `;
         return;
       }
 
       listEl.innerHTML = inventoryState.items.map(item => {
-        const name = i18n[currentLang]?.[`item_${item.id}_name`] || item.name;
-        const desc = i18n[currentLang]?.[`item_${item.id}_desc`] || item.description;
+        const itemId = item.item_id || item.id;
+        const name = (currentLang === 'ru' ? item.name_ru : item.name_en) || i18n[currentLang]?.[`item_${itemId}_name`] || item.name || itemId;
+        const desc = (currentLang === 'ru' ? item.desc_ru : item.desc_en) || i18n[currentLang]?.[`item_${itemId}_desc`] || item.description || '';
         const getItemIconPath = (icon, id) => {
           if (!icon) return (id === 'mega_cone' ? 'images/mega_cone.png' : 'images/cone.png');
           if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:') || icon.startsWith('/')) return icon;
           if (icon.startsWith('images/')) return icon;
           return `images/${icon}`;
         };
-        const iconSrc = getItemIconPath(item.icon, item.id);
-        const isMaxHollow = item.id === 'mega_cone' && (hollowState.level || 1) >= 10;
+        const iconSrc = getItemIconPath(item.icon, itemId);
+        const rarity = item.rarity || 'rare';
+        const isMaxHollow = itemId === 'mega_cone' && (hollowState.level || 1) >= 10;
 
         return `
         <div class="inventory-item-card">
@@ -5712,13 +5714,13 @@
             <div class="inventory-item-info">
               <div class="inventory-item-title-row">
                 <span class="inventory-item-title">${name}</span>
-                <span class="inventory-item-rarity">${rarity}</span>
+                <span class="inventory-item-rarity">${rarity.toUpperCase()}</span>
               </div>
               <div class="inventory-item-desc">${desc}</div>
             </div>
           </div>
           <div class="inventory-item-actions">
-            <button class="inventory-item-use-btn" ${isMaxHollow ? 'disabled' : ''} onclick="useInventoryItem('${item.id}')">
+            <button class="inventory-item-use-btn" ${isMaxHollow ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
               ${isMaxHollow ? 'MAX LVL' : (i18n[currentLang]?.inventory_use_btn || 'Использовать')}
             </button>
           </div>
@@ -6499,7 +6501,12 @@
         } else {
           navigateTo('main-menu');
         }
-        setTimeout(() => loadTokenBalance(), 300);
+        setTimeout(() => {
+          loadTokenBalance();
+          fetchInventory();
+          fetchHollowStatusFromServer();
+          fetchEnergyFromServer();
+        }, 300);
       } else if (current === 'rating-screen') {
         navigateTo('main-menu');
         setTimeout(() => loadTokenBalance(), 300);
@@ -8735,8 +8742,8 @@
         tg.showAlert(data.message);
       }
 
-      // Обновление инвентаря (выигрыш в рулетке / покупка)
-      if (data.type === 'inventory_updated') {
+      // Обновление инвентаря (выигрыш в рулетке / трофей / покупка)
+      if (data.type === 'inventory_updated' || data.type === 'loot_dropped' || data.lootDrop || data.item) {
         fetchInventory();
         fetchHollowStatusFromServer();
         loadTokenBalance();
