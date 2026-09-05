@@ -3783,6 +3783,9 @@
     <div id="offer-modal-stars" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('stars')">
       <div class="tutorial-modal"
         style="width: 90%; max-width: 380px; position: relative; padding: 20px 16px; border: 1px solid rgba(255, 215, 0, 0.4); background: linear-gradient(180deg, #1f1a14 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('stars')">
+          <div class="bottom-sheet__divider" style="background: rgba(255, 215, 0, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeOfferModal('stars')">✕</button>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; justify-content: center;">
@@ -3830,6 +3833,9 @@
     <div id="offer-modal-pack_02" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_02')">
       <div class="tutorial-modal"
         style="width: 90%; max-width: 390px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(0, 136, 204, 0.45); background: linear-gradient(180deg, #121c24 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('pack_02')">
+          <div class="bottom-sheet__divider" style="background: rgba(0, 255, 136, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeOfferModal('pack_02')">✕</button>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; justify-content: center;">
@@ -3894,6 +3900,9 @@
     <div id="offer-modal-pack_05" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_05')">
       <div class="tutorial-modal"
         style="width: 90%; max-width: 390px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(0, 136, 204, 0.45); background: linear-gradient(180deg, #121c24 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('pack_05')">
+          <div class="bottom-sheet__divider" style="background: rgba(255, 149, 0, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeOfferModal('pack_05')">✕</button>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; justify-content: center;">
@@ -3961,6 +3970,9 @@
     <div id="offer-modal-pack_10" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_10')">
       <div class="tutorial-modal"
         style="width: 90%; max-width: 390px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(229, 57, 53, 0.55); background: linear-gradient(180deg, #241416 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('pack_10')">
+          <div class="bottom-sheet__divider" style="background: rgba(229, 57, 53, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeOfferModal('pack_10')">✕</button>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; justify-content: center;">
@@ -4028,6 +4040,9 @@
     <div id="offer-modal-pack_30" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_30')">
       <div class="tutorial-modal"
         style="width: 90%; max-width: 390px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(156, 39, 176, 0.55); background: linear-gradient(180deg, #221426 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('pack_30')">
+          <div class="bottom-sheet__divider" style="background: rgba(156, 39, 176, 0.45);"></div>
+        </div>
         <button class="close-modal-btn" onclick="closeOfferModal('pack_30')">✕</button>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; justify-content: center;">
@@ -6896,9 +6911,16 @@
         return;
       }
 
-      // 3. Закрытие оверлеев / диалоговых окон
-      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #tutorial-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #stars-offer-overlay.active, #news-submit-overlay.active, #bet-modal-overlay.active, #season-complete-overlay.active, #image-cropper-overlay.active, .offer-modal.active');
-      if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper' && activeOverlay.id !== 'token-bonus-overlay') {
+      // 3. Закрытие окон оферов (Telegram Stars & TON/GRAM Packs)
+      const activeOffer = document.querySelector('[id^="offer-modal-"].active');
+      if (activeOffer) {
+        closeOfferModal();
+        return;
+      }
+
+      // 4. Закрытие остальных оверлеев / диалоговых окон
+      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #tutorial-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #news-submit-overlay.active, #bet-modal-overlay.active, #season-complete-overlay.active, #image-cropper-overlay.active, .offer-modal.active');
+      if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper' && !activeOverlay.id.startsWith('offer-modal-') && activeOverlay.id !== 'token-bonus-overlay') {
         activeOverlay.classList.remove('active');
         triggerHaptic('light');
         return;
@@ -7796,21 +7818,15 @@
 
     // ==================== TELEGRAM STARS OFFER ====================
     function openStarsOffer() {
-      const overlay = document.getElementById('stars-offer-overlay');
-      if (overlay) overlay.classList.add('active');
-      triggerHaptic('light');
+      openOfferModal('stars');
     }
 
     function closeStarsOffer() {
-      const overlay = document.getElementById('stars-offer-overlay');
-      if (overlay) overlay.classList.remove('active');
-      const msg = document.getElementById('stars-status-msg');
-      if (msg) msg.innerText = '';
-      triggerHaptic('light');
+      closeOfferModal('stars');
     }
 
     function openShop() {
-      openStarsOffer();
+      openOfferModal('stars');
     }
 
     async function buyConesWithStars() {
@@ -7900,20 +7916,57 @@
     function openOfferModal(offerId) {
       closeAllOfferModals();
       const modalId = `offer-modal-${offerId}`;
-      const modal = document.getElementById(modalId);
-      if (modal) {
-        modal.classList.add('active');
+      const overlay = document.getElementById(modalId);
+      if (overlay) {
+        const modalBox = overlay.querySelector('.tutorial-modal');
+        if (modalBox) {
+          modalBox.style.transform = '';
+          modalBox.style.opacity = '';
+          modalBox.style.transition = '';
+        }
+        overlay.style.opacity = '';
+        overlay.style.backgroundColor = '';
+        overlay.style.transition = '';
+        overlay.classList.add('active');
         triggerHaptic('light');
+
+        // Обеспечиваем работу кнопки BackButton в Telegram WebApp
+        if (tg.BackButton && typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+          tg.BackButton.onClick(handleBack);
+        }
       }
     }
 
     function closeOfferModal(offerId) {
-      if (offerId) {
-        const modal = document.getElementById(`offer-modal-${offerId}`);
-        if (modal) modal.classList.remove('active');
-      } else {
-        closeAllOfferModals();
-      }
+      const overlays = offerId
+        ? [document.getElementById(`offer-modal-${offerId}`)]
+        : document.querySelectorAll('[id^="offer-modal-"].active');
+
+      overlays.forEach(overlay => {
+        if (!overlay || !overlay.classList.contains('active')) return;
+        const modalBox = overlay.querySelector('.tutorial-modal');
+        if (modalBox) {
+          modalBox.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+          modalBox.style.transform = 'translateY(30px) scale(0.96)';
+          modalBox.style.opacity = '0';
+        }
+        overlay.style.transition = 'opacity 0.22s ease';
+        overlay.style.opacity = '0';
+
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          overlay.style.opacity = '';
+          overlay.style.backgroundColor = '';
+          overlay.style.transition = '';
+          if (modalBox) {
+            modalBox.style.transform = '';
+            modalBox.style.opacity = '';
+            modalBox.style.transition = '';
+          }
+        }, 220);
+      });
+
       triggerHaptic('light');
     }
 
@@ -7928,12 +7981,144 @@
       if (starsMsg) starsMsg.innerText = '';
     }
 
+    function initOfferModalGestures() {
+      const offerOverlays = document.querySelectorAll('[id^="offer-modal-"]');
+      offerOverlays.forEach(overlay => {
+        const modalBox = overlay.querySelector('.tutorial-modal');
+        if (!modalBox) return;
+
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let isDraggingY = false;
+        let isDraggingX = false;
+        let startTime = 0;
+
+        function onTouchStart(e) {
+          if (!overlay.classList.contains('active')) return;
+          const touch = e.touches ? e.touches[0] : e;
+          startX = touch.clientX;
+          startY = touch.clientY;
+          currentX = startX;
+          currentY = startY;
+          startTime = Date.now();
+          isDraggingY = false;
+          isDraggingX = false;
+        }
+
+        function onTouchMove(e) {
+          if (!overlay.classList.contains('active')) return;
+          const touch = e.touches ? e.touches[0] : e;
+          currentX = touch.clientX;
+          currentY = touch.clientY;
+          const deltaX = currentX - startX;
+          const deltaY = currentY - startY;
+
+          if (!isDraggingY && !isDraggingX) {
+            // Свайп вниз (когда прокрутка вверху)
+            if (deltaY > 6 && Math.abs(deltaY) > Math.abs(deltaX) * 1.1 && modalBox.scrollTop <= 3) {
+              isDraggingY = true;
+              modalBox.style.transition = 'none';
+              overlay.style.transition = 'none';
+            }
+            // Свайп слева направо (свайп назад)
+            else if (deltaX > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+              isDraggingX = true;
+              modalBox.style.transition = 'none';
+              overlay.style.transition = 'none';
+            }
+          }
+
+          if (isDraggingY) {
+            if (deltaY > 0) {
+              if (e.cancelable) e.preventDefault();
+              modalBox.style.transform = `translateY(${deltaY}px)`;
+              const op = Math.max(0, 1 - deltaY / 360);
+              overlay.style.opacity = op.toString();
+            }
+          } else if (isDraggingX) {
+            if (deltaX > 0) {
+              if (e.cancelable) e.preventDefault();
+              modalBox.style.transform = `translateX(${deltaX}px)`;
+              const op = Math.max(0, 1 - deltaX / 360);
+              overlay.style.opacity = op.toString();
+            }
+          }
+        }
+
+        function onTouchEnd(e) {
+          if (!isDraggingY && !isDraggingX) return;
+          const deltaX = currentX - startX;
+          const deltaY = currentY - startY;
+          const elapsed = Math.max(1, Date.now() - startTime);
+
+          if (isDraggingY) {
+            isDraggingY = false;
+            const velocityY = deltaY / elapsed;
+            if (deltaY > 60 || velocityY > 0.35) {
+              modalBox.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+              overlay.style.transition = 'opacity 0.22s ease';
+              modalBox.style.transform = 'translateY(100%)';
+              overlay.style.opacity = '0';
+              setTimeout(() => {
+                closeOfferModal();
+              }, 200);
+            } else {
+              modalBox.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+              overlay.style.transition = 'opacity 0.22s ease';
+              modalBox.style.transform = 'translateY(0)';
+              overlay.style.opacity = '1';
+              setTimeout(() => {
+                modalBox.style.transform = '';
+                modalBox.style.transition = '';
+                overlay.style.opacity = '';
+                overlay.style.transition = '';
+              }, 220);
+            }
+          } else if (isDraggingX) {
+            isDraggingX = false;
+            const velocityX = deltaX / elapsed;
+            if (deltaX > 60 || velocityX > 0.35) {
+              modalBox.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease';
+              overlay.style.transition = 'opacity 0.22s ease';
+              modalBox.style.transform = 'translateX(100%)';
+              overlay.style.opacity = '0';
+              setTimeout(() => {
+                closeOfferModal();
+              }, 200);
+            } else {
+              modalBox.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+              overlay.style.transition = 'opacity 0.22s ease';
+              modalBox.style.transform = 'translateX(0)';
+              overlay.style.opacity = '1';
+              setTimeout(() => {
+                modalBox.style.transform = '';
+                modalBox.style.transition = '';
+                overlay.style.opacity = '';
+                overlay.style.transition = '';
+              }, 220);
+            }
+          }
+        }
+
+        modalBox.addEventListener('touchstart', onTouchStart, { passive: true });
+        modalBox.addEventListener('touchmove', onTouchMove, { passive: false });
+        modalBox.addEventListener('touchend', onTouchEnd, { passive: true });
+        modalBox.addEventListener('touchcancel', onTouchEnd, { passive: true });
+        overlay.addEventListener('touchstart', (e) => {
+          if (e.target === overlay) onTouchStart(e);
+        }, { passive: true });
+        overlay.addEventListener('touchmove', (e) => {
+          if (e.target === overlay) onTouchMove(e);
+        }, { passive: false });
+        overlay.addEventListener('touchend', onTouchEnd, { passive: true });
+      });
+    }
+
     // Aliases for compatibility
-    function openStarsOffer() { openOfferModal('stars'); }
-    function closeStarsOffer() { closeOfferModal('stars'); }
     function openTonOffer(packId) { openOfferModal(packId || 'pack_02'); }
     function closeTonOffer() { closeAllOfferModals(); }
-    function openShop() { openOfferModal('stars'); }
 
     async function payTonOffer(packId) {
       const pack = TON_PACKS_INFO[packId] || TON_PACKS_INFO.pack_02;
@@ -10361,6 +10546,7 @@
           initRaccoonTapSystem();
           initPlayBottomSheetGestures();
           initHollowModalGestures();
+          initOfferModalGestures();
           checkStartParamReferral();
           console.log('🦝 Raccoon Life WebApp ready!');
           console.log('👤 User ID:', getUserId());
