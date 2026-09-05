@@ -761,8 +761,11 @@
           triggerHaptic('success');
           msg.innerText = lang === 'ru' ? "🍀 НЕВЕРОЯТНО! Вы победили!" : "🍀 INCREDIBLE! You won!";
           msg.style.color = 'var(--game-green)';
-          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true }, '*');
-          showPopupResult(true, 100);
+          window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: true, lootDrop: data.loot_drop }, '*');
+          if (data.loot_drop) {
+            try { window.parent.postMessage({ type: 'loot_dropped', item: data.loot_drop }, '*'); } catch(e) {}
+          }
+          showPopupResult(true, 100, data.loot_drop);
         } else {
           triggerHaptic('error');
           msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
@@ -775,7 +778,7 @@
       }
     }
     
-    function showPopupResult(isWin, amount) {
+    function showPopupResult(isWin, amount, lootDrop) {
       const overlay = document.getElementById('reward-overlay');
       const popup = document.getElementById('reward-popup');
       const icon = document.getElementById('popup-icon');
@@ -788,7 +791,16 @@
         title.innerText = t.victoryTitle;
         title.style.color = '#ffd700';
         amountEl.style.display = 'flex';
-        amountEl.innerHTML = `+${amount} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+${amount} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        if (lootDrop) {
+          const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
+          const iconSrc = lootDrop.icon || 'cone.png';
+          amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
+            <span>🎁 ${itemName}</span>
+          </div>`;
+        }
+        amountEl.innerHTML = amountHtml;
         popup.style.borderColor = '#ffd700';
         btn.innerText = t.btnCont;
       } else {

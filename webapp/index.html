@@ -2810,11 +2810,23 @@
       menu_inventory: "Инвентарь",
       inventory_title: "Инвентарь Енота",
       inventory_desc: "Хранилище редких артефактов и предметов",
-      inventory_empty: "В инвентаре пока пусто. Выбивайте редкие артефакты в рулетке!",
+      inventory_empty: "В инвентаре пока пусто. Выбивайте редкие трофеи в мини-играх и рулетке!",
       inventory_use_btn: "Использовать",
       in_inventory: "В инвентаре:",
       item_mega_cone_name: "Мегашишка",
       item_mega_cone_desc: "Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (удваивает суточную добычу шишек).",
+      item_energy_drink_name: "Энергетик «Бодрый Енот»",
+      item_energy_drink_desc: "Бодрящий напиток! Мгновенно восстанавливает 100% здоровья (HP) во всех играх и дает +500 шишек.",
+      item_golden_cookie_name: "Золотое Печенье",
+      item_golden_cookie_desc: "Хрустящее печенье с золотой крошкой! При использовании дает +3,000 шишек.",
+      item_trash_shield_name: "Мусорный Щит",
+      item_trash_shield_desc: "Непробиваемая крышка от бака! При активации приносит ценный лут на +5,000 шишек.",
+      item_lucky_clover_name: "Счастливая Фишка",
+      item_lucky_clover_desc: "Талисман удачи Енотов! При использовании дарит случайный куш от 2,000 до 7,777 шишек.",
+      item_ancient_key_name: "Ключ от Сейфа",
+      item_ancient_key_desc: "Древний золотой ключ от тайного сейфа! При открытии дает джекпот +10,000 шишек!",
+      item_rarity_rare: "Редкий",
+      item_rarity_epic: "Эпический",
       item_rarity_legendary: "Легендарный"
     },
     en: {
@@ -2992,11 +3004,23 @@
       menu_inventory: "Inventory",
       inventory_title: "Raccoon Inventory",
       inventory_desc: "Storage for rare artifacts and items",
-      inventory_empty: "Inventory is empty. Win rare artifacts in roulette!",
+      inventory_empty: "Inventory is empty. Win rare trophies in mini-games & roulette!",
       inventory_use_btn: "Use",
       in_inventory: "In inventory:",
       item_mega_cone_name: "Mega Cone",
       item_mega_cone_desc: "Legendary artifact! Instantly boosts Hollow level by +1 (doubles daily pinecone harvest).",
+      item_energy_drink_name: "Raccoon Energy Drink",
+      item_energy_drink_desc: "Energizing drink! Fully restores 100% health (HP) in all games and grants +500 cones.",
+      item_golden_cookie_name: "Golden Cookie",
+      item_golden_cookie_desc: "Crispy cookie with gold sprinkles! Grants +3,000 cones upon use.",
+      item_trash_shield_name: "Trash Lid Shield",
+      item_trash_shield_desc: "Impenetrable garbage lid! Grants valuable loot worth +5,000 cones upon use.",
+      item_lucky_clover_name: "Lucky Clover Chip",
+      item_lucky_clover_desc: "Lucky raccoon charm! Grants a random jackpot from 2,000 to 7,777 cones.",
+      item_ancient_key_name: "Raccoon Vault Key",
+      item_ancient_key_desc: "Ancient golden key to the secret vault! Unlocks a massive stash of +10,000 cones!",
+      item_rarity_rare: "Rare",
+      item_rarity_epic: "Epic",
       item_rarity_legendary: "Legendary"
     }
   };
@@ -6817,6 +6841,16 @@
       fetchEnergyFromServer();
       setInterval(updateEnergyUI, 1000);
       setInterval(fetchEnergyFromServer, 60000); // Синхронизация с сервером каждую минуту
+
+      window.addEventListener('message', async (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'loot_dropped' || e.data.type === 'game_complete') {
+          await fetchInventory();
+          if (e.data.item) {
+            triggerHaptic('success');
+          }
+        }
+      });
 
       setTimeout(() => {
         updateUserInfo();

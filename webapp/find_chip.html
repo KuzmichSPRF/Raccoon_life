@@ -989,17 +989,46 @@
       document.getElementById('attempts-count').innerText = gameState.attempts;
     }
 
-    function endGame(win) {
+    async function endGame(win) {
       gameState.active = false;
       document.getElementById('scroll-up').disabled = true;
       document.getElementById('scroll-down').disabled = true;
 
       const elapsedTime = ((Date.now() - gameState.startTime) / 1000).toFixed(1);
-      window.parent.postMessage({ type: 'game_complete', game: 'find_chip', win: win, reward: REWARD }, window.location.origin);
-      showPopupResult(win, elapsedTime);
+      let lootDrop = null;
+
+      if (win) {
+        try {
+          const userId = getUserId();
+          const initData = getInitData();
+          const headers = { 'Content-Type': 'application/json' };
+          if (initData) headers['X-Telegram-Init-Data'] = initData;
+
+          const res = await fetch('/api/sync', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+              type: 'earn_tokens',
+              userId: userId,
+              amount: REWARD,
+              reason: 'find_chip_win'
+            })
+          });
+          const resData = await res.json();
+          if (resData && resData.loot_drop) {
+            lootDrop = resData.loot_drop;
+            try {
+              window.parent.postMessage({ type: 'loot_dropped', item: lootDrop }, '*');
+            } catch(e) {}
+          }
+        } catch(e) {}
+      }
+
+      window.parent.postMessage({ type: 'game_complete', game: 'find_chip', win: win, reward: REWARD, lootDrop: lootDrop }, '*');
+      showPopupResult(win, elapsedTime, lootDrop);
     }
 
-    function showPopupResult(win, time) {
+    function showPopupResult(win, time, lootDrop) {
       const overlay = document.getElementById('reward-overlay');
       const popup = document.getElementById('reward-popup');
       const icon = document.getElementById('popup-icon');
@@ -1018,7 +1047,16 @@
 
       if (win) {
         amountEl.style.display = 'flex';
-        amountEl.innerHTML = `+${REWARD} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+${REWARD} <img src="cone.png" class="cone-icon" alt="🌰">`;
+        if (lootDrop) {
+          const itemName = currentLang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
+          const iconSrc = lootDrop.icon || 'cone.png';
+          amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
+            <span>🎁 ${itemName}</span>
+          </div>`;
+        }
+        amountEl.innerHTML = amountHtml;
         btn.innerText = t('continue');
       } else {
         amountEl.style.display = 'none';

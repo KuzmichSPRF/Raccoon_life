@@ -952,7 +952,7 @@
               pStats.hp = data.state.pHP;
               pStats.nrg = data.state.pNRG;
           }
-          setTimeout(winLevel, 900);
+          setTimeout(() => winLevel(data.loot_drop), 900);
           return;
       }
 
@@ -978,10 +978,19 @@
       }, 1200);
     }
 
-    function winLevel() {
+    function winLevel(lootDrop) {
       playSfx('win');
       triggerHaptic('success');
-      document.getElementById('msg').innerText = lang === 'ru' ? "ПОБЕДА! (+30 HP)" : "VICTORY! (+30 HP)";
+      let winText = lang === 'ru' ? "ПОБЕДА! (+30 HP)" : "VICTORY! (+30 HP)";
+      if (lootDrop) {
+        const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
+        winText += ` 🎁 ${itemName}!`;
+        document.getElementById('log').innerHTML = `<span style="color:#ffd700; font-weight:800;">🎁 ${lang === 'ru' ? 'Выбит трофей в инвентарь:' : 'Trophy added to inventory:'} ${itemName}</span>`;
+        try {
+          window.parent.postMessage({ type: 'loot_dropped', item: lootDrop }, '*');
+        } catch(e) {}
+      }
+      document.getElementById('msg').innerText = winText;
       document.getElementById('msg').style.color = "var(--game-green)";
       updateUI();
       document.getElementById('btn-next').style.display = 'block';

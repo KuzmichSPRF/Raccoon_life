@@ -1278,6 +1278,14 @@
           message += (lang === 'ru' ? ` (+${tokensEarned} Шишек!)` : ` (+${tokensEarned} Cones!)`);
         }
 
+        if (data.loot_drop) {
+          const lootName = lang === 'ru' ? (data.loot_drop.name_ru || data.loot_drop.id) : (data.loot_drop.name_en || data.loot_drop.id);
+          message += (lang === 'ru' ? ` 🎁 ВЫПАЛ ТРОФЕЙ: ${lootName}!` : ` 🎁 TROPHY DROP: ${lootName}!`);
+          try {
+            window.parent.postMessage({ type: 'loot_dropped', item: data.loot_drop }, '*');
+          } catch(e) {}
+        }
+
         updateStatsUI();
         updateBossHP();
         document.getElementById('msg').innerText = message;

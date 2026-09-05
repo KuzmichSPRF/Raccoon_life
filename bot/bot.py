@@ -357,6 +357,18 @@ def init_db():
                 PRIMARY KEY (chat_id, user_id)
             )
         ''')
+
+        # Таблица инвентаря пользователей
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_inventory (
+                user_id INTEGER,
+                item_id TEXT,
+                quantity INTEGER DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, item_id),
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+        ''')
         # Таблица событий тотализатора
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tot_events (
@@ -2427,8 +2439,99 @@ ITEMS_REGISTRY = {
         'icon': 'mega_cone.png',
         'usable': True,
         'rarity': 'legendary'
+    },
+    'energy_drink': {
+        'id': 'energy_drink',
+        'name_ru': 'Энергетик «Бодрый Енот»',
+        'name_en': 'Raccoon Energy Drink',
+        'desc_ru': 'Бодрящий напиток! Мгновенно восстанавливает 100% здоровья (HP) во всех играх и дает +500 шишек.',
+        'desc_en': 'Energizing drink! Fully restores 100% health (HP) in all games and grants +500 cones.',
+        'icon': 'item_energy_drink.svg',
+        'usable': True,
+        'rarity': 'rare'
+    },
+    'golden_cookie': {
+        'id': 'golden_cookie',
+        'name_ru': 'Золотое Печенье',
+        'name_en': 'Golden Cookie',
+        'desc_ru': 'Хрустящее печенье с золотой крошкой! При использовании дает +3,000 шишек.',
+        'desc_en': 'Crispy cookie with gold sprinkles! Grants +3,000 cones upon use.',
+        'icon': 'item_golden_cookie.svg',
+        'usable': True,
+        'rarity': 'epic'
+    },
+    'trash_shield': {
+        'id': 'trash_shield',
+        'name_ru': 'Мусорный Щит',
+        'name_en': 'Trash Lid Shield',
+        'desc_ru': 'Непробиваемая крышка от бака! При активации приносит ценный лут на +5,000 шишек.',
+        'desc_en': 'Impenetrable garbage lid! Grants valuable loot worth +5,000 cones upon use.',
+        'icon': 'item_trash_shield.svg',
+        'usable': True,
+        'rarity': 'epic'
+    },
+    'lucky_clover': {
+        'id': 'lucky_clover',
+        'name_ru': 'Счастливая Фишка',
+        'name_en': 'Lucky Clover Chip',
+        'desc_ru': 'Талисман удачи Енотов! При использовании дарит случайный куш от 2,000 до 7,777 шишек.',
+        'desc_en': 'Lucky raccoon charm! Grants a random jackpot from 2,000 to 7,777 cones.',
+        'icon': 'item_lucky_clover.svg',
+        'usable': True,
+        'rarity': 'rare'
+    },
+    'ancient_key': {
+        'id': 'ancient_key',
+        'name_ru': 'Ключ от Сейфа',
+        'name_en': 'Raccoon Vault Key',
+        'desc_ru': 'Древний золотой ключ от тайного сейфа! При открытии дает джекпот +10,000 шишек!',
+        'desc_en': 'Ancient golden key to the secret vault! Unlocks a massive stash of +10,000 cones!',
+        'icon': 'item_ancient_key.svg',
+        'usable': True,
+        'rarity': 'legendary'
     }
 }
+
+
+def check_minigame_loot_drop(user_id: int, game_name: str, base_chance: float = 0.10):
+    """
+    Проверяет шанс выпадения редкого предмета в мини-играх.
+    1% шанс на Мегашишку во всех играх, плюс шанс base_chance на остальные предметы.
+    """
+    chosen_item_id = None
+
+    # Ровно 1% шанс на выпадение Мегашишки во всех играх
+    if random.random() < 0.01:
+        chosen_item_id = 'mega_cone'
+    elif random.random() <= base_chance:
+        # Пул остальных трофеев
+        loot_pool = [
+            ('energy_drink', 36),
+            ('lucky_clover', 26),
+            ('golden_cookie', 20),
+            ('trash_shield', 12),
+            ('ancient_key', 6)
+        ]
+        items, weights = zip(*loot_pool)
+        chosen_item_id = random.choices(items, weights=weights, k=1)[0]
+    
+    if not chosen_item_id:
+        return None
+    
+    add_inventory_item(user_id, chosen_item_id, 1)
+    meta = ITEMS_REGISTRY.get(chosen_item_id, {})
+    
+    logger.info(f"🎁 Лут-дроп! Игрок {user_id} в игре {game_name} выбил предмет: {chosen_item_id}")
+    
+    return {
+        'id': chosen_item_id,
+        'name_ru': meta.get('name_ru', chosen_item_id),
+        'name_en': meta.get('name_en', chosen_item_id),
+        'desc_ru': meta.get('desc_ru', ''),
+        'desc_en': meta.get('desc_en', ''),
+        'icon': meta.get('icon', 'cone.png'),
+        'rarity': meta.get('rarity', 'rare')
+    }
 
 
 def get_user_inventory(user_id: int) -> list:
@@ -2514,7 +2617,7 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
             if current_lvl >= 10:
                 return {'status': 'error', 'message': 'Ваше Дупло уже достигло максимального 10-го уровня!'}
 
-            # Списываем 1 Мегашишку
+            # Списываем 1 предмет
             new_qty = row['quantity'] - 1
             if new_qty <= 0:
                 cursor.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
@@ -2557,7 +2660,95 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
                 'hollow': new_hollow,
                 'inventory': get_user_inventory(user_id)
             }
+
+        # Списываем 1 предмет
+        new_qty = row['quantity'] - 1
+        if new_qty <= 0:
+            cursor.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
         else:
+            cursor.execute("UPDATE user_inventory SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND item_id = ?", (new_qty, user_id, item_id))
+        conn.commit()
+
+        if item_id == 'energy_drink':
+            reward = 500
+            # Полное восстановление 100% здоровья (HP) и энергии (NRG) во всех играх
+            for g_type in ['tower', 'clown']:
+                sess = get_game_session(user_id, g_type)
+                if sess:
+                    sess['pHP'] = 100
+                    sess['pNRG'] = 100
+                    save_game_session(user_id, g_type, sess)
+
+            add_tokens(user_id, reward, 'item_energy_drink')
+            logger.info(f"⚡ Игрок {user_id} выпил Энергетик (+{reward} шишек, 100% HP восстановлено)")
+            return {
+                'status': 'ok',
+                'message': '⚡ Энергетик выпит! Здоровье (HP) полностью восстановлено на 100% (+500 шишек)!',
+                'item_id': item_id,
+                'remaining_quantity': new_qty,
+                'reward': reward,
+                'hp_restored': 100,
+                'inventory': get_user_inventory(user_id)
+            }
+
+        elif item_id == 'golden_cookie':
+            reward = 3000
+            conn.commit()
+            add_tokens(user_id, reward, 'item_golden_cookie')
+            logger.info(f"🍪 Игрок {user_id} съел Золотое Печенье (+{reward} шишек)")
+            return {
+                'status': 'ok',
+                'message': f'🍪 Золотое Печенье съедено! Начислено +{reward:,} шишек!',
+                'item_id': item_id,
+                'remaining_quantity': new_qty,
+                'reward': reward,
+                'inventory': get_user_inventory(user_id)
+            }
+
+        elif item_id == 'trash_shield':
+            reward = 5000
+            conn.commit()
+            add_tokens(user_id, reward, 'item_trash_shield')
+            logger.info(f"🛡️ Игрок {user_id} активировал Мусорный Щит (+{reward} шишек)")
+            return {
+                'status': 'ok',
+                'message': f'🛡️ Мусорный Щит активирован! Получена ценная добыча +{reward:,} шишек!',
+                'item_id': item_id,
+                'remaining_quantity': new_qty,
+                'reward': reward,
+                'inventory': get_user_inventory(user_id)
+            }
+
+        elif item_id == 'lucky_clover':
+            reward = random.choice([2222, 3333, 4444, 5555, 7777])
+            conn.commit()
+            add_tokens(user_id, reward, 'item_lucky_clover')
+            logger.info(f"🍀 Игрок {user_id} активировал Счастливую Фишку (+{reward} шишек)")
+            return {
+                'status': 'ok',
+                'message': f'🍀 Удача Енота сработала! Вы сорвали куш +{reward:,} шишек!',
+                'item_id': item_id,
+                'remaining_quantity': new_qty,
+                'reward': reward,
+                'inventory': get_user_inventory(user_id)
+            }
+
+        elif item_id == 'ancient_key':
+            reward = 10000
+            conn.commit()
+            add_tokens(user_id, reward, 'item_ancient_key')
+            logger.info(f"🗝️ Игрок {user_id} открыл Сейф Енотов (+{reward} шишек)")
+            return {
+                'status': 'ok',
+                'message': f'🗝️ Тайный Сейф Енотов взломан! Вы получили джекпот +{reward:,} шишек!',
+                'item_id': item_id,
+                'remaining_quantity': new_qty,
+                'reward': reward,
+                'inventory': get_user_inventory(user_id)
+            }
+
+        else:
+            conn.commit()
             return {'status': 'error', 'message': 'Этот предмет нельзя использовать прямо сейчас'}
     except Exception as e:
         logger.error(f"❌ Ошибка use_inventory_item: {e}")
@@ -4238,6 +4429,9 @@ def api_boss_attack():
 
         logger.info(f"✅ Boss attack success: user_id={user_id}, boss_hp={boss_info['current_hp']}")
 
+        # Шанс выпадения лута при атаке босса (4%)
+        loot_drop = check_minigame_loot_drop(user_id, 'world_boss', base_chance=0.04)
+
         return jsonify({
             'status': 'ok',
             'damage': damage,
@@ -4246,7 +4440,8 @@ def api_boss_attack():
             'energy_change': energy_change,
             'boss_damage': boss_damage,
             'boss_hp': boss_info['current_hp'],
-            'tokens_earned': tokens_earned
+            'tokens_earned': tokens_earned,
+            'loot_drop': loot_drop
         })
 
     except Exception as e:
@@ -4277,15 +4472,17 @@ def api_game_vladeos():
                 user_id = int(auth_user.get('id'))
             
         is_win = random.random() < 0.05
+        loot_drop = None
         if is_win:
             v_score = random.randint(1, 90)
             p_score = v_score + 1
             add_tokens(user_id, 100, 'vladeos_win')
+            loot_drop = check_minigame_loot_drop(user_id, 'vladeos', base_chance=0.20)
         else:
             p_score = random.randint(1, 90)
             v_score = p_score + 1
             
-        return jsonify({'status': 'ok', 'win': is_win, 'p_score': p_score, 'v_score': v_score})
+        return jsonify({'status': 'ok', 'win': is_win, 'p_score': p_score, 'v_score': v_score, 'loot_drop': loot_drop})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -4316,7 +4513,8 @@ def api_game_battleship():
             
         save_game_session(user_id, 'battleship', {'last_win': now})
         add_tokens(user_id, 100, 'battleship_win')
-        return jsonify({'status': 'ok'})
+        loot_drop = check_minigame_loot_drop(user_id, 'battleship', base_chance=0.15)
+        return jsonify({'status': 'ok', 'loot_drop': loot_drop})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -4391,7 +4589,8 @@ def api_game_clown():
         if state['bHP'] <= 0:
             add_tokens(user_id, 10, 'clown_win')
             clear_game_session(user_id, 'clown')
-            return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True})
+            loot_drop = check_minigame_loot_drop(user_id, 'clown', base_chance=0.12)
+            return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True, 'loot_drop': loot_drop})
             
         b_dmg, b_heal = 0, 0
         b_crit = random.random() < 0.15
@@ -4508,7 +4707,10 @@ def api_game_tower():
             conn.close()
             
             clear_game_session(user_id, 'tower')
-            return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True})
+            # Дроп лута (30% на этажах боссов, 8% на обычных этажах)
+            is_boss_floor = (state['level'] % 10 == 0)
+            loot_drop = check_minigame_loot_drop(user_id, 'tower', base_chance=(0.30 if is_boss_floor else 0.08))
+            return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True, 'loot_drop': loot_drop})
             
         e_dmg = int(state['eDmg'] * random.uniform(0.8, 1.2))
         e_crit = random.random() < 0.1
@@ -4890,7 +5092,10 @@ def handle_earn_tokens(data: dict):
     result = add_tokens(user_id, amount, reason)
 
     if result:
-        return jsonify({'status': 'ok', 'tokens': result})
+        loot_drop = None
+        if reason.startswith('find_chip_win') or reason.startswith('clown_win') or reason.startswith('battleship_win') or reason.startswith('vladeos_win'):
+            loot_drop = check_minigame_loot_drop(user_id, reason, base_chance=0.12)
+        return jsonify({'status': 'ok', 'tokens': result, 'loot_drop': loot_drop})
     else:
         return jsonify({'status': 'error', 'message': 'Database error'}), 500
 

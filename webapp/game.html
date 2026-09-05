@@ -954,7 +954,7 @@
       executeAction('p1-cap', data.player_log.dmg, data.player_log.heal, data.player_log.is_crit, pTxt);
 
       if (data.game_over && data.win) {
-          setTimeout(() => endGame(lang === 'ru' ? "Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆" : "Clown flies to the circus! RACCOON WINS! 🏆", true), 1000);
+          setTimeout(() => endGame(lang === 'ru' ? "Клоун улетает в цирк! ЕНОТ ПОБЕДИЛ! 🏆" : "Clown flies to the circus! RACCOON WINS! 🏆", true, data.loot_drop), 1000);
           return;
       }
 
@@ -1125,7 +1125,7 @@
       if (!val) updateUI();
     }
 
-    function endGame(txt, isWin) {
+    function endGame(txt, isWin, lootDrop) {
       active = false;
       updateUI();
       document.getElementById('msg').innerHTML = txt;
@@ -1139,11 +1139,16 @@
         triggerHaptic('error');
       }
 
-      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin }, '*');
-      showPopupResult(isWin);
+      window.parent.postMessage({ type: 'game_complete', game: 'clown', win: isWin, lootDrop: lootDrop }, '*');
+      if (lootDrop) {
+        try {
+          window.parent.postMessage({ type: 'loot_dropped', item: lootDrop }, '*');
+        } catch(e) {}
+      }
+      showPopupResult(isWin, lootDrop);
     }
     
-    function showPopupResult(isWin) {
+    function showPopupResult(isWin, lootDrop) {
       const overlay = document.getElementById('reward-overlay');
       const popup = document.getElementById('reward-popup');
       const icon = document.getElementById('popup-icon');
@@ -1156,7 +1161,16 @@
         title.innerText = t.victory;
         title.style.color = '#ffd700';
         amountEl.style.display = 'flex';
-        amountEl.innerHTML = `+10 <img src="cone.png" class="cone-icon" alt="🌰">`;
+        let amountHtml = `+10 <img src="cone.png" class="cone-icon" alt="🌰">`;
+        if (lootDrop) {
+          const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
+          const iconSrc = lootDrop.icon || 'cone.png';
+          amountHtml += `<div style="font-size:0.8rem; color:#00ff88; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <img src="${iconSrc}" style="width:24px;height:24px;object-fit:contain;">
+            <span>🎁 ${itemName}</span>
+          </div>`;
+        }
+        amountEl.innerHTML = amountHtml;
         popup.style.borderColor = '#ffd700';
         btn.innerText = t.cont;
       } else {
