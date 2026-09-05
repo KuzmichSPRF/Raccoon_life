@@ -2031,8 +2031,14 @@
     }
 
     .list-item.completed {
-      border-color: rgba(51, 189, 28, 0.4);
-      background-color: rgba(31, 110, 18, 0.12);
+      border: 1px solid rgba(51, 189, 28, 0.45);
+      background: linear-gradient(135deg, #141f16 0%, #171c18 100%);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(51, 189, 28, 0.08);
+    }
+
+    .list-item.completed .list-item-icon-box {
+      background: #1a271d;
+      border-color: rgba(51, 189, 28, 0.35);
     }
 
     .list-item.locked {
