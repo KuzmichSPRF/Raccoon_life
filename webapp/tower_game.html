@@ -1069,8 +1069,12 @@
       let winText = lang === 'ru' ? "ПОБЕДА! (+30 HP)" : "VICTORY! (+30 HP)";
       if (lootDrop) {
         const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
+        const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
         winText += ` 🎁 ${itemName}!`;
-        document.getElementById('log').innerHTML = `<span style="color:#ffd700; font-weight:800;">🎁 ${lang === 'ru' ? 'Выбит трофей в инвентарь:' : 'Trophy added to inventory:'} ${itemName}</span>`;
+        document.getElementById('log').innerHTML = `<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#ffd700; font-weight:800;">
+          <img src="${iconSrc}" style="width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 0 6px rgba(255,215,0,0.6));" onerror="this.src='images/cone.png'">
+          <span>🎁 ${lang === 'ru' ? 'Выбит трофей в инвентарь:' : 'Trophy added to inventory:'} ${itemName}</span>
+        </div>`;
         try {
           window.parent.postMessage({ type: 'loot_dropped', item: lootDrop }, '*');
         } catch(e) {}

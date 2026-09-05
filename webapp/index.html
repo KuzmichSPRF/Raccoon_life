@@ -5693,15 +5693,20 @@
       listEl.innerHTML = inventoryState.items.map(item => {
         const name = i18n[currentLang]?.[`item_${item.id}_name`] || item.name;
         const desc = i18n[currentLang]?.[`item_${item.id}_desc`] || item.description;
-        const rarity = i18n[currentLang]?.[`item_rarity_${item.rarity}`] || (item.rarity === 'legendary' ? 'Легендарный' : 'Редкий');
-        const iconSrc = item.icon || (item.id === 'mega_cone' ? 'images/mega_cone.png' : 'images/cone.png');
+        const getItemIconPath = (icon, id) => {
+          if (!icon) return (id === 'mega_cone' ? 'images/mega_cone.png' : 'images/cone.png');
+          if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:') || icon.startsWith('/')) return icon;
+          if (icon.startsWith('images/')) return icon;
+          return `images/${icon}`;
+        };
+        const iconSrc = getItemIconPath(item.icon, item.id);
         const isMaxHollow = item.id === 'mega_cone' && (hollowState.level || 1) >= 10;
 
         return `
         <div class="inventory-item-card">
           <div class="inventory-item-header">
             <div class="inventory-item-icon-wrap">
-              <img src="${iconSrc}" class="inventory-item-icon" alt="${name}">
+              <img src="${iconSrc}" class="inventory-item-icon" alt="${name}" onerror="this.src='images/cone.png'">
               <div class="inventory-item-badge-qty">x${item.quantity}</div>
             </div>
             <div class="inventory-item-info">

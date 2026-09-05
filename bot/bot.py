@@ -2806,7 +2806,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Mega Cone',
         'desc_ru': 'Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (до 10-го ур.).',
         'desc_en': 'Legendary artifact! Instantly raises your Hollow level by +1 (up to lvl 10).',
-        'icon': 'mega_cone.png',
+        'icon': 'images/mega_cone.png',
         'usable': True,
         'rarity': 'legendary'
     },
@@ -2816,7 +2816,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Raccoon Energy Drink',
         'desc_ru': 'Бодрящий напиток! Мгновенно восстанавливает 100% здоровья (HP) во всех играх и дает +500 шишек.',
         'desc_en': 'Energizing drink! Fully restores 100% health (HP) in all games and grants +500 cones.',
-        'icon': 'item_energy_drink.svg',
+        'icon': 'images/item_energy_drink.svg',
         'usable': True,
         'rarity': 'rare'
     },
@@ -2826,7 +2826,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Golden Cookie',
         'desc_ru': 'Хрустящее печенье с золотой крошкой! При использовании дает +3,000 шишек.',
         'desc_en': 'Crispy cookie with gold sprinkles! Grants +3,000 cones upon use.',
-        'icon': 'item_golden_cookie.svg',
+        'icon': 'images/item_golden_cookie.svg',
         'usable': True,
         'rarity': 'epic'
     },
@@ -2836,7 +2836,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Trash Lid Shield',
         'desc_ru': 'Непробиваемая крышка от бака! При активации приносит ценный лут на +5,000 шишек.',
         'desc_en': 'Impenetrable garbage lid! Grants valuable loot worth +5,000 cones upon use.',
-        'icon': 'item_trash_shield.svg',
+        'icon': 'images/item_trash_shield.svg',
         'usable': True,
         'rarity': 'epic'
     },
@@ -2846,7 +2846,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Lucky Clover Chip',
         'desc_ru': 'Талисман удачи Енотов! При использовании дарит случайный куш от 2,000 до 7,777 шишек.',
         'desc_en': 'Lucky raccoon charm! Grants a random jackpot from 2,000 to 7,777 cones.',
-        'icon': 'item_lucky_clover.svg',
+        'icon': 'images/item_lucky_clover.svg',
         'usable': True,
         'rarity': 'rare'
     },
@@ -2856,7 +2856,7 @@ ITEMS_REGISTRY = {
         'name_en': 'Raccoon Vault Key',
         'desc_ru': 'Древний золотой ключ от тайного сейфа! При открытии дает джекпот +10,000 шишек!',
         'desc_en': 'Ancient golden key to the secret vault! Unlocks a massive stash of +10,000 cones!',
-        'icon': 'item_ancient_key.svg',
+        'icon': 'images/item_ancient_key.svg',
         'usable': True,
         'rarity': 'legendary'
     }
