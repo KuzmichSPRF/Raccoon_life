@@ -6798,8 +6798,9 @@ def send_chip_set_moderation_card(set_id: int, author_id: int, author_name: str,
 
 
 def publish_chip_set_to_group(set_data: dict):
-    """Публикация сета в группу @the_raccoon_times_group"""
+    """Публикация одобренного сета в группу @the_raccoon_times_group в топик 4503."""
     group_chat_id = "@the_raccoon_times_group"
+    topic_id = 4503
     preview_path = PROJECT_DIR / "webapp" / set_data['preview_collage'].lstrip('/')
     caption = (
         f"🎨 <b>Новая коллекция фишек в Raccoon Life!</b>\n\n"
@@ -6819,16 +6820,27 @@ def publish_chip_set_to_group(set_data: dict):
                 files = {'photo': ('set_collage.jpg', photo_file, 'image/jpeg')}
                 payload = {
                     "chat_id": group_chat_id,
+                    "message_thread_id": topic_id,
                     "caption": caption,
                     "parse_mode": "HTML"
                 }
-                requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
+                res = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", data=payload, files=files, timeout=25)
+                if not res.ok:
+                    logger.warning(f"⚠️ Ошибка отправки фото сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
         else:
-            requests.post(
+            payload = {
+                "chat_id": group_chat_id,
+                "message_thread_id": topic_id,
+                "text": caption,
+                "parse_mode": "HTML"
+            }
+            res = requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                json={"chat_id": group_chat_id, "text": caption, "parse_mode": "HTML"},
+                json=payload,
                 timeout=10
             )
+            if not res.ok:
+                logger.warning(f"⚠️ Ошибка отправки текста сета #{set_data.get('id')} в топик {topic_id}: {res.status_code} {res.text}")
     except Exception as e:
         logger.error(f"❌ Ошибка публикации сета в группу: {e}")
 
