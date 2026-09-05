@@ -485,9 +485,13 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 1;
+      z-index: 10;
       text-align: center;
       pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .mascot-ambient-glow {
       display: none;
@@ -496,10 +500,58 @@
       font-size: clamp(3.4rem, 9.5vh, 5.0rem);
       filter: drop-shadow(0 8px 16px rgba(0,0,0,0.6));
       animation: floatMascot 4s ease-in-out infinite;
+      transition: transform 0.08s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      display: inline-block;
+    }
+    .mascot-character.tap-squish {
+      transform: scale(0.84) translateY(4px) !important;
+      animation: none !important;
     }
     @keyframes floatMascot {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-4px); }
+    }
+    .mascot-speech-bubble {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-6px);
+      background: rgba(22, 22, 26, 0.95);
+      color: #ffd700;
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      pointer-events: none;
+      z-index: 30;
+      animation: bubblePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .mascot-speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(255, 215, 0, 0.5) transparent transparent transparent;
+    }
+    .mascot-speech-bubble.shake {
+      animation: bubbleShake 0.35s ease;
+    }
+    @keyframes bubblePop {
+      0% { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.85); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(-6px) scale(1); }
+    }
+    @keyframes bubbleShake {
+      0%, 100% { transform: translateX(-50%) translateY(-6px) rotate(0deg); }
+      25% { transform: translateX(-50%) translateY(-6px) rotate(-3deg); }
+      75% { transform: translateX(-50%) translateY(-6px) rotate(3deg); }
     }
     .mascot-season-tag {
       margin-top: 2px;
@@ -512,6 +564,58 @@
       border-radius: 10px;
       border: 0.5px solid var(--border-subtle);
       white-space: nowrap;
+    }
+    .mascot-tap-pill {
+      margin-top: 3px;
+      font-size: 9px;
+      font-weight: 800;
+      color: #ffd700;
+      background: rgba(255, 215, 0, 0.12);
+      border: 0.5px solid rgba(255, 215, 0, 0.35);
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      user-select: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .mascot-tap-pill .cone-icon {
+      width: 11px;
+      height: 11px;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
+    }
+    .mascot-tap-pill.is-tired {
+      color: #ff9800;
+      background: rgba(255, 152, 0, 0.12);
+      border-color: rgba(255, 152, 0, 0.4);
+    }
+    .mascot-floating-cone {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      font-size: 16px;
+      font-weight: 900;
+      color: #ffd700;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      z-index: 25;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      animation: floatConeUp 0.75s ease-out forwards;
+    }
+    .mascot-floating-cone .cone-icon {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 6px rgba(255, 180, 0, 0.8));
+    }
+    @keyframes floatConeUp {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.9); }
+      40% { opacity: 1; transform: translate(-50%, calc(-50% - 28px)) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, calc(-50% - 52px)) scale(0.8); }
     }
 
     /* Home Bottom Action Bar (Always Locked & Ultra Visible) */
@@ -1890,10 +1994,12 @@
       </div>
 
       <!-- Center Mascot Character -->
-      <div class="home__center-mascot" onclick="triggerHaptic('impact');">
+      <div class="home__center-mascot" id="mascot-tap-container" onclick="handleMascotTap(event);">
+        <div id="mascot-speech-bubble" class="mascot-speech-bubble" style="display: none;"></div>
         <div class="mascot-ambient-glow"></div>
-        <div class="mascot-character">🦝</div>
+        <div class="mascot-character" id="mascot-char">🦝</div>
         <div class="mascot-season-tag">SEASON 2 • RACCOON LIFE</div>
+        <div class="mascot-tap-pill" id="mascot-tap-pill"><img src="cone.png" class="cone-icon" alt="🌰"> <span id="mascot-tap-count">0</span>/100</div>
       </div>
 
       <!-- Right Column Badges -->
@@ -2192,6 +2298,7 @@
       bonus_btn_claim: "Забрать 1000 шишек",
       bonus_btn_understood: "Понятно",
       bonus_claimed_toast: "🎉 Вам начислено 1000 шишек!",
+      raccoon_tired: "Я устал! 😴 Приходи после бонуса!",
       time_hours_short: "ч",
       time_minutes_short: "м",
       time_seconds_short: "с",
@@ -2348,6 +2455,7 @@
       bonus_btn_claim: "Claim 1000 Cones",
       bonus_btn_understood: "Got it",
       bonus_claimed_toast: "🎉 You received 1000 cones!",
+      raccoon_tired: "I'm tired! 😴 Come back after the bonus!",
       time_hours_short: "h",
       time_minutes_short: "m",
       time_seconds_short: "s",
@@ -2634,6 +2742,8 @@
     if (newsTextarea) {
         newsTextarea.placeholder = i18n[currentLang].news_placeholder;
     }
+
+    updateRaccoonTapUI();
   }
 
   function toggleLanguage() {
@@ -3020,6 +3130,9 @@
         dailyBonusState.time_remaining = data.time_remaining || 86400;
         dailyBonusState.last_synced_at = Date.now();
 
+        // Сбрасываем тапы енота при получении бонуса
+        resetRaccoonTaps();
+
         triggerHaptic('success');
 
         // Обновляем баланс в UI
@@ -3077,6 +3190,181 @@
 
   function closeSeasonComplete() {
     document.getElementById('season-complete-overlay').classList.remove('active');
+  }
+
+  // ==================== RACCOON TAP SYSTEM ====================
+  const RACCOON_MAX_TAPS = 100;
+  let raccoonTapState = {
+    taps: 0,
+    pendingBatch: 0,
+    syncTimeout: null,
+    bubbleTimeout: null
+  };
+
+  function getRaccoonTaps() {
+    const saved = localStorage.getItem('rl_raccoon_taps');
+    return saved ? Math.min(RACCOON_MAX_TAPS, parseInt(saved, 10) || 0) : 0;
+  }
+
+  function saveRaccoonTaps(val) {
+    raccoonTapState.taps = Math.min(RACCOON_MAX_TAPS, Math.max(0, val));
+    localStorage.setItem('rl_raccoon_taps', raccoonTapState.taps);
+  }
+
+  function updateRaccoonTapUI() {
+    const countEl = document.getElementById('mascot-tap-count');
+    const pillEl = document.getElementById('mascot-tap-pill');
+    const charEl = document.getElementById('mascot-char');
+    const currentTaps = raccoonTapState.taps;
+
+    if (countEl) countEl.innerText = currentTaps;
+    if (pillEl) {
+      if (currentTaps >= RACCOON_MAX_TAPS) {
+        pillEl.classList.add('is-tired');
+        pillEl.innerHTML = `😴 <span>${RACCOON_MAX_TAPS}/${RACCOON_MAX_TAPS}</span>`;
+      } else {
+        pillEl.classList.remove('is-tired');
+        pillEl.innerHTML = `<img src="cone.png" class="cone-icon" alt="🌰"> <span>${currentTaps}</span>/${RACCOON_MAX_TAPS}`;
+      }
+    }
+
+    if (charEl) {
+      if (currentTaps >= RACCOON_MAX_TAPS) {
+        charEl.title = i18n[currentLang]?.raccoon_tired || 'Я устал! 😴 Приходи после бонуса!';
+      } else {
+        charEl.title = '';
+      }
+    }
+  }
+
+  function showRaccoonBubble(text) {
+    const bubble = document.getElementById('mascot-speech-bubble');
+    if (!bubble) return;
+    bubble.innerText = text;
+    bubble.style.display = 'block';
+    bubble.classList.remove('shake');
+    void bubble.offsetWidth;
+    bubble.classList.add('shake');
+
+    if (raccoonTapState.bubbleTimeout) clearTimeout(raccoonTapState.bubbleTimeout);
+    raccoonTapState.bubbleTimeout = setTimeout(() => {
+      bubble.style.display = 'none';
+    }, 3500);
+  }
+
+  function hideRaccoonBubble() {
+    const bubble = document.getElementById('mascot-speech-bubble');
+    if (bubble) bubble.style.display = 'none';
+    if (raccoonTapState.bubbleTimeout) clearTimeout(raccoonTapState.bubbleTimeout);
+  }
+
+  function resetRaccoonTaps() {
+    saveRaccoonTaps(0);
+    hideRaccoonBubble();
+    updateRaccoonTapUI();
+  }
+
+  function flushRaccoonTaps() {
+    if (raccoonTapState.pendingBatch <= 0) return;
+    const batch = raccoonTapState.pendingBatch;
+    raccoonTapState.pendingBatch = 0;
+    if (raccoonTapState.syncTimeout) {
+      clearTimeout(raccoonTapState.syncTimeout);
+      raccoonTapState.syncTimeout = null;
+    }
+    earnTokens(batch, 'raccoon_tap');
+  }
+
+  function handleMascotTap(e) {
+    const charEl = document.getElementById('mascot-char');
+    if (charEl) {
+      charEl.classList.remove('tap-squish');
+      void charEl.offsetWidth;
+      charEl.classList.add('tap-squish');
+      setTimeout(() => charEl.classList.remove('tap-squish'), 120);
+    }
+
+    const tiredMsg = i18n[currentLang]?.raccoon_tired || 'Я устал! 😴 Приходи после бонуса!';
+
+    if (raccoonTapState.taps >= RACCOON_MAX_TAPS) {
+      triggerHaptic('warning');
+      showRaccoonBubble(tiredMsg);
+      return;
+    }
+
+    // Award 1 tap
+    raccoonTapState.taps++;
+    saveRaccoonTaps(raccoonTapState.taps);
+    raccoonTapState.pendingBatch++;
+
+    // Local balance increment & UI
+    stats.balance = (stats.balance || 0) + 1;
+    const balanceEl = document.getElementById('token-balance');
+    const headerBalanceEl = document.getElementById('header-token-balance');
+    if (balanceEl && balanceEl.innerText !== '---') {
+      const currentVal = parseInt(balanceEl.innerText.replace(/[^0-9]/g, '')) || 0;
+      balanceEl.innerText = Number(currentVal + 1).toLocaleString('ru-RU');
+    }
+    if (headerBalanceEl && headerBalanceEl.innerText !== '---') {
+      const currentVal = parseInt(headerBalanceEl.innerText.replace(/[^0-9]/g, '')) || 0;
+      headerBalanceEl.innerText = Number(currentVal + 1).toLocaleString('ru-RU');
+    }
+
+    triggerHaptic('light');
+    updateRaccoonTapUI();
+
+    // Floating text +1 🌰
+    spawnFloatingCone(e);
+
+    if (raccoonTapState.taps >= RACCOON_MAX_TAPS) {
+      showRaccoonBubble(tiredMsg);
+      triggerHaptic('impact');
+      flushRaccoonTaps();
+    } else {
+      if (raccoonTapState.syncTimeout) clearTimeout(raccoonTapState.syncTimeout);
+      raccoonTapState.syncTimeout = setTimeout(() => {
+        flushRaccoonTaps();
+      }, 1200);
+    }
+  }
+
+  function spawnFloatingCone(e) {
+    const container = document.getElementById('mascot-tap-container');
+    if (!container) return;
+
+    const floatEl = document.createElement('div');
+    floatEl.className = 'mascot-floating-cone';
+    floatEl.innerHTML = '+1 <img src="cone.png" class="cone-icon" alt="🌰">';
+
+    let posX = 50;
+    let posY = 50;
+
+    if (e && e.clientX && e.clientY) {
+      const rect = container.getBoundingClientRect();
+      posX = Math.max(10, Math.min(90, ((e.clientX - rect.left) / rect.width) * 100));
+      posY = Math.max(10, Math.min(90, ((e.clientY - rect.top) / rect.height) * 100));
+    } else {
+      posX = 45 + Math.random() * 10;
+      posY = 40 + Math.random() * 10;
+    }
+
+    floatEl.style.left = posX + '%';
+    floatEl.style.top = posY + '%';
+
+    container.appendChild(floatEl);
+
+    setTimeout(() => {
+      if (floatEl && floatEl.parentNode) {
+        floatEl.parentNode.removeChild(floatEl);
+      }
+    }, 800);
+  }
+
+  function initRaccoonTapSystem() {
+    raccoonTapState.taps = getRaccoonTaps();
+    updateRaccoonTapUI();
+    window.addEventListener('beforeunload', () => flushRaccoonTaps());
+    window.addEventListener('pagehide', () => flushRaccoonTaps());
   }
 
   // ==================== API ====================
@@ -5665,6 +5953,7 @@
         fetchEnergyFromServer();
         updateEnergyUI();
         initDailyBonus();
+        initRaccoonTapSystem();
         checkStartParamReferral();
         console.log('🦝 Raccoon Life WebApp ready!');
         console.log('👤 User ID:', getUserId());

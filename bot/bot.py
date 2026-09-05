@@ -4207,6 +4207,8 @@ def handle_earn_tokens(data: dict):
         max_allowed = 50000
     elif reason.startswith('find_chip_win'):
         max_allowed = 100
+    elif reason.startswith('raccoon_tap'):
+        max_allowed = 100
 
     if amount > max_allowed:
         logger.warning(f"🚨 АНТИЧИТ: user_id={user_id} запросил {amount} токенов за {reason}. Ограничено до {max_allowed}!")
