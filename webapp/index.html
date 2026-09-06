@@ -1948,12 +1948,12 @@
     .nav {
       position: fixed;
       bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-      left: 12px;
-      right: 12px;
+      left: 10px;
+      right: 10px;
       max-width: 456px;
       margin: 0 auto;
       height: var(--nav-height);
-      background-color: rgba(22, 22, 26, 0.90);
+      background-color: rgba(22, 22, 26, 0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1961,7 +1961,7 @@
       display: flex;
       align-items: center;
       justify-content: space-around;
-      padding: 0 6px;
+      padding: 0 4px;
       z-index: 100;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.15);
       box-sizing: border-box;
@@ -1975,13 +1975,17 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
+      gap: 1px;
       flex: 1;
-      padding: 6px 0;
+      min-width: 0;
+      padding: 5px 1px;
       cursor: pointer;
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-weight: 600;
       transition: all 0.15s ease-in-out;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .nav__item:active {
@@ -1989,8 +1993,9 @@
     }
 
     .nav__item .nav-icon {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       transition: transform 0.15s ease;
+      line-height: 1;
     }
 
     .nav__item--active {
@@ -4645,6 +4650,10 @@
         <span class="nav-icon">📰</span>
         <span data-i18n="menu_news">Газеты</span>
       </button>
+      <button class="nav__item" id="nav-partners" onclick="renderCategory('partners'); triggerHaptic('selection');">
+        <span class="nav-icon">🤝</span>
+        <span data-i18n="menu_partners">Партнеры</span>
+      </button>
       <button class="nav__item" id="nav-rating" onclick="showLeaderboard(); triggerHaptic('selection');">
         <span class="nav-icon">🏆</span>
         <span data-i18n="menu_rating">Рейтинг</span>
@@ -7216,6 +7225,8 @@
             tg.BackButton.onClick(handleBack);
           }
           if (currentCategory === 'quests' || currentCategory === 'qt_2') updateBottomNav('nav-quests');
+          else if (currentCategory === 'newspapers') updateBottomNav('nav-news');
+          else if (currentCategory === 'partners') updateBottomNav('nav-partners');
           else if (currentCategory === 'games') updateBottomNav('nav-games');
           else updateBottomNav('');
         }
@@ -7281,16 +7292,20 @@
         let chipHTML = '';
         if (isCompleted) {
           chipHTML = `<span class="list-item-badge" style="color: var(--accent-green); border-color: rgba(51, 189, 28, 0.3);">✅ ${i18n[currentLang].badge_completed || 'Пройдено'}</span>`;
+        } else if (item.badge) {
+          chipHTML = `<span class="list-item-badge" style="color: ${item.badgeColor || '#60a5fa'}; border-color: ${item.badgeBorder || 'rgba(96, 165, 250, 0.3)'};">${item.badge}</span>`;
         } else if (catKey === 'qt_2' || (catKey === 'quests' && !item.type.includes('folder'))) {
           chipHTML = `<span class="list-item-badge"><img src="images/cone.png" class="cone-icon" alt="🌰"> +10,000</span>`;
         }
 
         // Определение иконки для карточки
-        let icon = '📁';
-        if (catKey === 'newspapers') icon = '📰';
-        else if (catKey === 'quests' || catKey === 'qt_2') icon = '❓';
-        else if (catKey === 'games') icon = '🎮';
-        else if (catKey === 'partners') icon = '🤝';
+        let icon = item.icon || '📁';
+        if (!item.icon) {
+          if (catKey === 'newspapers') icon = '📰';
+          else if (catKey === 'quests' || catKey === 'qt_2') icon = '❓';
+          else if (catKey === 'games') icon = '🎮';
+          else if (catKey === 'partners') icon = '🤝';
+        }
 
         div.innerHTML = `
         <div class="list-item-icon-box">
@@ -7317,6 +7332,20 @@
         }
         list.appendChild(div);
       });
+
+      // Добавляем карточку подачи заявки в партнеры
+      if (catKey === 'partners') {
+        const partnerApplyContainer = document.createElement('div');
+        partnerApplyContainer.style.marginTop = '4px';
+        partnerApplyContainer.innerHTML = `
+        <button class="list-item" onclick="tg.openTelegramLink('https://t.me/Kuzmich_SPRF'); triggerHaptic('light');" style="width: 100%; justify-content: center; background: linear-gradient(135deg, rgba(30, 28, 48, 0.85) 0%, rgba(20, 20, 36, 0.9) 100%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px dashed rgba(168, 85, 247, 0.5); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 0 14px rgba(168, 85, 247, 0.1); cursor: pointer; padding: 12px;">
+          <div class="list-item-title" style="color: #c084fc; text-align: center; margin: 0; font-weight: 700; font-size: 0.92rem;">
+            🤝 ${currentLang === 'ru' ? 'Стать партнером / Разместить проект' : 'Become a Partner / Feature Project'}
+          </div>
+        </button>
+      `;
+        list.appendChild(partnerApplyContainer);
+      }
 
       // Показываем обучение при первом входе в раздел
       if (!hasSeenTutorial(catKey)) {
@@ -9408,9 +9437,36 @@
         partners: {
           title: t.menu_partners,
           items: [
-            { title: "The Raccoon Times", desc: currentLang === 'ru' ? "Канал лучшей газеты" : "The best newspaper channel", url: "https://t.me/the_raccoon_times", type: "external" },
-            { title: "CapsGame", desc: currentLang === 'ru' ? "Игра про фишки" : "Game about caps", url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33", type: "external" },
-            { title: "Клёмпус", desc: currentLang === 'ru' ? "Криптомедиа • Аналитика • Расследования" : "Crypto media • Analytics • Investigations", url: "https://kljompus.com/", type: "link" }
+            {
+              title: "The Raccoon Times",
+              desc: currentLang === 'ru' ? "Официальный медиа-канал Енотной Империи" : "Official media channel of Raccoon Empire",
+              icon: "🦝",
+              badge: currentLang === 'ru' ? "Медиа" : "Media",
+              badgeColor: "#fbbf24",
+              badgeBorder: "rgba(251, 191, 36, 0.35)",
+              url: "https://t.me/the_raccoon_times",
+              type: "external"
+            },
+            {
+              title: "CapsGame",
+              desc: currentLang === 'ru' ? "Легендарная битва фишек в Telegram" : "Legendary caps game in Telegram",
+              icon: "🎲",
+              badge: currentLang === 'ru' ? "Игра" : "Game",
+              badgeColor: "#a855f7",
+              badgeBorder: "rgba(168, 85, 247, 0.35)",
+              url: "https://t.me/CapsGameBot/play?startapp=r_LNPaQygljssfQTGaGc33",
+              type: "external"
+            },
+            {
+              title: "Клёмпус",
+              desc: currentLang === 'ru' ? "Криптомедиа • Аналитика • Расследования" : "Crypto media • Analytics • Investigations",
+              icon: "🔍",
+              badge: currentLang === 'ru' ? "Аналитика" : "Analytics",
+              badgeColor: "#38bdf8",
+              badgeBorder: "rgba(56, 189, 248, 0.35)",
+              url: "https://kljompus.com/",
+              type: "link"
+            }
           ]
         }
       };
