@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Как работает бекап
+## 🚀 Как работает бекап 
 
 1. **⏰ Автоматически каждое утро в 06:00 МСК**:
    - Создается целостный снимок базы данных через sqlite3.backup() без блокировки игроков и остановки бота.
@@ -30,13 +30,15 @@
 ### Шаг 2: Создание сервисного аккаунта (Service Account)
 1. Перейдите в **APIs & Services** > **Credentials**.
 2. Нажмите **+ CREATE CREDENTIALS** > **Service account**.
-3. Введите имя (например, accoon-backup-bot) и нажмите **Create and Continue**, затем **Done**.
+3. Введите имя (например, 
+accoon-backup-bot) и нажмите **Create and Continue**, затем **Done**.
 4. В списке сервисных аккаунтов нажмите на созданный аккаунт.
 5. Перейдите во вкладку **KEYS** > **ADD KEY** > **Create new key** > выберите **JSON** > нажмите **Create**.
 6. Файл с ключом (.json) скачается на ваш компьютер.
 
 ### Шаг 3: Предоставление доступа к папке Google Drive
-1. Откройте скачанный .json файл и скопируйте email сервисного аккаунта (поле client_email, например: accoon-backup-bot@xxxx.iam.gserviceaccount.com).
+1. Откройте скачанный .json файл и скопируйте email сервисного аккаунта (поле client_email, например: 
+accoon-backup-bot@xxxx.iam.gserviceaccount.com).
 2. Откройте вашу папку в Google Drive:  
    👉 https://drive.google.com/drive/folders/1l1IcnYsq-yBIX-q3ebf30YI8jlr8b568
 3. Нажмите кнопку **Поделиться** (Share) у папки.
