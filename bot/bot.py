@@ -12,7 +12,9 @@ import hashlib
 import html
 import time
 import base64
+import zipfile
 from datetime import datetime, timedelta, timezone
+
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import asyncio
 import traceback
@@ -53,6 +55,11 @@ FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
 # Переменные для интеграции с ботом объявлений
 SALEBOT_TOKEN = os.getenv("SALEBOT_TOKEN")
 SALEBOT_DB_PATH = os.getenv("SALEBOT_DB_PATH", str(BOT_DIR / "salebot.db"))
+
+# Настройки резервного копирования в закрытое облако Google Drive
+GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID", "1l1IcnYsq-yBIX-q3ebf30YI8jlr8b568")
+GDRIVE_SERVICE_ACCOUNT_PATH = os.getenv("GDRIVE_SERVICE_ACCOUNT_PATH", str(BOT_DIR / "service_account.json"))
+
 
 # Кошелек получателя для покупок за TON
 TON_RECIPIENT_WALLET = os.getenv("TON_RECIPIENT_WALLET", "UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX")
@@ -9892,9 +9899,186 @@ async def report_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Произошла ошибка при формировании отчета.")
 
 
+def create_safe_db_backup(db_source_path=None) -> tuple[str, str, int]:
+    """
+    Создает целостный снимок базы данных через SQLite online backup API
+    и упаковывает его в защищенный zip-архив с меткой времени.
+    Возвращает (zip_path, filename, file_size_bytes).
+    """
+    if db_source_path is None:
+        db_source_path = str(BOT_DIR / "users.db")
+    
+    msk_tz = timezone(timedelta(hours=3))
+    now_msk = datetime.now(msk_tz)
+    timestamp_str = now_msk.strftime('%Y-%m-%d_%H-%M-%S')
+    
+    snapshot_filename = f"users_snapshot_{timestamp_str}.db"
+    snapshot_path = str(BOT_DIR / snapshot_filename)
+    
+    zip_filename = f"Raccoon_DB_Backup_{timestamp_str}.zip"
+    zip_path = str(BOT_DIR / zip_filename)
+    
+    # 1. Безопасное online-копирование базы данных без блокировки рабочих процессов
+    src_conn = sqlite3.connect(db_source_path)
+    dst_conn = sqlite3.connect(snapshot_path)
+    try:
+        src_conn.backup(dst_conn)
+    finally:
+        dst_conn.close()
+        src_conn.close()
+        
+    # 2. Упаковка в zip-архив с компрессией
+    with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.write(snapshot_path, arcname=f"users_{timestamp_str}.db")
+        
+    # Удаляем временный файл snapshot
+    try:
+        if os.path.exists(snapshot_path):
+            os.remove(snapshot_path)
+    except Exception as e:
+        logger.warning(f"Не удалось удалить временный снимок {snapshot_path}: {e}")
+        
+    file_size = os.path.getsize(zip_path)
+    logger.info(f"📦 Создан безопасный архив БД: {zip_filename} ({file_size} байт)")
+    return zip_path, zip_filename, file_size
+
+
+def upload_backup_to_gdrive(zip_file_path: str, filename: str, folder_id: str = GDRIVE_FOLDER_ID) -> dict:
+    """
+    Загружает файл архива в закрытую папку Google Drive через Service Account.
+    """
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        
+        creds = None
+        service_account_json_env = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
+        
+        if service_account_json_env:
+            info = json.loads(service_account_json_env)
+            creds = service_account.Credentials.from_service_account_info(
+                info,
+                scopes=['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
+            )
+        elif os.path.exists(GDRIVE_SERVICE_ACCOUNT_PATH):
+            creds = service_account.Credentials.from_service_account_file(
+                GDRIVE_SERVICE_ACCOUNT_PATH,
+                scopes=['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
+            )
+        else:
+            return {
+                "success": False,
+                "error": "not_configured",
+                "message": f"Файл сервисного аккаунта не найден по пути: {GDRIVE_SERVICE_ACCOUNT_PATH}. Подробнее в GDRIVE_BACKUP_SETUP.md"
+            }
+            
+        drive_service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+        
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        media = MediaFileUpload(zip_file_path, mimetype='application/zip', resumable=True)
+        
+        uploaded_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name, webViewLink, webContentLink, size'
+        ).execute()
+        
+        logger.info(f"☁️ Файл {filename} успешно загружен на Google Drive! File ID: {uploaded_file.get('id')}")
+        return {
+            "success": True,
+            "file_id": uploaded_file.get('id'),
+            "web_view_link": uploaded_file.get('webViewLink', f"https://drive.google.com/file/d/{uploaded_file.get('id')}/view"),
+            "filename": filename
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка загрузки бекапа на Google Drive: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": "upload_failed",
+            "message": str(e)
+        }
+
+
+def execute_full_backup(send_to_telegram: bool = True, chat_id: int = None) -> dict:
+    """
+    Выполняет полный цикл резервного копирования:
+    1. Создает защищенный архив базы данных.
+    2. Загружает на Google Drive.
+    3. Отправляет уведомление и копию файла админу в Telegram (если включено).
+    4. Удаляет локальный временный zip.
+    """
+    target_id = chat_id if chat_id else ADMIN_ID
+    zip_path, zip_filename, file_size = create_safe_db_backup()
+    
+    gdrive_res = upload_backup_to_gdrive(zip_path, zip_filename)
+    
+    msk_tz = timezone(timedelta(hours=3))
+    now_msk = datetime.now(msk_tz).strftime('%d.%m.%Y %H:%M:%S')
+    
+    # Формируем текст статуса
+    if gdrive_res.get("success"):
+        cloud_status = f"✅ <b>Google Drive:</b> Успешно загружено в облако\n🔗 <a href=\"{gdrive_res.get('web_view_link')}\">Открыть файл в Google Drive</a>"
+    elif gdrive_res.get("error") == "not_configured":
+        cloud_status = "⚠️ <b>Google Drive:</b> Не настроен <code>service_account.json</code> (см. инструкцию в <code>GDRIVE_BACKUP_SETUP.md</code>)"
+    else:
+        cloud_status = f"❌ <b>Google Drive:</b> Ошибка загрузки ({gdrive_res.get('message', 'Неизвестная ошибка')})"
+        
+    caption_text = (
+        f"💾 <b>Резервная копия базы данных Raccoon Life</b>\n"
+        f"📅 <b>Дата:</b> {now_msk} MSK\n"
+        f"📦 <b>Файл:</b> <code>{zip_filename}</code> ({round(file_size / 1024, 1)} KB)\n\n"
+        f"{cloud_status}"
+    )
+    
+    if send_to_telegram and target_id and BOT_TOKEN:
+        try:
+            with open(zip_path, 'rb') as doc_file:
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument",
+                    data={"chat_id": target_id, "caption": caption_text, "parse_mode": "HTML"},
+                    files={"document": (zip_filename, doc_file, "application/zip")},
+                    timeout=45
+                )
+            logger.info(f"📬 Архив бекапа отправлен в Telegram админу {target_id}")
+        except Exception as e:
+            logger.error(f"❌ Не удалось отправить архив бекапа в Telegram: {e}")
+            
+    # Удаляем локальный архив
+    try:
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+    except Exception as e:
+        logger.warning(f"Не удалось удалить временный архив {zip_path}: {e}")
+        
+    return {
+        "filename": zip_filename,
+        "size": file_size,
+        "gdrive": gdrive_res
+    }
+
+
+async def backup_admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /backup: мгновенное создание и загрузка резервной копии базы данных"""
+    if not update.effective_user or update.effective_user.id != ADMIN_ID:
+        return
+
+    status_msg = await update.message.reply_text("⏳ Создаю целостный снимок базы данных и загружаю в Google Drive...")
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, execute_full_backup, True, update.effective_user.id)
+    
+    try:
+        await status_msg.delete()
+    except Exception:
+        pass
+
+
 def daily_report_scheduler_thread():
-    """Фоновый планировщик: каждое утро в 06:00 MSK (UTC+3) отправляет отчет админу"""
-    logger.info("⏰ Запущен планировщик ежедневных утренних отчетов (06:00 MSK)")
+    """Фоновый планировщик: каждое утро в 06:00 MSK (UTC+3) отправляет отчет админу и делает облачный бекап"""
+    logger.info("⏰ Запущен планировщик ежедневных утренних отчетов и бекапов (06:00 MSK)")
     msk_tz = timezone(timedelta(hours=3))
     
     while True:
@@ -9908,7 +10092,7 @@ def daily_report_scheduler_thread():
                 target_next = target_today
 
             seconds_to_wait = (target_next - now_msk).total_seconds()
-            logger.info(f"⏳ Следующий ежедневный отчет админу: {target_next.strftime('%Y-%m-%d %H:%M:%S MSK')} (через {int(seconds_to_wait // 60)} мин)")
+            logger.info(f"⏳ Следующий ежедневный отчет и бекап БД: {target_next.strftime('%Y-%m-%d %H:%M:%S MSK')} (через {int(seconds_to_wait // 60)} мин)")
 
             while seconds_to_wait > 0:
                 sleep_chunk = min(seconds_to_wait, 30)
@@ -9918,6 +10102,9 @@ def daily_report_scheduler_thread():
 
             logger.info("🌅 Наступило 06:00 MSK! Формирование и отправка ежедневного отчета...")
             send_daily_admin_report_sync()
+
+            logger.info("💾 Создание и облачная выгрузка ежедневного бекапа базы данных...")
+            execute_full_backup(send_to_telegram=True, chat_id=ADMIN_ID)
 
             # Пауза 60 секунд, чтобы не сработать дважды
             time.sleep(60)
@@ -9945,6 +10132,7 @@ async def post_init(application: Application):
             BotCommand('shend', '💸 Передать шишки (в группе)'),
             BotCommand('farsh', '🥩 Разделить шишки между игроками'),
             BotCommand('report', '📊 Ежедневный отчет (админ)'),
+            BotCommand('backup', '💾 Облачный бекап БД (админ)'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
@@ -10024,6 +10212,7 @@ def main():
     telegram_app.add_handler(CommandHandler("farsh", farsh_command, filters=filters.ChatType.GROUPS))
     telegram_app.add_handler(CommandHandler("report", report_admin))
     telegram_app.add_handler(CommandHandler("daily_report", report_admin))
+    telegram_app.add_handler(CommandHandler("backup", backup_admin_cmd))
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
     # Обработчик для отслеживания активности в чатах, должен идти после команд
     # чтобы не срабатывать на них. group=10 для низкого приоритета.
@@ -10066,4 +10255,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
