@@ -4794,7 +4794,7 @@
         inventory_use_btn: "Использовать",
         in_inventory: "В инвентаре:",
         item_mega_cone_name: "Мегашишка",
-        item_mega_cone_desc: "Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (удваивает суточную добычу шишек).",
+        item_mega_cone_desc: "Легендарный артефакт! Повышает уровень Дупла (требуется x2 мегашишек за каждый следующий уровень).",
         item_energy_drink_name: "Энергетик «Бодрый Енот»",
         item_energy_drink_desc: "Бодрящий напиток! Мгновенно восстанавливает 100% здоровья (HP) во всех играх и дает +500 шишек.",
         item_golden_cookie_name: "Золотое Печенье",
@@ -5024,7 +5024,7 @@
         inventory_use_btn: "Use",
         in_inventory: "In inventory:",
         item_mega_cone_name: "Mega Cone",
-        item_mega_cone_desc: "Legendary artifact! Instantly boosts Hollow level by +1 (doubles daily pinecone harvest).",
+        item_mega_cone_desc: "Legendary artifact! Upgrades Hollow level (costs x2 mega cones per level).",
         item_energy_drink_name: "Raccoon Energy Drink",
         item_energy_drink_desc: "Energizing drink! Fully restores 100% health (HP) in all games and grants +500 cones.",
         item_golden_cookie_name: "Golden Cookie",
@@ -5789,15 +5789,21 @@
       }
 
       // Обновляем количество Мегашишек в блоке Дупла
-      const megaConeItem = inventoryState.items.find(i => i.id === 'mega_cone');
+      const megaConeItem = inventoryState.items.find(i => (i.id === 'mega_cone' || i.item_id === 'mega_cone'));
       const megaCount = megaConeItem ? megaConeItem.quantity : 0;
+      const reqMega = hollowState.upgrade_cost_mega_cones || (level < 10 ? Math.pow(2, level - 1) : 0);
       const hollowMegaCountEl = document.getElementById('hollow-mega-cone-count');
       if (hollowMegaCountEl) {
-        hollowMegaCountEl.innerText = `${megaCount} шт.`;
+        if (level >= 10) {
+          hollowMegaCountEl.innerText = `${megaCount} шт. (MAX)`;
+        } else {
+          hollowMegaCountEl.innerText = `${megaCount} / ${reqMega} шт.`;
+          hollowMegaCountEl.style.color = (megaCount >= reqMega) ? '#4ade80' : '#38bdf8';
+        }
       }
       const hollowUseMegaBtn = document.getElementById('hollow-use-mega-btn');
       if (hollowUseMegaBtn) {
-        hollowUseMegaBtn.disabled = (megaCount <= 0 || level >= 10);
+        hollowUseMegaBtn.disabled = (megaCount < reqMega || level >= 10);
       }
 
       // Стартовый оффер (+3 уровня за 10 TON) доступен только на 1-м уровне
@@ -6082,13 +6088,20 @@
           // Обновляем количество в открытом Дупле
           const megaConeItem = inventoryState.items.find(i => (i.id === 'mega_cone' || i.item_id === 'mega_cone'));
           const count = megaConeItem ? megaConeItem.quantity : 0;
+          const currentHollowLvl = hollowState.level || 1;
+          const reqMega = hollowState.upgrade_cost_mega_cones || (currentHollowLvl < 10 ? Math.pow(2, currentHollowLvl - 1) : 0);
           const hollowMegaCountEl = document.getElementById('hollow-mega-cone-count');
           if (hollowMegaCountEl) {
-            hollowMegaCountEl.innerText = `${count} шт.`;
+            if (currentHollowLvl >= 10) {
+              hollowMegaCountEl.innerText = `${count} шт. (MAX)`;
+            } else {
+              hollowMegaCountEl.innerText = `${count} / ${reqMega} шт.`;
+              hollowMegaCountEl.style.color = (count >= reqMega) ? '#4ade80' : '#38bdf8';
+            }
           }
           const hollowUseMegaBtn = document.getElementById('hollow-use-mega-btn');
           if (hollowUseMegaBtn) {
-            hollowUseMegaBtn.disabled = (count <= 0 || (hollowState.level || 1) >= 10);
+            hollowUseMegaBtn.disabled = (count < reqMega || currentHollowLvl >= 10);
           }
         }
       } catch (e) {
@@ -6143,7 +6156,17 @@
         };
         const iconSrc = getItemIconPath(item.icon, itemId);
         const rarity = item.rarity || 'rare';
-        const isMaxHollow = itemId === 'mega_cone' && (hollowState.level || 1) >= 10;
+        const currentHollowLvl = hollowState.level || 1;
+        const reqMega = (itemId === 'mega_cone') ? (hollowState.upgrade_cost_mega_cones || (currentHollowLvl < 10 ? Math.pow(2, currentHollowLvl - 1) : 0)) : 1;
+        const isMaxHollow = itemId === 'mega_cone' && currentHollowLvl >= 10;
+        const notEnoughMega = itemId === 'mega_cone' && !isMaxHollow && (item.quantity < reqMega);
+        const isUseDisabled = isMaxHollow || notEnoughMega;
+        let btnText = i18n[currentLang]?.inventory_use_btn || 'Использовать';
+        if (isMaxHollow) {
+          btnText = 'MAX LVL';
+        } else if (itemId === 'mega_cone') {
+          btnText = (item.quantity >= reqMega) ? `${i18n[currentLang]?.inventory_use_btn || 'Использовать'} (${reqMega} шт.)` : `${item.quantity}/${reqMega} шт.`;
+        }
 
         return `
         <div class="inventory-item-card">
@@ -6161,8 +6184,8 @@
             </div>
           </div>
           <div class="inventory-item-actions">
-            <button class="inventory-item-use-btn" ${isMaxHollow ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
-              ${isMaxHollow ? 'MAX LVL' : (i18n[currentLang]?.inventory_use_btn || 'Использовать')}
+            <button class="inventory-item-use-btn" ${isUseDisabled ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
+              ${btnText}
             </button>
           </div>
         </div>
@@ -6177,13 +6200,27 @@
       const statusMsg = document.getElementById('inventory-status-msg');
       const hollowStatusMsg = document.getElementById('hollow-status-msg');
 
-      if (itemId === 'mega_cone' && (hollowState.level || 1) >= 10) {
-        triggerHaptic('warning');
-        const msg = '🏆 У вас уже максимальный 10-й уровень Дупла!';
-        if (statusMsg) { statusMsg.style.color = 'var(--accent-gold)'; statusMsg.innerText = msg; }
-        if (hollowStatusMsg) { hollowStatusMsg.style.color = 'var(--accent-gold)'; hollowStatusMsg.innerText = msg; }
-        tg.showAlert(msg);
-        return;
+      if (itemId === 'mega_cone') {
+        const currentLvl = hollowState.level || 1;
+        if (currentLvl >= 10) {
+          triggerHaptic('warning');
+          const msg = '🏆 У вас уже максимальный 10-й уровень Дупла!';
+          if (statusMsg) { statusMsg.style.color = 'var(--accent-gold)'; statusMsg.innerText = msg; }
+          if (hollowStatusMsg) { hollowStatusMsg.style.color = 'var(--accent-gold)'; hollowStatusMsg.innerText = msg; }
+          tg.showAlert(msg);
+          return;
+        }
+        const reqMega = hollowState.upgrade_cost_mega_cones || Math.pow(2, currentLvl - 1);
+        const megaConeItem = inventoryState.items.find(i => (i.id === 'mega_cone' || i.item_id === 'mega_cone'));
+        const userQty = megaConeItem ? megaConeItem.quantity : 0;
+        if (userQty < reqMega) {
+          triggerHaptic('warning');
+          const msg = `⚠️ Недостаточно Мегашишек! Для повышения до ${currentLvl + 1} ур. требуется ${reqMega} шт. (у вас: ${userQty} шт.)`;
+          if (statusMsg) { statusMsg.style.color = '#ef4444'; statusMsg.innerText = msg; }
+          if (hollowStatusMsg) { hollowStatusMsg.style.color = '#ef4444'; hollowStatusMsg.innerText = msg; }
+          tg.showAlert(msg);
+          return;
+        }
       }
 
       if (statusMsg) {

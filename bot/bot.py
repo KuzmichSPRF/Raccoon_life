@@ -2607,6 +2607,7 @@ def get_hollow_status(user_id: int) -> dict:
         next_yield = 1000 * (2 ** level) if level < 10 else None
         upgrade_cost_cones = 100000 * (2 ** (level - 1)) if level < 10 else None
         upgrade_cost_gram = 2 * (2 ** (level - 1)) if level < 10 else None
+        upgrade_cost_mega_cones = (2 ** (level - 1)) if level < 10 else None
 
         can_claim = True
         time_remaining = 0
@@ -2627,6 +2628,7 @@ def get_hollow_status(user_id: int) -> dict:
             'next_yield': next_yield,
             'upgrade_cost_cones': upgrade_cost_cones,
             'upgrade_cost_gram': upgrade_cost_gram,
+            'upgrade_cost_mega_cones': upgrade_cost_mega_cones,
             'can_claim': can_claim,
             'time_remaining': max(0, time_remaining),
             'last_claim': last_claim_str,
@@ -2649,6 +2651,7 @@ def get_hollow_status(user_id: int) -> dict:
             'next_yield': 2000,
             'upgrade_cost_cones': 100000,
             'upgrade_cost_gram': 2,
+            'upgrade_cost_mega_cones': 1,
             'can_claim': True,
             'time_remaining': 0,
             'last_claim': None,
@@ -2804,8 +2807,8 @@ ITEMS_REGISTRY = {
         'id': 'mega_cone',
         'name_ru': 'Мегашишка',
         'name_en': 'Mega Cone',
-        'desc_ru': 'Легендарный артефакт! Мгновенно повышает уровень Дупла на +1 (до 10-го ур.).',
-        'desc_en': 'Legendary artifact! Instantly raises your Hollow level by +1 (up to lvl 10).',
+        'desc_ru': 'Легендарный артефакт! Повышает уровень Дупла (требуется x2 мегашишек за каждый уровень).',
+        'desc_en': 'Legendary artifact! Upgrades Hollow level (costs x2 mega cones per level).',
         'icon': 'images/mega_cone.png',
         'usable': True,
         'rarity': 'legendary'
@@ -2991,8 +2994,16 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
             if current_lvl >= 10:
                 return {'status': 'error', 'message': 'Ваше Дупло уже достигло максимального 10-го уровня!'}
 
-            # Списываем 1 предмет
-            new_qty = row['quantity'] - 1
+            req_mega = 2 ** (current_lvl - 1)
+            user_qty = row['quantity']
+            if user_qty < req_mega:
+                return {
+                    'status': 'error',
+                    'message': f'Недостаточно Мегашишек! Для повышения до {current_lvl + 1} ур. требуется {req_mega} шт. (в наличии: {user_qty} шт.)'
+                }
+
+            # Списываем необходимое количество предметов (x2 за каждый уровень)
+            new_qty = user_qty - req_mega
             if new_qty <= 0:
                 cursor.execute("DELETE FROM user_inventory WHERE user_id = ? AND item_id = ?", (user_id, item_id))
             else:
@@ -3004,7 +3015,7 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
 
             new_hollow = get_hollow_status(user_id)
             new_yield = 1000 * (2 ** (new_level - 1))
-            logger.info(f"🌟 Игрок {user_id} использовал Мегашишку! Дупло повышено до {new_level} уровня.")
+            logger.info(f"🌟 Игрок {user_id} использовал {req_mega} Мегашишек! Дупло повышено до {new_level} уровня.")
 
             # Уведомление админу
             try:
@@ -3017,6 +3028,7 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
                     f"🌟 <b>АКТИВИРОВАНА МЕГАШИШКА!</b>\n\n"
                     f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
                     f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                    f"🌲 <b>Потрачено:</b> {req_mega} Мегашишек (x2 на уровень)\n"
                     f"🏆 <b>Новый уровень Дупла:</b> {new_level} / 10\n"
                     f"🌰 <b>Добыча в сутки:</b> +{new_yield:,} Шишек/24ч\n"
                     f"🎒 <b>Осталось Мегашишек:</b> {new_qty}"
@@ -3027,8 +3039,9 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
 
             return {
                 'status': 'ok',
-                'message': f'🎉 Мегашишка успешно активирована!\nУровень Дупла повышен до {new_level} (+{new_yield:,} шишек/сутки)!',
+                'message': f'🎉 Потрачено {req_mega} Мегашишек!\nУровень Дупла повышен до {new_level} (+{new_yield:,} шишек/сутки)!',
                 'item_id': item_id,
+                'used_quantity': req_mega,
                 'new_level': new_level,
                 'remaining_quantity': new_qty,
                 'hollow': new_hollow,
