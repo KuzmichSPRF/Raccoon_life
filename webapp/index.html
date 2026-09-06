@@ -6644,6 +6644,7 @@
 
           // Сбрасываем тапы енота при сборе урожая
           resetRaccoonTaps();
+          syncStats();
 
           triggerHaptic('success');
 
@@ -6947,7 +6948,14 @@
     }
 
     function resetRaccoonTaps() {
-      saveRaccoonTaps(0);
+      if (raccoonTapState.syncTimeout) {
+        clearTimeout(raccoonTapState.syncTimeout);
+        raccoonTapState.syncTimeout = null;
+      }
+      raccoonTapState.taps = 0;
+      raccoonTapState.pendingBatch = 0;
+      stats.raccoon_taps = 0;
+      localStorage.setItem('rl_raccoon_taps', '0');
       hideRaccoonBubble();
       updateRaccoonTapUI();
     }
@@ -7210,9 +7218,17 @@
 
             // Синхронизируем тапы енота с сервера
             if (data.raccoon_taps !== undefined) {
-              const serverTaps = Math.min(RACCOON_MAX_TAPS, parseInt(data.raccoon_taps, 10) || 0);
-              saveRaccoonTaps(Math.max(raccoonTapState.taps, serverTaps));
-              updateRaccoonTapUI();
+              const serverTaps = Math.min(RACCOON_MAX_TAPS, Math.max(0, parseInt(data.raccoon_taps, 10) || 0));
+              if (serverTaps === 0 && (!raccoonTapState.pendingBatch || raccoonTapState.pendingBatch === 0)) {
+                resetRaccoonTaps();
+              } else {
+                const currentLocal = raccoonTapState.taps || 0;
+                const newTaps = (raccoonTapState.pendingBatch > 0)
+                  ? Math.min(RACCOON_MAX_TAPS, Math.max(currentLocal, serverTaps + raccoonTapState.pendingBatch))
+                  : serverTaps;
+                saveRaccoonTaps(newTaps);
+                updateRaccoonTapUI();
+              }
             }
           } else {
             console.error('❌ Ошибка в ответе сервера:', data);
@@ -7263,9 +7279,17 @@
             if (s.overall_score !== undefined) stats.overall_score = s.overall_score;
             if (s.balance !== undefined) stats.balance = s.balance;
             if (s.raccoon_taps !== undefined) {
-              const serverTaps = Math.min(RACCOON_MAX_TAPS, parseInt(s.raccoon_taps, 10) || 0);
-              saveRaccoonTaps(Math.max(raccoonTapState.taps, serverTaps));
-              updateRaccoonTapUI();
+              const serverTaps = Math.min(RACCOON_MAX_TAPS, Math.max(0, parseInt(s.raccoon_taps, 10) || 0));
+              if (serverTaps === 0 && (!raccoonTapState.pendingBatch || raccoonTapState.pendingBatch === 0)) {
+                resetRaccoonTaps();
+              } else {
+                const currentLocal = raccoonTapState.taps || 0;
+                const newTaps = (raccoonTapState.pendingBatch > 0)
+                  ? Math.min(RACCOON_MAX_TAPS, Math.max(currentLocal, serverTaps + raccoonTapState.pendingBatch))
+                  : serverTaps;
+                saveRaccoonTaps(newTaps);
+                updateRaccoonTapUI();
+              }
             }
 
             // Загружаем просмотренные туториалы с сервера
