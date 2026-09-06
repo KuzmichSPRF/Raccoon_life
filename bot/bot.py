@@ -4923,7 +4923,7 @@ def api_boss_attack():
 @app.route('/api/game/vladeos', methods=['POST'])
 @limiter.limit("60 per minute")
 def api_game_vladeos():
-    """Логика Vladeos PvP"""
+    """Логика Vladeos PvP с расходом энергии"""
     try:
         data = request.get_json() or {}
         user_id = data.get('userId') or data.get('user_id')
@@ -4940,6 +4940,16 @@ def api_game_vladeos():
             if auth_user:
                 user_id = int(auth_user.get('id'))
             
+        # Списание 1 энергии за игру
+        energy_res = consume_user_energy(user_id, amount=1, game='vladeos')
+        if not energy_res.get('success'):
+            return jsonify({
+                'status': 'error',
+                'error': 'not_enough_energy',
+                'message': 'Недостаточно энергии!',
+                'energy': energy_res.get('energy', 0)
+            }), 400
+
         is_win = random.random() < 0.05
         loot_drop = None
         if is_win:
@@ -4951,7 +4961,14 @@ def api_game_vladeos():
             p_score = random.randint(1, 90)
             v_score = p_score + 1
             
-        return jsonify({'status': 'ok', 'win': is_win, 'p_score': p_score, 'v_score': v_score, 'loot_drop': loot_drop})
+        return jsonify({
+            'status': 'ok',
+            'win': is_win,
+            'p_score': p_score,
+            'v_score': v_score,
+            'loot_drop': loot_drop,
+            'energy': energy_res.get('energy', 0)
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

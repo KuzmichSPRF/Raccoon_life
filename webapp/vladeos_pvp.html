@@ -849,6 +849,21 @@
           body: JSON.stringify({ userId: userId })
         });
         const data = await res.json();
+
+        if (!res.ok || data.status === 'error') {
+          triggerHaptic('error');
+          const isEnergyErr = data.error === 'not_enough_energy' || (data.message && data.message.includes('энерг'));
+          msg.innerText = isEnergyErr 
+            ? (lang === 'ru' ? "⚡ Недостаточно энергии!" : "⚡ Not enough energy!")
+            : (data.message || (lang === 'ru' ? "❌ Ошибка игры!" : "❌ Game error!"));
+          msg.style.color = 'var(--accent)';
+          gradeSelection.classList.remove('hidden');
+          return;
+        }
+
+        if (data.energy !== undefined) {
+          window.parent.postMessage({ type: 'energy_consumed', energy: data.energy, game: 'vladeos' }, '*');
+        }
         
         const pScoreVal = data.p_score || 0;
         const vScoreVal = data.v_score || 0;

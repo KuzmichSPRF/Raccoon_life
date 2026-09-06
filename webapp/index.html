@@ -7259,9 +7259,9 @@
 
     function isGameUrl(url) {
       if (!url) return false;
-      // Рулетка НЕ требует энергии (исключена)
-      if (url.includes('casino_roulette.html')) return false;
-      const gameUrls = ['battleship.html', 'boss_game.html', 'tower_game.html', 'vladeos_pvp.html', 'game.html'];
+      // Рулетка и Владеос НЕ списывают энергию при открытии iframe (Владеос списывает 1 энергию за каждый бой внутри игры)
+      if (url.includes('casino_roulette.html') || url.includes('vladeos_pvp.html')) return false;
+      const gameUrls = ['battleship.html', 'boss_game.html', 'tower_game.html', 'game.html'];
       return gameUrls.some(g => url.includes(g));
     }
 
@@ -9403,6 +9403,15 @@
         stats.overall_score = calculateLocalOverallScore();
         updateUserInfo();
         if (userId) syncStats();
+      }
+
+      // Energy consumed inside iframe (e.g. Vladeos PVP match)
+      if (data.type === 'energy_consumed') {
+        if (data.energy !== undefined) {
+          localStorage.setItem('rl_energy', data.energy);
+        }
+        consumeEnergy(1);
+        fetchEnergyFromServer();
       }
 
       // Vladeos game
