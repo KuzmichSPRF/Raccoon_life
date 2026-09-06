@@ -2638,50 +2638,94 @@
     }
 
     /* ==================== INVENTORY STYLES ==================== */
-    /* ==================== INVENTORY STYLES ==================== */
+    .inventory-modal {
+      width: 94% !important;
+      max-width: 440px !important;
+      max-height: 88vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 18px 16px 16px !important;
+      border: 1px solid rgba(168, 85, 247, 0.5) !important;
+      background: linear-gradient(180deg, #191424 0%, #121216 100%) !important;
+      box-shadow: 0 10px 40px rgba(168, 85, 247, 0.3) !important;
+      border-radius: 24px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+
+    #inventory-modal-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 60vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 2px 4px 10px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
+    }
+
+    #inventory-modal-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    #inventory-modal-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    #inventory-modal-list::-webkit-scrollbar-thumb {
+      background: rgba(168, 85, 247, 0.5);
+      border-radius: 4px;
+    }
+
     .inventory-item-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(168, 85, 247, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(168, 85, 247, 0.35);
       border-radius: 16px;
-      padding: 12px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
       text-align: left;
       transition: all 0.2s ease;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
       box-sizing: border-box;
       width: 100%;
       max-width: 100%;
-      overflow: hidden;
+      position: relative;
     }
 
     .inventory-item-card:hover {
-      border-color: rgba(168, 85, 247, 0.6);
-      background: rgba(168, 85, 247, 0.08);
+      border-color: rgba(168, 85, 247, 0.65);
+      background: rgba(168, 85, 247, 0.1);
     }
 
     .inventory-item-header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
       min-width: 0;
       box-sizing: border-box;
     }
 
+    .inventory-item-card--common {
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      background: linear-gradient(145deg, rgba(20, 83, 45, 0.2), rgba(24, 24, 28, 0.95));
+    }
     .inventory-item-card--rare {
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      background: linear-gradient(145deg, rgba(30, 58, 138, 0.16), rgba(24, 24, 26, 0.95));
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      background: linear-gradient(145deg, rgba(30, 58, 138, 0.22), rgba(24, 24, 28, 0.95));
     }
     .inventory-item-card--epic {
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      background: linear-gradient(145deg, rgba(126, 34, 206, 0.16), rgba(24, 24, 26, 0.95));
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      background: linear-gradient(145deg, rgba(126, 34, 206, 0.22), rgba(24, 24, 28, 0.95));
     }
     .inventory-item-card--legendary {
-      border: 1.5px solid rgba(234, 179, 8, 0.45);
-      background: linear-gradient(145deg, rgba(180, 83, 9, 0.2), rgba(24, 24, 26, 0.95));
-      box-shadow: 0 4px 20px rgba(234, 179, 8, 0.15);
+      border: 1.5px solid rgba(234, 179, 8, 0.55);
+      background: linear-gradient(145deg, rgba(180, 83, 9, 0.28), rgba(24, 24, 28, 0.95));
+      box-shadow: 0 4px 20px rgba(234, 179, 8, 0.2);
     }
 
     .inventory-item-icon-wrap {
@@ -2697,20 +2741,25 @@
       flex-shrink: 0;
       box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
     }
+    .inventory-item-icon-wrap--common {
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(34, 197, 94, 0.6);
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.3);
+    }
     .inventory-item-icon-wrap--rare {
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
-      border-color: rgba(59, 130, 246, 0.55);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(59, 130, 246, 0.65);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
     }
     .inventory-item-icon-wrap--epic {
-      background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
-      border-color: rgba(168, 85, 247, 0.55);
-      box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(168, 85, 247, 0.65);
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
     }
     .inventory-item-icon-wrap--legendary {
-      background: radial-gradient(circle, rgba(234, 179, 8, 0.35) 0%, rgba(0, 0, 0, 0.6) 100%);
-      border-color: rgba(251, 191, 36, 0.7);
-      box-shadow: 0 0 18px rgba(234, 179, 8, 0.45);
+      background: radial-gradient(circle, rgba(234, 179, 8, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(251, 191, 36, 0.8);
+      box-shadow: 0 0 18px rgba(234, 179, 8, 0.5);
     }
 
     .inventory-item-icon {
@@ -2759,7 +2808,7 @@
 
     .inventory-item-title {
       font-weight: 800;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       color: #fff;
       white-space: nowrap;
       overflow: hidden;
@@ -2783,6 +2832,12 @@
       box-sizing: border-box;
       max-width: fit-content;
     }
+    .inventory-item-rarity--common {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      border: 1px solid rgba(52, 211, 153, 0.5);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
     .inventory-item-rarity--rare {
       background: linear-gradient(135deg, #1d4ed8, #3b82f6);
       color: #fff;
@@ -2804,7 +2859,7 @@
     }
 
     .inventory-item-desc {
-      font-size: 0.74rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       line-height: 1.35;
       word-break: break-word;
@@ -2814,23 +2869,24 @@
     .inventory-item-actions {
       display: flex;
       width: 100%;
-      margin-top: 6px;
+      margin-top: 4px;
       box-sizing: border-box;
     }
 
     .inventory-item-use-btn {
       width: 100%;
-      height: 38px;
+      height: 40px;
+      min-height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       background: linear-gradient(135deg, #9333ea, #06b6d4);
       color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 12px;
       padding: 0 14px;
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 900;
       cursor: pointer;
       text-transform: uppercase;
@@ -2841,6 +2897,14 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      position: relative;
+      z-index: 2;
+    }
+    .inventory-item-use-btn--common {
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-color: rgba(52, 211, 153, 0.5);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+      color: #ffffff;
     }
     .inventory-item-use-btn--rare {
       background: linear-gradient(135deg, #2563eb, #38bdf8);
@@ -3609,10 +3673,9 @@
 
     <!-- Inventory Modal (Инвентарь Енота) -->
     <div id="inventory-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeInventoryModal()">
-      <div class="tutorial-modal inventory-modal"
-        style="width: 92%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; padding: 18px 16px 20px; position: relative; border: 1px solid rgba(168, 85, 247, 0.45); background: linear-gradient(180deg, #191424 0%, #121214 100%); box-shadow: 0 10px 40px rgba(168, 85, 247, 0.25);">
+      <div class="tutorial-modal inventory-modal">
         <button class="close-modal-btn" onclick="closeInventoryModal()">✕</button>
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-right: 36px; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-right: 36px; box-sizing: border-box; flex-shrink: 0;">
           <span style="font-size: 1.6rem; flex-shrink: 0;">🎒</span>
           <div style="text-align: left; min-width: 0; flex: 1;">
             <h3 class="tutorial-title" style="margin: 0; text-align: left; font-size: 1.2rem; color: #e9d5ff; padding: 0;"
@@ -3622,13 +3685,12 @@
           </div>
         </div>
 
-        <div id="inventory-modal-list"
-          style="overflow-y: auto; overflow-x: hidden; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 10px; min-height: 160px;">
+        <div id="inventory-modal-list">
           <!-- Dynamic Inventory Items -->
         </div>
 
         <div id="inventory-status-msg"
-          style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-gold); min-height: 18px;"></div>
+          style="margin-top: 6px; font-size: 0.8rem; color: var(--accent-gold); min-height: 18px; flex-shrink: 0;"></div>
       </div>
     </div>
 
@@ -6787,7 +6849,9 @@
       if (!userId) return;
 
       try {
-        const res = await fetch(`/api/inventory?userId=${userId}&t=${Date.now()}`);
+        const res = await fetch(`/api/inventory?userId=${userId}&t=${Date.now()}`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         if (data.status === 'ok') {
           inventoryState.items = data.items || data.inventory || [];
@@ -6866,13 +6930,13 @@
         };
         const iconSrc = getItemIconPath(item.icon, itemId);
         const rarityKey = (item.rarity || 'rare').toLowerCase();
-        const rarityLabel = (rarityKey === 'legendary' ? 'LEGENDARY' : rarityKey === 'epic' ? 'EPIC' : rarityKey === 'rare' ? 'RARE' : rarityKey.toUpperCase());
+        const rarityLabel = (rarityKey === 'legendary' ? 'LEGENDARY' : rarityKey === 'epic' ? 'EPIC' : rarityKey === 'rare' ? 'RARE' : (rarityKey === 'common' ? 'COMMON' : rarityKey.toUpperCase()));
         const currentHollowLvl = hollowState.level || 1;
         const reqMega = (itemId === 'mega_cone') ? (hollowState.upgrade_cost_mega_cones || (currentHollowLvl < 10 ? Math.pow(2, currentHollowLvl - 1) : 0)) : 1;
         const isMaxHollow = itemId === 'mega_cone' && currentHollowLvl >= 10;
         const notEnoughMega = itemId === 'mega_cone' && !isMaxHollow && (item.quantity < reqMega);
         const isUseDisabled = isMaxHollow || notEnoughMega;
-        let btnIcon = '✨';
+        let btnIcon = '⚡';
         let btnText = currentLang === 'ru' ? 'Использовать' : 'Use';
         if (isMaxHollow) {
           btnIcon = '🏆';
@@ -6885,6 +6949,21 @@
             btnIcon = '🔒';
             btnText = currentLang === 'ru' ? `Нужно ${reqMega} шт. (в наличии: ${item.quantity})` : `Need ${reqMega} pcs (have: ${item.quantity})`;
           }
+        } else if (itemId === 'energy_drink') {
+          btnIcon = '⚡';
+          btnText = currentLang === 'ru' ? 'Выпить (+100% HP)' : 'Drink (+100% HP)';
+        } else if (itemId === 'golden_cookie') {
+          btnIcon = '🍪';
+          btnText = currentLang === 'ru' ? 'Съесть (+3,000)' : 'Eat (+3,000)';
+        } else if (itemId === 'trash_shield') {
+          btnIcon = '🛡️';
+          btnText = currentLang === 'ru' ? 'Активировать (+5,000)' : 'Activate (+5,000)';
+        } else if (itemId === 'lucky_clover') {
+          btnIcon = '🍀';
+          btnText = currentLang === 'ru' ? 'Испытать удачу' : 'Try Luck';
+        } else if (itemId === 'ancient_key') {
+          btnIcon = '🗝️';
+          btnText = currentLang === 'ru' ? 'Открыть Сейф (+10,000)' : 'Unlock Vault (+10,000)';
         }
 
         return `
@@ -6903,7 +6982,7 @@
             </div>
           </div>
           <div class="inventory-item-actions">
-            <button class="inventory-item-use-btn inventory-item-use-btn--${rarityKey}" ${isUseDisabled ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
+            <button class="inventory-item-use-btn inventory-item-use-btn--${rarityKey}" ${isUseDisabled ? 'disabled' : ''} onclick="useInventoryItem('${itemId}'); triggerHaptic('medium');">
               <span>${btnIcon}</span>
               <span>${btnText}</span>
             </button>
@@ -6955,10 +7034,7 @@
       try {
         const res = await fetch('/api/inventory/use', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Telegram-Init-Data': tg.initData || ''
-          },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ userId: userId, itemId: itemId })
         });
         const data = await res.json();
