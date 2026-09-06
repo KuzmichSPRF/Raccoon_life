@@ -13,6 +13,7 @@ import html
 import time
 import base64
 import zipfile
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -4047,6 +4048,25 @@ def static_files(filename):
 
 # ==================== АВТОРИЗАЦИЯ TELEGRAM ====================
 
+AUTH_SESSIONS = {}
+
+def create_auth_session() -> str:
+    """Создает сессию для авторизации через Telegram deep-link бота"""
+    now = time.time()
+    # Очистка устаревших сессий (> 10 минут)
+    for sid in list(AUTH_SESSIONS.keys()):
+        if now - AUTH_SESSIONS[sid].get('created_at', 0) > 600:
+            AUTH_SESSIONS.pop(sid, None)
+
+    session_id = secrets.token_hex(12)
+    AUTH_SESSIONS[session_id] = {
+        'created_at': now,
+        'user': None,
+        'token': None
+    }
+    return session_id
+
+
 @app.route('/api/auth/config', methods=['GET'])
 def api_auth_config():
     """Отдает имя бота для инициализации Telegram Login Widget на фронтенде"""
@@ -4054,6 +4074,46 @@ def api_auth_config():
         'status': 'ok',
         'bot_username': BOT_USERNAME or 'Raccoon_Life_bot'
     })
+
+
+@app.route('/api/auth/session/create', methods=['POST'])
+def api_auth_session_create():
+    """Создает сессию авторизации для перехода в Telegram бота"""
+    try:
+        session_id = create_auth_session()
+        bot_username = BOT_USERNAME or 'Raccoon_Life_bot'
+        bot_url = f"https://t.me/{bot_username}?start=auth_{session_id}"
+        return jsonify({
+            'status': 'ok',
+            'session_id': session_id,
+            'bot_url': bot_url
+        })
+    except Exception as e:
+        logger.error(f"Error in api_auth_session_create: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/auth/session/check', methods=['GET'])
+def api_auth_session_check():
+    """Проверяет статус авторизации сессии пользователем в боте"""
+    session_id = request.args.get('session_id')
+    if not session_id or session_id not in AUTH_SESSIONS:
+        return jsonify({'status': 'expired', 'confirmed': False}), 404
+
+    session_data = AUTH_SESSIONS[session_id]
+    if session_data.get('user') and session_data.get('token'):
+        user_info = session_data['user']
+        token = session_data['token']
+        # Удаляем сессию после подтверждения
+        AUTH_SESSIONS.pop(session_id, None)
+        return jsonify({
+            'status': 'ok',
+            'confirmed': True,
+            'user': user_info,
+            'token': token
+        })
+
+    return jsonify({'status': 'pending', 'confirmed': False})
 
 
 @app.route('/api/auth/telegram', methods=['POST'])
@@ -8380,9 +8440,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         logger.info(f"👤 User {user.id} ({user.username}) started bot")
 
-        # Обработка реферального параметра (/start ref_123456 или /start 123456)
+        # Обработка аргументов запуска (/start auth_xxx или /start ref_123456)
         if context.args and len(context.args) > 0:
-            raw_ref = context.args[0].strip()
+            arg = context.args[0].strip()
+
+            # 1. Авторизация на веб-сайте через бота (/start auth_xxx)
+            if arg.startswith('auth_'):
+                session_id = arg.replace('auth_', '')
+                if session_id in AUTH_SESSIONS:
+                    user_info = {
+                        'id': user.id,
+                        'first_name': user.first_name or '',
+                        'last_name': user.last_name or '',
+                        'username': user.username or ''
+                    }
+                    token = generate_session_token(user.id, BOT_TOKEN)
+                    AUTH_SESSIONS[session_id]['user'] = user_info
+                    AUTH_SESSIONS[session_id]['token'] = token
+                    logger.info(f"🔑 Успешная авторизация веб-сессии {session_id} для пользователя {user.id}")
+
+                    await update.message.reply_text(
+                        f"✅ <b>Авторизация успешна!</b>\n\n"
+                        f"🦝 Вы успешно вошли на сайте <b>raccoontimes.online</b> под именем <b>{html.escape(user.first_name or user.username or 'Енот')}</b>.\n\n"
+                        f"Вернитесь во вкладку браузера — вход выполнился автоматически!",
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(text="🌐 Открыть сайт", url="https://raccoontimes.online")
+                        ]]),
+                        parse_mode=ParseMode.HTML
+                    )
+                    return
+
+            # 2. Реферальная программа (/start ref_123456 или /start 123456)
+            raw_ref = arg
             clean_ref = raw_ref.replace('ref_', '').replace('ref', '')
             try:
                 referrer_id = int(clean_ref)
