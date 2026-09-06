@@ -621,7 +621,7 @@
         history: "📊 Последние раунды",
         wins: "Побед: ",
         noCones: "❌ Недостаточно шишек на балансе!",
-        minBet: "❌ Минимальная ставка: 1,000 шишек!",
+        minBet: '❌ Минимальная ставка: 1,000 <img src="images/cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">!',
         winText: "🎉 ПОБЕДА! +",
         loseText: "😢 Проигрыш -",
         jackpotText: "💎 ДЖЕКПОТ! x100! +",
@@ -638,7 +638,7 @@
         history: "📊 Recent Rounds",
         wins: "Wins: ",
         noCones: "❌ Not enough cones on balance!",
-        minBet: "❌ Minimum bet: 1,000 cones!",
+        minBet: '❌ Minimum bet: 1,000 <img src="images/cone.png" class="cone-icon" style="width:14px;height:14px;vertical-align:middle;" alt="🌰">!',
         winText: "🎉 VICTORY! +",
         loseText: "😢 Defeat -",
         jackpotText: "💎 JACKPOT! x100! +",
@@ -911,9 +911,10 @@
       document.getElementById('bet-amount-input').value = betAmount;
     }
 
-    function showResultBanner(text, type) {
+    function showResultBanner(htmlContent, type) {
       const box = document.getElementById('result-box');
-      box.innerText = text;
+      if (!box) return;
+      box.innerHTML = htmlContent;
       box.dataset.hasResult = 'true';
       box.className = 'result-banner ' + (type === 'win' ? 'result-win' : (type === 'lose' ? 'result-lose' : ''));
     }
@@ -1052,10 +1053,11 @@
           stats.conesWon += result.winAmount;
           playWinSound(result.isJackpot);
           triggerHaptic('success');
+          const coneIconHtml = '<img src="images/cone.png" class="cone-icon" style="width:16px;height:16px;vertical-align:middle;margin-left:3px;filter:drop-shadow(0 0 4px rgba(255,180,0,0.6));" alt="🌰">';
           if (result.isJackpot) {
-            showResultBanner(`${t.jackpotText}${result.winAmount.toLocaleString('ru-RU')} 🌰`, 'win');
+            showResultBanner(`${t.jackpotText}${result.winAmount.toLocaleString('ru-RU')} ${coneIconHtml}`, 'win');
           } else {
-            showResultBanner(`${t.winText}${result.winAmount.toLocaleString('ru-RU')} 🌰`, 'win');
+            showResultBanner(`${t.winText}${result.winAmount.toLocaleString('ru-RU')} ${coneIconHtml}`, 'win');
           }
           addToHistory(result.number, result.type, true);
           balance += result.winAmount;
@@ -1063,7 +1065,8 @@
         } else {
           stats.conesLost += betAmount;
           triggerHaptic('error');
-          showResultBanner(`${t.loseText}${betAmount.toLocaleString('ru-RU')} 🌰`, 'lose');
+          const coneIconHtml = '<img src="images/cone.png" class="cone-icon" style="width:16px;height:16px;vertical-align:middle;margin-left:3px;filter:drop-shadow(0 0 4px rgba(255,180,0,0.6));" alt="🌰">';
+          showResultBanner(`${t.loseText}${betAmount.toLocaleString('ru-RU')} ${coneIconHtml}`, 'lose');
           addToHistory(result.number, result.type, false);
         }
 

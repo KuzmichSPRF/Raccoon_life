@@ -2984,7 +2984,7 @@ def upgrade_hollow_cones(user_id: int) -> dict:
             f"🌳 <b>ПРОКАЧКА ДУПЛА ЗА ШИШКИ!</b>\n\n"
             f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
             f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
-            f"🌲 <b>Потрачено шишек:</b> {cost:,} 🌰\n"
+            f"🌰 <b>Потрачено шишек:</b> {cost:,} 🌰\n"
             f"🏆 <b>Новый уровень Дупла:</b> {new_level} / 10\n"
             f"🌰 <b>Добыча в сутки:</b> +{new_yield:,} Шишек/24ч\n"
             f"💳 <b>Остаток баланса:</b> {new_tokens['balance']:,} Шишек"
@@ -3232,7 +3232,7 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
                     f"🌟 <b>АКТИВИРОВАНА МЕГАШИШКА!</b>\n\n"
                     f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
                     f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
-                    f"🌲 <b>Потрачено:</b> {req_mega} Мегашишек (x2 на уровень)\n"
+                    f"🌟 <b>Потрачено:</b> {req_mega} Мегашишек (x2 на уровень)\n"
                     f"🏆 <b>Новый уровень Дупла:</b> {new_level} / 10\n"
                     f"🌰 <b>Добыча в сутки:</b> +{new_yield:,} Шишек/24ч\n"
                     f"🎒 <b>Осталось Мегашишек:</b> {new_qty}"
@@ -4337,7 +4337,7 @@ def api_ton_notify_payment():
                 f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
                 f"📦 <b>Пакет:</b> {pack_title}\n"
                 f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
-                f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+                f"🌰 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
                 f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
                 f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
                 f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
@@ -4553,7 +4553,7 @@ def check_blockchain_incoming_transactions():
                         f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
                         f"📦 <b>Пакет:</b> {pack_title}\n"
                         f"💎 <b>Сумма:</b> {ton_amount} GRAM\n"
-                        f"🌲 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
+                        f"🌰 <b>Начислено игроку:</b> +{cones_amount:,} Шишек\n"
                         f"💳 <b>Новый баланс игрока:</b> {result['balance'] if result else 0:,} Шишек\n"
                         f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
                         f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
@@ -10111,7 +10111,7 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
                 f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
                 f"⭐ <b>Оплачено:</b> 100 Звёзд (XTR)\n"
-                f"🌲 <b>Начислено игроку:</b> +10,000 Шишек\n"
+                f"🌰 <b>Начислено игроку:</b> +10,000 Шишек\n"
                 f"💳 <b>Новый баланс:</b> {result['balance'] if result else 0:,} Шишек\n"
                 f"🔖 <b>Charge ID:</b> <code>{html.escape(payment.telegram_payment_charge_id)}</code>"
             )
@@ -10441,7 +10441,7 @@ def format_daily_report_message(data: dict) -> str:
         f"  🎲 Битва фишек / Клоун: <b>+{data['games_chips_24h']:,}</b> (24ч) | <b>{data['clown_games_total']:,}</b> (побед: {data['clown_wins_total']:,})\n"
         f"  🦝 Тапы енота: <b>+{data['games_taps_24h']:,}</b> (24ч) | <b>{data['raccoon_taps_total']:,}</b> тапов\n"
         f"  🎯 Ставки тотализатора: <b>+{data['tot_bets_count_24h']:,}</b> (24ч) | <b>{data['tot_bets_count_total']:,}</b> ставок\n\n"
-        f"🌲 <b>ЭКОНОМИКА ШИШЕК:</b>\n"
+        f"🌰 <b>ЭКОНОМИКА ШИШЕК:</b>\n"
         f"• В обращении (сумма балансов): <b>{data['total_circulation']:,}</b> 🌰\n"
         f"• Выпущено за 24ч: <b>+{data['earned_24h']:,}</b> 🌰\n"
         f"• Потрачено за 24ч: <b>-{data['spent_24h']:,}</b> 🌰\n"
@@ -10509,7 +10509,7 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
         ("• Всего зарегистрировано", f"+{report_data.get('new_users_24h', 0):,}", f"{report_data.get('total_users', 0):,}"),
         ("• Активных игроков (24ч)", f"{report_data.get('active_users_24h', 0):,}", "-"),
         ("• Заблокированных", "-", f"{report_data.get('banned_users', 0):,}"),
-        ("🌲 ЭКОНОМИКА ШИШЕК", "", ""),
+        ("🌰 ЭКОНОМИКА ШИШЕК", "", ""),
         ("• В обращении (сумма балансов)", "-", f"{report_data.get('total_circulation', 0):,} 🌰"),
         ("• Выпущено (начислено)", f"+{report_data.get('earned_24h', 0):,} 🌰", f"{report_data.get('total_minted_all_time', 0):,} 🌰"),
         ("• Потрачено (сожжено)", f"-{report_data.get('spent_24h', 0):,} 🌰", f"{report_data.get('total_spent_all_time', 0):,} 🌰"),
@@ -10535,7 +10535,7 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
     for item in summary_rows:
         ws_summary.append(list(item))
         current_row = ws_summary.max_row
-        if item[0].startswith(("👥", "🌲", "🎮", "🌳", "⭐")):
+        if item[0].startswith(("👥", "🌲", "🌰", "🎮", "🌳", "⭐")):
             for c_idx in range(1, 4):
                 cell = ws_summary.cell(row=current_row, column=c_idx)
                 cell.fill = section_fill
