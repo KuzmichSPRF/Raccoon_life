@@ -3930,6 +3930,46 @@
       </div>
     </div>
 
+    <!-- Telegram Authorization Modal -->
+    <div id="telegram-auth-overlay" class="tutorial-overlay">
+      <div class="tutorial-modal"
+        style="position: relative; width: 92%; max-width: 390px; max-height: 90vh; display: flex; flex-direction: column; padding: 22px 18px 24px; text-align: center; border: 1px solid rgba(0, 136, 204, 0.3); box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 25px rgba(0, 136, 204, 0.2);">
+        <button class="close-modal-btn" onclick="closeAuthModal()">✕</button>
+        
+        <div style="width: 68px; height: 68px; margin: 0 auto 12px auto; background: linear-gradient(135deg, #0088cc, #00b4d8); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(0, 136, 204, 0.5);">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-16.74 7.684a2.25 2.25 0 0 0 .146 4.148l4.49 1.5 1.5 4.5a2.25 2.25 0 0 0 3.738.932l3.12-3.12 4.12 3.09a2.25 2.25 0 0 0 3.498-1.518l3-15a2.25 2.25 0 0 0-2.85-2.431z"/>
+          </svg>
+        </div>
+
+        <h3 class="tutorial-title" style="margin: 0 0 8px 0; text-align: center; font-size: 1.3rem; padding: 0; color: #fff;"
+          data-i18n="tg_auth_title">Авторизация Telegram</h3>
+        <p style="margin: 0 auto 16px auto; font-size: 0.84rem; line-height: 1.45; color: var(--text-secondary); max-width: 300px;"
+          data-i18n="tg_auth_desc">Войдите через Telegram, чтобы сохранять шишки, прогресс дупла и играть с любого устройства!</p>
+
+        <!-- Official Telegram Login Widget container -->
+        <div id="telegram-widget-mount" style="min-height: 48px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 8px;">
+          <div style="font-size: 0.8rem; color: #888;">Загрузка виджета Telegram...</div>
+        </div>
+
+        <!-- Direct Telegram Bot App Alternative -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 8px;">
+          <p style="font-size: 0.76rem; color: #aaa; margin-bottom: 10px;" data-i18n="tg_auth_bot_hint">Или откройте игру прямо в Telegram боте:</p>
+          <a href="https://t.me/Raccoon_Life_bot/app" target="_blank" class="button button-size-medium"
+            style="width: 100%; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; background: linear-gradient(135deg, #0088cc, #00b4d8); color: #fff; font-weight: 700; box-shadow: 0 4px 15px rgba(0, 136, 204, 0.35);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-16.74 7.684a2.25 2.25 0 0 0 .146 4.148l4.49 1.5 1.5 4.5a2.25 2.25 0 0 0 3.738.932l3.12-3.12 4.12 3.09a2.25 2.25 0 0 0 3.498-1.518l3-15a2.25 2.25 0 0 0-2.85-2.431z"/>
+            </svg>
+            <span data-i18n="tg_auth_open_bot">Открыть в Telegram</span>
+          </a>
+        </div>
+
+        <button class="button button-type-secondary"
+          style="width: 100%; margin-top: 12px; font-size: 0.8rem; padding: 8px; border-radius: 10px; background: transparent; border: none; color: #777;"
+          onclick="closeAuthModal();" data-i18n="tg_auth_guest_continue">Продолжить как гость</button>
+      </div>
+    </div>
+
     <!-- Player Profile & Stats Modal -->
     <div id="profile-stats-overlay" class="tutorial-overlay">
       <div class="tutorial-modal profile-stats-modal"
@@ -4389,13 +4429,13 @@
     <!-- Top App Header (CapsGame Header Bar) -->
     <header id="app-header" class="home__title" style="display: none;">
       <div class="home__user">
-        <div class="badge-icon-button home__user-profile" onclick="openProfileModal(); triggerHaptic('selection');">
+        <div class="badge-icon-button home__user-profile" onclick="handleProfileHeaderClick(); triggerHaptic('selection');">
           <div class="cap__element-wrapper">
             <button class="cap__element" id="header-avatar-btn">
               <div id="header-avatar">🦝</div>
             </button>
           </div>
-          <div class="badge-icon-button__badge" data-i18n="badge_profile">Профиль</div>
+          <div class="badge-icon-button__badge" id="header-profile-badge" data-i18n="badge_profile">Профиль</div>
         </div>
         <div class="home-leaderboard" onclick="showLeaderboard(); triggerHaptic('selection');">
           <div class="home-leaderboard__username" id="header-user-name">EHOT</div>
@@ -4412,6 +4452,11 @@
       </div>
 
       <div class="home__title-badges">
+        <button class="badge-icon-button" id="header-tg-auth-btn" style="display: none; background: rgba(0, 136, 204, 0.2); border-color: rgba(0, 136, 204, 0.5);"
+          onclick="openAuthModal(); triggerHaptic('selection');" aria-label="Login" title="Войти через Telegram">
+          <span class="badge-icon-button__icon">✈️</span>
+          <div class="badge-icon-button__badge" style="color: #00d2ff;">TG ВХОД</div>
+        </button>
         <button class="badge-icon-button" id="header-promo-btn"
           onclick="openPromoModal(); triggerHaptic('selection');" aria-label="Promo" title="Промокод">
           <span class="badge-icon-button__icon">🎁</span>
@@ -4449,10 +4494,18 @@
           Raccoon Life</h1>
         <p style="font-size: 0.9rem; line-height: 1.45; color: var(--text-secondary); max-width: 280px;"
           data-i18n="cover_desc">Твой гид по миру енотов, квестов и новостей.</p>
-        <button class="button button-size-large button-type-primary button-color-red home__play-main-btn"
-          style="width: 100%; margin-top: 4px;" onclick="navigateTo('main-menu'); triggerHaptic('impact');">
+        <button id="cover-play-btn" class="button button-size-large button-type-primary button-color-red home__play-main-btn"
+          style="width: 100%; margin-top: 4px; opacity: 0.5; filter: grayscale(60%); cursor: not-allowed;" onclick="handleCoverPlayClick();">
           <span style="font-size: 1.2rem;">🚀</span>
           <span data-i18n="cover_btn">ВПЕРЁД</span>
+        </button>
+        <button id="cover-tg-login-btn" class="button button-size-medium"
+          style="width: 100%; margin-top: 8px; border-radius: 14px; background: linear-gradient(135deg, #0088cc, #00b4d8); color: #fff; font-weight: 700; display: none; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 136, 204, 0.35);"
+          onclick="openAuthModal(); triggerHaptic('light');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-16.74 7.684a2.25 2.25 0 0 0 .146 4.148l4.49 1.5 1.5 4.5a2.25 2.25 0 0 0 3.738.932l3.12-3.12 4.12 3.09a2.25 2.25 0 0 0 3.498-1.518l3-15a2.25 2.25 0 0 0-2.85-2.431z"/>
+          </svg>
+          <span data-i18n="tg_auth_btn">Войти через Telegram</span>
         </button>
       </div>
     </div>
@@ -5037,6 +5090,13 @@
         connect_wallet: "Подключить TON Кошелёк",
         wallet_not_connected: "Не привязан",
         wallet_linked: "Привязан",
+        tg_auth_title: "Авторизация Telegram",
+        tg_auth_desc: "Войдите через Telegram, чтобы сохранять шишки, прогресс дупла и играть с любого устройства!",
+        tg_auth_btn: "Войти через Telegram",
+        tg_auth_logout: "Выйти из аккаунта",
+        tg_auth_bot_hint: "Или откройте игру прямо в Telegram боте:",
+        tg_auth_open_bot: "Открыть в Telegram",
+        tg_auth_guest_continue: "Продолжить как гость",
         not_enough_energy: "⚡ Недостаточно энергии! Энергия восстанавливается по 1 ед. каждые 5 минут.",
         energy_regen_time: "+1 через",
         stars_offer_tooltip: "Купить шишки за Звёзды",
@@ -5277,6 +5337,13 @@
         connect_wallet: "Connect TON Wallet",
         wallet_not_connected: "Not linked",
         wallet_linked: "Linked",
+        tg_auth_title: "Telegram Authorization",
+        tg_auth_desc: "Log in with Telegram to save pinecones, hollow upgrades, and play across devices!",
+        tg_auth_btn: "Log in with Telegram",
+        tg_auth_logout: "Log out",
+        tg_auth_bot_hint: "Or play directly in Telegram Bot:",
+        tg_auth_open_bot: "Open in Telegram",
+        tg_auth_guest_continue: "Continue as Guest",
         not_enough_energy: "⚡ Not enough energy! Energy recovers 1 point every 5 minutes.",
         energy_regen_time: "+1 in",
         stars_offer_tooltip: "Buy cones with Stars",
@@ -5617,6 +5684,8 @@
       const nameEl = document.getElementById('header-user-name');
       const avatarEl = document.getElementById('header-avatar');
       const scoreEl = document.getElementById('header-user-score');
+      const headerTgAuthBtn = document.getElementById('header-tg-auth-btn');
+      const coverTgLoginBtn = document.getElementById('cover-tg-login-btn');
 
       const completed = JSON.parse(localStorage.getItem('completed_items') || '[]');
       const qt2Quests = ['qt2_1', 'qt2_2', 'qt2_3', 'qt2_4', 'qt2_5', 'qt2_6', 'qt2_7'];
@@ -5637,6 +5706,8 @@
         scoreEl.title = `${currentLang === 'ru' ? 'Общий рейтинг' : 'Overall rating'}: ${overallScore.toLocaleString('ru-RU')}`;
       }
 
+      const coverPlayBtn = document.getElementById('cover-play-btn');
+
       if (user) {
         const displayName = user.first_name || user.username || (currentLang === 'ru' ? 'EHOT' : 'Raccoon');
         if (nameEl) nameEl.innerText = displayName;
@@ -5647,6 +5718,44 @@
             avatarEl.innerText = '🦝';
           }
         }
+        if (headerTgAuthBtn) headerTgAuthBtn.style.display = 'none';
+        if (coverTgLoginBtn) coverTgLoginBtn.style.display = 'none';
+        if (coverPlayBtn) {
+          coverPlayBtn.style.opacity = '1';
+          coverPlayBtn.style.filter = 'none';
+          coverPlayBtn.style.cursor = 'pointer';
+        }
+      } else {
+        if (nameEl) nameEl.innerText = currentLang === 'ru' ? 'Войти' : 'Login';
+        if (avatarEl) avatarEl.innerText = '🔑';
+        if (headerTgAuthBtn) headerTgAuthBtn.style.display = 'flex';
+        if (coverTgLoginBtn) coverTgLoginBtn.style.display = 'flex';
+        if (coverPlayBtn) {
+          coverPlayBtn.style.opacity = '0.5';
+          coverPlayBtn.style.filter = 'grayscale(60%)';
+          coverPlayBtn.style.cursor = 'not-allowed';
+        }
+      }
+    }
+
+    function handleCoverPlayClick() {
+      const user = getUserObject();
+      if (!user || !user.id) {
+        triggerHaptic('error');
+        showNotification(currentLang === 'ru' ? 'Для входа в игру сначала авторизуйтесь через Telegram!' : 'Please log in with Telegram first!', 'error');
+        openAuthModal();
+        return;
+      }
+      triggerHaptic('impact');
+      navigateTo('main-menu');
+    }
+
+    function handleProfileHeaderClick() {
+      const user = getUserObject();
+      if (!user) {
+        openAuthModal();
+      } else {
+        openProfileModal();
       }
     }
 
@@ -5743,6 +5852,7 @@
         if (u.username) localStorage.setItem('rl_username', u.username);
         if (u.first_name) localStorage.setItem('rl_first_name', u.first_name);
         if (u.last_name) localStorage.setItem('rl_last_name', u.last_name);
+        if (u.photo_url) localStorage.setItem('rl_photo_url', u.photo_url);
         return u;
       }
       const storedId = localStorage.getItem('rl_user_id');
@@ -5753,7 +5863,8 @@
             id: parsed,
             username: localStorage.getItem('rl_username') || '',
             first_name: localStorage.getItem('rl_first_name') || '',
-            last_name: localStorage.getItem('rl_last_name') || ''
+            last_name: localStorage.getItem('rl_last_name') || '',
+            photo_url: localStorage.getItem('rl_photo_url') || ''
           };
         }
       }
@@ -5763,6 +5874,121 @@
     function getUserId() {
       const userObj = getUserObject();
       return userObj ? userObj.id : null;
+    }
+
+    function getAuthHeaders(headers = {}) {
+      const h = { ...headers };
+      if (tg && tg.initData) {
+        h['X-Telegram-Init-Data'] = tg.initData;
+      }
+      const token = localStorage.getItem('rl_auth_token');
+      if (token) {
+        h['X-Auth-Token'] = token;
+        h['Authorization'] = 'Bearer ' + token;
+      }
+      const uId = getUserId();
+      if (uId) {
+        h['X-Telegram-User-Id'] = uId.toString();
+      }
+      return h;
+    }
+
+    // ==================== TELEGRAM LOGIN MODAL & WIDGET ====================
+    function openAuthModal() {
+      const overlay = document.getElementById('telegram-auth-overlay');
+      if (!overlay) return;
+      overlay.classList.add('active');
+      triggerHaptic('light');
+      loadTelegramWidget();
+    }
+
+    function closeAuthModal() {
+      const overlay = document.getElementById('telegram-auth-overlay');
+      if (overlay) overlay.classList.remove('active');
+      triggerHaptic('light');
+    }
+
+    async function loadTelegramWidget() {
+      const mount = document.getElementById('telegram-widget-mount');
+      if (!mount) return;
+
+      let botUsername = 'Raccoon_Life_bot';
+      try {
+        const res = await fetch('/api/auth/config');
+        const cfg = await res.json();
+        if (cfg && cfg.bot_username) {
+          botUsername = cfg.bot_username;
+        }
+      } catch (e) {
+        console.warn('Using default bot username for widget:', e);
+      }
+
+      mount.innerHTML = '';
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', botUsername);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '12');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-userpic', 'true');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      mount.appendChild(script);
+    }
+
+    window.onTelegramAuth = async function(user) {
+      try {
+        showNotification(currentLang === 'ru' ? 'Авторизация в Telegram...' : 'Telegram logging in...', 'info');
+        const resp = await fetch('/api/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user)
+        });
+        const res = await resp.json();
+        if (res.ok || res.status === 'ok') {
+          localStorage.setItem('rl_user_id', user.id.toString());
+          if (user.username) localStorage.setItem('rl_username', user.username);
+          if (user.first_name) localStorage.setItem('rl_first_name', user.first_name);
+          if (user.last_name) localStorage.setItem('rl_last_name', user.last_name);
+          if (user.photo_url) localStorage.setItem('rl_photo_url', user.photo_url);
+          if (res.token) localStorage.setItem('rl_auth_token', res.token);
+
+          closeAuthModal();
+          showNotification(currentLang === 'ru' ? 'Добро пожаловать в Raccoon Life!' : 'Welcome to Raccoon Life!', 'success');
+          triggerHaptic('success');
+
+          updateUserInfo();
+          loadTokenBalance();
+          loadStatsFromServer();
+          fetchEnergyFromServer();
+          if (typeof loadHollowStatus === 'function') loadHollowStatus();
+          if (typeof fetchInventory === 'function') fetchInventory();
+        } else {
+          showNotification(res.message || 'Ошибка авторизации', 'error');
+          triggerHaptic('error');
+        }
+      } catch (err) {
+        console.error('onTelegramAuth error:', err);
+        showNotification(currentLang === 'ru' ? 'Ошибка связи с сервером' : 'Connection error', 'error');
+      }
+    };
+
+    function logoutTelegram() {
+      const confirmText = currentLang === 'ru'
+        ? 'Вы действительно хотите выйти из учетной записи?'
+        : 'Are you sure you want to log out?';
+      if (confirm(confirmText)) {
+        localStorage.removeItem('rl_user_id');
+        localStorage.removeItem('rl_username');
+        localStorage.removeItem('rl_first_name');
+        localStorage.removeItem('rl_last_name');
+        localStorage.removeItem('rl_photo_url');
+        localStorage.removeItem('rl_auth_token');
+        closeProfileModal();
+        updateUserInfo();
+        showNotification(currentLang === 'ru' ? 'Вы вышли из учетной записи' : 'Logged out', 'info');
+        setTimeout(() => openAuthModal(), 400);
+      }
     }
 
     // ==================== STATS ====================
@@ -7195,10 +7421,9 @@
 
       return fetch('/api/sync', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': tg.initData || ''
-        },
+        headers: getAuthHeaders({
+          'Content-Type': 'application/json'
+        }),
         body: JSON.stringify(data),
         keepalive: true
       })
@@ -7437,7 +7662,7 @@
       }
 
       // 4. Закрытие остальных оверлеев / диалоговых окон
-      const activeOverlay = document.querySelector('.overlay.active, #inventory-modal-overlay.active, #tutorial-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #news-submit-overlay.active, #bet-modal-overlay.active, #season-complete-overlay.active, #image-cropper-overlay.active, .offer-modal.active');
+      const activeOverlay = document.querySelector('.overlay.active, #telegram-auth-overlay.active, #inventory-modal-overlay.active, #tutorial-overlay.active, #profile-stats-overlay.active, #chip-sets-modal-overlay.active, #wallet-actions-overlay.active, #news-submit-overlay.active, #bet-modal-overlay.active, #season-complete-overlay.active, #image-cropper-overlay.active, .offer-modal.active');
       if (activeOverlay && activeOverlay.id !== 'play-bottom-sheet-wrapper' && !activeOverlay.id.startsWith('offer-modal-') && activeOverlay.id !== 'token-bonus-overlay') {
         activeOverlay.classList.remove('active');
         triggerHaptic('light');
@@ -7870,16 +8095,20 @@
         iframe.src = targetUrl;
         navigateTo('reader-screen');
 
-        // Передаём баланс, user_id и initData в iframe при загрузке
+        // Передаём баланс, user_id, auth_token и initData в iframe при загрузке
         const sendIframeInit = () => {
           try {
             const balanceEl = document.getElementById('token-balance');
             const currentBalance = parseInt(balanceEl?.innerText.replace(/[^0-9]/g, '')) || 0;
+            const userObj = getUserObject();
+            const authToken = localStorage.getItem('rl_auth_token') || '';
             iframe.contentWindow.postMessage({
               type: 'init_game',
               balance: currentBalance,
               userId: userId,
+              user: userObj,
               initData: tg.initData || '',
+              authToken: authToken,
               lang: currentLang
             }, '*');
           } catch (e) { }
@@ -7907,7 +8136,7 @@
       const userId = getUserId();
       if (userId) {
         fetch(`/api/user_full_profile?userId=${userId}`, {
-          headers: { 'X-Telegram-Init-Data': tg.initData || '' }
+          headers: getAuthHeaders()
         })
           .then(res => res.json())
           .then(data => {
@@ -8208,6 +8437,21 @@
             <div class="profile-chip-val" style="color: #ffd700;">${(profileData && profileData.referral_stats && profileData.referral_stats.referrer_username) ? '@' + escapeHTML(profileData.referral_stats.referrer_username) : (currentLang === 'ru' ? 'Прямой вход' : 'Direct')}</div>
           </div>
         </div>
+      </div>
+
+      <!-- Account Actions -->
+      <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+        ${user ? `
+          <button class="button button-type-secondary" style="width: 100%; border-radius: 12px; padding: 10px; color: #ff5555; border-color: rgba(255, 85, 85, 0.3); background: rgba(255, 85, 85, 0.08);"
+            onclick="logoutTelegram()">
+            🚪 <span data-i18n="tg_auth_logout">${i18n[currentLang].tg_auth_logout || 'Выйти из аккаунта'}</span>
+          </button>
+        ` : `
+          <button class="button button-type-primary button-color-blue" style="width: 100%; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #0088cc, #00b4d8);"
+            onclick="closeProfileModal(); openAuthModal();">
+            ✈️ <span data-i18n="tg_auth_btn">${i18n[currentLang].tg_auth_btn || 'Войти через Telegram'}</span>
+          </button>
+        `}
       </div>
     `;
     }

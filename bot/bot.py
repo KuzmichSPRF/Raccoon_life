@@ -48,6 +48,7 @@ load_dotenv(dotenv_path=str(PROJECT_DIR / ".env"))
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "Raccoon_Life_bot")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
@@ -1171,6 +1172,96 @@ def validate_webapp_data(init_data: str) -> dict:
         return None
 
 
+def validate_telegram_login(auth_data: dict, bot_token: str) -> dict:
+    """
+    Проверяет подлинность данных от официального виджета Telegram Login Widget.
+    Алгоритм Telegram: SHA256(bot_token) -> secret_key, HMAC-SHA256(secret_key, data_check_string)
+    """
+    if not auth_data or 'hash' not in auth_data:
+        return None
+    if not bot_token:
+        return auth_data
+    try:
+        data = dict(auth_data)
+        received_hash = data.pop('hash')
+        sorted_keys = sorted(data.keys())
+        data_check_string = '\n'.join([f"{k}={data[k]}" for k in sorted_keys])
+
+        secret_key = hashlib.sha256(bot_token.encode('utf-8')).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode('utf-8'), hashlib.sha256).hexdigest()
+
+        if not hmac.compare_digest(calculated_hash, received_hash):
+            security_logger.warning("🚨 INVALID TELEGRAM WIDGET HASH")
+            return None
+
+        auth_date = int(data.get('auth_date', 0))
+        # Проверка срока действия (30 дней)
+        if time.time() - auth_date > 86400 * 30:
+            security_logger.warning("🚨 EXPIRED TELEGRAM WIDGET AUTH")
+            return None
+
+        return data
+    except Exception as e:
+        security_logger.error(f"🚨 Error in validate_telegram_login: {e}")
+        return None
+
+
+def generate_session_token(user_id: int, bot_token: str) -> str:
+    """Генерирует криптографически подписанный токен сессии пользователя"""
+    ts = int(time.time())
+    payload = f"{user_id}:{ts}"
+    token_secret = bot_token or "raccoon_secret_key"
+    secret_key = hashlib.sha256(f"session_{token_secret}".encode('utf-8')).digest()
+    sig = hmac.new(secret_key, payload.encode('utf-8'), hashlib.sha256).hexdigest()
+    return f"{payload}:{sig}"
+
+
+def validate_session_token(token: str, bot_token: str, max_age: int = 86400 * 30) -> int:
+    """Проверяет токен сессии и возвращает user_id при успехе"""
+    if not token or ':' not in token:
+        return None
+    try:
+        parts = token.split(':')
+        if len(parts) != 3:
+            return None
+        user_id_str, ts_str, sig = parts
+        user_id = int(user_id_str)
+        ts = int(ts_str)
+        if time.time() - ts > max_age:
+            return None
+        payload = f"{user_id}:{ts}"
+        token_secret = bot_token or "raccoon_secret_key"
+        secret_key = hashlib.sha256(f"session_{token_secret}".encode('utf-8')).digest()
+        expected_sig = hmac.new(secret_key, payload.encode('utf-8'), hashlib.sha256).hexdigest()
+        if hmac.compare_digest(expected_sig, sig):
+            return user_id
+        return None
+    except Exception:
+        return None
+
+
+def get_auth_user_from_request() -> dict:
+    """Универсальное извлечение и валидация пользователя из заголовков запроса (Init-Data или Token)"""
+    init_data = request.headers.get('X-Telegram-Init-Data')
+    if init_data:
+        u = validate_webapp_data(init_data)
+        if u and u.get('id'):
+            return u
+
+    auth_token = request.headers.get('X-Auth-Token')
+    if not auth_token:
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            auth_token = auth_header[7:].strip()
+
+    if auth_token:
+        uid = validate_session_token(auth_token, BOT_TOKEN)
+        if uid:
+            return {'id': uid}
+
+    return None
+
+
 def sanitize_string(value: str, max_length: int = 255) -> str:
     """
     Санизирует строку - удаляет опасные символы и ограничивает длину
@@ -1253,14 +1344,12 @@ def validate_list(value, default: list = None) -> list:
 
 @app.before_request
 def auto_register_user_from_request():
-    """Автоматически регистрирует или обновляет пользователя из X-Telegram-Init-Data или JSON тела при ЛЮБОМ запросе к API"""
+    """Автоматически регистрирует или обновляет пользователя из X-Telegram-Init-Data, X-Auth-Token или JSON тела при ЛЮБОМ запросе к API"""
     if request.path.startswith('/api/'):
         try:
-            init_data = request.headers.get('X-Telegram-Init-Data')
-            if init_data:
-                auth_user = validate_webapp_data(init_data)
-                if auth_user and auth_user.get('id'):
-                    ensure_user_exists(int(auth_user['id']), auth_user)
+            auth_user = get_auth_user_from_request()
+            if auth_user and auth_user.get('id'):
+                ensure_user_exists(int(auth_user['id']), auth_user)
             elif request.is_json:
                 data = request.get_json(silent=True)
                 if data:
@@ -3954,6 +4043,84 @@ def image_files(filename):
 def static_files(filename):
     """Отдача статических файлов из webapp/"""
     return app.send_static_file(filename)
+
+
+# ==================== АВТОРИЗАЦИЯ TELEGRAM ====================
+
+@app.route('/api/auth/config', methods=['GET'])
+def api_auth_config():
+    """Отдает имя бота для инициализации Telegram Login Widget на фронтенде"""
+    return jsonify({
+        'status': 'ok',
+        'bot_username': BOT_USERNAME or 'Raccoon_Life_bot'
+    })
+
+
+@app.route('/api/auth/telegram', methods=['POST'])
+def api_auth_telegram():
+    """Обрабатывает вход через Telegram Login Widget"""
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({'ok': False, 'status': 'error', 'message': 'No data provided'}), 400
+
+        validated_user = validate_telegram_login(data, BOT_TOKEN)
+        if not validated_user:
+            return jsonify({'ok': False, 'status': 'error', 'message': 'Invalid signature or expired Telegram login'}), 401
+
+        user_id = int(validated_user['id'])
+        user_info = {
+            'id': user_id,
+            'first_name': validated_user.get('first_name', ''),
+            'last_name': validated_user.get('last_name', ''),
+            'username': validated_user.get('username', ''),
+            'photo_url': validated_user.get('photo_url', '')
+        }
+
+        # Регистрация или обновление пользователя в базе данных
+        ensure_user_exists(user_id, user_info)
+
+        # Генерация токена сессии
+        token = generate_session_token(user_id, BOT_TOKEN)
+
+        return jsonify({
+            'ok': True,
+            'status': 'ok',
+            'token': token,
+            'user': user_info
+        })
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_auth_telegram: {e}")
+        return jsonify({'ok': False, 'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def api_auth_me():
+    """Проверка текущей авторизации и получение данных игрока"""
+    try:
+        auth_user = get_auth_user_from_request()
+        user_id = auth_user.get('id') if auth_user else None
+        if not user_id:
+            user_id_param = request.args.get('userId') or request.headers.get('X-Telegram-User-Id')
+            if user_id_param:
+                try:
+                    user_id = int(user_id_param)
+                except (ValueError, TypeError):
+                    pass
+
+        if not user_id:
+            return jsonify({'ok': False, 'authenticated': False}), 401
+
+        stats = get_player_stats(user_id)
+        return jsonify({
+            'ok': True,
+            'authenticated': True,
+            'user_id': user_id,
+            'stats': stats
+        })
+    except Exception as e:
+        logger.error(f"❌ Ошибка в api_auth_me: {e}")
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @app.route('/api/boss_hp', methods=['GET'])
