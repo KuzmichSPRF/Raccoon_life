@@ -167,11 +167,13 @@
       cursor: pointer;
       border: none;
       background-color: unset;
-      padding: 4px;
+      padding: 2px 2px;
       display: flex;
       flex-direction: column;
       align-items: center;
       transition: transform 0.125s ease-in-out;
+      flex-shrink: 0;
+      box-sizing: border-box;
     }
 
     .badge-icon-button:active {
@@ -179,24 +181,25 @@
     }
 
     .badge-icon-button__icon {
-      font-size: 1.45rem;
+      font-size: 1.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
     }
 
     .badge-icon-button__badge {
-      margin-top: 2px;
-      font-size: 10px;
-      font-weight: 700;
+      margin-top: 1px;
+      font-size: 8.5px;
+      font-weight: 800;
       color: var(--text-muted);
       background: var(--bg-elevated);
-      padding: 2px 7px;
-      border-radius: 8px;
+      padding: 1px 5px;
+      border-radius: 6px;
       border: 0.5px solid var(--border-subtle);
       white-space: nowrap;
+      line-height: 1.15;
     }
 
     /* Screen Management */
@@ -292,10 +295,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 12px;
-      background: rgba(24, 24, 26, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      padding: 5px 10px;
+      background: rgba(24, 24, 26, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border-bottom: 0.5px solid var(--border-subtle);
       position: sticky;
       top: 0;
@@ -303,21 +306,22 @@
       min-height: 48px;
       box-sizing: border-box;
       width: 100%;
-      gap: 8px;
+      gap: 6px;
+      flex-wrap: nowrap;
     }
 
     .home__user {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
-      flex-shrink: 1;
+      flex-shrink: 0;
     }
 
     .cap__element-wrapper {
       position: relative;
-      width: 38px;
-      height: 38px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-gold), var(--btn-red));
       padding: 2px;
@@ -336,7 +340,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       cursor: pointer;
     }
 
@@ -352,43 +356,46 @@
       flex-direction: column;
       gap: 1px;
       min-width: 0;
-      flex-shrink: 1;
+      flex-shrink: 0;
+      cursor: pointer;
     }
 
     .home-leaderboard__username {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       color: #FFFFFF;
-      max-width: 95px;
+      max-width: 76px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.2;
     }
 
     .home-leaderboard__score {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
+      line-height: 1;
     }
 
     .home-leaderboard__score-img {
-      font-size: 0.95rem;
+      font-size: 0.88rem;
     }
 
     .home-leaderboard__score-points {
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 9.5px;
+      font-weight: 800;
       color: var(--accent-gold);
     }
 
     .home-leaderboard__progress {
-      width: 46px;
+      width: 40px;
       height: 3px;
       background: var(--bg-elevated);
       border-radius: 3px;
       overflow: hidden;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .home-leaderboard__progress-fill {
@@ -400,9 +407,40 @@
     .home__title-badges {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 3px;
       flex-shrink: 0;
       margin-left: auto;
+      flex-wrap: nowrap;
+    }
+
+    @media (max-width: 390px) {
+      .home__title {
+        padding: 4px 6px;
+        gap: 4px;
+      }
+      .home__title-badges {
+        gap: 2px;
+      }
+      .badge-icon-button {
+        padding: 1px 1px;
+      }
+      .badge-icon-button__icon {
+        width: 28px;
+        height: 28px;
+        font-size: 1.15rem;
+      }
+      .badge-icon-button__badge {
+        font-size: 7.5px;
+        padding: 1px 3px;
+        border-radius: 5px;
+      }
+      .home-leaderboard__username {
+        max-width: 62px;
+        font-size: 11px;
+      }
+      .home-leaderboard__progress {
+        width: 34px;
+      }
     }
 
     /* Currency / Resource Buttons Bar (Home Screen) */
@@ -4684,6 +4722,13 @@
 
         <!-- Right Column Badges -->
         <div class="home__bottom-right">
+          <button class="offer-badge" onclick="openPromoModal(); triggerHaptic('light');" title="Промокод"
+            data-i18n-title="promo_btn_title">
+            <div class="offer-badge__timer" style="background: linear-gradient(135deg, #ec4899, #f59e0b); color: #fff;">
+              PROMO</div>
+            <span class="offer-badge__icon">🎁</span>
+            <div class="offer-badge__label" data-i18n="promo_btn_title">Промокод</div>
+          </button>
           <button class="offer-badge" onclick="openShop(); triggerHaptic('light');" title="Рынок"
             data-i18n-title="menu_shop">
             <div class="offer-badge__timer" style="background: linear-gradient(135deg, #10b981, #06b6d4); color: #fff;">
