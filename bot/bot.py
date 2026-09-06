@@ -2863,24 +2863,25 @@ ITEMS_REGISTRY = {
 }
 
 
-def check_minigame_loot_drop(user_id: int, game_name: str, base_chance: float = 0.10):
+def check_minigame_loot_drop(user_id: int, game_name: str, base_chance: float = 0.05, mega_chance: float = 0.005):
     """
     Проверяет шанс выпадения редкого предмета в мини-играх.
-    1% шанс на Мегашишку во всех играх, плюс шанс base_chance на остальные предметы.
+    Шанс на Мегашишку строго ограничен <= 1% (0.01).
+    Шанс base_chance на остальные предметы инвентаря.
     """
     chosen_item_id = None
+    mega_chance = min(0.01, max(0.0, float(mega_chance)))  # Жесткое ограничение <= 1.0%
 
-    # Ровно 1% шанс на выпадение Мегашишки во всех играх
-    if random.random() < 0.01:
+    if random.random() < mega_chance:
         chosen_item_id = 'mega_cone'
     elif random.random() <= base_chance:
-        # Пул остальных трофеев
+        # Сбалансированный пул трофеев
         loot_pool = [
-            ('energy_drink', 36),
-            ('lucky_clover', 26),
-            ('golden_cookie', 20),
-            ('trash_shield', 12),
-            ('ancient_key', 6)
+            ('energy_drink', 45),
+            ('lucky_clover', 25),
+            ('golden_cookie', 18),
+            ('trash_shield', 8),
+            ('ancient_key', 4)
         ]
         items, weights = zip(*loot_pool)
         chosen_item_id = random.choices(items, weights=weights, k=1)[0]
@@ -4898,8 +4899,8 @@ def api_boss_attack():
 
         logger.info(f"✅ Boss attack success: user_id={user_id}, boss_hp={boss_info['current_hp']}")
 
-        # Шанс выпадения лута при атаке босса (4%)
-        loot_drop = check_minigame_loot_drop(user_id, 'world_boss', base_chance=0.04)
+        # Шанс выпадения лута при атаке босса (2%, Мегашишка 0.2%)
+        loot_drop = check_minigame_loot_drop(user_id, 'world_boss', base_chance=0.02, mega_chance=0.002)
 
         return jsonify({
             'status': 'ok',
@@ -4955,8 +4956,8 @@ def api_game_vladeos():
         if is_win:
             v_score = random.randint(1, 90)
             p_score = v_score + 1
-            add_tokens(user_id, 100, 'vladeos_win')
-            loot_drop = check_minigame_loot_drop(user_id, 'vladeos', base_chance=0.20)
+            add_tokens(user_id, 1000, 'vladeos_win')
+            loot_drop = check_minigame_loot_drop(user_id, 'vladeos', base_chance=0.20, mega_chance=0.01)
         else:
             p_score = random.randint(1, 90)
             v_score = p_score + 1
@@ -4998,8 +4999,8 @@ def api_game_battleship():
             return jsonify({'error': 'Too fast'}), 400
             
         save_game_session(user_id, 'battleship', {'last_win': now})
-        add_tokens(user_id, 100, 'battleship_win')
-        loot_drop = check_minigame_loot_drop(user_id, 'battleship', base_chance=0.15)
+        add_tokens(user_id, 150, 'battleship_win')
+        loot_drop = check_minigame_loot_drop(user_id, 'battleship', base_chance=0.08, mega_chance=0.008)
         return jsonify({'status': 'ok', 'loot_drop': loot_drop})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -5073,9 +5074,9 @@ def api_game_clown():
         player_log = {'dmg': dmg, 'heal': heal, 'is_crit': is_crit, 'action': action, 'pHP': state['pHP'], 'pNRG': state['pNRG'], 'bHP': state['bHP'], 'bNRG': state['bNRG']}
         
         if state['bHP'] <= 0:
-            add_tokens(user_id, 10, 'clown_win')
+            add_tokens(user_id, 60, 'clown_win')
             clear_game_session(user_id, 'clown')
-            loot_drop = check_minigame_loot_drop(user_id, 'clown', base_chance=0.12)
+            loot_drop = check_minigame_loot_drop(user_id, 'clown', base_chance=0.05, mega_chance=0.005)
             return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True, 'loot_drop': loot_drop})
             
         b_dmg, b_heal = 0, 0
@@ -5180,8 +5181,9 @@ def api_game_tower():
         
         if state['eHP'] <= 0:
             state['pHP'] = min(100, state['pHP'] + 30)
-            multiplier = ((state['level'] - 1) // 10) + 1
-            add_tokens(user_id, multiplier, f"tower_level:{state['level']}")
+            is_boss_floor = (state['level'] % 10 == 0)
+            floor_reward = ((state['level'] // 10) * 100 + 50) if is_boss_floor else (15 + state['level'] * 2)
+            add_tokens(user_id, floor_reward, f"tower_level:{state['level']}")
             
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -5195,9 +5197,13 @@ def api_game_tower():
             conn.close()
             
             clear_game_session(user_id, 'tower')
-            # Дроп лута (30% на этажах боссов, 8% на обычных этажах)
-            is_boss_floor = (state['level'] % 10 == 0)
-            loot_drop = check_minigame_loot_drop(user_id, 'tower', base_chance=(0.30 if is_boss_floor else 0.08))
+            # Дроп лута (12% на этажах боссов с 1% мегашишкой, 3% на обычных этажах с 0.3% мегашишкой)
+            loot_drop = check_minigame_loot_drop(
+                user_id,
+                'tower',
+                base_chance=(0.12 if is_boss_floor else 0.03),
+                mega_chance=(0.01 if is_boss_floor else 0.003)
+            )
             return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True, 'loot_drop': loot_drop})
             
         e_dmg = int(state['eDmg'] * random.uniform(0.8, 1.2))

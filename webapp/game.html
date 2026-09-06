@@ -640,7 +640,7 @@
     <div class="reward-popup" id="reward-popup">
       <div class="reward-icon" id="popup-icon">🎉</div>
       <div class="reward-text" id="popup-title">Победа!</div>
-      <div class="reward-amount" id="popup-amount">+10 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
+      <div class="reward-amount" id="popup-amount">+60 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
       <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
     </div>
   </div>
@@ -1212,6 +1212,7 @@
         title.innerText = t.victory;
         title.style.color = '#ffd700';
         amountEl.style.display = 'flex';
+        let amountHtml = '+60 <img src="images/cone.png" class="cone-icon" alt="🌰">';
         if (lootDrop) {
           const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
           const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
