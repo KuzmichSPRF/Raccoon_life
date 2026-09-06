@@ -2611,6 +2611,7 @@
     }
 
     /* ==================== INVENTORY STYLES ==================== */
+    /* ==================== INVENTORY STYLES ==================== */
     .inventory-item-card {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(168, 85, 247, 0.3);
@@ -2622,6 +2623,10 @@
       text-align: left;
       transition: all 0.2s ease;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
     }
 
     .inventory-item-card:hover {
@@ -2632,7 +2637,10 @@
     .inventory-item-header {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .inventory-item-card--rare {
@@ -2650,8 +2658,8 @@
     }
 
     .inventory-item-icon-wrap {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       border-radius: 14px;
       background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
       border: 1px solid rgba(168, 85, 247, 0.5);
@@ -2679,31 +2687,35 @@
     }
 
     .inventory-item-icon {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       object-fit: contain;
       filter: drop-shadow(0 0 6px rgba(255,255,255,0.4));
     }
 
     .inventory-item-badge-qty {
       position: absolute;
-      top: -6px;
-      right: -6px;
+      top: -5px;
+      right: -5px;
       background: linear-gradient(135deg, #e11d48, #be123c);
       color: #fff;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 8px;
+      padding: 1px 5px;
+      border-radius: 6px;
       border: 1px solid rgba(255, 255, 255, 0.4);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     }
 
     .inventory-item-info {
       flex: 1;
+      min-width: 0;
+      max-width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .inventory-item-title-row {
@@ -2711,23 +2723,38 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .inventory-item-title {
       font-weight: 800;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
     }
 
     .inventory-item-rarity {
-      font-size: 9px;
-      font-weight: 800;
+      font-size: 8px;
+      font-weight: 900;
       text-transform: uppercase;
       padding: 2px 6px;
       border-radius: 6px;
       background: linear-gradient(135deg, #1d4ed8, #3b82f6);
       color: #fff;
       letter-spacing: 0.04em;
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1.1;
+      box-sizing: border-box;
+      max-width: fit-content;
     }
     .inventory-item-rarity--rare {
       background: linear-gradient(135deg, #1d4ed8, #3b82f6);
@@ -2750,9 +2777,11 @@
     }
 
     .inventory-item-desc {
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       color: var(--text-muted);
       line-height: 1.35;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .inventory-item-actions {
@@ -4867,9 +4896,9 @@
         item_lucky_clover_desc: "Талисман удачи Енотов! При использовании дарит случайный куш от 2,000 до 7,777 шишек.",
         item_ancient_key_name: "Ключ от Сейфа",
         item_ancient_key_desc: "Древний золотой ключ от тайного сейфа! При открытии дает джекпот +10,000 шишек!",
-        item_rarity_rare: "Редкий",
-        item_rarity_epic: "Эпический",
-        item_rarity_legendary: "Легендарный",
+        item_rarity_rare: "RARE",
+        item_rarity_epic: "EPIC",
+        item_rarity_legendary: "LEGENDARY",
         menu_chip_sets: "Сеты",
         chip_sets_title: "🎨 Сеты фишек",
         chip_sets_desc: "Авторские коллекции круглых 3D фишек. Голосуйте за любимые сеты!",
@@ -5097,9 +5126,9 @@
         item_lucky_clover_desc: "Lucky raccoon charm! Grants a random jackpot from 2,000 to 7,777 cones.",
         item_ancient_key_name: "Raccoon Vault Key",
         item_ancient_key_desc: "Ancient golden key to the secret vault! Unlocks a massive stash of +10,000 cones!",
-        item_rarity_rare: "Rare",
-        item_rarity_epic: "Epic",
-        item_rarity_legendary: "Legendary",
+        item_rarity_rare: "RARE",
+        item_rarity_epic: "EPIC",
+        item_rarity_legendary: "LEGENDARY",
         menu_chip_sets: "Sets",
         chip_sets_title: "🎨 Chip Sets",
         chip_sets_desc: "Author collections of round 3D chips. Vote for your favorite sets!",
@@ -6218,11 +6247,7 @@
         };
         const iconSrc = getItemIconPath(item.icon, itemId);
         const rarityKey = (item.rarity || 'rare').toLowerCase();
-        const rarityNames = {
-          ru: { rare: 'РАР', epic: 'ЭПИК', legendary: 'ЛЕГЕНДАРНЫЙ', common: 'ОБЫЧНЫЙ' },
-          en: { rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', common: 'COMMON' }
-        };
-        const rarityLabel = (rarityNames[currentLang] && rarityNames[currentLang][rarityKey]) || rarityKey.toUpperCase();
+        const rarityLabel = (rarityKey === 'legendary' ? 'LEGENDARY' : rarityKey === 'epic' ? 'EPIC' : rarityKey === 'rare' ? 'RARE' : rarityKey.toUpperCase());
         const currentHollowLvl = hollowState.level || 1;
         const reqMega = (itemId === 'mega_cone') ? (hollowState.upgrade_cost_mega_cones || (currentHollowLvl < 10 ? Math.pow(2, currentHollowLvl - 1) : 0)) : 1;
         const isMaxHollow = itemId === 'mega_cone' && currentHollowLvl >= 10;

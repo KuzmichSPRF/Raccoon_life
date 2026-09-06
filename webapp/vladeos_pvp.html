@@ -923,9 +923,9 @@
           const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
           const rarity = (lootDrop.rarity || 'rare').toLowerCase();
           const rarityColors = {
-            rare: { border: 'rgba(59,130,246,0.6)', bg: 'rgba(59,130,246,0.15)', glow: 'rgba(59,130,246,0.8)', labelColor: '#93c5fd', badge: lang === 'ru' ? 'РАРНЫЙ ТРОФЕЙ' : 'RARE TROPHY' },
-            epic: { border: 'rgba(168,85,247,0.6)', bg: 'rgba(168,85,247,0.15)', glow: 'rgba(168,85,247,0.8)', labelColor: '#e9d5ff', badge: lang === 'ru' ? 'ЭПИЧЕСКИЙ ТРОФЕЙ' : 'EPIC TROPHY' },
-            legendary: { border: 'rgba(255,215,0,0.7)', bg: 'rgba(255,215,0,0.18)', glow: 'rgba(255,215,0,0.9)', labelColor: '#ffd700', badge: lang === 'ru' ? 'ЛЕГЕНДАРНЫЙ ТРОФЕЙ' : 'LEGENDARY TROPHY' }
+            rare: { border: 'rgba(59,130,246,0.6)', bg: 'rgba(59,130,246,0.15)', glow: 'rgba(59,130,246,0.8)', labelColor: '#93c5fd', badge: 'RARE TROPHY' },
+            epic: { border: 'rgba(168,85,247,0.6)', bg: 'rgba(168,85,247,0.15)', glow: 'rgba(168,85,247,0.8)', labelColor: '#e9d5ff', badge: 'EPIC TROPHY' },
+            legendary: { border: 'rgba(255,215,0,0.7)', bg: 'rgba(255,215,0,0.18)', glow: 'rgba(255,215,0,0.9)', labelColor: '#ffd700', badge: 'LEGENDARY TROPHY' }
           };
           const rc = rarityColors[rarity] || rarityColors.rare;
           lootEl.innerHTML = `<div style="font-size:0.85rem; color:${rc.labelColor}; padding:10px 14px; background:${rc.bg}; border:1.5px solid ${rc.border}; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
