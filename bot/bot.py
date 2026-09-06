@@ -8808,6 +8808,164 @@ async def farsh_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, parse_mode=ParseMode.HTML)
 
 
+async def fontan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /fontan <сумма> <кол-во_пользователей> [причина/комментарий]
+    (Алиас: /fountain)
+    Случайным образом распределяет указанную общую сумму токенов (шишек)
+    между N случайно выбранными незаблокированными игроками.
+    """
+    # 1. Проверка прав администратора
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    # 2. Проверка аргументов
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "⛲ <b>Использование команды /fontan:</b>\n\n"
+            "<code>/fontan &lt;сумма_шишек&gt; &lt;кол-во_игроков&gt; [комментарий]</code>\n\n"
+            "<b>Примеры:</b>\n"
+            "• <code>/fontan 50000 10</code> — раздать 50,000 шишек между 10 случайными игроками\n"
+            "• <code>/fontan 100000 5 Праздничный бонус</code> — раздать 100,000 шишек с комментарием\n"
+            "• <code>/fountain 25000 3</code> — алиас команды",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    try:
+        amount = int(context.args[0])
+        num_users = int(context.args[1])
+        reason = " ".join(context.args[2:]).strip() if len(context.args) > 2 else "Фонтан щедрости от администрации"
+    except ValueError:
+        await update.message.reply_text("❌ Сумма шишек и количество игроков должны быть целыми числами.")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ Сумма шишек должна быть больше 0.")
+        return
+
+    if num_users <= 0:
+        await update.message.reply_text("❌ Количество игроков должно быть больше 0.")
+        return
+
+    if amount < num_users:
+        await update.message.reply_text(
+            f"❌ Сумма ({amount:,} шишек) слишком мала для разделения на {num_users} игроков (минимум 1 шишка на игрока)."
+        )
+        return
+
+    # 3. Получаем список всех незаблокированных пользователей из БД
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT user_id, username, first_name, last_name FROM users WHERE is_banned = 0")
+        potential_recipients = cursor.fetchall()
+    finally:
+        conn.close()
+
+    total_available = len(potential_recipients)
+    if total_available == 0:
+        await update.message.reply_text("❌ В базе данных нет зарегистрированных пользователей.")
+        return
+
+    if total_available < num_users:
+        await update.message.reply_text(
+            f"❌ В базе только {total_available} незаблокированных пользователей, а запрошено {num_users}."
+        )
+        return
+
+    # 4. Случайный выбор N уникальных победителей
+    winners = random.sample(potential_recipients, num_users)
+
+    # 5. Случайное разбиение суммы amount на num_users частей (каждая >= 1, сумма ровно amount)
+    if num_users == 1:
+        prizes = [amount]
+    elif amount == num_users:
+        prizes = [1] * num_users
+    else:
+        # Алгоритм случайных точек разреза для честного и органичного распределения
+        cuts = sorted(random.sample(range(1, amount), num_users - 1))
+        prizes = [cuts[0]] + [cuts[i] - cuts[i - 1] for i in range(1, len(cuts))] + [amount - cuts[-1]]
+        random.shuffle(prizes)
+
+    # 6. Начисление шишек и отправка уведомлений
+    total_distributed = 0
+    winner_details = []
+    notify_success = 0
+    notify_fail = 0
+
+    for i, winner_row in enumerate(winners):
+        prize = prizes[i]
+        user_id = winner_row['user_id']
+        u_name = winner_row['username']
+        f_name = winner_row['first_name'] or ''
+        l_name = winner_row['last_name'] or ''
+        full_name = f"{f_name} {l_name}".strip()
+
+        display_name = f"@{u_name}" if u_name else (full_name or f"Игрок #{user_id}")
+        clean_name = html.escape(display_name)
+
+        # Начисляем шишки
+        res = add_tokens(user_id, prize, reason=f'admin_fontan:{reason}')
+        total_distributed += prize
+        new_balance = res['balance'] if res else 0
+
+        winner_details.append({
+            'user_id': user_id,
+            'name': clean_name,
+            'prize': prize,
+            'balance': new_balance
+        })
+
+        # Отправляем уведомление счастливчику в ЛС
+        try:
+            user_msg = (
+                f"⛲ <b>ФОНТАН ЩЕДРОСТИ!</b>\n\n"
+                f"🎉 Администрация запустила денежный фонтан, и вам выпала награда!\n\n"
+                f"💰 Вам начислено: <b>+{prize:,} Шишек</b> 🌰\n"
+                f"📝 <b>Причина:</b> <i>{html.escape(reason)}</i>\n"
+                f"💳 <b>Ваш новый баланс:</b> {new_balance:,} Шишек\n\n"
+                f"🦝 <i>Проверьте баланс в WebApp или командой /stats!</i>"
+            )
+            await context.bot.send_message(chat_id=user_id, text=user_msg, parse_mode=ParseMode.HTML)
+            notify_success += 1
+        except Exception as notify_err:
+            logger.debug(f"Не удалось отправить ЛС победителю фонтана {user_id}: {notify_err}")
+            notify_fail += 1
+
+    # 7. Логируем админское действие в activity_logs
+    try:
+        log_activity(
+            user_id=update.effective_user.id,
+            category='admin',
+            event_type='admin_fontan',
+            action_detail=f'fontan:{num_users}_users',
+            amount=amount,
+            meta={'num_users': num_users, 'reason': reason, 'prizes': prizes}
+        )
+    except Exception as log_err:
+        logger.error(f"Ошибка логирования fontan: {log_err}")
+
+    # 8. Формируем отчет для администратора
+    winner_lines = []
+    # Сортируем победителей по убыванию приза для наглядности
+    sorted_winners = sorted(winner_details, key=lambda x: x['prize'], reverse=True)
+    for idx, w in enumerate(sorted_winners, 1):
+        winner_lines.append(f"{idx}. <a href='tg://user?id={w['user_id']}'>{w['name']}</a> ➔ <b>+{w['prize']:,} 🌰</b> (баланс: {w['balance']:,})")
+
+    report_msg = (
+        f"⛲ <b>ФОНТАН ШИШЕК УСПЕШНО ЗАПУЩЕН!</b>\n\n"
+        f"💰 <b>Общая сумма:</b> <b>{amount:,} Шишек</b> 🌰\n"
+        f"👥 <b>Игроков осчастливлено:</b> <b>{num_users}</b>\n"
+        f"📝 <b>Причина / Комментарий:</b> <i>{html.escape(reason)}</i>\n"
+        f"📬 <b>Уведомлений доставлено:</b> {notify_success}/{num_users}\n\n"
+        f"🏆 <b>Список победителей:</b>\n" + "\n".join(winner_lines)
+    )
+
+    await update.message.reply_text(report_msg, parse_mode=ParseMode.HTML)
+
+
 async def delete_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Команда для админа: /delete <username|user_id>
@@ -10483,6 +10641,7 @@ async def post_init(application: Application):
             BotCommand('farsh', '🥩 Разделить шишки между игроками'),
             BotCommand('report', '📊 Ежедневный отчет (админ)'),
             BotCommand('backup', '💾 Облачный бекап БД (админ)'),
+            BotCommand('fontan', '⛲ Фонтан шишек (раздача игрокам, админ)'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
@@ -10563,6 +10722,8 @@ def main():
     telegram_app.add_handler(CommandHandler("report", report_admin))
     telegram_app.add_handler(CommandHandler("daily_report", report_admin))
     telegram_app.add_handler(CommandHandler("backup", backup_admin_cmd))
+    telegram_app.add_handler(CommandHandler("fontan", fontan_command))
+    telegram_app.add_handler(CommandHandler("fountain", fontan_command))
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
     # Обработчик для отслеживания активности в чатах, должен идти после команд
     # чтобы не срабатывать на них. group=10 для низкого приоритета.
