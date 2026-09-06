@@ -4607,7 +4607,7 @@ def api_casino_roulette():
         elif bet_type == 'green' and result_segment['type'] == 'green':
             win = True
 
-        # ДЖЕКПОТ 0.1% (1 из 1000) и МЕГАШИШКА 1.5% (1 из ~67)
+        # ДЖЕКПОТ 0.1% (1 из 1000) и МЕГАШИШКА 1.0% (1 из 100)
         is_jackpot = False
         is_mega_cone = False
         item_won = None
@@ -4617,7 +4617,7 @@ def api_casino_roulette():
             is_jackpot = True
             win = True
             result_segment = {'type': 'jackpot', 'value': 777}
-        elif roll < 0.016:  # 1.5% шанс на Мегашишку
+        elif roll < 0.011:  # 1.0% шанс на Мегашишку (не чаще 1%)
             is_mega_cone = True
             win = True
             result_segment = {'type': 'mega_cone', 'value': 888}
@@ -4626,7 +4626,7 @@ def api_casino_roulette():
                 'id': 'mega_cone',
                 'name': 'Мегашишка',
                 'icon': 'mega_cone.png',
-                'desc': 'Повышает уровень Дупла на +1'
+                'desc': 'Используется для прокачки Дупла (х2 на уровень)'
             }
             logger.info(f"🌟 Roulette MEGA CONE: user_id={user_id} выиграл Мегашишку!")
 

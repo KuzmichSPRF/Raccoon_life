@@ -603,7 +603,7 @@
 
     <!-- Info Footer -->
     <div class="info-footer">
-      🎰 RTP: <strong>95%</strong> | 💎 Джекпот <strong>x100</strong> (0.1%) | 🌟 <strong>МЕГАШИШКА (+1 ур. Дупла)</strong> (1.5%)
+      🎰 RTP: <strong>95%</strong> | 💎 Джекпот <strong>x100</strong> (0.1%) | 🌟 <strong>МЕГАШИШКА (для Дупла)</strong> (1.0%)
     </div>
   </div>
 
@@ -625,7 +625,7 @@
         winText: "🎉 ПОБЕДА! +",
         loseText: "😢 Проигрыш -",
         jackpotText: "💎 ДЖЕКПОТ! x100! +",
-        megaConeWin: "🌟 ВЫБИТА МЕГАШИШКА! (+1 УРОВЕНЬ ДУПЛА)"
+        megaConeWin: "🌟 ВЫБИТА МЕГАШИШКА! (Трофей для Дупла добавлен в инвентарь)"
       },
       en: {
         title: "Raccoon Roulette",
@@ -642,7 +642,7 @@
         winText: "🎉 VICTORY! +",
         loseText: "😢 Defeat -",
         jackpotText: "💎 JACKPOT! x100! +",
-        megaConeWin: "🌟 WON MEGA CONE! (+1 HOLLOW LEVEL)"
+        megaConeWin: "🌟 WON MEGA CONE! (Hollow upgrade trophy added to inventory)"
       }
     };
     let t = translations[lang] || translations.ru;
@@ -831,7 +831,7 @@
           } else if (seg.type === 'jackpot') {
             el.innerHTML = '<span style="font-size:1.1rem;">💎</span><span style="font-size:0.65rem; font-weight:900;">x100</span>';
           } else if (seg.type === 'mega_cone') {
-            el.innerHTML = '<img src="images/mega_cone.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px #38bdf8);"><span style="font-size:0.58rem;font-weight:900;color:#fff;text-shadow:0 0 4px #000;">+1 LVL</span>';
+            el.innerHTML = '<img src="images/mega_cone.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px #38bdf8);"><span style="font-size:0.56rem;font-weight:900;color:#38bdf8;text-shadow:0 0 4px #000;">МЕГА</span>';
           } else {
             el.innerHTML = `<span>${seg.value}</span>`;
           }
