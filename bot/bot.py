@@ -3549,6 +3549,30 @@ def activate_promo_code(user_id: int, code_str: str) -> dict:
         except Exception:
             pass
 
+        # 8. Отправляем уведомление администратору в Telegram
+        try:
+            user_display = f"Игрок #{user_id}"
+            cursor.execute("SELECT username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+            u_row = cursor.fetchone()
+            if u_row:
+                user_display = f"@{u_row['username']}" if u_row['username'] else (f"{u_row['first_name'] or ''} {u_row['last_name'] or ''}".strip() or f"Игрок #{user_id}")
+
+            current_uses_now = promo['current_uses'] + 1
+            max_uses_total = promo['max_uses']
+            desc_str = f"\n📝 <b>Описание:</b> <i>{html.escape(promo['description'])}</i>" if promo.get('description') else ""
+
+            admin_notify_text = (
+                f"🎁 <b>АКТИВАЦИЯ ПРОМОКОДА!</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_display)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"🏷 <b>Промокод:</b> <code>{clean_code}</code>\n"
+                f"🌟 <b>Награда:</b> <b>{reward_summary}</b>\n"
+                f"👥 <b>Использовано:</b> {current_uses_now}/{max_uses_total} активаций{desc_str}"
+            )
+            notify_admin(admin_notify_text)
+        except Exception as notify_err:
+            logger.error(f"Ошибка отправки уведомления админу об активации промокода: {notify_err}")
+
         logger.info(f"🎉 Промокод {clean_code} успешно активирован пользователем {user_id}! Награда: {reward_summary}")
 
         tokens_info = get_user_tokens(user_id)
