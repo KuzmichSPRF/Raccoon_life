@@ -3546,6 +3546,45 @@
       </div>
     </div>
 
+    <!-- Promo Code Modal (Ввод промокода) -->
+    <div id="promo-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closePromoModal()">
+      <div class="tutorial-modal promo-modal"
+        style="width: 90%; max-width: 380px; position: relative; padding: 22px 18px 20px; border: 1px solid rgba(236, 72, 153, 0.45); background: linear-gradient(180deg, #221226 0%, #121214 100%); box-shadow: 0 12px 40px rgba(236, 72, 153, 0.25);">
+        <button class="close-modal-btn" onclick="closePromoModal()">✕</button>
+
+        <div class="tutorial-icon-wrap" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(245, 158, 11, 0.3)); border-color: rgba(236, 72, 153, 0.6); box-shadow: 0 0 20px rgba(236, 72, 153, 0.35);">
+          <span class="tutorial-icon">🎁</span>
+        </div>
+
+        <h3 class="tutorial-title" style="margin-bottom: 6px;" data-i18n="promo_modal_title">Ввод промокода</h3>
+        <p class="tutorial-desc" style="font-size: 0.82rem; margin-bottom: 16px;" data-i18n="promo_modal_desc">
+          Введите секретный промокод, чтобы получить ценные награды, шишки, энергию или редкие предметы!
+        </p>
+
+        <div style="margin-bottom: 14px; position: relative;">
+          <input type="text" id="promo-code-input" class="news-select" 
+            placeholder="Введите промокод..." 
+            data-i18n-ph="promo_input_ph"
+            maxlength="32"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            style="width: 100%; padding: 13px 14px; font-size: 1.05rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; border-radius: 14px; border: 1.5px solid rgba(236, 72, 153, 0.4); background: rgba(0, 0, 0, 0.5); color: #fff; box-sizing: border-box;"
+            oninput="this.value = this.value.toUpperCase();"
+            onkeydown="if(event.key === 'Enter') submitPromoCode();"
+          />
+        </div>
+
+        <button id="promo-submit-btn" class="tutorial-btn" 
+          style="background: linear-gradient(135deg, #ec4899, #f59e0b); box-shadow: 0 4px 18px rgba(236, 72, 153, 0.45);"
+          onclick="submitPromoCode()">
+          <span id="promo-btn-text" data-i18n="promo_btn_activate">🎁 Активировать</span>
+        </button>
+
+        <div id="promo-status-msg" style="margin-top: 10px; font-size: 0.82rem; font-weight: 700; min-height: 20px; line-height: 1.35;"></div>
+      </div>
+    </div>
+
     <!-- Inventory Modal (Инвентарь Енота) -->
     <div id="inventory-modal-overlay" class="tutorial-overlay" onclick="if(event.target===this) closeInventoryModal()">
       <div class="tutorial-modal inventory-modal"
@@ -4281,6 +4320,11 @@
       </div>
 
       <div class="home__title-badges">
+        <button class="badge-icon-button" id="header-promo-btn"
+          onclick="openPromoModal(); triggerHaptic('selection');" aria-label="Promo" title="Промокод">
+          <span class="badge-icon-button__icon">🎁</span>
+          <div class="badge-icon-button__badge" id="header-promo-badge">PROMO</div>
+        </button>
         <button class="badge-icon-button" id="header-inventory-btn"
           onclick="openInventoryModal(); triggerHaptic('selection');" aria-label="Inventory" title="Инвентарь">
           <span class="badge-icon-button__icon">🎒</span>
@@ -4957,7 +5001,14 @@
         cropper_center: "По центру",
         cropper_cancel: "Отмена",
         cropper_apply: "Готово",
-        cropper_change_file: "Файл"
+        cropper_change_file: "Файл",
+        promo_btn_title: "Промокод",
+        promo_modal_title: "🎁 Ввод промокода",
+        promo_modal_desc: "Введите секретный промокод, чтобы получить ценные награды, шишки, энергию или редкие предметы!",
+        promo_input_ph: "Введите промокод...",
+        promo_btn_activate: "🎁 Активировать",
+        promo_success: "🎉 Промокод успешно активирован!",
+        promo_empty_error: "Введите промокод!"
       },
       en: {
         lang_btn: "EN",
@@ -5188,7 +5239,14 @@
         cropper_center: "Center",
         cropper_cancel: "Cancel",
         cropper_apply: "Done",
-        cropper_change_file: "File"
+        cropper_change_file: "File",
+        promo_btn_title: "Promo",
+        promo_modal_title: "🎁 Promo Code",
+        promo_modal_desc: "Enter a secret promo code to claim valuable rewards, cones, energy, or rare items!",
+        promo_input_ph: "Enter promo code...",
+        promo_btn_activate: "🎁 Activate",
+        promo_success: "🎉 Promo code activated successfully!",
+        promo_empty_error: "Please enter a promo code!"
       }
     };
 
@@ -6187,6 +6245,127 @@
         if (e.target === overlay) onTouchMove(e);
       }, { passive: false });
       overlay.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
+
+    // ==================== PROMO CODE ACTIONS ====================
+    let isPromoSubmitting = false;
+
+    function openPromoModal() {
+      const inputEl = document.getElementById('promo-code-input');
+      const statusMsg = document.getElementById('promo-status-msg');
+      const btn = document.getElementById('promo-submit-btn');
+      const btnText = document.getElementById('promo-btn-text');
+
+      if (inputEl) inputEl.value = '';
+      if (statusMsg) {
+        statusMsg.innerText = '';
+        statusMsg.style.color = '';
+      }
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.innerText = i18n[currentLang]?.promo_btn_activate || '🎁 Активировать';
+
+      const overlay = document.getElementById('promo-modal-overlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        setTimeout(() => {
+          if (inputEl) inputEl.focus();
+        }, 150);
+      }
+      triggerHaptic('light');
+    }
+
+    function closePromoModal() {
+      const overlay = document.getElementById('promo-modal-overlay');
+      if (overlay) overlay.classList.remove('active');
+      triggerHaptic('light');
+    }
+
+    async function submitPromoCode() {
+      if (isPromoSubmitting) return;
+
+      const userId = getUserId();
+      if (!userId) {
+        tg.showAlert('Ошибка: пользователь не определен');
+        return;
+      }
+
+      const inputEl = document.getElementById('promo-code-input');
+      const code = (inputEl ? inputEl.value : '').trim().toUpperCase();
+      const statusMsg = document.getElementById('promo-status-msg');
+      const btn = document.getElementById('promo-submit-btn');
+      const btnText = document.getElementById('promo-btn-text');
+
+      if (!code) {
+        triggerHaptic('warning');
+        if (statusMsg) {
+          statusMsg.style.color = '#ef4444';
+          statusMsg.innerText = i18n[currentLang]?.promo_empty_error || 'Введите промокод!';
+        }
+        if (inputEl) inputEl.focus();
+        return;
+      }
+
+      isPromoSubmitting = true;
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.innerText = '⏳ Проверка...';
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--accent-gold)';
+        statusMsg.innerText = '⏳ Активация промокода...';
+      }
+      triggerHaptic('impact');
+
+      try {
+        const res = await fetch('/api/promo/activate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': tg.initData || ''
+          },
+          body: JSON.stringify({ userId: userId, code: code })
+        });
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+          triggerHaptic('success');
+          const rewardText = data.reward_summary || 'Награда получена!';
+          if (statusMsg) {
+            statusMsg.style.color = '#00ff88';
+            statusMsg.innerText = `🎉 Промокод ${data.code} активирован! Награда: ${rewardText}`;
+          }
+          if (inputEl) inputEl.value = '';
+
+          tg.showAlert(`🎉 Промокод успешно активирован!\n\n🎁 Ваша награда: ${rewardText}`);
+
+          // Обновляем ресурсы
+          loadTokenBalance();
+          fetchInventory();
+          if (typeof updateUserInfo === 'function') updateUserInfo();
+          syncStats();
+
+          setTimeout(() => {
+            closePromoModal();
+          }, 1500);
+        } else {
+          triggerHaptic('error');
+          const errMsg = data.message || 'Ошибка активации промокода';
+          if (statusMsg) {
+            statusMsg.style.color = '#ef4444';
+            statusMsg.innerText = `❌ ${errMsg}`;
+          }
+          tg.showAlert(errMsg);
+        }
+      } catch (err) {
+        console.error('Ошибка submitPromoCode:', err);
+        triggerHaptic('error');
+        if (statusMsg) {
+          statusMsg.style.color = '#ef4444';
+          statusMsg.innerText = '❌ Ошибка сети при активации промокода';
+        }
+      } finally {
+        isPromoSubmitting = false;
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.innerText = i18n[currentLang]?.promo_btn_activate || '🎁 Активировать';
+      }
     }
 
     // ==================== INVENTORY STATE & ACTIONS ====================

@@ -528,6 +528,38 @@ def init_db():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_logs_category ON activity_logs(category)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id)')
 
+        # Таблица промокодов
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS promo_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                reward_type TEXT NOT NULL, -- 'cones', 'item', 'energy', 'bundle'
+                reward_value TEXT NOT NULL, -- '5000' or 'mega_cone:2' or json
+                max_uses INTEGER NOT NULL DEFAULT 1,
+                current_uses INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                description TEXT
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code)')
+
+        # Таблица активаций промокодов (защита от повторного ввода)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS promo_code_activations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                promo_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                reward_summary TEXT,
+                activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(promo_id, user_id),
+                FOREIGN KEY(promo_id) REFERENCES promo_codes(id),
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_promo_activations_user ON promo_code_activations(user_id)')
+
         # Инициализация босса
         cursor.execute('''
             INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count)
@@ -3316,6 +3348,257 @@ def use_inventory_item(user_id: int, item_id: str) -> dict:
         conn.close()
 
 
+# ==================== PROMO CODE SYSTEM ====================
+
+def create_promo_code(code: str, reward_type: str, reward_value: str, max_uses: int = 1, description: str = None, expires_days: int = None) -> dict:
+    """
+    Создает промокод в базе данных
+    """
+    clean_code = str(code or '').strip().upper()
+    if not clean_code:
+        return {'status': 'error', 'message': 'Промокод не может быть пустым'}
+    
+    if max_uses <= 0:
+        return {'status': 'error', 'message': 'Количество использований должно быть > 0'}
+
+    reward_type = str(reward_type or '').lower().strip()
+    if reward_type not in ['cones', 'token', 'item', 'energy', 'bundle']:
+        return {'status': 'error', 'message': f"Неизвестный тип награды '{reward_type}'. Допустимые: cones, item, energy, bundle"}
+    
+    if reward_type == 'token':
+        reward_type = 'cones'
+
+    expires_at = None
+    if expires_days and expires_days > 0:
+        msk_tz = timezone(timedelta(hours=3))
+        exp_dt = datetime.now(msk_tz) + timedelta(days=expires_days)
+        expires_at = exp_dt.strftime('%Y-%m-%d %H:%M:%S')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO promo_codes (code, reward_type, reward_value, max_uses, current_uses, expires_at, is_active, description)
+            VALUES (?, ?, ?, ?, 0, ?, 1, ?)
+            ON CONFLICT(code) DO UPDATE SET
+                reward_type = excluded.reward_type,
+                reward_value = excluded.reward_value,
+                max_uses = excluded.max_uses,
+                expires_at = excluded.expires_at,
+                is_active = 1,
+                description = excluded.description
+        ''', (clean_code, reward_type, str(reward_value).strip(), max_uses, expires_at, description))
+        conn.commit()
+        logger.info(f"🎁 Создан промокод: {clean_code} ({reward_type}={reward_value}, max_uses={max_uses})")
+        return {
+            'status': 'ok',
+            'code': clean_code,
+            'reward_type': reward_type,
+            'reward_value': reward_value,
+            'max_uses': max_uses,
+            'expires_at': expires_at,
+            'description': description
+        }
+    except Exception as e:
+        logger.error(f"❌ Ошибка создания промокода {clean_code}: {e}")
+        conn.rollback()
+        return {'status': 'error', 'message': str(e)}
+    finally:
+        conn.close()
+
+
+def activate_promo_code(user_id: int, code_str: str) -> dict:
+    """
+    Активирует промокод для пользователя с 100% защитой от повторного ввода
+    """
+    clean_code = str(code_str or '').strip().upper()
+    if not clean_code:
+        return {'status': 'error', 'message': 'Введите промокод!'}
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        ensure_user_exists(user_id)
+
+        # 1. Поиск промокода
+        cursor.execute('''
+            SELECT id, code, reward_type, reward_value, max_uses, current_uses, expires_at, is_active, description
+            FROM promo_codes WHERE code = ?
+        ''', (clean_code,))
+        promo = cursor.fetchone()
+
+        if not promo or promo['is_active'] != 1:
+            return {'status': 'error', 'message': 'Промокод не существует или не активен'}
+
+        # 2. Проверка срока годности
+        if promo['expires_at']:
+            try:
+                exp_dt = datetime.strptime(promo['expires_at'], '%Y-%m-%d %H:%M:%S')
+                if datetime.now() > exp_dt:
+                    return {'status': 'error', 'message': 'Срок действия этого промокода истёк'}
+            except Exception:
+                pass
+
+        # 3. Проверка лимита активаций
+        if promo['current_uses'] >= promo['max_uses']:
+            return {'status': 'error', 'message': f"Лимит активаций промокода ({promo['max_uses']}) исчерпан!"}
+
+        # 4. ЗАЩИТА ОТ ПОВТОРНОГО ВВОДА: Проверяем, активировал ли пользователь этот код ранее
+        cursor.execute('SELECT 1 FROM promo_code_activations WHERE promo_id = ? AND user_id = ?', (promo['id'], user_id))
+        if cursor.fetchone():
+            return {'status': 'error', 'message': 'Вы уже активировали этот промокод ранее!'}
+
+        reward_type = promo['reward_type']
+        reward_val = promo['reward_value']
+        reward_summary = ''
+        reward_details = {}
+
+        # 5. Применение награды
+        if reward_type == 'cones':
+            try:
+                cones_amount = int(reward_val)
+            except ValueError:
+                cones_amount = 0
+            if cones_amount > 0:
+                tok_res = add_tokens(user_id, cones_amount, reason=f'promo_code:{clean_code}')
+                reward_summary = f"+{cones_amount:,} Шишек"
+                reward_details = {
+                    'type': 'cones',
+                    'amount': cones_amount,
+                    'icon': 'images/cone.png',
+                    'balance': tok_res['balance'] if tok_res else 0
+                }
+
+        elif reward_type == 'item':
+            # Формат: 'mega_cone:2' или 'golden_cookie'
+            parts = str(reward_val).split(':')
+            item_id = parts[0].strip()
+            qty = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
+            add_inventory_item(user_id, item_id, qty)
+            item_meta = ITEMS_REGISTRY.get(item_id, {})
+            item_name = item_meta.get('name_ru', item_id)
+            reward_summary = f"{qty}x {item_name}"
+            reward_details = {
+                'type': 'item',
+                'item_id': item_id,
+                'quantity': qty,
+                'name': item_name,
+                'icon': item_meta.get('icon', 'images/cone.png'),
+                'rarity': item_meta.get('rarity', 'rare')
+            }
+
+        elif reward_type == 'energy':
+            try:
+                energy_amount = int(reward_val)
+            except ValueError:
+                energy_amount = 5
+            # Восстанавливаем энергию
+            reward_summary = f"+{energy_amount} Энергии"
+            reward_details = {
+                'type': 'energy',
+                'amount': energy_amount,
+                'icon': '⚡'
+            }
+
+        elif reward_type == 'bundle':
+            try:
+                bundle_data = json.loads(reward_val)
+                granted = []
+                if 'cones' in bundle_data:
+                    c_amt = int(bundle_data['cones'])
+                    add_tokens(user_id, c_amt, reason=f'promo_bundle:{clean_code}')
+                    granted.append(f"+{c_amt:,} 🌰")
+                if 'item' in bundle_data:
+                    i_id = bundle_data['item']
+                    i_qty = int(bundle_data.get('count', bundle_data.get('qty', 1)))
+                    add_inventory_item(user_id, i_id, i_qty)
+                    i_name = ITEMS_REGISTRY.get(i_id, {}).get('name_ru', i_id)
+                    granted.append(f"{i_qty}x {i_name}")
+                reward_summary = ", ".join(granted)
+                reward_details = {
+                    'type': 'bundle',
+                    'bundle': bundle_data,
+                    'summary': reward_summary
+                }
+            except Exception as bundle_err:
+                logger.error(f"Ошибка разбора bundle промокода: {bundle_err}")
+                return {'status': 'error', 'message': 'Ошибка структуры награды промокода'}
+
+        # 6. Записываем активацию и увеличиваем счетчик
+        cursor.execute('''
+            INSERT INTO promo_code_activations (promo_id, user_id, reward_summary)
+            VALUES (?, ?, ?)
+        ''', (promo['id'], user_id, reward_summary))
+
+        cursor.execute('''
+            UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = ?
+        ''', (promo['id'],))
+
+        conn.commit()
+
+        # 7. Логируем в activity_logs
+        try:
+            log_activity(
+                user_id=user_id,
+                category='promo',
+                event_type='promo_activated',
+                action_detail=f'promo:{clean_code}',
+                amount=reward_details.get('amount', 0),
+                meta={'code': clean_code, 'reward_summary': reward_summary, 'promo_id': promo['id']}
+            )
+        except Exception:
+            pass
+
+        logger.info(f"🎉 Промокод {clean_code} успешно активирован пользователем {user_id}! Награда: {reward_summary}")
+
+        tokens_info = get_user_tokens(user_id)
+        user_inv = get_user_inventory(user_id)
+
+        return {
+            'status': 'ok',
+            'code': clean_code,
+            'reward_summary': reward_summary,
+            'reward_details': reward_details,
+            'balance': tokens_info.get('balance', 0),
+            'inventory': user_inv
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка активации промокода {clean_code} для {user_id}: {e}")
+        conn.rollback()
+        return {'status': 'error', 'message': f'Внутренняя ошибка сервера: {e}'}
+    finally:
+        conn.close()
+
+
+def get_promo_codes_list() -> list:
+    """Получить список всех промокодов для админа"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT id, code, reward_type, reward_value, max_uses, current_uses, created_at, expires_at, is_active, description
+            FROM promo_codes
+            ORDER BY id DESC
+        ''')
+        return [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def delete_promo_code(code_str: str) -> bool:
+    """Удалить/деактивировать промокод"""
+    clean_code = str(code_str or '').strip().upper()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE promo_codes SET is_active = 0 WHERE code = ?", (clean_code,))
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
 def set_user_wallet_address(user_id: int, wallet_address: str = None) -> bool:
     """
     Привязывает или отвязывает TON кошелек пользователя
@@ -4555,6 +4838,33 @@ def api_use_inventory():
     except Exception as e:
         logger.error(f"Ошибка api_use_inventory: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/promo/activate', methods=['POST'])
+@limiter.limit("20 per minute")
+def api_promo_activate():
+    """Активировать промокод в WebApp"""
+    try:
+        if not request.is_json:
+            return jsonify({'status': 'error', 'message': 'Content-Type must be application/json'}), 400
+
+        data = request.get_json()
+        user_id = data.get('userId') or data.get('user_id')
+        code = data.get('code')
+
+        if not user_id or not code:
+            return jsonify({'status': 'error', 'message': 'Укажите user_id и промокод'}), 400
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return jsonify({'status': 'error', 'message': 'Некорректный user_id'}), 400
+
+        result = activate_promo_code(user_id, code)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Ошибка api_promo_activate: {e}")
+        return jsonify({'status': 'error', 'message': f'Ошибка сервера: {e}'}), 500
 
 
 @app.route('/api/bonus/claim', methods=['POST'])
@@ -9355,6 +9665,146 @@ async def user_stats_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 
+async def promo_add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для админа: /promo_add <CODE> <cones|item|energy|bundle> <value> [max_uses=1] [expires_days] [description]
+    Создает промокод.
+    """
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    if not context.args or len(context.args) < 3:
+        help_text = (
+            "🎁 <b>Использование /promo_add:</b>\n\n"
+            "<code>/promo_add &lt;КОД&gt; &lt;тип&gt; &lt;значение&gt; [лимит_активаций=1] [дней_действия] [описание]</code>\n\n"
+            "<b>Типы наград:</b>\n"
+            "• <code>cones</code> — шишки (пример: <code>/promo_add RACCOON cones 5000 100 7 Подарок</code>)\n"
+            "• <code>item</code> — предмет инвентаря (пример: <code>/promo_add MEGA item mega_cone:2 50</code>)\n"
+            "• <code>energy</code> — энергия (пример: <code>/promo_add ENERGY energy 10 200</code>)\n"
+            "• <code>bundle</code> — пак (JSON) (пример: <code>/promo_add PACK bundle {\"cones\":10000,\"item\":\"mega_cone\",\"count\":1} 20</code>)\n\n"
+            "<b>Предметы инвентаря:</b> <code>mega_cone</code>, <code>energy_drink</code>, <code>golden_cookie</code>, <code>trash_shield</code>, <code>lucky_clover</code>, <code>ancient_key</code>"
+        )
+        await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
+        return
+
+    code = context.args[0].upper().strip()
+    reward_type = context.args[1].lower().strip()
+    reward_value = context.args[2].strip()
+
+    max_uses = 1
+    if len(context.args) > 3:
+        try:
+            max_uses = int(context.args[3])
+        except ValueError:
+            max_uses = 1
+
+    expires_days = None
+    if len(context.args) > 4 and context.args[4].isdigit():
+        expires_days = int(context.args[4])
+        desc_start = 5
+    else:
+        desc_start = 4
+
+    description = " ".join(context.args[desc_start:]).strip() if len(context.args) > desc_start else ""
+
+    res = create_promo_code(code, reward_type, reward_value, max_uses, description or None, expires_days)
+    if res.get('status') == 'ok':
+        exp_info = f"📅 Истекает: <b>{res['expires_at']}</b>\n" if res.get('expires_at') else "📅 Бессрочный\n"
+        msg = (
+            f"✅ <b>Промокод успешно создан!</b>\n\n"
+            f"🎁 <b>Код:</b> <code>{res['code']}</code>\n"
+            f"📦 <b>Тип:</b> <code>{res['reward_type']}</code>\n"
+            f"💎 <b>Награда:</b> <code>{res['reward_value']}</code>\n"
+            f"👥 <b>Лимит активаций:</b> {res['max_uses']} пользователей\n"
+            f"{exp_info}"
+            f"📝 <b>Описание:</b> {html.escape(description or '—')}\n\n"
+            f"<i>Игроки могут активировать код в WebApp (кнопка 🎁 PROMO) или командой <code>/promo {res['code']}</code></i>"
+        )
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(f"❌ Ошибка создания промокода: {res.get('message')}")
+
+
+async def promo_list_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /promo_list — список всех созданных промокодов"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    promos = get_promo_codes_list()
+    if not promos:
+        await update.message.reply_text("ℹ️ Список промокодов пуст. Создайте промокод через /promo_add")
+        return
+
+    lines = ["🎁 <b>СПИСОК ПРОМОКОДОВ:</b>\n"]
+    for p in promos:
+        status_icon = "🟢" if p['is_active'] and p['current_uses'] < p['max_uses'] else "🔴"
+        exp = f" | До: {p['expires_at']}" if p.get('expires_at') else ""
+        desc = f" ({p['description']})" if p.get('description') else ""
+        lines.append(
+            f"{status_icon} <code>{p['code']}</code> — {p['reward_type']}:{p['reward_value']}\n"
+            f"   Использовано: <b>{p['current_uses']}/{p['max_uses']}</b>{exp}{desc}"
+        )
+
+    msg = "\n\n".join(lines)
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+
+
+async def promo_del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /promo_del <CODE> — деактивировать/удалить промокод"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("❌ У вас нет прав для этой команды!")
+        return
+
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text("❌ Использование: <code>/promo_del &lt;КОД&gt;</code>", parse_mode=ParseMode.HTML)
+        return
+
+    code = context.args[0].upper().strip()
+    if delete_promo_code(code):
+        await update.message.reply_text(f"✅ Промокод <code>{code}</code> успешно деактивирован!", parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(f"⚠️ Промокод <code>{code}</code> не найден!", parse_mode=ParseMode.HTML)
+
+
+async def promo_user_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /promo <КОД> — активация промокода игроком через Telegram-чат"""
+    user_id = update.effective_user.id
+    if not user_id:
+        return
+
+    ensure_user_exists(user_id, update.effective_user.username, update.effective_user.first_name, update.effective_user.last_name)
+
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text(
+            "🎁 <b>Активация промокода:</b>\n\n"
+            "Использование: <code>/promo &lt;ВАШ_КОД&gt;</code>\n"
+            "Пример: <code>/promo RACCOON2026</code>\n\n"
+            "<i>Вы также можете активировать промокод прямо в WebApp, нажав кнопку 🎁 PROMO вверху экрана!</i>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    code = context.args[0].upper().strip()
+    res = activate_promo_code(user_id, code)
+
+    if res.get('status') == 'ok':
+        msg = (
+            f"🎉 <b>ПРОМОКОД АКТИВИРОВАН!</b>\n\n"
+            f"🎁 Код: <code>{res['code']}</code>\n"
+            f"🌟 Награда: <b>{res['reward_summary']}</b>\n"
+            f"💳 Ваш текущий баланс: <b>{res.get('balance', 0):,}</b> Шишек\n\n"
+            f"🦝 <i>Награда уже начислена на ваш аккаунт! Приятной игры!</i>"
+        )
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(
+            f"❌ <b>Не удалось активировать промокод:</b>\n{res.get('message', 'Неизвестная ошибка')}",
+            parse_mode=ParseMode.HTML
+        )
+
+
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик данных от WebApp (tg.sendData)"""
     user_id = update.effective_user.id
@@ -10637,11 +11087,15 @@ async def post_init(application: Application):
         commands = [
             BotCommand('start', '🚀 Запустить бота'),
             BotCommand('stats', '📊 Моя статистика и профиль'),
+            BotCommand('promo', '🎁 Активировать промокод'),
             BotCommand('shend', '💸 Передать шишки (в группе)'),
             BotCommand('farsh', '🥩 Разделить шишки между игроками'),
             BotCommand('report', '📊 Ежедневный отчет (админ)'),
             BotCommand('backup', '💾 Облачный бекап БД (админ)'),
             BotCommand('fontan', '⛲ Фонтан шишек (раздача игрокам, админ)'),
+            BotCommand('promo_add', '🎁 Создать промокод (админ)'),
+            BotCommand('promo_list', '📋 Список промокодов (админ)'),
+            BotCommand('promo_del', '🗑️ Удалить промокод (админ)'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
@@ -10719,6 +11173,15 @@ def main():
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CommandHandler("shend", shend_tokens_user, filters=filters.ChatType.GROUPS))
     telegram_app.add_handler(CommandHandler("farsh", farsh_command, filters=filters.ChatType.GROUPS))
+    telegram_app.add_handler(CommandHandler("promo", promo_user_cmd))
+    telegram_app.add_handler(CommandHandler("code", promo_user_cmd))
+    telegram_app.add_handler(CommandHandler("promo_add", promo_add_admin))
+    telegram_app.add_handler(CommandHandler("promo_create", promo_add_admin))
+    telegram_app.add_handler(CommandHandler("add_promo", promo_add_admin))
+    telegram_app.add_handler(CommandHandler("promo_list", promo_list_admin))
+    telegram_app.add_handler(CommandHandler("promos", promo_list_admin))
+    telegram_app.add_handler(CommandHandler("promo_del", promo_del_admin))
+    telegram_app.add_handler(CommandHandler("promo_delete", promo_del_admin))
     telegram_app.add_handler(CommandHandler("report", report_admin))
     telegram_app.add_handler(CommandHandler("daily_report", report_admin))
     telegram_app.add_handler(CommandHandler("backup", backup_admin_cmd))
