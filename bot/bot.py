@@ -1294,8 +1294,13 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         else:
             ensure_user_exists(user_id)
         
-        # Получаем текущие квесты, чтобы предотвратить их удаление при сбросе кэша клиента
-        cursor.execute('SELECT quests, tutorials_seen FROM user_stats WHERE user_id = ?', (user_id,))
+        # Получаем текущие квесты и предыдущую игровую статистику
+        cursor.execute('''
+            SELECT quests, tutorials_seen, clown_games, clown_wins, vladeos_games, vladeos_wins,
+                   tower_max_level, tower_total_levels, roulette_games, roulette_wins,
+                   roulette_cones_won, roulette_cones_lost, raccoon_taps, quests_completed
+            FROM user_stats WHERE user_id = ?
+        ''', (user_id,))
         row = cursor.fetchone()
         existing_quests = []
         existing_tutorials = []
@@ -1327,6 +1332,17 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         
         # Для рейтинга считаем только реальные квесты (ID начинается на qt)
         actual_quests_count = len([q for q in merged_quests if isinstance(q, str) and q.startswith('qt')])
+
+        # Вычисляем дельты активности для логирования
+        d_clown = max(0, int(stats_data.get('clown_games', 0)) - (row['clown_games'] or 0)) if row else 0
+        d_clown_wins = max(0, int(stats_data.get('clown_wins', 0)) - (row['clown_wins'] or 0)) if row else 0
+        d_vladeos = max(0, int(stats_data.get('vladeos_games', 0)) - (row['vladeos_games'] or 0)) if row else 0
+        d_vladeos_wins = max(0, int(stats_data.get('vladeos_wins', 0)) - (row['vladeos_wins'] or 0)) if row else 0
+        d_tower = max(0, int(stats_data.get('tower_total_levels', 0)) - (row['tower_total_levels'] or 0)) if row else 0
+        d_roulette = max(0, int(stats_data.get('roulette_games', 0)) - (row['roulette_games'] or 0)) if row else 0
+        d_roulette_wins = max(0, int(stats_data.get('roulette_wins', 0)) - (row['roulette_wins'] or 0)) if row else 0
+        d_taps = max(0, int(stats_data.get('raccoon_taps', 0)) - ((row['raccoon_taps'] or 0) if row else 0))
+        d_quests = max(0, actual_quests_count - ((row['quests_completed'] or 0) if row else 0))
 
         # Объединяем просмотренные туториалы
         incoming_tutorials = stats_data.get('tutorials_seen', [])
@@ -1379,6 +1395,24 @@ def save_user_stats(user_id: int, stats_data: dict, user_data: dict = None) -> b
         
         conn.commit()
         logger.info(f"✅ Статистика сохранена для user_id={user_id}")
+
+        # Записываем изменения в activity_logs для ежедневной аналитики
+        try:
+            if d_clown > 0:
+                log_activity(user_id=user_id, category='game', event_type='game_played', action_detail='clown', amount=d_clown, meta={'wins_delta': d_clown_wins})
+            if d_vladeos > 0:
+                log_activity(user_id=user_id, category='game', event_type='game_played', action_detail='vladeos', amount=d_vladeos, meta={'wins_delta': d_vladeos_wins})
+            if d_tower > 0:
+                log_activity(user_id=user_id, category='game', event_type='game_played', action_detail='tower', amount=d_tower, meta={'max_level': int(stats_data.get('tower_max_level', 0))})
+            if d_roulette > 0:
+                log_activity(user_id=user_id, category='game', event_type='game_played', action_detail='roulette', amount=d_roulette, meta={'wins_delta': d_roulette_wins})
+            if d_taps > 0:
+                log_activity(user_id=user_id, category='game', event_type='tap', action_detail='raccoon_tap', amount=d_taps)
+            if d_quests > 0:
+                log_activity(user_id=user_id, category='quest', event_type='quest_completed', action_detail='quest', amount=d_quests)
+        except Exception as log_ex:
+            logger.error(f"Ошибка логирования дельт в save_user_stats: {log_ex}")
+
         return True
         
     except Exception as e:
@@ -1455,6 +1489,19 @@ def add_boss_damage(user_id: int, damage: int) -> dict:
         }
         
         logger.info(f"💥 Урон нанесен: user_id={user_id}, damage={damage}, HP={boss_info['current_hp']:,}")
+
+        try:
+            log_activity(
+                user_id=user_id,
+                category='game',
+                event_type='game_played',
+                action_detail='boss_attack',
+                amount=damage,
+                meta={'boss_killed': boss_killed, 'boss_hp_left': boss_info['current_hp']}
+            )
+        except Exception as log_ex:
+            logger.error(f"Ошибка логирования boss_attack: {log_ex}")
+
         return boss_info
         
     except Exception as e:
@@ -6599,6 +6646,19 @@ def api_tot_bet():
                        (event_id, user_id, side, prediction, amount, currency))
         conn.commit()
         
+        try:
+            log_activity(
+                user_id=user_id,
+                username=auth_user.get('username') or auth_user.get('first_name'),
+                category='economy' if currency == 'Шишки' else 'game',
+                event_type='tot_bet',
+                action_detail=f'tot_bet:{event_id}',
+                amount=amount,
+                meta={'currency': currency, 'side': side, 'prediction': prediction, 'event_id': event_id, 'event_title': event['title']}
+            )
+        except Exception as log_ex:
+            logger.error(f"Ошибка логирования tot_bet: {log_ex}")
+        
         # Отправка уведомления администратору
         try:
             username = auth_user.get('username', 'Нет_юзернейма').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
@@ -9446,7 +9506,8 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
 
 def get_daily_report_data(hours: int = 24) -> tuple:
     """
-    Собирает всю статистику и логи за последние N часов (по умолчанию 24ч)
+    Собирает всю статистику и логи за последние N часов (по умолчанию 24ч),
+    а также полные агрегированные данные за всё время.
     Возвращает (report_data_dict, logs_rows_list)
     """
     conn = get_db_connection()
@@ -9486,7 +9547,7 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         """, (since_clause,))
         spent_24h = int(cursor.fetchone()[0] or 0)
 
-        # 3. Игровая статистика за 24 часа
+        # 3. Игровая статистика за 24 часа (из activity_logs)
         cursor.execute("""
             SELECT action_detail, COUNT(*), COALESCE(SUM(amount), 0) 
             FROM activity_logs 
@@ -9502,6 +9563,7 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         games_battleship_24h = game_breakdown.get('battleship', {}).get('count', 0)
         games_vladeos_24h = game_breakdown.get('vladeos', {}).get('count', 0)
         games_chips_24h = game_breakdown.get('clown', {}).get('count', 0) + game_breakdown.get('find_chip', {}).get('count', 0)
+        games_taps_24h = game_breakdown.get('raccoon_tap', {}).get('count', 0)
 
         cursor.execute("""
             SELECT COUNT(*) FROM activity_logs 
@@ -9509,12 +9571,60 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         """, (since_clause,))
         games_24h = cursor.fetchone()[0] or 0
 
-        # Статистика из user_stats
+        # Ставки тотализатора за 24ч
         cursor.execute("""
-            SELECT COALESCE(AVG(hollow_level), 1.0) FROM user_stats
+            SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM tot_bets 
+            WHERE created_at >= datetime('now', ?)
+        """, (since_clause,))
+        tot_24h_row = cursor.fetchone()
+        tot_bets_count_24h = tot_24h_row[0] if tot_24h_row else 0
+        tot_bets_amount_24h = float(tot_24h_row[1] if tot_24h_row else 0)
+
+        # 4. Агрегированные итоги игр за ВСЁ время (из user_stats, boss_damage, tot_bets)
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(roulette_games), 0),
+                COALESCE(SUM(roulette_wins), 0),
+                COALESCE(SUM(roulette_cones_won), 0),
+                COALESCE(SUM(roulette_cones_lost), 0),
+                COALESCE(SUM(vladeos_games), 0),
+                COALESCE(SUM(vladeos_wins), 0),
+                COALESCE(SUM(tower_total_levels), 0),
+                COALESCE(MAX(tower_max_level), 0),
+                COALESCE(SUM(clown_games), 0),
+                COALESCE(SUM(clown_wins), 0),
+                COALESCE(SUM(raccoon_taps), 0),
+                COALESCE(SUM(quests_completed), 0),
+                COALESCE(AVG(hollow_level), 1.0)
+            FROM user_stats
         """)
-        avg_row = cursor.fetchone()
-        avg_hollow_level = float(avg_row[0]) if avg_row and avg_row[0] else 1.0
+        us_row = cursor.fetchone()
+
+        roulette_games_total = int(us_row[0]) if us_row else 0
+        roulette_wins_total = int(us_row[1]) if us_row else 0
+        roulette_cones_won_total = int(us_row[2]) if us_row else 0
+        roulette_cones_lost_total = int(us_row[3]) if us_row else 0
+        vladeos_games_total = int(us_row[4]) if us_row else 0
+        vladeos_wins_total = int(us_row[5]) if us_row else 0
+        tower_levels_total = int(us_row[6]) if us_row else 0
+        tower_max_floor = int(us_row[7]) if us_row else 0
+        clown_games_total = int(us_row[8]) if us_row else 0
+        clown_wins_total = int(us_row[9]) if us_row else 0
+        raccoon_taps_total = int(us_row[10]) if us_row else 0
+        quests_completed_total = int(us_row[11]) if us_row else 0
+        avg_hollow_level = float(us_row[12]) if us_row and us_row[12] else 1.0
+
+        cursor.execute("SELECT COALESCE(SUM(hits), 0), COALESCE(SUM(total_damage), 0) FROM boss_damage")
+        boss_row = cursor.fetchone()
+        boss_hits_total = int(boss_row[0]) if boss_row else 0
+        boss_damage_total = int(boss_row[1]) if boss_row else 0
+
+        cursor.execute("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM tot_bets")
+        tot_all_row = cursor.fetchone()
+        tot_bets_count_total = tot_all_row[0] if tot_all_row else 0
+        tot_bets_amount_total = float(tot_all_row[1] if tot_all_row else 0)
+
+        total_games_all_time = roulette_games_total + boss_hits_total + vladeos_games_total + clown_games_total + tower_levels_total + tot_bets_count_total
 
         # Апгрейды дупла за 24ч
         cursor.execute("""
@@ -9523,7 +9633,7 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         """, (since_clause,))
         hollow_upgrades_24h = cursor.fetchone()[0] or 0
 
-        # 4. Донаты / Stars
+        # 5. Донаты / Stars
         cursor.execute("""
             SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM processed_payments 
             WHERE payment_type='stars' AND created_at >= datetime('now', ?)
@@ -9537,7 +9647,7 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         stars_count_total = stars_total_row[0] if stars_total_row else 0
         stars_amount_total = int(stars_total_row[1] if stars_total_row else 0)
 
-        # 5. Логи активности за 24 часа для Excel
+        # 6. Логи активности за 24 часа для Excel
         cursor.execute("""
             SELECT id, created_at, user_id, username, category, event_type, action_detail, amount, balance_after, meta_json
             FROM activity_logs
@@ -9547,7 +9657,47 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         """, (since_clause,))
         logs_rows = [dict(r) for r in cursor.fetchall()]
 
-        # 6. Список пользователей для Excel
+        # 7. Детальная статистика игроков по играм для Excel
+        cursor.execute("""
+            SELECT 
+                u.user_id,
+                COALESCE(u.username, '') as username,
+                COALESCE(u.first_name, '') as first_name,
+                COALESCE(t.balance, 0) as balance,
+                COALESCE(s.roulette_games, 0) as roulette_games,
+                COALESCE(s.roulette_wins, 0) as roulette_wins,
+                COALESCE(s.roulette_cones_won, 0) as roulette_cones_won,
+                COALESCE(s.roulette_cones_lost, 0) as roulette_cones_lost,
+                COALESCE(b.hits, 0) as boss_hits,
+                COALESCE(b.total_damage, 0) as boss_damage,
+                COALESCE(s.tower_total_levels, 0) as tower_total_levels,
+                COALESCE(s.tower_max_level, 0) as tower_max_level,
+                COALESCE(s.clown_games, 0) as clown_games,
+                COALESCE(s.clown_wins, 0) as clown_wins,
+                COALESCE(s.vladeos_games, 0) as vladeos_games,
+                COALESCE(s.vladeos_wins, 0) as vladeos_wins,
+                COALESCE(s.raccoon_taps, 0) as raccoon_taps,
+                COALESCE(s.quests_completed, 0) as quests_completed,
+                s.last_activity
+            FROM users u
+            LEFT JOIN user_tokens t ON u.user_id = t.user_id
+            LEFT JOIN user_stats s ON u.user_id = s.user_id
+            LEFT JOIN boss_damage b ON u.user_id = b.user_id
+            WHERE (
+                COALESCE(s.roulette_games, 0) > 0 OR
+                COALESCE(b.hits, 0) > 0 OR
+                COALESCE(s.tower_total_levels, 0) > 0 OR
+                COALESCE(s.clown_games, 0) > 0 OR
+                COALESCE(s.vladeos_games, 0) > 0 OR
+                COALESCE(s.raccoon_taps, 0) > 0 OR
+                COALESCE(t.balance, 0) > 0
+            )
+            ORDER BY (COALESCE(s.roulette_games, 0) + COALESCE(b.hits, 0) + COALESCE(s.vladeos_games, 0) + COALESCE(s.clown_games, 0) + COALESCE(s.tower_total_levels, 0)) DESC
+            LIMIT 1000
+        """)
+        player_game_stats = [dict(r) for r in cursor.fetchall()]
+
+        # 8. Список пользователей для Excel
         cursor.execute("""
             SELECT u.user_id, u.username, u.first_name, u.registered_at, u.is_banned,
                    COALESCE(t.balance, 0) as balance, COALESCE(t.total_earned, 0) as total_earned, COALESCE(t.total_spent, 0) as total_spent,
@@ -9560,7 +9710,7 @@ def get_daily_report_data(hours: int = 24) -> tuple:
         """)
         users_rows = [dict(r) for r in cursor.fetchall()]
 
-        # 7. Платежи для Excel
+        # 9. Платежи для Excel
         cursor.execute("""
             SELECT payment_id, user_id, payment_type, amount, cones_amount, comment, created_at
             FROM processed_payments
@@ -9568,6 +9718,19 @@ def get_daily_report_data(hours: int = 24) -> tuple:
             LIMIT 500
         """)
         payments_rows = [dict(r) for r in cursor.fetchall()]
+
+        # 10. Ставки тотализатора для Excel
+        cursor.execute("""
+            SELECT b.bet_id, b.created_at, b.user_id, COALESCE(u.username, u.first_name, '') as username,
+                   b.event_id, COALESCE(e.title, '') as event_title,
+                   b.side, COALESCE(b.prediction, '') as prediction, b.amount, b.currency, b.status
+            FROM tot_bets b
+            LEFT JOIN users u ON b.user_id = u.user_id
+            LEFT JOIN tot_events e ON b.event_id = e.event_id
+            ORDER BY b.bet_id DESC
+            LIMIT 1000
+        """)
+        tot_bets_rows = [dict(r) for r in cursor.fetchall()]
 
         report_data = {
             'total_users': total_users,
@@ -9587,14 +9750,36 @@ def get_daily_report_data(hours: int = 24) -> tuple:
             'games_battleship_24h': games_battleship_24h,
             'games_vladeos_24h': games_vladeos_24h,
             'games_chips_24h': games_chips_24h,
+            'games_taps_24h': games_taps_24h,
+            'tot_bets_count_24h': tot_bets_count_24h,
+            'tot_bets_amount_24h': tot_bets_amount_24h,
+            'total_games_all_time': total_games_all_time,
+            'roulette_games_total': roulette_games_total,
+            'roulette_wins_total': roulette_wins_total,
+            'roulette_cones_won_total': roulette_cones_won_total,
+            'roulette_cones_lost_total': roulette_cones_lost_total,
+            'vladeos_games_total': vladeos_games_total,
+            'vladeos_wins_total': vladeos_wins_total,
+            'tower_levels_total': tower_levels_total,
+            'tower_max_floor': tower_max_floor,
+            'clown_games_total': clown_games_total,
+            'clown_wins_total': clown_wins_total,
+            'raccoon_taps_total': raccoon_taps_total,
+            'quests_completed_total': quests_completed_total,
+            'boss_hits_total': boss_hits_total,
+            'boss_damage_total': boss_damage_total,
+            'tot_bets_count_total': tot_bets_count_total,
+            'tot_bets_amount_total': tot_bets_amount_total,
             'avg_hollow_level': avg_hollow_level,
             'hollow_upgrades_24h': hollow_upgrades_24h,
             'stars_count_24h': stars_count_24h,
             'stars_amount_24h': stars_amount_24h,
             'stars_count_total': stars_count_total,
             'stars_amount_total': stars_amount_total,
+            'player_game_stats': player_game_stats,
             'users_list': users_rows,
-            'payments_list': payments_rows
+            'payments_list': payments_rows,
+            'tot_bets_list': tot_bets_rows
         }
 
         return report_data, logs_rows
@@ -9608,28 +9793,28 @@ def format_daily_report_message(data: dict) -> str:
     now_msk = datetime.now(msk_tz).strftime('%d.%m.%Y %H:%M')
     return (
         f"🌅 <b>ЕЖЕДНЕВНЫЙ ОТЧЕТ RACCOON LIFE</b>\n"
-        f"📅 <i>{now_msk} МСК (за 24ч)</i>\n"
+        f"📅 <i>{now_msk} МСК (за 24ч / Всего)</i>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👥 <b>ПОЛЬЗОВАТЕЛИ:</b>\n"
-        f"• Всего в игре: <b>{data['total_users']:,}</b>\n"
-        f"• Новых за 24ч: <b>+{data['new_users_24h']:,}</b>\n"
-        f"• Активных за 24ч: <b>{data['active_users_24h']:,}</b>\n"
+        f"• Всего в игре: <b>{data['total_users']:,}</b> (новых 24ч: <b>+{data['new_users_24h']:,}</b>)\n"
+        f"• Активных игроков (24ч): <b>{data['active_users_24h']:,}</b>\n"
         f"• Заблокировано: <b>{data['banned_users']:,}</b>\n\n"
-        f"🎮 <b>ИГРОВАЯ АКТИВНОСТЬ (за 24ч):</b>\n"
-        f"• Всего сыграно игр: <b>{data['games_24h']:,}</b>\n"
-        f"  🎰 Рулетка: <b>{data['games_roulette_24h']:,}</b>\n"
-        f"  👹 Босс Енотов: <b>{data['games_boss_24h']:,}</b> атак\n"
-        f"  🏰 Башня: <b>{data['games_tower_24h']:,}</b> уровней\n"
-        f"  ⚓ Морской Бой: <b>{data['games_battleship_24h']:,}</b>\n"
-        f"  ⚔️ PVP Vladeos: <b>{data['games_vladeos_24h']:,}</b>\n"
-        f"  🎲 Битва фишек / Поиск: <b>{data['games_chips_24h']:,}</b>\n\n"
+        f"🎮 <b>ИГРОВАЯ АКТИВНОСТЬ:</b>\n"
+        f"• Всего сыграно игр: <b>+{data['games_24h']:,}</b> (24ч) | <b>{data['total_games_all_time']:,}</b> (всего)\n"
+        f"  🎰 Рулетка: <b>+{data['games_roulette_24h']:,}</b> (24ч) | <b>{data['roulette_games_total']:,}</b> (побед: {data['roulette_wins_total']:,})\n"
+        f"  👹 Босс Енотов: <b>+{data['games_boss_24h']:,}</b> (24ч) | <b>{data['boss_hits_total']:,}</b> атак ({data['boss_damage_total']:,} урона)\n"
+        f"  🏰 Башня: <b>+{data['games_tower_24h']:,}</b> (24ч) | <b>{data['tower_levels_total']:,}</b> этажей (макс: {data['tower_max_floor']})\n"
+        f"  ⚔️ PVP Vladeos: <b>+{data['games_vladeos_24h']:,}</b> (24ч) | <b>{data['vladeos_games_total']:,}</b> (побед: {data['vladeos_wins_total']:,})\n"
+        f"  🎲 Битва фишек / Клоун: <b>+{data['games_chips_24h']:,}</b> (24ч) | <b>{data['clown_games_total']:,}</b> (побед: {data['clown_wins_total']:,})\n"
+        f"  🦝 Тапы енота: <b>+{data['games_taps_24h']:,}</b> (24ч) | <b>{data['raccoon_taps_total']:,}</b> тапов\n"
+        f"  🎯 Ставки тотализатора: <b>+{data['tot_bets_count_24h']:,}</b> (24ч) | <b>{data['tot_bets_count_total']:,}</b> ставок\n\n"
         f"🌲 <b>ЭКОНОМИКА ШИШЕК:</b>\n"
-        f"• В обращении (балансы): <b>{data['total_circulation']:,}</b> 🌰\n"
+        f"• В обращении (сумма балансов): <b>{data['total_circulation']:,}</b> 🌰\n"
         f"• Выпущено за 24ч: <b>+{data['earned_24h']:,}</b> 🌰\n"
         f"• Потрачено за 24ч: <b>-{data['spent_24h']:,}</b> 🌰\n"
         f"• Чистая эмиссия (24ч): <b>{'+' if data['net_emission_24h'] >= 0 else ''}{data['net_emission_24h']:,}</b> 🌰\n"
-        f"• Выпущено за всё время: <b>{data['total_minted_all_time']:,}</b> 🌰\n"
-        f"• Потрачено за всё время: <b>{data['total_spent_all_time']:,}</b> 🌰\n\n"
+        f"• Всего начислено за всё время: <b>{data['total_minted_all_time']:,}</b> 🌰\n"
+        f"• Всего сожжено за всё время: <b>{data['total_spent_all_time']:,}</b> 🌰\n\n"
         f"🌳 <b>ДУПЛО И ПРОКАЧКА:</b>\n"
         f"• Апгрейдов дупла (24ч): <b>{data['hollow_upgrades_24h']:,}</b>\n"
         f"• Средний уровень дупла: <b>{data['avg_hollow_level']:.1f}</b>\n\n"
@@ -9659,6 +9844,8 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
     # Стили
     header_fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
     header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
+    sub_header_fill = PatternFill(start_color='475569', end_color='475569', fill_type='solid')
+    sub_header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
     section_fill = PatternFill(start_color='334155', end_color='334155', fill_type='solid')
     section_font = Font(name='Calibri', size=11, bold=True, color='F8FAFC')
     thin_border = Border(
@@ -9686,28 +9873,30 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
 
     summary_rows = [
         ("👥 ПОЛЬЗОВАТЕЛИ", "", ""),
-        ("• Всего зарегистрировано", f"+{report_data['new_users_24h']:,}", f"{report_data['total_users']:,}"),
-        ("• Активных игроков (24ч)", f"{report_data['active_users_24h']:,}", "-"),
-        ("• Заблокированных", "-", f"{report_data['banned_users']:,}"),
+        ("• Всего зарегистрировано", f"+{report_data.get('new_users_24h', 0):,}", f"{report_data.get('total_users', 0):,}"),
+        ("• Активных игроков (24ч)", f"{report_data.get('active_users_24h', 0):,}", "-"),
+        ("• Заблокированных", "-", f"{report_data.get('banned_users', 0):,}"),
         ("🌲 ЭКОНОМИКА ШИШЕК", "", ""),
-        ("• В обращении (сумма балансов)", "-", f"{report_data['total_circulation']:,} 🌰"),
-        ("• Выпущено (начислено)", f"+{report_data['earned_24h']:,} 🌰", f"{report_data['total_minted_all_time']:,} 🌰"),
-        ("• Потрачено (сожжено)", f"-{report_data['spent_24h']:,} 🌰", f"{report_data['total_spent_all_time']:,} 🌰"),
-        ("• Чистая эмиссия за 24ч", f"{'+' if report_data['net_emission_24h'] >= 0 else ''}{report_data['net_emission_24h']:,} 🌰", "-"),
+        ("• В обращении (сумма балансов)", "-", f"{report_data.get('total_circulation', 0):,} 🌰"),
+        ("• Выпущено (начислено)", f"+{report_data.get('earned_24h', 0):,} 🌰", f"{report_data.get('total_minted_all_time', 0):,} 🌰"),
+        ("• Потрачено (сожжено)", f"-{report_data.get('spent_24h', 0):,} 🌰", f"{report_data.get('total_spent_all_time', 0):,} 🌰"),
+        ("• Чистая эмиссия за 24ч", f"{'+' if report_data.get('net_emission_24h', 0) >= 0 else ''}{report_data.get('net_emission_24h', 0):,} 🌰", "-"),
         ("🎮 ИГРОВАЯ АКТИВНОСТЬ", "", ""),
-        ("• Всего сыграно игр", f"{report_data['games_24h']:,}", "-"),
-        ("  - 🎰 Рулетка", f"{report_data['games_roulette_24h']:,}", "-"),
-        ("  - 👹 Босс Енотов (атак)", f"{report_data['games_boss_24h']:,}", "-"),
-        ("  - 🏰 Башня (пройдено этажей)", f"{report_data['games_tower_24h']:,}", "-"),
-        ("  - ⚓ Морской Бой", f"{report_data['games_battleship_24h']:,}", "-"),
-        ("  - ⚔️ PVP Vladeos", f"{report_data['games_vladeos_24h']:,}", "-"),
-        ("  - 🎲 Битва фишек / Поиск", f"{report_data['games_chips_24h']:,}", "-"),
+        ("• Всего сыграно игр", f"+{report_data.get('games_24h', 0):,}", f"{report_data.get('total_games_all_time', 0):,}"),
+        ("  - 🎰 Рулетка", f"+{report_data.get('games_roulette_24h', 0):,}", f"{report_data.get('roulette_games_total', 0):,} (побед: {report_data.get('roulette_wins_total', 0):,})"),
+        ("  - 👹 Босс Енотов (атак)", f"+{report_data.get('games_boss_24h', 0):,}", f"{report_data.get('boss_hits_total', 0):,} ({report_data.get('boss_damage_total', 0):,} урона)"),
+        ("  - 🏰 Башня (пройдено этажей)", f"+{report_data.get('games_tower_24h', 0):,}", f"{report_data.get('tower_levels_total', 0):,} (макс: {report_data.get('tower_max_floor', 0)})"),
+        ("  - ⚓ Морской Бой", f"+{report_data.get('games_battleship_24h', 0):,}", "-"),
+        ("  - ⚔️ PVP Vladeos", f"+{report_data.get('games_vladeos_24h', 0):,}", f"{report_data.get('vladeos_games_total', 0):,} (побед: {report_data.get('vladeos_wins_total', 0):,})"),
+        ("  - 🎲 Битва фишек / Клоун", f"+{report_data.get('games_chips_24h', 0):,}", f"{report_data.get('clown_games_total', 0):,} (побед: {report_data.get('clown_wins_total', 0):,})"),
+        ("  - 🦝 Тапы енота", f"+{report_data.get('games_taps_24h', 0):,}", f"{report_data.get('raccoon_taps_total', 0):,} тапов"),
+        ("  - 🎯 Ставки тотализатора", f"+{report_data.get('tot_bets_count_24h', 0):,}", f"{report_data.get('tot_bets_count_total', 0):,} ставок"),
         ("🌳 ДУПЛО", "", ""),
-        ("• Апгрейдов дупла за 24ч", f"{report_data['hollow_upgrades_24h']:,}", "-"),
-        ("• Средний уровень дупла", f"{report_data['avg_hollow_level']:.1f}", "-"),
+        ("• Апгрейдов дупла за 24ч", f"+{report_data.get('hollow_upgrades_24h', 0):,}", "-"),
+        ("• Средний уровень дупла", f"{report_data.get('avg_hollow_level', 1.0):.1f}", "-"),
         ("⭐ МОНЕТИЗАЦИЯ (Telegram Stars)", "", ""),
-        ("• Количество покупок Stars", f"{report_data['stars_count_24h']:,}", f"{report_data['stars_count_total']:,}"),
-        ("• Сумма Stars (XTR)", f"{report_data['stars_amount_24h']:,} ⭐", f"{report_data['stars_amount_total']:,} ⭐"),
+        ("• Количество покупок Stars", f"+{report_data.get('stars_count_24h', 0):,}", f"{report_data.get('stars_count_total', 0):,}"),
+        ("• Сумма Stars (XTR)", f"+{report_data.get('stars_amount_24h', 0):,} ⭐", f"{report_data.get('stars_amount_total', 0):,} ⭐"),
     ]
 
     for item in summary_rows:
@@ -9726,16 +9915,19 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
     # 2. Вкладка "Транзакции (Экономика)"
     ws_econ = wb.create_sheet(title="💰 Транзакции")
     ws_econ.views.sheetView[0].showGridLines = True
+    
+    ws_econ.append(["ЖУРНАЛ ОПЕРАЦИЙ И ТРАНЗАКЦИЙ (за 24 часа)"])
+    ws_econ.cell(row=1, column=1).font = Font(name='Calibri', size=12, bold=True, color='1E293B')
     econ_headers = ["ID", "Дата и время (UTC)", "User ID", "Имя/Username", "Тип", "Причина / Действие", "Сумма (Шишки)", "Баланс после"]
     ws_econ.append(econ_headers)
     for col_idx in range(1, len(econ_headers) + 1):
-        c = ws_econ.cell(row=1, column=col_idx)
+        c = ws_econ.cell(row=2, column=col_idx)
         c.fill = header_fill
         c.font = header_font
         c.alignment = Alignment(horizontal='center', vertical='center')
 
     for log in logs_rows:
-        if log.get('category') in ['economy', 'hollow', 'payment']:
+        if log.get('category') in ['economy', 'hollow', 'payment', 'craft', 'admin']:
             ws_econ.append([
                 log.get('id'),
                 log.get('created_at'),
@@ -9753,16 +9945,20 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
     # 3. Вкладка "Игры"
     ws_games = wb.create_sheet(title="🎮 Игры")
     ws_games.views.sheetView[0].showGridLines = True
+    
+    # Таблица 1: Логи игровых действий за 24ч
+    ws_games.append(["ЛОГ ИГРОВЫХ ДЕЙСТВИЙ (за последние 24 часа)"])
+    ws_games.cell(row=1, column=1).font = Font(name='Calibri', size=12, bold=True, color='1E293B')
     games_headers = ["ID", "Дата и время (UTC)", "User ID", "Имя/Username", "Игра", "Действие / Результат", "Очки / Ставка / Урон", "Детали (JSON)"]
     ws_games.append(games_headers)
     for col_idx in range(1, len(games_headers) + 1):
-        c = ws_games.cell(row=1, column=col_idx)
+        c = ws_games.cell(row=2, column=col_idx)
         c.fill = header_fill
         c.font = header_font
         c.alignment = Alignment(horizontal='center', vertical='center')
 
     for log in logs_rows:
-        if log.get('category') == 'game':
+        if log.get('category') in ['game', 'tap', 'quest']:
             ws_games.append([
                 log.get('id'),
                 log.get('created_at'),
@@ -9777,10 +9973,58 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
             for c_idx in range(1, len(games_headers) + 1):
                 ws_games.cell(row=curr_row, column=c_idx).border = thin_border
 
+    # Таблица 2: Сводная статистика по каждому активному игроку
+    ws_games.append([])
+    ws_games.append([])
+    stat_header_row_idx = ws_games.max_row + 1
+    ws_games.append(["СВОДНАЯ СТАТИСТИКА ПО АКТИВНЫМ ИГРОКАМ (Все время)"])
+    ws_games.cell(row=stat_header_row_idx, column=1).font = Font(name='Calibri', size=12, bold=True, color='1E293B')
+    
+    player_stat_headers = [
+        "User ID", "Username", "Имя", "Баланс 🌰", 
+        "Рулетка (Игр)", "Рулетка (Побед)", "Рулетка (+Шишек)", "Рулетка (-Шишек)", 
+        "Босс (Удары)", "Босс (Урон)", "Башня (Этажей)", "Башня (Макс)", 
+        "Клоун (Игр)", "Клоун (Побед)", "Vladeos (Игр)", "Vladeos (Побед)", 
+        "Тапы енота", "Квесты", "Посл. активность"
+    ]
+    ws_games.append(player_stat_headers)
+    p_hdr_r = ws_games.max_row
+    for col_idx in range(1, len(player_stat_headers) + 1):
+        c = ws_games.cell(row=p_hdr_r, column=col_idx)
+        c.fill = sub_header_fill
+        c.font = sub_header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for p in report_data.get('player_game_stats', []):
+        ws_games.append([
+            p.get('user_id'),
+            p.get('username') or '',
+            p.get('first_name') or '',
+            p.get('balance', 0),
+            p.get('roulette_games', 0),
+            p.get('roulette_wins', 0),
+            p.get('roulette_cones_won', 0),
+            p.get('roulette_cones_lost', 0),
+            p.get('boss_hits', 0),
+            p.get('boss_damage', 0),
+            p.get('tower_total_levels', 0),
+            p.get('tower_max_level', 0),
+            p.get('clown_games', 0),
+            p.get('clown_wins', 0),
+            p.get('vladeos_games', 0),
+            p.get('vladeos_wins', 0),
+            p.get('raccoon_taps', 0),
+            p.get('quests_completed', 0),
+            p.get('last_activity') or ''
+        ])
+        curr_row = ws_games.max_row
+        for c_idx in range(1, len(player_stat_headers) + 1):
+            ws_games.cell(row=curr_row, column=c_idx).border = thin_border
+
     # 4. Вкладка "Пользователи"
     ws_users = wb.create_sheet(title="👥 Пользователи")
     ws_users.views.sheetView[0].showGridLines = True
-    users_headers = ["User ID", "Username", "Имя", "Текущий баланс", "Всего заработано", "Всего потрачено", "Уровень Дупла", "Дата регистрации", "Последняя активность", "Бан"]
+    users_headers = ["User ID", "Username", "Имя", "Текущий баланс 🌰", "Всего заработано", "Всего потрачено", "Уровень Дупла", "Дата регистрации", "Последняя активность", "Бан"]
     ws_users.append(users_headers)
     for col_idx in range(1, len(users_headers) + 1):
         c = ws_users.cell(row=1, column=col_idx)
@@ -9805,13 +10049,16 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
         for c_idx in range(1, len(users_headers) + 1):
             ws_users.cell(row=curr_row, column=c_idx).border = thin_border
 
-    # 5. Вкладка "Платежи"
-    ws_pay = wb.create_sheet(title="⭐ Платежи")
+    # 5. Вкладка "Платежи & Тотализатор"
+    ws_pay = wb.create_sheet(title="⭐ Платежи & Ставки")
     ws_pay.views.sheetView[0].showGridLines = True
+    
+    ws_pay.append(["ИСТОРИЯ ПЛАТЕЖЕЙ (Telegram Stars & TON)"])
+    ws_pay.cell(row=1, column=1).font = Font(name='Calibri', size=12, bold=True, color='1E293B')
     pay_headers = ["Payment ID", "User ID", "Тип", "Сумма (Stars/TON)", "Начислено шишек", "Комментарий", "Дата и время"]
     ws_pay.append(pay_headers)
     for col_idx in range(1, len(pay_headers) + 1):
-        c = ws_pay.cell(row=1, column=col_idx)
+        c = ws_pay.cell(row=2, column=col_idx)
         c.fill = header_fill
         c.font = header_font
         c.alignment = Alignment(horizontal='center', vertical='center')
@@ -9828,6 +10075,40 @@ def generate_report_excel(report_data: dict, logs_rows: list) -> str:
         ])
         curr_row = ws_pay.max_row
         for c_idx in range(1, len(pay_headers) + 1):
+            ws_pay.cell(row=curr_row, column=c_idx).border = thin_border
+
+    # Раздел ставок тотализатора
+    ws_pay.append([])
+    ws_pay.append([])
+    tot_header_row_idx = ws_pay.max_row + 1
+    ws_pay.append(["СТАВКИ ТОТАЛИЗАТОРА"])
+    ws_pay.cell(row=tot_header_row_idx, column=1).font = Font(name='Calibri', size=12, bold=True, color='1E293B')
+    
+    tot_headers = ["Bet ID", "Дата и время", "User ID", "Username", "Event ID", "Событие", "Сторона", "Прогноз счета", "Сумма", "Валюта", "Статус"]
+    ws_pay.append(tot_headers)
+    tot_hdr_r = ws_pay.max_row
+    for col_idx in range(1, len(tot_headers) + 1):
+        c = ws_pay.cell(row=tot_hdr_r, column=col_idx)
+        c.fill = sub_header_fill
+        c.font = sub_header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for b in report_data.get('tot_bets_list', []):
+        ws_pay.append([
+            b.get('bet_id'),
+            b.get('created_at'),
+            b.get('user_id'),
+            b.get('username') or '',
+            b.get('event_id'),
+            b.get('event_title') or '',
+            b.get('side'),
+            b.get('prediction') or '',
+            b.get('amount'),
+            b.get('currency'),
+            b.get('status')
+        ])
+        curr_row = ws_pay.max_row
+        for c_idx in range(1, len(tot_headers) + 1):
             ws_pay.cell(row=curr_row, column=c_idx).border = thin_border
 
     # Автоматическая ширина колонок для всех листов
