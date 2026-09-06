@@ -502,6 +502,25 @@ def init_db():
             )
         ''')
 
+        # Таблица детального логирования активности и экономики
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                user_id INTEGER,
+                username TEXT,
+                category TEXT,      -- 'economy', 'game', 'user', 'hollow', 'payment', 'admin', 'craft'
+                event_type TEXT,    -- 'token_earn', 'token_spend', 'game_played', 'user_registered', 'hollow_upgrade', 'stars_payment', etc.
+                action_detail TEXT, -- 'roulette_win', 'boss_attack', 'tower_floor', 'hollow_harvest', 'daily_bonus', etc.
+                amount REAL DEFAULT 0,
+                balance_after REAL DEFAULT NULL,
+                meta_json TEXT
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_logs_category ON activity_logs(category)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id)')
+
         # Инициализация босса
         cursor.execute('''
             INSERT OR IGNORE INTO boss_global (id, current_hp, max_hp, kill_count)
@@ -976,6 +995,7 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
         clean_first_name = sanitize_string(user_data.get('first_name', ''), max_length=128) if user_data else ''
         clean_last_name = sanitize_string(user_data.get('last_name', ''), max_length=128) if user_data else ''
 
+        is_new_user = not existing
         if existing:
             # Обновляем только непустые поля, не затирая уже сохраненные данные
             updates = []
@@ -1010,11 +1030,55 @@ def ensure_user_exists(user_id: int, user_data: dict = None):
 
         conn.commit()
 
+        if is_new_user:
+            try:
+                log_activity(
+                    user_id=user_id,
+                    username=clean_username,
+                    category='user',
+                    event_type='user_registered',
+                    action_detail=f"Регистрация: {clean_first_name} {clean_last_name}".strip()
+                )
+            except Exception as e:
+                logger.error(f"Ошибка логирования регистрации пользователя: {e}")
+
     except Exception as e:
         logger.error(f"Ошибка ensure_user_exists: {e}")
         raise
     finally:
         conn.close()
+
+
+def log_activity(user_id: int = None, username: str = None, category: str = 'general', event_type: str = 'event', action_detail: str = '', amount: float = 0, balance_after: float = None, meta: dict = None):
+    """
+    Записывает событие в таблицу activity_logs для ежедневной аналитики и отчетов
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Если username не передан, получаем из users
+        if not username and user_id:
+            try:
+                cursor.execute("SELECT username, first_name FROM users WHERE user_id = ?", (user_id,))
+                u_row = cursor.fetchone()
+                if u_row:
+                    username = u_row['username'] or u_row['first_name'] or f"ID:{user_id}"
+            except Exception:
+                pass
+                
+        meta_str = json.dumps(meta, ensure_ascii=False) if meta else None
+        
+        cursor.execute('''
+            INSERT INTO activity_logs (user_id, username, category, event_type, action_detail, amount, balance_after, meta_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, username, category, event_type, action_detail, amount, balance_after, meta_str))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"❌ Ошибка log_activity: {e}")
+
 
 # ==================== БЕЗОПАСНОСТЬ API ====================
 
@@ -2266,6 +2330,19 @@ def add_tokens(user_id: int, amount: int, reason: str = '') -> dict:
         }
 
         logger.info(f"💰 +{amount} Шишек: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        
+        try:
+            log_activity(
+                user_id=user_id,
+                category='economy',
+                event_type='token_earn',
+                action_detail=reason or 'add_tokens',
+                amount=amount,
+                balance_after=tokens_info['balance']
+            )
+        except Exception as log_err:
+            logger.error(f"Ошибка логирования add_tokens: {log_err}")
+
         return tokens_info
 
     except Exception as e:
@@ -2323,6 +2400,19 @@ def spend_tokens(user_id: int, amount: int, reason: str = '') -> dict:
         }
 
         logger.info(f"💸 -{amount} Шишек: user_id={user_id}, reason={reason}, balance={tokens_info['balance']}")
+        
+        try:
+            log_activity(
+                user_id=user_id,
+                category='economy',
+                event_type='token_spend',
+                action_detail=reason or 'spend_tokens',
+                amount=amount,
+                balance_after=tokens_info['balance']
+            )
+        except Exception as log_err:
+            logger.error(f"Ошибка логирования spend_tokens: {log_err}")
+
         return tokens_info
 
     except Exception as e:
@@ -2770,6 +2860,17 @@ def upgrade_hollow_cones(user_id: int) -> dict:
         cursor.execute("UPDATE user_stats SET hollow_level = ? WHERE user_id = ?", (new_level, user_id))
         conn.commit()
         logger.info(f"🌳 Игрок {user_id} прокачал Дупло за {cost:,} шишек до уровня {new_level}!")
+        try:
+            log_activity(
+                user_id=user_id,
+                category='hollow',
+                event_type='hollow_upgrade',
+                action_detail=f'hollow_lvl_{new_level}',
+                amount=cost,
+                meta={'level_from': level, 'level_to': new_level, 'cost': cost}
+            )
+        except Exception:
+            pass
     except Exception as e:
         logger.error(f"Ошибка сохранения hollow_level: {e}")
     finally:
@@ -4662,6 +4763,18 @@ def api_casino_roulette():
         else:
             logger.info(f"🎰 Roulette LOSE: user_id={user_id}, bet={bet_amount}")
 
+        try:
+            log_activity(
+                user_id=user_id,
+                category='game',
+                event_type='game_played',
+                action_detail='roulette',
+                amount=bet_amount,
+                meta={'win': win, 'win_amount': win_amount, 'is_jackpot': is_jackpot, 'is_mega_cone': is_mega_cone, 'bet_type': bet_type, 'result': result_segment['type']}
+            )
+        except Exception:
+            pass
+
         # Обновляем статистику рулетки
         cones_won = win_amount if win else 0
         cones_lost = bet_amount if not win else 0
@@ -4923,6 +5036,18 @@ def api_boss_attack():
             if tokens_earned > 0:
                 add_tokens(user_id, tokens_earned, f'boss_attack:{damage}')
 
+            try:
+                log_activity(
+                    user_id=user_id,
+                    category='game',
+                    event_type='game_played',
+                    action_detail='boss_attack',
+                    amount=damage,
+                    meta={'action': action, 'is_crit': is_crit, 'tokens_earned': tokens_earned, 'boss_damage': boss_damage}
+                )
+            except Exception:
+                pass
+
         if not boss_info:
             boss_info = get_boss_hp()
 
@@ -4990,6 +5115,18 @@ def api_game_vladeos():
         else:
             p_score = random.randint(1, 90)
             v_score = p_score + 1
+
+        try:
+            log_activity(
+                user_id=user_id,
+                category='game',
+                event_type='game_played',
+                action_detail='vladeos',
+                amount=1000 if is_win else 0,
+                meta={'win': is_win, 'p_score': p_score, 'v_score': v_score}
+            )
+        except Exception:
+            pass
             
         return jsonify({
             'status': 'ok',
@@ -5030,6 +5167,19 @@ def api_game_battleship():
         save_game_session(user_id, 'battleship', {'last_win': now})
         add_tokens(user_id, 150, 'battleship_win')
         loot_drop = check_minigame_loot_drop(user_id, 'battleship', base_chance=0.08, mega_chance=0.008)
+
+        try:
+            log_activity(
+                user_id=user_id,
+                category='game',
+                event_type='game_played',
+                action_detail='battleship',
+                amount=150,
+                meta={'win': True, 'reward': 150}
+            )
+        except Exception:
+            pass
+
         return jsonify({'status': 'ok', 'loot_drop': loot_drop})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -5106,6 +5256,17 @@ def api_game_clown():
             add_tokens(user_id, 60, 'clown_win')
             clear_game_session(user_id, 'clown')
             loot_drop = check_minigame_loot_drop(user_id, 'clown', base_chance=0.05, mega_chance=0.005)
+            try:
+                log_activity(
+                    user_id=user_id,
+                    category='game',
+                    event_type='game_played',
+                    action_detail='clown',
+                    amount=60,
+                    meta={'win': True, 'reward': 60}
+                )
+            except Exception:
+                pass
             return jsonify({'status': 'ok', 'state': state, 'player_log': player_log, 'game_over': True, 'win': True, 'loot_drop': loot_drop})
             
         b_dmg, b_heal = 0, 0
@@ -5226,6 +5387,17 @@ def api_game_tower():
             conn.close()
             
             clear_game_session(user_id, 'tower')
+            try:
+                log_activity(
+                    user_id=user_id,
+                    category='game',
+                    event_type='game_played',
+                    action_detail='tower',
+                    amount=state['level'],
+                    meta={'win': True, 'reward': floor_reward, 'level': state['level']}
+                )
+            except Exception:
+                pass
             # Дроп лута (12% на этажах боссов с 1% мегашишкой, 3% на обычных этажах с 0.3% мегашишкой)
             loot_drop = check_minigame_loot_drop(
                 user_id,
@@ -9250,6 +9422,510 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 logger.error(f"⚠️ Ошибка отправки Stars уведомления админу: {e}")
 
 
+        try:
+            log_activity(
+                user_id=user_id,
+                category='payment',
+                event_type='stars_payment',
+                action_detail='stars_100_purchase',
+                amount=100,
+                meta={'cones': 10000, 'charge_id': payment.telegram_payment_charge_id}
+            )
+        except Exception:
+            pass
+
+
+# ==================== DAILY ADMIN REPORT & EXCEL SYSTEM ====================
+
+def get_daily_report_data(hours: int = 24) -> tuple:
+    """
+    Собирает всю статистику и логи за последние N часов (по умолчанию 24ч)
+    Возвращает (report_data_dict, logs_rows_list)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    since_clause = f"-{hours} hours"
+
+    try:
+        # 1. Пользователи
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT COUNT(*) FROM users WHERE registered_at >= datetime('now', ?)", (since_clause,))
+        new_users_24h = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT COUNT(DISTINCT user_id) FROM user_stats WHERE last_activity >= datetime('now', ?)", (since_clause,))
+        active_users_24h = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT COUNT(*) FROM users WHERE is_banned = 1")
+        banned_users = cursor.fetchone()[0] or 0
+
+        # 2. Экономика шишек
+        cursor.execute("SELECT COALESCE(SUM(balance), 0), COALESCE(SUM(total_earned), 0), COALESCE(SUM(total_spent), 0) FROM user_tokens")
+        tot_row = cursor.fetchone()
+        total_circulation = int(tot_row[0]) if tot_row else 0
+        total_minted_all_time = int(tot_row[1]) if tot_row else 0
+        total_spent_all_time = int(tot_row[2]) if tot_row else 0
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) FROM activity_logs 
+            WHERE category='economy' AND event_type='token_earn' AND created_at >= datetime('now', ?)
+        """, (since_clause,))
+        earned_24h = int(cursor.fetchone()[0] or 0)
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) FROM activity_logs 
+            WHERE category='economy' AND event_type='token_spend' AND created_at >= datetime('now', ?)
+        """, (since_clause,))
+        spent_24h = int(cursor.fetchone()[0] or 0)
+
+        # 3. Игровая статистика за 24 часа
+        cursor.execute("""
+            SELECT action_detail, COUNT(*), COALESCE(SUM(amount), 0) 
+            FROM activity_logs 
+            WHERE category='game' AND created_at >= datetime('now', ?)
+            GROUP BY action_detail
+        """, (since_clause,))
+        game_rows = cursor.fetchall()
+        game_breakdown = {r[0]: {'count': r[1], 'amount': r[2]} for r in game_rows}
+
+        games_roulette_24h = game_breakdown.get('roulette', {}).get('count', 0)
+        games_boss_24h = game_breakdown.get('boss_attack', {}).get('count', 0)
+        games_tower_24h = game_breakdown.get('tower', {}).get('count', 0) or game_breakdown.get('tower_game', {}).get('count', 0)
+        games_battleship_24h = game_breakdown.get('battleship', {}).get('count', 0)
+        games_vladeos_24h = game_breakdown.get('vladeos', {}).get('count', 0)
+        games_chips_24h = game_breakdown.get('clown', {}).get('count', 0) + game_breakdown.get('find_chip', {}).get('count', 0)
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM activity_logs 
+            WHERE category='game' AND created_at >= datetime('now', ?)
+        """, (since_clause,))
+        games_24h = cursor.fetchone()[0] or 0
+
+        # Статистика из user_stats
+        cursor.execute("""
+            SELECT COALESCE(AVG(hollow_level), 1.0) FROM user_stats
+        """)
+        avg_row = cursor.fetchone()
+        avg_hollow_level = float(avg_row[0]) if avg_row and avg_row[0] else 1.0
+
+        # Апгрейды дупла за 24ч
+        cursor.execute("""
+            SELECT COUNT(*) FROM activity_logs 
+            WHERE category='hollow' AND event_type='hollow_upgrade' AND created_at >= datetime('now', ?)
+        """, (since_clause,))
+        hollow_upgrades_24h = cursor.fetchone()[0] or 0
+
+        # 4. Донаты / Stars
+        cursor.execute("""
+            SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM processed_payments 
+            WHERE payment_type='stars' AND created_at >= datetime('now', ?)
+        """, (since_clause,))
+        stars_24h_row = cursor.fetchone()
+        stars_count_24h = stars_24h_row[0] if stars_24h_row else 0
+        stars_amount_24h = int(stars_24h_row[1] if stars_24h_row else 0)
+
+        cursor.execute("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM processed_payments WHERE payment_type='stars'")
+        stars_total_row = cursor.fetchone()
+        stars_count_total = stars_total_row[0] if stars_total_row else 0
+        stars_amount_total = int(stars_total_row[1] if stars_total_row else 0)
+
+        # 5. Логи активности за 24 часа для Excel
+        cursor.execute("""
+            SELECT id, created_at, user_id, username, category, event_type, action_detail, amount, balance_after, meta_json
+            FROM activity_logs
+            WHERE created_at >= datetime('now', ?)
+            ORDER BY id DESC
+            LIMIT 5000
+        """, (since_clause,))
+        logs_rows = [dict(r) for r in cursor.fetchall()]
+
+        # 6. Список пользователей для Excel
+        cursor.execute("""
+            SELECT u.user_id, u.username, u.first_name, u.registered_at, u.is_banned,
+                   COALESCE(t.balance, 0) as balance, COALESCE(t.total_earned, 0) as total_earned, COALESCE(t.total_spent, 0) as total_spent,
+                   COALESCE(s.hollow_level, 1) as hollow_level, s.last_activity
+            FROM users u
+            LEFT JOIN user_tokens t ON u.user_id = t.user_id
+            LEFT JOIN user_stats s ON u.user_id = s.user_id
+            ORDER BY balance DESC
+            LIMIT 1000
+        """)
+        users_rows = [dict(r) for r in cursor.fetchall()]
+
+        # 7. Платежи для Excel
+        cursor.execute("""
+            SELECT payment_id, user_id, payment_type, amount, cones_amount, comment, created_at
+            FROM processed_payments
+            ORDER BY created_at DESC
+            LIMIT 500
+        """)
+        payments_rows = [dict(r) for r in cursor.fetchall()]
+
+        report_data = {
+            'total_users': total_users,
+            'new_users_24h': new_users_24h,
+            'active_users_24h': active_users_24h,
+            'banned_users': banned_users,
+            'total_circulation': total_circulation,
+            'total_minted_all_time': total_minted_all_time,
+            'total_spent_all_time': total_spent_all_time,
+            'earned_24h': earned_24h,
+            'spent_24h': spent_24h,
+            'net_emission_24h': earned_24h - spent_24h,
+            'games_24h': games_24h,
+            'games_roulette_24h': games_roulette_24h,
+            'games_boss_24h': games_boss_24h,
+            'games_tower_24h': games_tower_24h,
+            'games_battleship_24h': games_battleship_24h,
+            'games_vladeos_24h': games_vladeos_24h,
+            'games_chips_24h': games_chips_24h,
+            'avg_hollow_level': avg_hollow_level,
+            'hollow_upgrades_24h': hollow_upgrades_24h,
+            'stars_count_24h': stars_count_24h,
+            'stars_amount_24h': stars_amount_24h,
+            'stars_count_total': stars_count_total,
+            'stars_amount_total': stars_amount_total,
+            'users_list': users_rows,
+            'payments_list': payments_rows
+        }
+
+        return report_data, logs_rows
+    finally:
+        conn.close()
+
+
+def format_daily_report_message(data: dict) -> str:
+    """Форматирует краткое текстовое сообщение со сводкой KPI"""
+    msk_tz = timezone(timedelta(hours=3))
+    now_msk = datetime.now(msk_tz).strftime('%d.%m.%Y %H:%M')
+    return (
+        f"🌅 <b>ЕЖЕДНЕВНЫЙ ОТЧЕТ RACCOON LIFE</b>\n"
+        f"📅 <i>{now_msk} МСК (за 24ч)</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👥 <b>ПОЛЬЗОВАТЕЛИ:</b>\n"
+        f"• Всего в игре: <b>{data['total_users']:,}</b>\n"
+        f"• Новых за 24ч: <b>+{data['new_users_24h']:,}</b>\n"
+        f"• Активных за 24ч: <b>{data['active_users_24h']:,}</b>\n"
+        f"• Заблокировано: <b>{data['banned_users']:,}</b>\n\n"
+        f"🎮 <b>ИГРОВАЯ АКТИВНОСТЬ (за 24ч):</b>\n"
+        f"• Всего сыграно игр: <b>{data['games_24h']:,}</b>\n"
+        f"  🎰 Рулетка: <b>{data['games_roulette_24h']:,}</b>\n"
+        f"  👹 Босс Енотов: <b>{data['games_boss_24h']:,}</b> атак\n"
+        f"  🏰 Башня: <b>{data['games_tower_24h']:,}</b> уровней\n"
+        f"  ⚓ Морской Бой: <b>{data['games_battleship_24h']:,}</b>\n"
+        f"  ⚔️ PVP Vladeos: <b>{data['games_vladeos_24h']:,}</b>\n"
+        f"  🎲 Битва фишек / Поиск: <b>{data['games_chips_24h']:,}</b>\n\n"
+        f"🌲 <b>ЭКОНОМИКА ШИШЕК:</b>\n"
+        f"• В обращении (балансы): <b>{data['total_circulation']:,}</b> 🌰\n"
+        f"• Выпущено за 24ч: <b>+{data['earned_24h']:,}</b> 🌰\n"
+        f"• Потрачено за 24ч: <b>-{data['spent_24h']:,}</b> 🌰\n"
+        f"• Чистая эмиссия (24ч): <b>{'+' if data['net_emission_24h'] >= 0 else ''}{data['net_emission_24h']:,}</b> 🌰\n"
+        f"• Выпущено за всё время: <b>{data['total_minted_all_time']:,}</b> 🌰\n"
+        f"• Потрачено за всё время: <b>{data['total_spent_all_time']:,}</b> 🌰\n\n"
+        f"🌳 <b>ДУПЛО И ПРОКАЧКА:</b>\n"
+        f"• Апгрейдов дупла (24ч): <b>{data['hollow_upgrades_24h']:,}</b>\n"
+        f"• Средний уровень дупла: <b>{data['avg_hollow_level']:.1f}</b>\n\n"
+        f"⭐ <b>ДОНАТЫ И ПЛАТЕЖИ:</b>\n"
+        f"• Покупок Stars (24ч): <b>{data['stars_count_24h']:,}</b> ({data['stars_amount_24h']:,} ⭐)\n"
+        f"• Всего платежей: <b>{data['stars_count_total']:,}</b> ({data['stars_amount_total']:,} ⭐)\n\n"
+        f"📎 <i>Подробная детализация и журнал транзакций прикреплены в Excel-файле ниже.</i>"
+    )
+
+
+def generate_report_excel(report_data: dict, logs_rows: list) -> str:
+    """
+    Генерирует Excel файл отчета с форматированием и несколькими вкладками
+    Возвращает путь к созданному файлу .xlsx
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    msk_tz = timezone(timedelta(hours=3))
+    now_msk = datetime.now(msk_tz)
+    date_str = now_msk.strftime('%Y-%m-%d_%H-%M')
+    file_path = str(BOT_DIR / f"Raccoon_Report_{date_str}.xlsx")
+
+    wb = openpyxl.Workbook()
+
+    # Стили
+    header_fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+    header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
+    section_fill = PatternFill(start_color='334155', end_color='334155', fill_type='solid')
+    section_font = Font(name='Calibri', size=11, bold=True, color='F8FAFC')
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # 1. Вкладка "Сводка"
+    ws_summary = wb.active
+    ws_summary.title = "📊 Сводка"
+    ws_summary.views.sheetView[0].showGridLines = True
+
+    ws_summary.append(["ЕЖЕДНЕВНЫЙ ОТЧЕТ RACCOON LIFE", f"Дата: {now_msk.strftime('%d.%m.%Y %H:%M MSK')}"])
+    ws_summary.cell(row=1, column=1).font = Font(name='Calibri', size=14, bold=True, color='1E293B')
+    ws_summary.append([])
+
+    ws_summary.append(["Раздел / Показатель", "Значение (за 24ч)", "Всего / Текущее"])
+    for col_idx in range(1, 4):
+        c = ws_summary.cell(row=3, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    summary_rows = [
+        ("👥 ПОЛЬЗОВАТЕЛИ", "", ""),
+        ("• Всего зарегистрировано", f"+{report_data['new_users_24h']:,}", f"{report_data['total_users']:,}"),
+        ("• Активных игроков (24ч)", f"{report_data['active_users_24h']:,}", "-"),
+        ("• Заблокированных", "-", f"{report_data['banned_users']:,}"),
+        ("🌲 ЭКОНОМИКА ШИШЕК", "", ""),
+        ("• В обращении (сумма балансов)", "-", f"{report_data['total_circulation']:,} 🌰"),
+        ("• Выпущено (начислено)", f"+{report_data['earned_24h']:,} 🌰", f"{report_data['total_minted_all_time']:,} 🌰"),
+        ("• Потрачено (сожжено)", f"-{report_data['spent_24h']:,} 🌰", f"{report_data['total_spent_all_time']:,} 🌰"),
+        ("• Чистая эмиссия за 24ч", f"{'+' if report_data['net_emission_24h'] >= 0 else ''}{report_data['net_emission_24h']:,} 🌰", "-"),
+        ("🎮 ИГРОВАЯ АКТИВНОСТЬ", "", ""),
+        ("• Всего сыграно игр", f"{report_data['games_24h']:,}", "-"),
+        ("  - 🎰 Рулетка", f"{report_data['games_roulette_24h']:,}", "-"),
+        ("  - 👹 Босс Енотов (атак)", f"{report_data['games_boss_24h']:,}", "-"),
+        ("  - 🏰 Башня (пройдено этажей)", f"{report_data['games_tower_24h']:,}", "-"),
+        ("  - ⚓ Морской Бой", f"{report_data['games_battleship_24h']:,}", "-"),
+        ("  - ⚔️ PVP Vladeos", f"{report_data['games_vladeos_24h']:,}", "-"),
+        ("  - 🎲 Битва фишек / Поиск", f"{report_data['games_chips_24h']:,}", "-"),
+        ("🌳 ДУПЛО", "", ""),
+        ("• Апгрейдов дупла за 24ч", f"{report_data['hollow_upgrades_24h']:,}", "-"),
+        ("• Средний уровень дупла", f"{report_data['avg_hollow_level']:.1f}", "-"),
+        ("⭐ МОНЕТИЗАЦИЯ (Telegram Stars)", "", ""),
+        ("• Количество покупок Stars", f"{report_data['stars_count_24h']:,}", f"{report_data['stars_count_total']:,}"),
+        ("• Сумма Stars (XTR)", f"{report_data['stars_amount_24h']:,} ⭐", f"{report_data['stars_amount_total']:,} ⭐"),
+    ]
+
+    for item in summary_rows:
+        ws_summary.append(list(item))
+        current_row = ws_summary.max_row
+        if item[0].startswith(("👥", "🌲", "🎮", "🌳", "⭐")):
+            for c_idx in range(1, 4):
+                cell = ws_summary.cell(row=current_row, column=c_idx)
+                cell.fill = section_fill
+                cell.font = section_font
+        else:
+            for c_idx in range(1, 4):
+                cell = ws_summary.cell(row=current_row, column=c_idx)
+                cell.border = thin_border
+
+    # 2. Вкладка "Транзакции (Экономика)"
+    ws_econ = wb.create_sheet(title="💰 Транзакции")
+    ws_econ.views.sheetView[0].showGridLines = True
+    econ_headers = ["ID", "Дата и время (UTC)", "User ID", "Имя/Username", "Тип", "Причина / Действие", "Сумма (Шишки)", "Баланс после"]
+    ws_econ.append(econ_headers)
+    for col_idx in range(1, len(econ_headers) + 1):
+        c = ws_econ.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for log in logs_rows:
+        if log.get('category') in ['economy', 'hollow', 'payment']:
+            ws_econ.append([
+                log.get('id'),
+                log.get('created_at'),
+                log.get('user_id'),
+                log.get('username') or '',
+                log.get('event_type'),
+                log.get('action_detail'),
+                log.get('amount'),
+                log.get('balance_after')
+            ])
+            curr_row = ws_econ.max_row
+            for c_idx in range(1, len(econ_headers) + 1):
+                ws_econ.cell(row=curr_row, column=c_idx).border = thin_border
+
+    # 3. Вкладка "Игры"
+    ws_games = wb.create_sheet(title="🎮 Игры")
+    ws_games.views.sheetView[0].showGridLines = True
+    games_headers = ["ID", "Дата и время (UTC)", "User ID", "Имя/Username", "Игра", "Действие / Результат", "Очки / Ставка / Урон", "Детали (JSON)"]
+    ws_games.append(games_headers)
+    for col_idx in range(1, len(games_headers) + 1):
+        c = ws_games.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for log in logs_rows:
+        if log.get('category') == 'game':
+            ws_games.append([
+                log.get('id'),
+                log.get('created_at'),
+                log.get('user_id'),
+                log.get('username') or '',
+                log.get('action_detail'),
+                log.get('event_type'),
+                log.get('amount'),
+                log.get('meta_json') or ''
+            ])
+            curr_row = ws_games.max_row
+            for c_idx in range(1, len(games_headers) + 1):
+                ws_games.cell(row=curr_row, column=c_idx).border = thin_border
+
+    # 4. Вкладка "Пользователи"
+    ws_users = wb.create_sheet(title="👥 Пользователи")
+    ws_users.views.sheetView[0].showGridLines = True
+    users_headers = ["User ID", "Username", "Имя", "Текущий баланс", "Всего заработано", "Всего потрачено", "Уровень Дупла", "Дата регистрации", "Последняя активность", "Бан"]
+    ws_users.append(users_headers)
+    for col_idx in range(1, len(users_headers) + 1):
+        c = ws_users.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for u in report_data.get('users_list', []):
+        ws_users.append([
+            u.get('user_id'),
+            u.get('username') or '',
+            u.get('first_name') or '',
+            u.get('balance', 0),
+            u.get('total_earned', 0),
+            u.get('total_spent', 0),
+            u.get('hollow_level', 1),
+            u.get('registered_at') or '',
+            u.get('last_activity') or '',
+            'Да' if u.get('is_banned') else 'Нет'
+        ])
+        curr_row = ws_users.max_row
+        for c_idx in range(1, len(users_headers) + 1):
+            ws_users.cell(row=curr_row, column=c_idx).border = thin_border
+
+    # 5. Вкладка "Платежи"
+    ws_pay = wb.create_sheet(title="⭐ Платежи")
+    ws_pay.views.sheetView[0].showGridLines = True
+    pay_headers = ["Payment ID", "User ID", "Тип", "Сумма (Stars/TON)", "Начислено шишек", "Комментарий", "Дата и время"]
+    ws_pay.append(pay_headers)
+    for col_idx in range(1, len(pay_headers) + 1):
+        c = ws_pay.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    for p in report_data.get('payments_list', []):
+        ws_pay.append([
+            p.get('payment_id'),
+            p.get('user_id'),
+            p.get('payment_type'),
+            p.get('amount'),
+            p.get('cones_amount'),
+            p.get('comment') or '',
+            p.get('created_at')
+        ])
+        curr_row = ws_pay.max_row
+        for c_idx in range(1, len(pay_headers) + 1):
+            ws_pay.cell(row=curr_row, column=c_idx).border = thin_border
+
+    # Автоматическая ширина колонок для всех листов
+    for sheet in wb.worksheets:
+        for col in sheet.columns:
+            max_len = 0
+            for cell in col:
+                val_str = str(cell.value or '')
+                if len(val_str) > max_len and len(val_str) < 50:
+                    max_len = len(val_str)
+            col_letter = get_column_letter(col[0].column)
+            sheet.column_dimensions[col_letter].width = max(max_len + 4, 12)
+
+    wb.save(file_path)
+    return file_path
+
+
+def send_daily_admin_report_sync(chat_id: int = None) -> bool:
+    """Синхронная отправка ежедневного отчета админу через Telegram API"""
+    target_id = chat_id or ADMIN_ID
+    if not target_id or not BOT_TOKEN:
+        logger.warning("⚠️ send_daily_admin_report_sync: ADMIN_ID или BOT_TOKEN не заданы")
+        return False
+
+    try:
+        report_data, logs_rows = get_daily_report_data(hours=24)
+        msg_text = format_daily_report_message(report_data)
+        excel_path = generate_report_excel(report_data, logs_rows)
+
+        # 1. Отправляем текстовую сводку
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={"chat_id": target_id, "text": msg_text, "parse_mode": "HTML"},
+            timeout=20
+        )
+
+        # 2. Отправляем прикрепленный Excel-файл
+        if excel_path and os.path.exists(excel_path):
+            msk_tz = timezone(timedelta(hours=3))
+            today_str = datetime.now(msk_tz).strftime('%d.%m.%Y')
+            with open(excel_path, 'rb') as doc_file:
+                requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument",
+                    data={"chat_id": target_id, "caption": f"📊 Подробный отчет за {today_str} (Логи, Экономика, Игры, Пользователи)"},
+                    files={"document": (os.path.basename(excel_path), doc_file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+                    timeout=35
+                )
+            try:
+                os.remove(excel_path)
+            except Exception:
+                pass
+
+        logger.info(f"✅ Ежедневный отчет успешно отправлен админу {target_id}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Ошибка отправки ежедневного отчета админу: {e}", exc_info=True)
+        return False
+
+
+async def report_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /report или /daily_report: ручная генерация и отправка отчета админу"""
+    if not update.effective_user or update.effective_user.id != ADMIN_ID:
+        return
+
+    await update.message.reply_text("⏳ Формирую подробный отчет и Excel-файл за последние 24 часа...")
+    loop = asyncio.get_running_loop()
+    success = await loop.run_in_executor(None, send_daily_admin_report_sync, update.effective_user.id)
+    if not success:
+        await update.message.reply_text("❌ Произошла ошибка при формировании отчета.")
+
+
+def daily_report_scheduler_thread():
+    """Фоновый планировщик: каждое утро в 06:00 MSK (UTC+3) отправляет отчет админу"""
+    logger.info("⏰ Запущен планировщик ежедневных утренних отчетов (06:00 MSK)")
+    msk_tz = timezone(timedelta(hours=3))
+    
+    while True:
+        try:
+            now_msk = datetime.now(msk_tz)
+            target_today = now_msk.replace(hour=6, minute=0, second=0, microsecond=0)
+            
+            if now_msk >= target_today:
+                target_next = target_today + timedelta(days=1)
+            else:
+                target_next = target_today
+
+            seconds_to_wait = (target_next - now_msk).total_seconds()
+            logger.info(f"⏳ Следующий ежедневный отчет админу: {target_next.strftime('%Y-%m-%d %H:%M:%S MSK')} (через {int(seconds_to_wait // 60)} мин)")
+
+            while seconds_to_wait > 0:
+                sleep_chunk = min(seconds_to_wait, 30)
+                time.sleep(sleep_chunk)
+                now_msk = datetime.now(msk_tz)
+                seconds_to_wait = (target_next - now_msk).total_seconds()
+
+            logger.info("🌅 Наступило 06:00 MSK! Формирование и отправка ежедневного отчета...")
+            send_daily_admin_report_sync()
+
+            # Пауза 60 секунд, чтобы не сработать дважды
+            time.sleep(60)
+        except Exception as e:
+            logger.error(f"❌ Ошибка в daily_report_scheduler_thread: {e}")
+            time.sleep(60)
+
+
 async def post_init(application: Application):
     """Инициализация после запуска бота"""
     if WEBAPP_URL:
@@ -9268,6 +9944,7 @@ async def post_init(application: Application):
             BotCommand('stats', '📊 Моя статистика и профиль'),
             BotCommand('shend', '💸 Передать шишки (в группе)'),
             BotCommand('farsh', '🥩 Разделить шишки между игроками'),
+            BotCommand('report', '📊 Ежедневный отчет (админ)'),
             BotCommand('add', '💰 Начислить шишки (админ)'),
             BotCommand('balance', '💳 Проверить баланс (админ)'),
             BotCommand('spend', '💸 Списать шишки (админ)'),
@@ -9314,6 +9991,11 @@ def main():
     boar_thread.start()
     logger.info("🐗 Boar activity watcher thread started")
 
+    # Запуск фонового планировщика утренних отчетов в 06:00 МСК
+    report_scheduler_thread = Thread(target=daily_report_scheduler_thread, daemon=True)
+    report_scheduler_thread.start()
+    logger.info("📊 Daily report scheduler thread started (06:00 MSK)")
+
     # Проверка наличия BOT_TOKEN
     if not BOT_TOKEN:
         logger.critical("❌ ОШИБКА: BOT_TOKEN не задан! Создайте файл .env (в корне или папке bot) и укажите BOT_TOKEN=ваш_токен_бота")
@@ -9340,6 +10022,8 @@ def main():
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(CommandHandler("shend", shend_tokens_user, filters=filters.ChatType.GROUPS))
     telegram_app.add_handler(CommandHandler("farsh", farsh_command, filters=filters.ChatType.GROUPS))
+    telegram_app.add_handler(CommandHandler("report", report_admin))
+    telegram_app.add_handler(CommandHandler("daily_report", report_admin))
     telegram_app.add_handler(CommandHandler("add", add_tokens_admin))
     # Обработчик для отслеживания активности в чатах, должен идти после команд
     # чтобы не срабатывать на них. group=10 для низкого приоритета.
@@ -9382,3 +10066,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
