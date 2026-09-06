@@ -1070,10 +1070,17 @@
         if (lootDrop) {
           const itemName = currentLang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
           const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
-          amountHtml += `<div style="font-size:0.85rem; color:#ffd700; margin-top:12px; padding:10px 14px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-            <img src="${iconSrc}" style="width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(255,215,0,0.6));" onerror="this.src='images/cone.png'">
+          const rarity = (lootDrop.rarity || 'rare').toLowerCase();
+          const rarityColors = {
+            rare: { border: 'rgba(59,130,246,0.6)', bg: 'rgba(59,130,246,0.15)', glow: 'rgba(59,130,246,0.8)', labelColor: '#93c5fd', badge: currentLang === 'ru' ? 'РАРНЫЙ ТРОФЕЙ' : 'RARE TROPHY' },
+            epic: { border: 'rgba(168,85,247,0.6)', bg: 'rgba(168,85,247,0.15)', glow: 'rgba(168,85,247,0.8)', labelColor: '#e9d5ff', badge: currentLang === 'ru' ? 'ЭПИЧЕСКИЙ ТРОФЕЙ' : 'EPIC TROPHY' },
+            legendary: { border: 'rgba(255,215,0,0.7)', bg: 'rgba(255,215,0,0.18)', glow: 'rgba(255,215,0,0.9)', labelColor: '#ffd700', badge: currentLang === 'ru' ? 'ЛЕГЕНДАРНЫЙ ТРОФЕЙ' : 'LEGENDARY TROPHY' }
+          };
+          const rc = rarityColors[rarity] || rarityColors.rare;
+          amountHtml += `<div style="font-size:0.85rem; color:${rc.labelColor}; margin-top:12px; padding:10px 14px; background:${rc.bg}; border:1.5px solid ${rc.border}; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+            <img src="${iconSrc}" style="width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 0 8px ${rc.glow});" onerror="this.src='images/cone.png'">
             <div style="text-align:left;">
-              <div style="font-size:0.65rem; color:rgba(255,255,255,0.6); text-transform:uppercase; font-weight:800;">${currentLang === 'ru' ? 'Трофей в инвентарь' : 'Inventory Trophy'}</div>
+              <div style="font-size:0.65rem; color:${rc.labelColor}; text-transform:uppercase; font-weight:800;">${rc.badge}</div>
               <div style="font-weight:900; font-size:0.9rem; color:#fff;">🎁 ${itemName}</div>
             </div>
           </div>`;

@@ -2635,6 +2635,20 @@
       gap: 12px;
     }
 
+    .inventory-item-card--rare {
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: linear-gradient(145deg, rgba(30, 58, 138, 0.16), rgba(24, 24, 26, 0.95));
+    }
+    .inventory-item-card--epic {
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      background: linear-gradient(145deg, rgba(126, 34, 206, 0.16), rgba(24, 24, 26, 0.95));
+    }
+    .inventory-item-card--legendary {
+      border: 1.5px solid rgba(234, 179, 8, 0.45);
+      background: linear-gradient(145deg, rgba(180, 83, 9, 0.2), rgba(24, 24, 26, 0.95));
+      box-shadow: 0 4px 20px rgba(234, 179, 8, 0.15);
+    }
+
     .inventory-item-icon-wrap {
       width: 52px;
       height: 52px;
@@ -2648,12 +2662,27 @@
       flex-shrink: 0;
       box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
     }
+    .inventory-item-icon-wrap--rare {
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(59, 130, 246, 0.55);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+    }
+    .inventory-item-icon-wrap--epic {
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(168, 85, 247, 0.55);
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+    }
+    .inventory-item-icon-wrap--legendary {
+      background: radial-gradient(circle, rgba(234, 179, 8, 0.35) 0%, rgba(0, 0, 0, 0.6) 100%);
+      border-color: rgba(251, 191, 36, 0.7);
+      box-shadow: 0 0 18px rgba(234, 179, 8, 0.45);
+    }
 
     .inventory-item-icon {
       width: 40px;
       height: 40px;
       object-fit: contain;
-      filter: drop-shadow(0 0 6px #38bdf8);
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.4));
     }
 
     .inventory-item-badge-qty {
@@ -2696,9 +2725,28 @@
       text-transform: uppercase;
       padding: 2px 6px;
       border-radius: 6px;
-      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
       color: #fff;
       letter-spacing: 0.04em;
+    }
+    .inventory-item-rarity--rare {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      color: #fff;
+      border: 1px solid rgba(96, 165, 250, 0.5);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+    .inventory-item-rarity--epic {
+      background: linear-gradient(135deg, #7e22ce, #a855f7);
+      color: #fff;
+      border: 1px solid rgba(192, 132, 252, 0.5);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+    }
+    .inventory-item-rarity--legendary {
+      background: linear-gradient(135deg, #b45309, #eab308, #fde047);
+      color: #000;
+      font-weight: 900;
+      border: 1px solid rgba(254, 240, 138, 0.7);
+      box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
     }
 
     .inventory-item-desc {
@@ -2727,6 +2775,20 @@
       letter-spacing: 0.03em;
       box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
       transition: all 0.15s ease;
+    }
+    .inventory-item-use-btn--rare {
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+    }
+    .inventory-item-use-btn--epic {
+      background: linear-gradient(135deg, #7e22ce, #c084fc);
+      box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
+    }
+    .inventory-item-use-btn--legendary {
+      background: linear-gradient(135deg, #b45309, #f59e0b, #fbbf24);
+      color: #000;
+      font-weight: 900;
+      box-shadow: 0 4px 12px rgba(234, 179, 8, 0.45);
     }
 
     .inventory-item-use-btn:active {
@@ -6155,7 +6217,12 @@
           return `images/${icon}`;
         };
         const iconSrc = getItemIconPath(item.icon, itemId);
-        const rarity = item.rarity || 'rare';
+        const rarityKey = (item.rarity || 'rare').toLowerCase();
+        const rarityNames = {
+          ru: { rare: 'РАР', epic: 'ЭПИК', legendary: 'ЛЕГЕНДАРНЫЙ', common: 'ОБЫЧНЫЙ' },
+          en: { rare: 'RARE', epic: 'EPIC', legendary: 'LEGENDARY', common: 'COMMON' }
+        };
+        const rarityLabel = (rarityNames[currentLang] && rarityNames[currentLang][rarityKey]) || rarityKey.toUpperCase();
         const currentHollowLvl = hollowState.level || 1;
         const reqMega = (itemId === 'mega_cone') ? (hollowState.upgrade_cost_mega_cones || (currentHollowLvl < 10 ? Math.pow(2, currentHollowLvl - 1) : 0)) : 1;
         const isMaxHollow = itemId === 'mega_cone' && currentHollowLvl >= 10;
@@ -6169,22 +6236,22 @@
         }
 
         return `
-        <div class="inventory-item-card">
+        <div class="inventory-item-card inventory-item-card--${rarityKey}">
           <div class="inventory-item-header">
-            <div class="inventory-item-icon-wrap">
+            <div class="inventory-item-icon-wrap inventory-item-icon-wrap--${rarityKey}">
               <img src="${iconSrc}" class="inventory-item-icon" alt="${name}" onerror="this.src='images/cone.png'">
               <div class="inventory-item-badge-qty">x${item.quantity}</div>
             </div>
             <div class="inventory-item-info">
               <div class="inventory-item-title-row">
                 <span class="inventory-item-title">${name}</span>
-                <span class="inventory-item-rarity">${rarity.toUpperCase()}</span>
+                <span class="inventory-item-rarity inventory-item-rarity--${rarityKey}">${rarityLabel}</span>
               </div>
               <div class="inventory-item-desc">${desc}</div>
             </div>
           </div>
           <div class="inventory-item-actions">
-            <button class="inventory-item-use-btn" ${isUseDisabled ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
+            <button class="inventory-item-use-btn inventory-item-use-btn--${rarityKey}" ${isUseDisabled ? 'disabled' : ''} onclick="useInventoryItem('${itemId}')">
               ${btnText}
             </button>
           </div>
