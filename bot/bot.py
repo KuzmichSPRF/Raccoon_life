@@ -1500,7 +1500,15 @@ def calculate_overall_score(user_data_row: dict) -> dict:
         newspapers_read = 0
     newspapers_points = newspapers_read * 500
 
-    total_score = balance + quests_points + games_points + roulette_bets_points + newspapers_points
+    # 6. Прокачка уровня Дупла (кратно потраченным шишкам: 100,000 * (2^(level-1) - 1))
+    hollow_level = user_data_row.get('hollow_level') or 1
+    try:
+        hollow_level = max(1, min(10, int(hollow_level)))
+    except (ValueError, TypeError):
+        hollow_level = 1
+    hollow_points = int(100000 * (2 ** (hollow_level - 1) - 1)) if hollow_level > 1 else 0
+
+    total_score = balance + quests_points + games_points + roulette_bets_points + newspapers_points + hollow_points
     return {
         'total_score': total_score,
         'balance': balance,
@@ -1508,7 +1516,9 @@ def calculate_overall_score(user_data_row: dict) -> dict:
         'total_games': total_games,
         'roulette_bets': roulette_total_bets,
         'roulette_bets_points': roulette_bets_points,
-        'newspapers_read': newspapers_read
+        'newspapers_read': newspapers_read,
+        'hollow_level': hollow_level,
+        'hollow_points': hollow_points
     }
 
 
@@ -1780,6 +1790,7 @@ def get_overall_leaderboard(limit: int = 10) -> list:
                 COALESCE(us.roulette_cones_lost, 0) as roulette_cones_lost,
                 COALESCE(us.roulette_cones_won, 0) as roulette_cones_won,
                 COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
+                COALESCE(us.hollow_level, 1) as hollow_level,
                 COALESCE(us.quests, '[]') as quests
             FROM users u
             LEFT JOIN user_stats us ON u.user_id = us.user_id
@@ -1802,7 +1813,9 @@ def get_overall_leaderboard(limit: int = 10) -> list:
                 'quests_completed': calc['quests_completed'],
                 'total_games': calc['total_games'],
                 'roulette_bets': calc['roulette_bets'],
-                'newspapers_read': calc['newspapers_read']
+                'newspapers_read': calc['newspapers_read'],
+                'hollow_level': calc.get('hollow_level', 1),
+                'hollow_points': calc.get('hollow_points', 0)
             })
 
         all_players.sort(key=lambda p: (-p['score'], p['user_id']))
@@ -1853,6 +1866,7 @@ def get_user_rank_in_leaderboard(user_id: int, lb_type: str = 'tokens') -> dict:
                     COALESCE(us.roulette_cones_lost, 0) as roulette_cones_lost,
                     COALESCE(us.roulette_cones_won, 0) as roulette_cones_won,
                     COALESCE(us.roulette_total_bets, 0) as roulette_total_bets,
+                    COALESCE(us.hollow_level, 1) as hollow_level,
                     COALESCE(us.quests, '[]') as quests
                 FROM users u
                 LEFT JOIN user_stats us ON u.user_id = us.user_id
@@ -1874,7 +1888,9 @@ def get_user_rank_in_leaderboard(user_id: int, lb_type: str = 'tokens') -> dict:
                     'quests_completed': calc['quests_completed'],
                     'total_games': calc['total_games'],
                     'roulette_bets': calc['roulette_bets'],
-                    'newspapers_read': calc['newspapers_read']
+                    'newspapers_read': calc['newspapers_read'],
+                    'hollow_level': calc.get('hollow_level', 1),
+                    'hollow_points': calc.get('hollow_points', 0)
                 }
                 all_players.append(p_data)
                 if r['user_id'] == user_id:
@@ -8782,6 +8798,7 @@ def get_full_user_profile_admin(identifier: str) -> dict:
             'roulette_games': stats_row['roulette_games'] if stats_row else 0,
             'roulette_total_bets': stats_row['roulette_total_bets'] if stats_row and 'roulette_total_bets' in stats_row.keys() else 0,
             'roulette_cones_lost': stats_row['roulette_cones_lost'] if stats_row else 0,
+            'hollow_level': stats_row['hollow_level'] if stats_row and 'hollow_level' in stats_row.keys() else 1,
             'quests': stats_row['quests'] if stats_row else '[]'
         }
         score_info = calculate_overall_score(combined_row)

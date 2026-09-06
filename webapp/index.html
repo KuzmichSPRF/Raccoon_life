@@ -4863,6 +4863,7 @@
         profile_view_full: "Подробное досье",
         overall_score_title: "Общий рейтинг",
         overall_score_breakdown: "Детализация общего рейтинга",
+        hollow_title: "Дупло",
         economy_stats: "Экономика шишек",
         minigames_stats: "Мини-игры",
         quests_and_community: "Квесты и активность",
@@ -5093,6 +5094,7 @@
         profile_view_full: "Detailed dossier",
         overall_score_title: "Overall Score",
         overall_score_breakdown: "Overall Score Breakdown",
+        hollow_title: "Hollow",
         economy_stats: "Pinecone Economy",
         minigames_stats: "Mini-games",
         quests_and_community: "Quests & Activity",
@@ -5413,7 +5415,11 @@
       const newspapersRead = completed.filter(id => typeof id === 'string' && (id.startsWith('news_') || id.startsWith('caps_news'))).length;
       const newspapersPoints = newspapersRead * 500;
 
-      return balance + questsPoints + gamesPoints + rouletteBets + newspapersPoints;
+      // 6. Прокачка уровня Дупла (кратно потраченным шишкам: 100,000 * (2^(level-1) - 1))
+      const hollowLvl = Math.max(1, Math.min(10, parseInt(hollowState.level || stats.hollow_level || 1, 10)));
+      const hollowPoints = hollowLvl > 1 ? Math.floor(100000 * (Math.pow(2, hollowLvl - 1) - 1)) : 0;
+
+      return balance + questsPoints + gamesPoints + rouletteBets + newspapersPoints + hollowPoints;
     }
 
     function formatOverallScore(score) {
@@ -7681,6 +7687,10 @@
 
       const clownWR = clownGames > 0 ? ((clownWins / clownGames) * 100).toFixed(0) : '0';
       const vladeosWR = vladeosGames > 0 ? ((vladeosWins / vladeosGames) * 100).toFixed(0) : '0';
+      const hollowLvl = Math.max(1, Math.min(10, parseInt(hollowState.level || stats.hollow_level || profileData?.score_info?.hollow_level || 1, 10)));
+      const hollowPoints = profileData?.score_info?.hollow_points !== undefined
+        ? profileData.score_info.hollow_points
+        : (hollowLvl > 1 ? Math.floor(100000 * (Math.pow(2, hollowLvl - 1) - 1)) : 0);
 
       const avatarHtml = user.photo_url
         ? `<img src="${user.photo_url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-gold);" alt="Avatar">`
@@ -7716,8 +7726,12 @@
             <div class="profile-chip-val" style="color: #ffd700;">+${balance.toLocaleString('ru-RU')}</div>
           </div>
           <div class="profile-chip">
+            <div class="profile-chip-title">🌳 ${i18n[currentLang].hollow_title || 'Дупло'} (Ур. ${hollowLvl})</div>
+            <div class="profile-chip-val" style="color: #00ff88;">+${hollowPoints.toLocaleString('ru-RU')}</div>
+          </div>
+          <div class="profile-chip">
             <div class="profile-chip-title">📜 ${i18n[currentLang].menu_quests || 'Квесты'} (x10K)</div>
-            <div class="profile-chip-val" style="color: #00ff88;">+${(questsCompleted * 10000).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${qt2Done}/7)</span></div>
+            <div class="profile-chip-val" style="color: #38bdf8;">+${(questsCompleted * 10000).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${qt2Done}/7)</span></div>
           </div>
           <div class="profile-chip">
             <div class="profile-chip-title">🎮 ${i18n[currentLang].menu_games || 'Игры'} (x100)</div>
@@ -7727,10 +7741,10 @@
             <div class="profile-chip-title">🎰 ${i18n[currentLang].game_roulette || 'Рулетка'} (x0.5)</div>
             <div class="profile-chip-val" style="color: #ffaa00;">+${roulettePoints.toLocaleString('ru-RU')}</div>
           </div>
-        </div>
-        <div class="profile-chip" style="margin-top: 6px; text-align: left;">
-          <div class="profile-chip-title">📰 ${i18n[currentLang].menu_news || 'Газеты'} (x500)</div>
-          <div class="profile-chip-val" style="color: #bb86fc;">+${(newspapersRead * 500).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${newspapersRead} вып.)</span></div>
+          <div class="profile-chip">
+            <div class="profile-chip-title">📰 ${i18n[currentLang].menu_news || 'Газеты'} (x500)</div>
+            <div class="profile-chip-val" style="color: #bb86fc;">+${(newspapersRead * 500).toLocaleString('ru-RU')} <span style="font-size:0.68rem; color:#888;">(${newspapersRead} вып.)</span></div>
+          </div>
         </div>
       </div>
 
