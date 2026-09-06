@@ -3,7 +3,11 @@ users.db
 venv/
 __pycache__/   
 *.pyc
+# Секреты и токены авторизации
 .env
-.DS_Store
-# Загруженные пользователями изображения сетов — хранятся в БД как BLOB, в git не нужны
-webapp/images/sets/*/
+*.env
+*service_account*.json
+*credentials*.json
+*token*.json
+client_secret*.json
+

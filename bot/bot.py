@@ -9943,34 +9943,92 @@ def create_safe_db_backup(db_source_path=None) -> tuple[str, str, int]:
     return zip_path, zip_filename, file_size
 
 
+def get_gdrive_credentials():
+    """
+    Получает учетные данные Google Drive:
+    1. Проверяет OAuth2 токен пользователя (token.json) - дает полный доступ к личному диску.
+    2. Проверяет Service Account (service_account.json) - для Общих дисков (Shared Drive).
+    """
+    from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    
+    scopes = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
+    
+    # 1. Проверяем OAuth2 токен (token.json или env GDRIVE_TOKEN_JSON)
+    token_candidates = [
+        os.getenv("GDRIVE_TOKEN_PATH"),
+        str(BOT_DIR / "token.json"),
+        str(PROJECT_DIR / "token.json"),
+        str(Path.home() / "Downloads" / "token.json")
+    ]
+    
+    token_json_env = os.getenv("GDRIVE_TOKEN_JSON")
+    if token_json_env:
+        try:
+            info = json.loads(token_json_env)
+            creds = Credentials.from_authorized_user_info(info, scopes)
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            return creds, "oauth_token"
+        except Exception as e:
+            logger.warning(f"Ошибка чтения GDRIVE_TOKEN_JSON: {e}")
+
+    for p in token_candidates:
+        if p and os.path.exists(p):
+            try:
+                creds = Credentials.from_authorized_user_file(p, scopes)
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                    with open(p, 'w', encoding='utf-8') as tf:
+                        tf.write(creds.to_json())
+                return creds, "oauth_token"
+            except Exception as e:
+                logger.warning(f"Ошибка загрузки OAuth token из {p}: {e}")
+
+    # 2. Проверяем Service Account (service_account.json или env GDRIVE_SERVICE_ACCOUNT_JSON)
+    sa_candidates = [
+        GDRIVE_SERVICE_ACCOUNT_PATH,
+        str(BOT_DIR / "service_account.json"),
+        str(PROJECT_DIR / "service_account.json"),
+        str(Path.home() / "Downloads" / "service_account.json")
+    ]
+    
+    sa_json_env = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
+    if sa_json_env:
+        try:
+            info = json.loads(sa_json_env)
+            creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
+            return creds, "service_account"
+        except Exception as e:
+            logger.warning(f"Ошибка чтения GDRIVE_SERVICE_ACCOUNT_JSON: {e}")
+
+    for p in sa_candidates:
+        if p and os.path.exists(p):
+            try:
+                creds = service_account.Credentials.from_service_account_file(p, scopes=scopes)
+                return creds, "service_account"
+            except Exception as e:
+                logger.warning(f"Ошибка загрузки Service Account из {p}: {e}")
+
+    return None, "none"
+
+
 def upload_backup_to_gdrive(zip_file_path: str, filename: str, folder_id: str = GDRIVE_FOLDER_ID) -> dict:
     """
-    Загружает файл архива в закрытую папку Google Drive через Service Account.
+    Загружает файл архива в папку Google Drive через OAuth токен или Service Account.
     """
     try:
-        from google.oauth2 import service_account
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
         
-        creds = None
-        service_account_json_env = os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON")
+        creds, auth_type = get_gdrive_credentials()
         
-        if service_account_json_env:
-            info = json.loads(service_account_json_env)
-            creds = service_account.Credentials.from_service_account_info(
-                info,
-                scopes=['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
-            )
-        elif os.path.exists(GDRIVE_SERVICE_ACCOUNT_PATH):
-            creds = service_account.Credentials.from_service_account_file(
-                GDRIVE_SERVICE_ACCOUNT_PATH,
-                scopes=['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
-            )
-        else:
+        if not creds:
             return {
                 "success": False,
                 "error": "not_configured",
-                "message": f"Файл сервисного аккаунта не найден по пути: {GDRIVE_SERVICE_ACCOUNT_PATH}. Подробнее в GDRIVE_BACKUP_SETUP.md"
+                "message": "Файл учетных данных не найден. Подробнее в GDRIVE_BACKUP_SETUP.md"
             }
             
         drive_service = build('drive', 'v3', credentials=creds, cache_discovery=False)
@@ -9984,6 +10042,7 @@ def upload_backup_to_gdrive(zip_file_path: str, filename: str, folder_id: str = 
         uploaded_file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
+            supportsAllDrives=True,
             fields='id, name, webViewLink, webContentLink, size'
         ).execute()
         
@@ -9995,12 +10054,22 @@ def upload_backup_to_gdrive(zip_file_path: str, filename: str, folder_id: str = 
             "filename": filename
         }
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки бекапа на Google Drive: {e}", exc_info=True)
+        err_msg = str(e)
+        logger.error(f"❌ Ошибка загрузки бекапа на Google Drive: {err_msg}", exc_info=True)
+        
+        if "storageQuotaExceeded" in err_msg or "Service Accounts do not have storage quota" in err_msg:
+            return {
+                "success": False,
+                "error": "storage_quota_exceeded",
+                "message": "Google запрещает загрузку сервисным аккаунтам на личные диски (квота 0 МБ). Запустите 'python authorize_gdrive.py' для привязки вашего Google-аккаунта."
+            }
+            
         return {
             "success": False,
             "error": "upload_failed",
-            "message": str(e)
+            "message": err_msg
         }
+
 
 
 def execute_full_backup(send_to_telegram: bool = True, chat_id: int = None) -> dict:
