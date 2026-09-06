@@ -4772,7 +4772,13 @@
 
     <!-- Rating Screen -->
     <div id="rating-screen" class="screen">
-      <h2 class="section-title" style="text-align: center; margin-bottom: 10px;" data-i18n="menu_rating">Рейтинг</h2>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <h2 class="section-title" style="margin-bottom: 0;" data-i18n="menu_rating">Рейтинг</h2>
+        <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary"
+          style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
+          🏠 <span data-i18n="btn_home">Домой</span>
+        </button>
+      </div>
       <div class="rating-tabs">
         <button class="rating-tab active" id="tab-overall"
           onclick="loadLeaderboard('overall'); triggerHaptic('selection');" data-i18n="tab_overall">Общий</button>
@@ -4809,6 +4815,10 @@
     <div id="shop-screen" class="screen">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <h2 class="section-title" data-i18n="menu_shop">Рынок</h2>
+        <button onclick="handleBack(); triggerHaptic('light');" class="button button-type-secondary"
+          style="padding: 6px 12px; font-size: 11px; border-radius: 10px;">
+          🏠 <span data-i18n="btn_home">Домой</span>
+        </button>
       </div>
       <div id="shop-list" style="padding-bottom: 28px;"></div>
     </div>
@@ -4940,6 +4950,7 @@
         nav_home: "Дом",
         btn_sync: "Синхр.",
         btn_back: "Назад",
+        btn_home: "Домой",
         badge_profile: "Профиль",
         badge_completed: "Пройдено",
         badge_available: "Доступно",
@@ -5188,6 +5199,7 @@
         nav_home: "Home",
         btn_sync: "Sync",
         btn_back: "Back",
+        btn_home: "Home",
         badge_profile: "Profile",
         badge_completed: "Completed",
         badge_available: "Available",
