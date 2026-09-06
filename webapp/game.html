@@ -629,7 +629,7 @@
       <span class="cost-pill">80 NRG</span>
     </button>
     <button class="btn-cookie-row" id="btn-cookie" onclick="buyCookie()">
-      <span>🍪 Восстановить 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)</span>
+      <span>🍪 Восстановить 100 HP (500 <img src="images/cone.png" class="cone-icon" alt="🌰">)</span>
     </button>
   </div>
 
@@ -755,7 +755,7 @@
         modeTitle: "БИТВА ФИШЕК",
         msgStart: "Твой ход, Енот! Выбирай прием.", enL: "Энергия", rac: "Енот", clo: "Клоун-Бунтарь",
         btnA: "🥊 Обычный удар", btnS1: "🗑️ Мусорный залп", btnS2: "🥨 Перекус", btnS3: "🔥 Ярость Енота (УЛЬТА)",
-        btnC: '🍪 Восстановить 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
+        btnC: '🍪 Восстановить 100 HP (500 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Битва началась...",
         victory: "Победа!", defeat: "Поражение!", cont: "Продолжить", playAgain: "Сыграть ещё"
       },
@@ -763,7 +763,7 @@
         modeTitle: "CAPS BATTLE",
         msgStart: "Your turn, Raccoon! Choose an action.", enL: "Energy", rac: "Raccoon", clo: "Rebel Clown",
         btnA: "🥊 Basic Strike", btnS1: "🗑️ Trash Volley", btnS2: "🥨 Quick Snack", btnS3: "🔥 Raccoon Rage (ULT)",
-        btnC: '🍪 Restore 100 HP (100 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
+        btnC: '🍪 Restore 100 HP (500 <img src="images/cone.png" class="cone-icon" alt="🌰">)',
         logSt: "Battle started...",
         victory: "Victory!", defeat: "Defeat!", cont: "Continue", playAgain: "Play Again"
       }
@@ -1051,7 +1051,7 @@
         body: JSON.stringify({
           type: 'spend_tokens',
           userId: userId,
-          amount: 100,
+          amount: 500,
           reason: 'cookie_heal'
         })
       })

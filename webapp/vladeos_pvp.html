@@ -379,44 +379,73 @@
     .anim-left { animation: clashLeft 0.4s ease-in-out; }
     .anim-right { animation: clashRight 0.4s ease-in-out; }
 
-    /* Popup */
-    .reward-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-    .reward-popup {
-      background: var(--card-bg);
-      border-radius: 24px;
-      padding: 28px 24px;
-      text-align: center;
-      border: 1px solid rgba(255, 215, 0, 0.4);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.8);
-      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    /* Inline Battle Result Panel */
+    .battle-result-panel {
       width: 100%;
       max-width: 320px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 18px 16px;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      margin-top: 4px;
     }
-    @keyframes popIn {
-      from { transform: scale(0.85); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+    .battle-result-panel.defeat {
+      border-color: rgba(255, 59, 48, 0.45);
     }
-    .reward-icon { font-size: 3.2rem; margin-bottom: 6px; }
-    .reward-text { font-size: 1.3rem; font-weight: 800; color: #ffd700; margin-bottom: 4px; }
-    .reward-amount {
-      font-size: 1.6rem;
+    @keyframes slideUp {
+      from { transform: translateY(16px) scale(0.96); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .result-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .result-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+    .result-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #ffd700;
+      letter-spacing: -0.3px;
+    }
+    .battle-result-panel.defeat .result-title {
+      color: var(--accent);
+    }
+    .result-breakdown {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 7px 14px;
+      border-radius: 12px;
+      margin: 6px 0 10px;
+      border: var(--border-subtle);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .result-reward {
+      font-size: 1.45rem;
       font-weight: 900;
       color: #ffd700;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .cone-icon {
       width: 1.15em;
@@ -425,19 +454,28 @@
       object-fit: contain;
       filter: drop-shadow(0 0 4px rgba(255, 180, 0, 0.6));
     }
-    .btn-continue {
+    .result-loot {
       width: 100%;
-      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .btn-rematch {
+      width: 100%;
+      padding: 13px;
       background: linear-gradient(180deg, #FF3B30 0%, #E53935 100%);
       box-shadow: 0 4px 16px rgba(229, 57, 53, 0.45);
       color: white;
       border: none;
       border-radius: 14px;
-      font-weight: 800;
+      font-weight: 900;
       font-size: 0.95rem;
       cursor: pointer;
       text-transform: uppercase;
       font-family: inherit;
+      letter-spacing: 0.3px;
+      transition: transform 0.15s;
+    }
+    .btn-rematch:active {
+      transform: scale(0.96);
     }
   </style>
 </head>
@@ -497,15 +535,16 @@
     <button class="btn btn-diamond" onclick="tryPlay('diamond')">💎 Diamond</button>
   </div>
 
-  <!-- Reward Popup -->
-  <div class="reward-overlay" id="reward-overlay">
-    <div class="reward-popup" id="reward-popup">
-      <div class="reward-icon" id="popup-icon">🎉</div>
-      <div class="reward-text" id="popup-title">Победа!</div>
-      <div id="popup-breakdown" class="score-breakdown"></div>
-      <div class="reward-amount" id="popup-amount">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
-      <button class="btn-continue" id="popup-btn" onclick="continueGame()">Продолжить</button>
+  <!-- Inline Battle Result Panel (Same Window) -->
+  <div id="battle-result-panel" class="battle-result-panel hidden">
+    <div class="result-badge-row">
+      <span class="result-icon" id="res-icon">🎉</span>
+      <span class="result-title" id="res-title">Победа!</span>
     </div>
+    <div id="res-breakdown" class="result-breakdown"></div>
+    <div id="res-reward" class="result-reward">+100 <img src="images/cone.png" class="cone-icon" alt="🌰"></div>
+    <div id="res-loot" class="result-loot hidden"></div>
+    <button class="btn-rematch" id="res-btn" onclick="resetGame()">Сыграть ещё</button>
   </div>
 
   <script>
@@ -593,7 +632,9 @@
         lose: "Vladeos победил! 🏆",
         victoryTitle: "Победа!",
         defeatTitle: "Поражение!",
-        btnCont: "Продолжить",
+        playAgain: "Сыграть ещё",
+        you: "Вы",
+        trophyBadge: "Трофей в инвентарь",
         insults: [
           "Не солидно...", "Ставка слабовата!", "Я играю только по-крупному.", "Смешно. Давай Diamond.", "У меня нет времени на мелочь."
         ]
@@ -605,7 +646,9 @@
         lose: "Vladeos won! 🏆",
         victoryTitle: "Victory!",
         defeatTitle: "Defeat!",
-        btnCont: "Continue",
+        playAgain: "Play Again",
+        you: "You",
+        trophyBadge: "Inventory Trophy",
         insults: [
           "Not cool...", "Too weak bet!", "I play big only.", "Funny. Give me Diamond.", "No time for pennies."
         ]
@@ -620,14 +663,17 @@
     const pScore = document.getElementById('p-score');
     const vScore = document.getElementById('v-score');
     const gradeSelection = document.getElementById('grade-selection');
+    const resultPanel = document.getElementById('battle-result-panel');
 
     function applyLang(selectedLang) {
       lang = selectedLang || 'ru';
       t = translations[lang] || translations.ru;
       insults = t.insults;
-      if (msg) msg.innerText = t.msgStart;
-      const popupBtn = document.getElementById('popup-btn');
-      if (popupBtn) popupBtn.innerText = t.btnCont;
+      if (msg && !gradeSelection.classList.contains('hidden')) {
+        msg.innerText = t.msgStart;
+      }
+      const resBtn = document.getElementById('res-btn');
+      if (resBtn) resBtn.innerText = t.playAgain;
     }
 
     function openChipZoom(imgSrc, title, subtitle, glowColor, borderColor) {
@@ -773,8 +819,10 @@
       triggerHaptic('heavy');
       playSfx('clash');
       gradeSelection.classList.add('hidden');
+      resultPanel.classList.add('hidden');
 
       msg.innerText = lang === 'ru' ? "БИТВА!" : "BATTLE!";
+      msg.style.color = 'var(--text-main)';
 
       pCap.classList.add('anim-left');
       vCap.classList.add('anim-right');
@@ -819,9 +867,7 @@
           if (data.loot_drop) {
             try { window.parent.postMessage({ type: 'loot_dropped', item: data.loot_drop }, '*'); } catch(e) {}
           }
-          setTimeout(() => {
-            showPopupResult(true, 100, data.loot_drop, pScoreVal, vScoreVal);
-          }, 1800);
+          showInlineResult(true, 100, data.loot_drop, pScoreVal, vScoreVal);
         } else {
           triggerHaptic('error');
           msg.innerText = lang === 'ru' ? "Vladeos победил! 🏆" : "Vladeos won! 🏆";
@@ -829,68 +875,66 @@
           pScore.className = 'score visible loser';
           vScore.className = 'score visible winner-vladeos';
           window.parent.postMessage({ type: 'game_complete', game: 'vladeos', win: false }, '*');
-          setTimeout(() => {
-            showPopupResult(false, 0, null, pScoreVal, vScoreVal);
-          }, 1800);
+          showInlineResult(false, 0, null, pScoreVal, vScoreVal);
         }
       } catch(e) {
         msg.innerText = lang === 'ru' ? "❌ Ошибка соединения!" : "❌ Connection error!";
+        gradeSelection.classList.remove('hidden');
       }
     }
     
-    function showPopupResult(isWin, amount, lootDrop, pScoreVal, vScoreVal) {
-      const overlay = document.getElementById('reward-overlay');
-      const popup = document.getElementById('reward-popup');
-      const icon = document.getElementById('popup-icon');
-      const title = document.getElementById('popup-title');
-      const breakdownEl = document.getElementById('popup-breakdown');
-      const amountEl = document.getElementById('popup-amount');
-      const btn = document.getElementById('popup-btn');
+    function showInlineResult(isWin, amount, lootDrop, pScoreVal, vScoreVal) {
+      const panel = document.getElementById('battle-result-panel');
+      const icon = document.getElementById('res-icon');
+      const title = document.getElementById('res-title');
+      const breakdownEl = document.getElementById('res-breakdown');
+      const rewardEl = document.getElementById('res-reward');
+      const lootEl = document.getElementById('res-loot');
+      const btn = document.getElementById('res-btn');
       
       if (breakdownEl) {
-        breakdownEl.innerHTML = `<span>${lang === 'ru' ? 'Вы' : 'You'}: <b style="color:#33BD1C">${pScoreVal || 0}</b></span> <span style="color:rgba(255,255,255,0.3)">|</span> <span>Vladeos: <b style="color:#c084fc">${vScoreVal || 0}</b></span>`;
+        breakdownEl.innerHTML = `<span>${t.you}: <b style="color:#33BD1C">${pScoreVal || 0}</b></span> <span style="color:rgba(255,255,255,0.3)">|</span> <span>Vladeos: <b style="color:#c084fc">${vScoreVal || 0}</b></span>`;
       }
 
       if (isWin) {
+        panel.classList.remove('defeat');
         icon.innerText = '🎉';
         title.innerText = t.victoryTitle;
-        title.style.color = '#ffd700';
-        amountEl.style.display = 'flex';
-        let amountHtml = `+${amount} <img src="images/cone.png" class="cone-icon" alt="🌰">`;
+        rewardEl.style.display = 'flex';
+        rewardEl.innerHTML = `+${amount} <img src="images/cone.png" class="cone-icon" alt="🌰">`;
+
         if (lootDrop) {
           const itemName = lang === 'ru' ? (lootDrop.name_ru || lootDrop.id) : (lootDrop.name_en || lootDrop.id);
           const iconSrc = lootDrop.icon ? (lootDrop.icon.startsWith('images/') ? lootDrop.icon : `images/${lootDrop.icon}`) : 'images/cone.png';
-          amountHtml += `<div style="font-size:0.85rem; color:#ffd700; margin-top:12px; padding:10px 14px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
-            <img src="${iconSrc}" style="width:32px; height:32px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(255,215,0,0.6));" onerror="this.src='images/cone.png'">
+          lootEl.innerHTML = `<div style="font-size:0.85rem; color:#ffd700; padding:10px 14px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+            <img src="${iconSrc}" style="width:30px; height:30px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(255,215,0,0.6));" onerror="this.src='images/cone.png'">
             <div style="text-align:left;">
-              <div style="font-size:0.65rem; color:rgba(255,255,255,0.6); text-transform:uppercase; font-weight:800;">${lang === 'ru' ? 'Трофей в инвентарь' : 'Inventory Trophy'}</div>
-              <div style="font-weight:900; font-size:0.9rem; color:#fff;">🎁 ${itemName}</div>
+              <div style="font-size:0.62rem; color:rgba(255,255,255,0.6); text-transform:uppercase; font-weight:800;">${t.trophyBadge}</div>
+              <div style="font-weight:900; font-size:0.88rem; color:#fff;">🎁 ${itemName}</div>
             </div>
           </div>`;
+          lootEl.classList.remove('hidden');
+        } else {
+          lootEl.classList.add('hidden');
         }
-        amountEl.innerHTML = amountHtml;
-        popup.style.borderColor = '#ffd700';
-        btn.innerText = t.btnCont;
       } else {
+        panel.classList.add('defeat');
         icon.innerText = '💀';
         title.innerText = t.defeatTitle;
-        title.style.color = 'var(--accent)';
-        amountEl.style.display = 'none';
-        popup.style.borderColor = 'var(--accent)';
-        btn.innerText = lang === 'ru' ? 'Сыграть ещё' : 'Play Again';
+        rewardEl.style.display = 'none';
+        lootEl.classList.add('hidden');
       }
-      
-      overlay.style.display = 'flex';
-    }
-    
-    function continueGame() {
-      document.getElementById('reward-overlay').style.display = 'none';
-      resetGame();
+
+      btn.innerText = t.playAgain;
+      panel.classList.remove('hidden');
     }
 
     function resetGame() {
+      playSfx('tap');
+      triggerHaptic('light');
       pScore.className = 'score';
       vScore.className = 'score';
+      resultPanel.classList.add('hidden');
       gradeSelection.classList.remove('hidden');
       msg.innerText = t.msgStart;
       msg.style.color = 'var(--text-main)';
