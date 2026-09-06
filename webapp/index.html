@@ -607,6 +607,23 @@
       box-shadow: 0 0 8px rgba(233, 30, 99, 0.75);
     }
 
+    .offer-badge__timer--mega {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      color: #000000;
+      font-weight: 900;
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.85);
+    }
+
+    .offer-badge--mega {
+      border-color: rgba(0, 242, 254, 0.5);
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(24, 24, 26, 0.92));
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+    }
+
+    .offer-badge--mega:active {
+      border-color: #00f2fe;
+    }
+
     .offer-badge--stars {
       border-color: rgba(255, 215, 0, 0.4);
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(24, 24, 26, 0.88));
@@ -662,6 +679,11 @@
       justify-content: center;
       width: 16px;
       height: 16px;
+    }
+
+    .offer-sub-badge--mega {
+      border-color: #00f2fe;
+      box-shadow: 0 0 8px rgba(0, 242, 254, 0.85);
     }
 
     .offer-sub-badge--stars {
@@ -4017,6 +4039,76 @@
       </div>
     </div>
 
+    <!-- Offer Mega: 10.0 GRAM -> 7 Mega Cones (+3 Hollow Levels) -->
+    <div id="offer-modal-pack_mega" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_mega')">
+      <div class="tutorial-modal"
+        style="width: 90%; max-width: 390px; max-height: 90vh; overflow-y: auto; position: relative; padding: 20px 16px; border: 1px solid rgba(0, 242, 254, 0.55); background: linear-gradient(180deg, #101c26 0%, #121214 100%);">
+        <div class="bottom-sheet__divider-wrap" style="padding: 0 0 8px 0; cursor: pointer;" onclick="closeOfferModal('pack_mega')">
+          <div class="bottom-sheet__divider" style="background: rgba(0, 242, 254, 0.45);"></div>
+        </div>
+        <button class="close-modal-btn" onclick="closeOfferModal('pack_mega')">✕</button>
+
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; justify-content: center; padding-left: 28px; padding-right: 28px; box-sizing: border-box;">
+          <span style="font-size: 1.4rem; flex-shrink: 0;">🌟</span>
+          <h3 class="tutorial-title" style="margin: 0; font-size: 1.15rem; color: #00f2fe; padding: 0;" data-i18n="pack_mega_title">Пакет «7 Мегашишек»</h3>
+        </div>
+
+        <div
+          style="background: radial-gradient(circle at center, rgba(0, 242, 254, 0.18), rgba(0, 0, 0, 0.4)); border: 1px solid rgba(0, 242, 254, 0.4); border-radius: 16px; padding: 12px; margin-bottom: 12px; position: relative; overflow: hidden;">
+          <div
+            style="position: absolute; top: 18px; right: 18px; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #000; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 6px; z-index: 2; box-shadow: 0 2px 8px rgba(0,242,254,0.5);">
+            🌟 +3 УРОВНЯ ДУПЛА</div>
+          <div
+            style="width: 100%; height: 140px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(0,242,254,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+            <img src="images/offer_mega_cones.jpg" alt="Пакет 7 Мегашишек"
+              style="width: 100%; height: 100%; object-fit: cover; display: block;">
+          </div>
+          <div
+            style="font-size: 1.35rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(0,242,254,0.5); display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>+7 Мегашишек</span> <img src="images/mega_cone.png" style="width: 24px; height: 24px; object-fit: contain;"
+              alt="🌟" onerror="this.src='images/cone.png'">
+          </div>
+          <div style="font-size: 0.85rem; color: #00f2fe; font-weight: 700; margin-top: 4px;">
+            Стоимость: 10.0 GRAM
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;">
+            Легендарный запас из 7 Мегашишек! Этого количества гарантированно хватает на моментальную прокачку <b>+3 уровней вашего Дупла</b> (1 + 2 + 4 = 7) и колоссальное увеличение пассивной добычи!
+          </div>
+        </div>
+
+        <!-- Recipient Address Info -->
+        <div
+          style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 242, 254, 0.3); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; text-align: left;">
+          <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 2px;">Кошелёк получателя GRAM:
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <div
+              style="font-family: monospace; font-size: 0.72rem; color: #00ff88; font-weight: 700; word-break: break-all;">
+              UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX</div>
+            <button class="button button-type-secondary"
+              style="padding: 3px 6px; font-size: 0.68rem; border-radius: 6px; flex-shrink: 0;"
+              onclick="copyTonOfferAddress('pack_mega')">📋</button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="buy-ton-btn-pack_mega" class="button button-type-primary"
+            style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #00f2fe, #0088cc); color: #000; border: none; box-shadow: 0 4px 14px rgba(0, 242, 254, 0.4);"
+            onclick="payTonOffer('pack_mega')">
+            💎 Оплатить 10.0 GRAM
+          </button>
+          <button class="button button-type-secondary"
+            style="width: 100%; padding: 9px; font-size: 0.8rem; border-radius: 10px;"
+            onclick="openTonkeeperOffer('pack_mega')">
+            📲 Оплатить через Tonkeeper / @wallet
+          </button>
+        </div>
+        <div id="ton-status-msg-pack_mega" style="margin-top: 8px; font-size: 0.8rem; color: #aaa; min-height: 16px;">
+        </div>
+      </div>
+    </div>
+
     <!-- Offer 2: 2.0 TON -> 20k (Пакет «Старт») -->
     <div id="offer-modal-pack_02" class="tutorial-overlay" onclick="if(event.target===this) closeOfferModal('pack_02')">
       <div class="tutorial-modal"
@@ -4396,6 +4488,19 @@
       <div class="home__bottom-container">
         <!-- Left Column Badges (Exclusively Offer Shortcuts) -->
         <div class="home__bottom-left-column">
+          <!-- Offer Mega: 10.0 GRAM -> 7 Mega Cones (+3 Hollow Levels) -->
+          <button class="offer-badge offer-badge--mega" onclick="openOfferModal('pack_mega'); triggerHaptic('light');"
+            title="7 Мегашишек (+3 Уровня Дупла) за 10.0 GRAM">
+            <div class="offer-badge__timer offer-badge__timer--mega">10 GRAM</div>
+            <div class="offer-icon-combo">
+              <img src="images/mega_cone.png" class="offer-cone-img" alt="🌟" onerror="this.src='images/cone.png'">
+              <span class="offer-sub-badge offer-sub-badge--mega">🌟</span>
+            </div>
+            <div class="offer-badge__label"
+              style="color: #00f2fe; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px;">
+              7x <img src="images/mega_cone.png" style="width: 10px; height: 10px; vertical-align: middle;" alt="🌟" onerror="this.src='images/cone.png'"></div>
+          </button>
+
           <!-- Offer 1: 100 Stars -> 10k -->
           <button class="offer-badge offer-badge--stars" onclick="openOfferModal('stars'); triggerHaptic('light');"
             title="10,000 Шишек за 100 Звёзд" data-i18n-title="stars_offer_tooltip">
@@ -4946,6 +5051,8 @@
         ton_wallet_dest: "Получатель GRAM (официальный кошелёк):",
         btn_pay_tonkeeper: "Оплатить через Tonkeeper / @wallet",
         btn_copy_ton_details: "Скопировать адрес для прямого перевода",
+        pack_mega_title: "Пакет «7 Мегашишек»",
+        ton_pack_mega_title: "Пакет «7 Мегашишек»",
         ton_pack_02_title: "Пакет «Старт»",
         ton_pack_05_title: "Пакет «Грибник»",
         ton_pack_10_title: "Пакет «Богатый Енот»",
@@ -5184,6 +5291,8 @@
         ton_wallet_dest: "Recipient GRAM address (official wallet):",
         btn_pay_tonkeeper: "Pay via Tonkeeper / @wallet",
         btn_copy_ton_details: "Copy address for direct transfer",
+        pack_mega_title: "«7 Mega Cones» Pack",
+        ton_pack_mega_title: "«7 Mega Cones» Pack",
         ton_pack_02_title: "«Start» Pack",
         ton_pack_05_title: "«Mushroomer» Pack",
         ton_pack_10_title: "«Rich Raccoon» Pack",
@@ -8344,6 +8453,7 @@
     const TON_RECIPIENT_WALLET = "UQCr6tyXHAXmxyexwgRltYNZSOwIioAMQO5PP-F2NqvQGgwX";
 
     const TON_PACKS_INFO = {
+      pack_mega: { id: 'pack_mega_cones_7', ton: 10.0, cones: 0, mega_cones: 7, label: '10.0 GRAM', title: 'Пакет «7 Мегашишек»' },
       pack_02: { id: 'pack_02', ton: 2.0, cones: 20000, label: '2.0 GRAM', title: 'Пакет «Старт»' },
       pack_05: { id: 'pack_05', ton: 5.0, cones: 60000, label: '5.0 GRAM', title: 'Пакет «Грибник»' },
       pack_10: { id: 'pack_10', ton: 10.0, cones: 150000, label: '10.0 GRAM', title: 'Пакет «Богатый Енот»' },
@@ -8408,7 +8518,7 @@
     }
 
     function closeAllOfferModals() {
-      ['stars', 'pack_02', 'pack_05', 'pack_10', 'pack_30'].forEach(id => {
+      ['stars', 'pack_mega', 'pack_02', 'pack_05', 'pack_10', 'pack_30'].forEach(id => {
         const el = document.getElementById(`offer-modal-${id}`);
         if (el) el.classList.remove('active');
         const msg = document.getElementById(`ton-status-msg-${id}`);
@@ -8613,15 +8723,23 @@
 
           if (btn) btn.disabled = false;
           triggerHaptic('success');
-          tg.showAlert(currentLang === 'ru'
-            ? `🎉 Оплата ${pack.ton} GRAM прошла успешно!\nНа ваш баланс зачислено +${pack.cones.toLocaleString('ru-RU')} шишек!`
-            : `🎉 Payment of ${pack.ton} GRAM successful!\n+${pack.cones.toLocaleString('en-US')} cones credited!`);
+          if (pack.mega_cones) {
+            tg.showAlert(currentLang === 'ru'
+              ? `🎉 Оплата ${pack.ton} GRAM прошла успешно!\nВ инвентарь начислено +${pack.mega_cones} Мегашишек для прокачки Дупла!`
+              : `🎉 Payment of ${pack.ton} GRAM successful!\n+${pack.mega_cones} Mega Cones added to your inventory!`);
+          } else {
+            tg.showAlert(currentLang === 'ru'
+              ? `🎉 Оплата ${pack.ton} GRAM прошла успешно!\nНа ваш баланс зачислено +${pack.cones.toLocaleString('ru-RU')} шишек!`
+              : `🎉 Payment of ${pack.ton} GRAM successful!\n+${pack.cones.toLocaleString('en-US')} cones credited!`);
+          }
 
           closeOfferModal(packId);
           setTimeout(() => {
             loadTokenBalance();
             fetchEnergyFromServer();
             syncStats();
+            if (typeof fetchInventory === 'function') fetchInventory();
+            if (typeof fetchHollowStatus === 'function') fetchHollowStatus();
           }, 500);
 
         } catch (err) {

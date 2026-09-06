@@ -66,6 +66,16 @@ TON_RECIPIENT_WALLET = os.getenv("TON_RECIPIENT_WALLET", "UQCr6tyXHAXmxyexwgRltY
 
 TON_OFFERS = [
     {
+        "id": "pack_mega_cones_7",
+        "ton": 10.0,
+        "cones": 0,
+        "mega_cones": 7,
+        "bonus": "+3 Ур. Дупла",
+        "popular": True,
+        "title_ru": "🌟 Пакет «7 Мегашишек»",
+        "title_en": "🌟 «7 Mega Cones» Pack"
+    },
+    {
         "id": "pack_02",
         "ton": 2.0,
         "cones": 20000,
@@ -4223,9 +4233,10 @@ def api_ton_notify_payment():
         except (ValueError, TypeError):
             return jsonify({'error': 'invalid user_id'}), 400
 
-        # Проверяем, это стандартный пакет или пакет прокачки Дупла
+        # Проверяем, это стандартный пакет, пакет прокачки Дупла или пакет Мегашишек
         is_hollow_starter = (pack_id == "hollow_starter_10ton")
         is_hollow_gram = pack_id.startswith("hollow_gram_")
+        is_mega_cones = (pack_id in ["pack_mega_cones_7", "mega_cones_10ton", "pack_mega"])
 
         if is_hollow_starter:
             ton_amount = 10.0
@@ -4239,11 +4250,15 @@ def api_ton_notify_payment():
             ton_amount = float(2 * (2 ** (from_level - 1)))
             cones_amount = 0
             pack_title = f"🌳 Прокачка Дупла ({from_level} → {from_level + 1} ур.)"
+        elif is_mega_cones:
+            ton_amount = 10.0
+            cones_amount = 0
+            pack_title = "🌟 Пакет «7 Мегашишек» (+3 Уровня Дупла)"
         else:
             selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
             if not selected_pack:
                 return jsonify({'error': 'Unknown pack'}), 400
-            cones_amount = selected_pack['cones']
+            cones_amount = selected_pack.get('cones', 0)
             ton_amount = selected_pack['ton']
             pack_title = selected_pack['title_ru']
 
@@ -4269,7 +4284,7 @@ def api_ton_notify_payment():
             ''', (payment_id, user_id, ton_amount, cones_amount, tx_boc, comment))
             conn.commit()
 
-            # Обрабатываем прокачку Дупла
+            # Обрабатываем прокачку Дупла / Мегашишки
             final_hollow_level = 1
             if is_hollow_starter:
                 cursor.execute("UPDATE user_stats SET hollow_level = MAX(COALESCE(hollow_level, 1), 4) WHERE user_id = ?", (user_id,))
@@ -4285,6 +4300,9 @@ def api_ton_notify_payment():
                 row_h = cursor.fetchone()
                 final_hollow_level = row_h['hollow_level'] if row_h else 2
                 logger.info(f"🌳 Прокачка Дупла за GRAM: {user_id} повысил уровень Дупла до {final_hollow_level}!")
+            elif is_mega_cones:
+                add_inventory_item(user_id, 'mega_cone', 7)
+                logger.info(f"🌟 Пакет Мегашишек: {user_id} получил 7 Мегашишек за 10 TON!")
         finally:
             conn.close()
 
@@ -4330,6 +4348,16 @@ def api_ton_notify_payment():
                 f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
                 f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
             )
+        elif is_mega_cones:
+            admin_text = (
+                f"🌟 <b>ПАКЕТ «7 МЕГАШИШЕК» (ОПЛАТА 10 TON)</b>\n\n"
+                f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                f"💎 <b>Оплачено:</b> 10.0 TON\n"
+                f"🌟 <b>Начислено в инвентарь:</b> +7 Мегашишек (хватит на +3 Уровня Дупла!)\n"
+                f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                f"📝 <b>Комментарий:</b> <code>{html.escape(comment or f'rl_{user_id}_{pack_id}')}</code>"
+            )
         else:
             admin_text = (
                 f"💎 <b>НОВАЯ ОПЛАТА GRAM!</b>\n\n"
@@ -4365,6 +4393,14 @@ def api_ton_notify_payment():
                         f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
                         f"Приятной игры в <b>Raccoon Life</b>! 🦝"
                     )
+                elif is_mega_cones:
+                    user_msg = (
+                        f"🌟 <b>Оплата 10 TON прошла успешно!</b>\n\n"
+                        f"✨ В ваш инвентарь начислено <b>+7 Мегашишек</b>!\n"
+                        f"🌳 Этого запаса хватит на прокачку <b>+3 уровней Дупла</b>!\n"
+                        f"🎒 Откройте раздел «Дупло» или «Инвентарь», чтобы активировать их.\n\n"
+                        f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                    )
                 else:
                     user_msg = (
                         f"💎 <b>Оплата {ton_amount} GRAM прошла успешно!</b>\n\n"
@@ -4383,6 +4419,7 @@ def api_ton_notify_payment():
         return jsonify({
             'status': 'ok',
             'cones_added': cones_amount,
+            'mega_cones_added': 7 if is_mega_cones else 0,
             'balance': result['balance'] if result else 0,
             'hollow_level': final_hollow_level if (is_hollow_starter or is_hollow_gram) else None
         })
@@ -4444,6 +4481,7 @@ def check_blockchain_incoming_transactions():
                 pack_id = '_'.join(parts[2:])
                 is_hollow_starter = (pack_id == "hollow_starter_10ton")
                 is_hollow_gram = pack_id.startswith("hollow_gram_")
+                is_mega_cones = (pack_id in ["pack_mega_cones_7", "mega_cones_10ton", "pack_mega"])
 
                 if is_hollow_starter:
                     ton_amount = 10.0
@@ -4457,11 +4495,15 @@ def check_blockchain_incoming_transactions():
                     ton_amount = float(2 * (2 ** (from_level - 1)))
                     cones_amount = 0
                     pack_title = f"🌳 Прокачка Дупла ({from_level} → {from_level + 1} ур.)"
+                elif is_mega_cones:
+                    ton_amount = 10.0
+                    cones_amount = 0
+                    pack_title = "🌟 Пакет «7 Мегашишек» (+3 Уровня Дупла)"
                 else:
                     selected_pack = next((p for p in TON_OFFERS if p['id'] == pack_id), None)
                     if not selected_pack:
                         continue
-                    cones_amount = selected_pack['cones']
+                    cones_amount = selected_pack.get('cones', 0)
                     ton_amount = selected_pack['ton']
                     pack_title = selected_pack['title_ru']
 
@@ -4499,6 +4541,9 @@ def check_blockchain_incoming_transactions():
                         row_h = cursor.fetchone()
                         final_hollow_level = row_h['hollow_level'] if row_h else 2
                         logger.info(f"🌳 [Блокчейн] Прокачка Дупла: {user_id} получил {final_hollow_level}-й уровень Дупла!")
+                    elif is_mega_cones:
+                        add_inventory_item(user_id, 'mega_cone', 7)
+                        logger.info(f"🌟 [Блокчейн] Пакет Мегашишек: {user_id} получил 7 Мегашишек за 10 TON!")
                 finally:
                     conn.close()
 
@@ -4546,6 +4591,17 @@ def check_blockchain_incoming_transactions():
                         f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
                         f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
                     )
+                elif is_mega_cones:
+                    admin_text = (
+                        f"🌟 <b>ПАКЕТ «7 МЕГАШИШЕК» (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
+                        f"👤 <b>Игрок:</b> {html.escape(user_name)}\n"
+                        f"🆔 <b>ID:</b> <code>{user_id}</code>\n"
+                        f"💎 <b>Оплачено:</b> 10.0 TON\n"
+                        f"🌟 <b>Начислено в инвентарь:</b> +7 Мегашишек (хватит на +3 Уровня Дупла!)\n"
+                        f"👛 <b>Кошелек:</b> <code>{TON_RECIPIENT_WALLET}</code>\n"
+                        f"📝 <b>Комментарий:</b> <code>{html.escape(comment)}</code>\n"
+                        f"🔗 <b>TX Hash:</b> <code>{html.escape(tx_hash)}</code>"
+                    )
                 else:
                     admin_text = (
                         f"💎 <b>НОВАЯ ОПЛАТА GRAM (БЛОКЧЕЙН ПОДТВЕРЖДЕН)!</b>\n\n"
@@ -4576,6 +4632,14 @@ def check_blockchain_incoming_transactions():
                                 f"🌳 <b>Оплата {ton_amount} GRAM подтверждена в блокчейне!</b>\n\n"
                                 f"✨ Ваше <b>Дупло</b> прокачано до <b>{final_hollow_level}-го уровня</b>!\n"
                                 f"🌰 Новая добыча: <b>{1000 * (2**(final_hollow_level-1)):,} Шишек каждые 24 часа</b>!\n\n"
+                                f"Приятной игры в <b>Raccoon Life</b>! 🦝"
+                            )
+                        elif is_mega_cones:
+                            user_msg = (
+                                f"🌟 <b>Оплата 10 TON подтверждена в блокчейне!</b>\n\n"
+                                f"✨ В ваш инвентарь начислено <b>+7 Мегашишек</b>!\n"
+                                f"🌳 Этого запаса хватит на прокачку <b>+3 уровней Дупла</b>!\n"
+                                f"🎒 Откройте раздел «Дупло» или «Инвентарь», чтобы активировать их.\n\n"
                                 f"Приятной игры в <b>Raccoon Life</b>! 🦝"
                             )
                         else:
